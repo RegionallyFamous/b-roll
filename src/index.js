@@ -357,42 +357,72 @@
 	].join( '' ), '#0d0412' );
 
 	// --- The Grid (Tron) ------------------------------------------ //
+	// v0.4: scrolling perspective grid with brighter near rows and
+	// intersection dots, a horizon-glow reflection band below the
+	// vanishing line, two cycles mid-circuit with long fade-trails,
+	// and a data packet traveling along one of the trails.
 	PREVIEWS[ 'tron-grid' ] = preview( [
 		"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
 			"<defs>",
-				"<linearGradient id='sky2' x1='0' y1='0' x2='0' y2='1'>",
+				"<linearGradient id='tgSky' x1='0' y1='0' x2='0' y2='1'>",
 					"<stop offset='0' stop-color='#001830'/><stop offset='.5' stop-color='#000814'/><stop offset='1' stop-color='#000'/>",
 				"</linearGradient>",
-				"<filter id='gl' x='-50%' y='-50%' width='200%' height='200%'><feGaussianBlur stdDeviation='2.6'/></filter>",
+				"<filter id='tgGl' x='-50%' y='-50%' width='200%' height='200%'><feGaussianBlur stdDeviation='2.6'/></filter>",
+				"<linearGradient id='tgRefl' x1='0' y1='0' x2='0' y2='1'>",
+					"<stop offset='0' stop-color='#ff7a1a' stop-opacity='.55'/>",
+					"<stop offset='1' stop-color='#000' stop-opacity='0'/>",
+				"</linearGradient>",
 			"</defs>",
-			"<rect width='160' height='100' fill='url(#sky2)'/>",
-			// horizon halo (bloom)
-			"<rect x='0' y='46' width='160' height='8' fill='#ff7a1a' opacity='.6' filter='url(#gl)'/>",
-			"<rect x='0' y='50' width='160' height='2' fill='#ff9f4a'/>",
-			// perspective grid
+			"<rect width='160' height='100' fill='url(#tgSky)'/>",
+			// Horizon halo (bloom) + bright horizon line.
+			"<rect x='0' y='45' width='160' height='9' fill='#ff7a1a' opacity='.7' filter='url(#tgGl)'/>",
+			"<rect x='0' y='51' width='160' height='2' fill='#ff9f4a'/>",
+			// Horizon reflection glow (glossy floor).
+			"<rect x='0' y='53' width='160' height='18' fill='url(#tgRefl)'/>",
+			// Perspective grid — rows with increasing brightness/width.
 			"<g stroke='#00c0ff' fill='none'>",
-				"<line x1='0' y1='58' x2='160' y2='58' stroke-width='.4' opacity='.55'/>",
-				"<line x1='0' y1='66' x2='160' y2='66' stroke-width='.5' opacity='.65'/>",
-				"<line x1='0' y1='76' x2='160' y2='76' stroke-width='.6' opacity='.75'/>",
-				"<line x1='0' y1='88' x2='160' y2='88' stroke-width='.7' opacity='.85'/>",
-				"<line x1='80' y1='52' x2='-20' y2='100' stroke-width='.4' opacity='.6'/>",
-				"<line x1='80' y1='52' x2='20' y2='100' stroke-width='.4' opacity='.6'/>",
-				"<line x1='80' y1='52' x2='50' y2='100' stroke-width='.4' opacity='.6'/>",
-				"<line x1='80' y1='52' x2='80' y2='100' stroke-width='.4' opacity='.6'/>",
-				"<line x1='80' y1='52' x2='110' y2='100' stroke-width='.4' opacity='.6'/>",
-				"<line x1='80' y1='52' x2='140' y2='100' stroke-width='.4' opacity='.6'/>",
-				"<line x1='80' y1='52' x2='180' y2='100' stroke-width='.4' opacity='.6'/>",
+				"<line x1='0' y1='57' x2='160' y2='57' stroke-width='.3' opacity='.32'/>",
+				"<line x1='0' y1='62' x2='160' y2='62' stroke-width='.4' opacity='.5'/>",
+				"<line x1='0' y1='68' x2='160' y2='68' stroke-width='.6' opacity='.65'/>",
+				"<line x1='0' y1='76' x2='160' y2='76' stroke-width='.8' opacity='.8'/>",
+				"<line x1='0' y1='86' x2='160' y2='86' stroke-width='1.1' opacity='.95'/>",
+				"<line x1='0' y1='96' x2='160' y2='96' stroke-width='1.4' opacity='1'/>",
 			"</g>",
-			// cycle trails
-			"<path d='M 18 94 L 18 78 L 40 78' stroke='#00eaff' stroke-width='1.8' fill='none' filter='url(#gl)' opacity='.65'/>",
-			"<path d='M 18 94 L 18 78 L 40 78' stroke='#00eaff' stroke-width='1.4' fill='none'/>",
-			"<rect x='36' y='76' width='8' height='4' fill='#fff'/>",
-			"<circle cx='40' cy='78' r='4' fill='#00eaff' opacity='.55' filter='url(#gl)'/>",
-			// opposing cycle
-			"<path d='M 142 72 L 120 72' stroke='#ff6d1f' stroke-width='1.6' fill='none' filter='url(#gl)' opacity='.6'/>",
-			"<path d='M 142 72 L 120 72' stroke='#ff6d1f' stroke-width='1.3' fill='none'/>",
-			"<rect x='116' y='70' width='8' height='4' fill='#fff'/>",
-			"<circle cx='120' cy='72' r='4' fill='#ff6d1f' opacity='.55' filter='url(#gl)'/>",
+			// Near rows get a bloom pass for the neon-ing.
+			"<g stroke='#40d8ff' fill='none' opacity='.55' filter='url(#tgGl)'>",
+				"<line x1='0' y1='86' x2='160' y2='86' stroke-width='1.6'/>",
+				"<line x1='0' y1='96' x2='160' y2='96' stroke-width='2'/>",
+			"</g>",
+			// Vertical convergence lines.
+			"<g stroke='#00c0ff' fill='none' opacity='.35'>",
+				"<line x1='80' y1='53' x2='-40' y2='100' stroke-width='.5'/>",
+				"<line x1='80' y1='53' x2='10' y2='100' stroke-width='.5'/>",
+				"<line x1='80' y1='53' x2='45' y2='100' stroke-width='.5'/>",
+				"<line x1='80' y1='53' x2='80' y2='100' stroke-width='.5'/>",
+				"<line x1='80' y1='53' x2='115' y2='100' stroke-width='.5'/>",
+				"<line x1='80' y1='53' x2='150' y2='100' stroke-width='.5'/>",
+				"<line x1='80' y1='53' x2='200' y2='100' stroke-width='.5'/>",
+			"</g>",
+			// Intersection dots on the two near rows.
+			"<g fill='#9ef2ff'>",
+				"<circle cx='18' cy='86' r='.9'/><circle cx='42' cy='86' r='1'/><circle cx='64' cy='86' r='1.1'/>",
+				"<circle cx='80' cy='86' r='1.1'/><circle cx='96' cy='86' r='1.1'/><circle cx='118' cy='86' r='1'/><circle cx='142' cy='86' r='.9'/>",
+				"<circle cx='8' cy='96' r='1.2'/><circle cx='36' cy='96' r='1.3'/><circle cx='62' cy='96' r='1.4'/>",
+				"<circle cx='80' cy='96' r='1.4'/><circle cx='98' cy='96' r='1.4'/><circle cx='124' cy='96' r='1.3'/><circle cx='152' cy='96' r='1.2'/>",
+			"</g>",
+			// Cyan cycle trail — comes from upper-left, turns down.
+			"<path d='M 18 66 L 18 80 L 42 80 L 42 90' stroke='#00eaff' stroke-width='3' fill='none' filter='url(#tgGl)' opacity='.7'/>",
+			"<path d='M 18 66 L 18 80 L 42 80 L 42 90' stroke='#00eaff' stroke-width='1.5' fill='none'/>",
+			"<rect x='38' y='87' width='8' height='4' fill='#fff'/>",
+			"<circle cx='42' cy='90' r='5' fill='#00eaff' opacity='.55' filter='url(#tgGl)'/>",
+			// Data packet traveling along cyan trail.
+			"<circle cx='30' cy='80' r='3.8' fill='#00eaff' opacity='.6' filter='url(#tgGl)'/>",
+			"<circle cx='30' cy='80' r='1.6' fill='#ffffff'/>",
+			// Orange cycle trail — runs right, turns up.
+			"<path d='M 142 70 L 110 70 L 110 84' stroke='#ff6d1f' stroke-width='3' fill='none' filter='url(#tgGl)' opacity='.65'/>",
+			"<path d='M 142 70 L 110 70 L 110 84' stroke='#ff6d1f' stroke-width='1.4' fill='none'/>",
+			"<rect x='106' y='82' width='8' height='4' fill='#fff'/>",
+			"<circle cx='110' cy='84' r='5' fill='#ff6d1f' opacity='.55' filter='url(#tgGl)'/>",
 		"</svg>",
 	].join( '' ), '#000814' );
 
