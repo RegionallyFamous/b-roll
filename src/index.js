@@ -1,31 +1,32 @@
 /**
- * B-Roll for WP Desktop Mode — v0.3 registrar
+ * B-Roll for WP Desktop Mode — v0.6 registrar
  * ---------------------------------------------------------------
- * Thin entrypoint that only registers metadata and lazy-loads
- * each scene's implementation the moment a user picks it.
+ * Scaling pillars:
  *
- * Architecture:
- *   - This file defines every scene's preview swatch + label,
- *     installs shared helpers on window.__bRoll, and wires a
- *     shared mount runner.
- *   - Each scene's Pixi logic lives in src/scenes/<slug>.js and
- *     is declared as a module via wp.desktop.registerModule().
- *   - Each wallpaper declares needs: ['pixijs', 'b-roll-<slug>'],
- *     so the shell only fetches a scene's 200–400 lines of Pixi
- *     code when that scene is actually selected.
- *   - Registering N wallpapers now costs metadata only — you can
- *     ship hundreds without bloating the picker or the bundle.
+ *   1. Manifest-driven. The scene list lives in src/scenes.json and
+ *      is hydrated into this page via wp_localize_script as
+ *      window.bRoll.scenes. Adding a scene never edits this file.
+ *
+ *   2. Lazy at every layer. Boot only fetches this one file. The
+ *      in-canvas picker UI, each scene's Pixi implementation, its
+ *      painted backdrop JPG, and the preview thumbnails are all
+ *      fetched on demand. Cold start stays O(1) in scene count.
+ *
+ *   3. Single shell card. We register exactly one 'b-roll' wallpaper
+ *      with the WP Desktop shell. Scene selection happens inside the
+ *      canvas via a gear button that opens a searchable, tag-filtered
+ *      picker. Per-user pick is persisted through POST /b-roll/v1/prefs.
  */
 ( function () {
 	'use strict';
 	if ( typeof window === 'undefined' ) return;
 
-	// ================================================================ //
-	// Shared helpers on window.__bRoll — scene files use them.
-	// ================================================================ //
-
 	window.__bRoll = window.__bRoll || {};
 	window.__bRoll.scenes = window.__bRoll.scenes || {};
+
+	// ============================================================ //
+	// Shared helpers — scene files read these from env.helpers.
+	// ============================================================ //
 
 	var rand   = function ( a, b ) { return a + Math.random() * ( b - a ); };
 	var irand  = function ( a, b ) { return ( a + Math.random() * ( b - a ) ) | 0; };
@@ -62,72 +63,162 @@
 		lerpColor: lerpColor, paintVGradient: paintVGradient, makeBloomLayer: makeBloomLayer,
 	};
 
-	// ================================================================ //
-	// Preview swatches — painterly raster thumbnails shipped under
-	// assets/previews/<slug>.jpg. Each one was hand-generated as a
-	// 1.6:1 painterly matte painting of its scene's mood (no franchise
-	// IP), then resized + JPG-encoded (~640px wide, q75) so the entire
-	// 10-image set adds ~650 KB to the plugin payload.
-	//
-	// They're returned as CSS `background` shorthand (url(...) +
-	// fallback solid color), consumable directly by <wpd-swatch>.
-	// The version query param ensures swatches refresh whenever the
-	// plugin version bumps so users don't see stale art.
-	// ================================================================ //
+	// ============================================================ //
+	// Hydrated config from wp_localize_script.
+	// ============================================================ //
 
-	var bRollCfg = window.bRoll || {};
-	var PREVIEW_BASE = ( bRollCfg.pluginUrl || '' ) + '/assets/previews/';
-	var PREVIEW_QS = bRollCfg.version ? '?v=' + encodeURIComponent( bRollCfg.version ) : '';
+	var cfg = window.bRoll || {};
+	var PLUGIN_URL = cfg.pluginUrl || '';
+	var VERSION    = cfg.version   || '0';
+	var VER_QS     = VERSION ? '?v=' + encodeURIComponent( VERSION ) : '';
+	var SCENES     = Array.isArray( cfg.scenes ) ? cfg.scenes : [];
+	var SCENE_MAP  = {};
+	for ( var si = 0; si < SCENES.length; si++ ) SCENE_MAP[ SCENES[ si ].slug ] = SCENES[ si ];
 
-	function preview( slug, fallback ) {
-		var url = PREVIEW_BASE + slug + '.jpg' + PREVIEW_QS;
-		return "url(\"" + url + "\") center/cover no-repeat, " + ( fallback || '#111' );
+	function assetUrl( rel ) {
+		return PLUGIN_URL + '/' + rel.replace( /^\/+/, '' ) + VER_QS;
 	}
 
-	var PREVIEWS = {
-		'code-rain':    preview( 'code-rain',    '#021b0f' ),
-		'hyperspace':   preview( 'hyperspace',   '#000010' ),
-		'neon-rain':    preview( 'neon-rain',    '#0d0412' ),
-		'tron-grid':    preview( 'tron-grid',    '#000814' ),
-		'couch-gag':    preview( 'couch-gag',    '#7ab9f0' ),
-		'rainbow-road': preview( 'rainbow-road', '#0a001e' ),
-		'soot-sprites': preview( 'soot-sprites', '#e0deed' ),
-		'upside-down':  preview( 'upside-down',  '#1a0410' ),
-		'refinery':     preview( 'refinery',     '#d4ded9' ),
-		'shimmer':      preview( 'shimmer',      '#22071a' ),
+	function defaultScene() {
+		if ( SCENE_MAP[ 'rainbow-road' ] ) return 'rainbow-road';
+		return SCENES.length ? SCENES[ 0 ].slug : '';
+	}
+
+	function previewBg( slug ) {
+		var s = SCENE_MAP[ slug ] || {};
+		var url = assetUrl( 'assets/previews/' + slug + '.jpg' );
+		return "url(\"" + url + "\") center/cover no-repeat, " + ( s.fallbackColor || '#111' );
+	}
+
+	// ============================================================ //
+	// loadScript — idempotent <script src> injection.
+	// ============================================================ //
+
+	var loading = {};
+	function loadScript( url ) {
+		if ( loading[ url ] ) return loading[ url ];
+		loading[ url ] = new Promise( function ( resolve, reject ) {
+			var s = document.createElement( 'script' );
+			s.src = url;
+			s.async = true;
+			s.onload = function () { resolve(); };
+			s.onerror = function () {
+				delete loading[ url ];
+				reject( new Error( 'Failed to load ' + url ) );
+			};
+			document.head.appendChild( s );
+		} );
+		return loading[ url ];
+	}
+
+	function loadScene( slug ) {
+		if ( window.__bRoll.scenes[ slug ] ) return Promise.resolve();
+		return loadScript( assetUrl( 'src/scenes/' + slug + '.js' ) ).then( function () {
+			if ( ! window.__bRoll.scenes[ slug ] ) {
+				throw new Error( 'Scene did not self-register: ' + slug );
+			}
+		} );
+	}
+
+	function loadPicker() {
+		if ( window.__bRoll.picker && typeof window.__bRoll.picker.open === 'function' ) {
+			return Promise.resolve( window.__bRoll.picker );
+		}
+		return loadScript( assetUrl( 'src/picker.js' ) ).then( function () {
+			if ( ! window.__bRoll.picker || typeof window.__bRoll.picker.open !== 'function' ) {
+				throw new Error( 'Picker did not self-register' );
+			}
+			return window.__bRoll.picker;
+		} );
+	}
+
+	// ============================================================ //
+	// Prefs — one REST round trip per patch; localStorage fallback.
+	// ============================================================ //
+
+	var LS_KEY = 'b-roll:prefs:v1';
+	var prefsState = {
+		scene: cfg.scene || defaultScene(),
+		favorites: Array.isArray( cfg.favorites ) ? cfg.favorites.slice() : [],
+		recents: Array.isArray( cfg.recents ) ? cfg.recents.slice() : [],
+	};
+	// Hydrate from localStorage only if the server didn't give us anything useful.
+	try {
+		var lsRaw = window.localStorage && window.localStorage.getItem( LS_KEY );
+		if ( lsRaw ) {
+			var ls = JSON.parse( lsRaw );
+			if ( ls && typeof ls === 'object' ) {
+				if ( ! cfg.scene && typeof ls.scene === 'string' && SCENE_MAP[ ls.scene ] ) prefsState.scene = ls.scene;
+				if ( ( ! Array.isArray( cfg.favorites ) || ! cfg.favorites.length ) && Array.isArray( ls.favorites ) ) prefsState.favorites = ls.favorites.filter( function ( s ) { return !! SCENE_MAP[ s ]; } );
+				if ( ( ! Array.isArray( cfg.recents ) || ! cfg.recents.length ) && Array.isArray( ls.recents ) ) prefsState.recents = ls.recents.filter( function ( s ) { return !! SCENE_MAP[ s ]; } );
+			}
+		}
+	} catch ( e ) { /* ignore */ }
+
+	function mirrorToLS() {
+		try {
+			window.localStorage && window.localStorage.setItem( LS_KEY, JSON.stringify( prefsState ) );
+		} catch ( e ) { /* storage full / disabled — ignore */ }
+	}
+
+	function savePrefs( patch ) {
+		Object.keys( patch ).forEach( function ( k ) { prefsState[ k ] = patch[ k ]; } );
+		mirrorToLS();
+		if ( ! cfg.restUrl ) return Promise.resolve( prefsState );
+		return fetch( cfg.restUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-WP-Nonce': cfg.restNonce || '',
+			},
+			body: JSON.stringify( patch ),
+		} ).then( function ( r ) {
+			if ( ! r.ok ) throw new Error( 'prefs save failed: ' + r.status );
+			return r.json();
+		} ).catch( function ( err ) {
+			if ( window.console ) window.console.warn( 'B-Roll: prefs save deferred to localStorage', err );
+			return prefsState;
+		} );
+	}
+
+	function recordRecent( slug ) {
+		var next = [ slug ].concat( prefsState.recents.filter( function ( s ) { return s !== slug; } ) );
+		if ( next.length > 12 ) next = next.slice( 0, 12 );
+		return savePrefs( { recents: next } );
+	}
+
+	function toggleFavorite( slug ) {
+		var have = prefsState.favorites.indexOf( slug ) !== -1;
+		var next = have ? prefsState.favorites.filter( function ( s ) { return s !== slug; } ) : prefsState.favorites.concat( [ slug ] );
+		if ( next.length > 50 ) next = next.slice( 0, 50 );
+		return savePrefs( { favorites: next } );
+	}
+
+	window.__bRoll.prefs = {
+		get: function () { return prefsState; },
+		save: savePrefs,
+		recordRecent: recordRecent,
+		toggleFavorite: toggleFavorite,
 	};
 
-	// ================================================================ //
-	// Scene manifest — order controls picker ordering.
-	// ================================================================ //
+	window.__bRoll.config = {
+		pluginUrl: PLUGIN_URL,
+		version:   VERSION,
+		assetUrl:  assetUrl,
+		previewBg: previewBg,
+		scenes:    SCENES,
+		sceneMap:  SCENE_MAP,
+	};
 
-	var SCENES = [
-		{ id: 'code-rain',     label: 'Code Rain' },
-		{ id: 'hyperspace',    label: 'Hyperspace' },
-		{ id: 'neon-rain',     label: 'Neon Rain' },
-		{ id: 'tron-grid',     label: 'The Grid' },
-		{ id: 'couch-gag',     label: 'Couch Gag' },
-		{ id: 'rainbow-road',  label: 'Rainbow Road' },
-		{ id: 'soot-sprites',  label: 'Soot Sprites' },
-		{ id: 'upside-down',   label: 'The Upside Down' },
-		{ id: 'refinery',      label: 'Refinery' },
-		{ id: 'shimmer',       label: 'Shimmer' },
-	];
+	// ============================================================ //
+	// Shared mount runner — one Pixi app, swap scenes in place.
+	// ============================================================ //
 
-	// ================================================================ //
-	// Shared mount runner — each scene's setup/tick/cleanup plugs in.
-	// ================================================================ //
-
-	function makeMount( sceneId ) {
-		return async function ( container, ctx ) {
-			var impl = window.__bRoll.scenes[ sceneId ];
-			if ( ! impl || typeof impl.setup !== 'function' ) {
-				if ( window.console ) window.console.error( 'B-Roll: scene impl missing: ' + sceneId );
-				return function () {};
-			}
-
+	function mountBRoll( container, ctx ) {
+		return (async function () {
 			var PIXI = window.PIXI;
-			var app = new PIXI.Application();
+			var app  = new PIXI.Application();
 			await app.init( {
 				resizeTo: container,
 				backgroundAlpha: 0,
@@ -142,26 +233,143 @@
 			app.canvas.style.height = '100%';
 
 			var env = { app: app, PIXI: PIXI, ctx: ctx, helpers: window.__bRoll.helpers };
-			var state = await impl.setup( env );
+			var currentSlug = null;
+			var currentImpl = null;
+			var currentState = null;
+			var currentTick = null;
+			var swapping = false;
 
-			function step( ticker ) {
-				env.dt = Math.min( 2.5, ticker.deltaTime );
-				if ( impl.tick ) impl.tick( state, env );
+			function stepFactory( impl, state ) {
+				return function ( ticker ) {
+					env.dt = Math.min( 2.5, ticker.deltaTime );
+					if ( impl.tick ) impl.tick( state, env );
+				};
 			}
 			function onResize() {
-				if ( impl.onResize ) impl.onResize( state, env );
+				if ( currentImpl && currentImpl.onResize ) {
+					currentImpl.onResize( currentState, env );
+				}
 			}
 			app.renderer.on( 'resize', onResize );
 
-			if ( ctx.prefersReducedMotion ) {
-				env.dt = 0;
-				if ( impl.tick ) impl.tick( state, env );
-				app.ticker.stop();
-			} else {
-				app.ticker.add( step );
+			async function swap( nextSlug ) {
+				if ( swapping ) return { ok: false, error: new Error( 'swap in progress' ) };
+				if ( nextSlug === currentSlug ) return { ok: true };
+				if ( ! SCENE_MAP[ nextSlug ] ) return { ok: false, error: new Error( 'unknown scene: ' + nextSlug ) };
+				swapping = true;
+				var prev = {
+					slug: currentSlug, impl: currentImpl, state: currentState, tick: currentTick,
+				};
+				try {
+					await loadScene( nextSlug );
+					var impl = window.__bRoll.scenes[ nextSlug ];
+					if ( ! impl || typeof impl.setup !== 'function' ) {
+						throw new Error( 'Scene impl missing: ' + nextSlug );
+					}
+					// Tear down previous scene cleanly.
+					if ( prev.impl ) {
+						if ( prev.tick ) app.ticker.remove( prev.tick );
+						try {
+							if ( prev.impl.cleanup ) prev.impl.cleanup( prev.state, env );
+						} catch ( e ) {
+							if ( window.console ) window.console.warn( 'B-Roll: cleanup threw', e );
+						}
+					}
+					app.stage.removeChildren();
+
+					var state = await impl.setup( env );
+					var tick = stepFactory( impl, state );
+					currentImpl = impl;
+					currentState = state;
+					currentTick = tick;
+					currentSlug = nextSlug;
+
+					if ( ctx.prefersReducedMotion ) {
+						env.dt = 0;
+						if ( impl.tick ) impl.tick( state, env );
+						app.ticker.stop();
+					} else {
+						app.ticker.add( tick );
+						app.ticker.start();
+					}
+					swapping = false;
+					return { ok: true };
+				} catch ( err ) {
+					if ( window.console ) window.console.error( 'B-Roll: swap failed', nextSlug, err );
+					// Leave previous scene running (it was never torn down if setup fell first;
+					// if we got past cleanup, the canvas will be empty but the app is alive).
+					swapping = false;
+					return { ok: false, error: err };
+				}
 			}
 
-			var visHook = 'b-roll/' + sceneId + '/visibility';
+			// ---------- Gear button ---------- //
+
+			var gear = document.createElement( 'button' );
+			gear.type = 'button';
+			gear.setAttribute( 'aria-label', 'Change B-Roll scene' );
+			gear.setAttribute( 'data-b-roll-gear', '' );
+			gear.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+			var gearStyles = {
+				position: 'absolute', right: '16px', bottom: '16px',
+				width: '40px', height: '40px', borderRadius: '50%',
+				border: '1px solid rgba(255,255,255,.18)',
+				background: 'rgba(18,18,22,.55)', color: 'rgba(255,255,255,.92)',
+				backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+				display: 'flex', alignItems: 'center', justifyContent: 'center',
+				cursor: 'pointer', zIndex: '2', padding: '0', outline: 'none',
+				opacity: '0', transition: 'opacity .25s ease',
+				boxShadow: '0 6px 18px rgba(0,0,0,.35)',
+			};
+			Object.keys( gearStyles ).forEach( function ( k ) { gear.style[ k ] = gearStyles[ k ]; } );
+			if ( ctx.prefersReducedMotion ) {
+				gear.style.transition = 'none';
+				gear.style.opacity = '1';
+			}
+			container.appendChild( gear );
+
+			var idleTimer = null;
+			function revealGear() {
+				if ( ctx.prefersReducedMotion ) return;
+				gear.style.opacity = '1';
+				if ( idleTimer ) clearTimeout( idleTimer );
+				idleTimer = setTimeout( function () { gear.style.opacity = '0'; }, 2200 );
+			}
+			container.addEventListener( 'pointermove', revealGear );
+			container.addEventListener( 'pointerenter', revealGear );
+			container.addEventListener( 'keydown', revealGear );
+			gear.addEventListener( 'focus', function () { gear.style.opacity = '1'; } );
+			gear.addEventListener( 'blur', revealGear );
+
+			var pickerOpen = false;
+			async function openPicker() {
+				if ( pickerOpen ) return;
+				pickerOpen = true;
+				try {
+					var picker = await loadPicker();
+					picker.open( {
+						host: container,
+						currentSlug: currentSlug,
+						prefersReducedMotion: !! ctx.prefersReducedMotion,
+						onSelect: function ( slug ) {
+							swap( slug ).then( function ( res ) {
+								if ( ! res.ok ) return;
+								savePrefs( { scene: slug } );
+								recordRecent( slug );
+							} );
+						},
+						onClose: function () { pickerOpen = false; gear.focus(); },
+					} );
+				} catch ( err ) {
+					pickerOpen = false;
+					if ( window.console ) window.console.error( 'B-Roll: picker failed to load', err );
+				}
+			}
+			gear.addEventListener( 'click', openPicker );
+
+			// ---------- Visibility + kickoff ---------- //
+
+			var visHook = 'b-roll/visibility';
 			function onVis( detail ) {
 				if ( ! detail || detail.id !== ctx.id ) return;
 				if ( detail.state === 'hidden' ) app.ticker.stop();
@@ -171,60 +379,61 @@
 				window.wp.hooks.addAction( 'wp-desktop.wallpaper.visibility', visHook, onVis );
 			}
 
+			var initial = prefsState.scene || defaultScene();
+			var first = await swap( initial );
+			if ( ! first.ok && initial !== defaultScene() ) {
+				// Retired or broken scene — reset and try default.
+				savePrefs( { scene: '' } );
+				await swap( defaultScene() );
+			}
+
 			return function teardown() {
 				if ( window.wp && window.wp.hooks ) {
 					window.wp.hooks.removeAction( 'wp-desktop.wallpaper.visibility', visHook );
 				}
+				if ( pickerOpen && window.__bRoll.picker && window.__bRoll.picker.close ) {
+					try { window.__bRoll.picker.close(); } catch ( e ) { /* ignore */ }
+				}
+				if ( idleTimer ) clearTimeout( idleTimer );
+				container.removeEventListener( 'pointermove', revealGear );
+				container.removeEventListener( 'pointerenter', revealGear );
+				container.removeEventListener( 'keydown', revealGear );
+				if ( gear.parentNode ) gear.parentNode.removeChild( gear );
 				app.renderer.off( 'resize', onResize );
-				if ( impl.cleanup ) impl.cleanup( state, env );
+				if ( currentTick ) app.ticker.remove( currentTick );
+				if ( currentImpl && currentImpl.cleanup ) {
+					try { currentImpl.cleanup( currentState, env ); } catch ( e ) { /* ignore */ }
+				}
 				app.destroy( true, { children: true, texture: true } );
 			};
-		};
+		})().catch( function ( err ) {
+			if ( window.console ) window.console.error( 'B-Roll: mount failed', err );
+			return function () {};
+		} );
 	}
 
-	// ================================================================ //
-	// Registration
-	// ================================================================ //
+	// ============================================================ //
+	// Registration — one wallpaper card.
+	// ============================================================ //
 
 	var registered = false;
 	function registerAll() {
 		if ( registered ) return;
 		if ( ! window.wp || ! window.wp.desktop ) return;
 		if ( typeof window.wp.desktop.registerWallpaper !== 'function' ) return;
-		if ( typeof window.wp.desktop.registerModule !== 'function' ) return;
 		registered = true;
 
-		var pluginUrl = ( window.bRoll && window.bRoll.pluginUrl ) || '';
-
-		for ( var i = 0; i < SCENES.length; i++ ) {
-			var s = SCENES[ i ];
-			var moduleId = 'b-roll/' + s.id;
-
-			// Register the scene's Pixi code as a lazy-loadable module.
-			( function ( slug, modId ) {
-				window.wp.desktop.registerModule( {
-					id: modId,
-					url: pluginUrl + '/src/scenes/' + slug + '.js',
-					isReady: function () {
-						return !! ( window.__bRoll.scenes && window.__bRoll.scenes[ slug ] );
-					},
-				} );
-			} )( s.id, moduleId );
-
-			// Register the wallpaper with needs: the scene module will load
-			// the moment a user picks this wallpaper.
-			try {
-				window.wp.desktop.registerWallpaper( {
-					id: 'b-roll/' + s.id,
-					label: s.label,
-					type: 'canvas',
-					preview: PREVIEWS[ s.id ] || '#111',
-					needs: [ 'pixijs', moduleId ],
-					mount: makeMount( s.id ),
-				} );
-			} catch ( e ) {
-				if ( window.console ) window.console.warn( 'B-Roll: failed to register ' + s.id, e );
-			}
+		try {
+			window.wp.desktop.registerWallpaper( {
+				id:      'b-roll',
+				label:   'B-Roll',
+				type:    'canvas',
+				preview: previewBg( 'b-roll' ),
+				needs:   [ 'pixijs' ],
+				mount:   mountBRoll,
+			} );
+		} catch ( e ) {
+			if ( window.console ) window.console.warn( 'B-Roll: registerWallpaper failed', e );
 		}
 	}
 

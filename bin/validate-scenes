@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Validate that every manifest entry has all three asset files.
+
+Checks:
+  - src/scenes/<slug>.js exists
+  - assets/previews/<slug>.jpg exists
+  - assets/wallpapers/<slug>.jpg exists
+  - scenes.json is parseable
+  - each entry has the required keys
+
+Exits non-zero on any failure. Intended for CI and pre-release checks.
+"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+MANIFEST = ROOT / "src" / "scenes.json"
+REQUIRED_KEYS = ("slug", "label", "franchise", "tags", "fallbackColor", "added")
+
+
+def main() -> int:
+    problems: list[str] = []
+
+    if not MANIFEST.exists():
+        print(f"missing manifest: {MANIFEST.relative_to(ROOT)}", file=sys.stderr)
+        return 1
+
+    try:
+        entries = json.loads(MANIFEST.read_text())
+    except json.JSONDecodeError as err:
+        print(f"manifest is not valid JSON: {err}", file=sys.stderr)
+        return 1
+
+    if not isinstance(entries, list):
+        print("manifest must be a JSON array", file=sys.stderr)
+        return 1
+
+    seen: set[str] = set()
+
+    for i, entry in enumerate(entries):
+        tag = f"[{i}]"
+        if not isinstance(entry, dict):
+            problems.append(f"{tag} entry is not an object")
+            continue
+        slug = entry.get("slug")
+        if isinstance(slug, str) and slug:
+            tag = f"[{slug}]"
+            if slug in seen:
+                problems.append(f"{tag} duplicate slug")
+            seen.add(slug)
+        for key in REQUIRED_KEYS:
+            if key not in entry:
+                problems.append(f"{tag} missing key '{key}'")
+        if "tags" in entry and not isinstance(entry["tags"], list):
+            problems.append(f"{tag} 'tags' must be a list")
+        if not slug:
+            continue
+        for sub, rel in (
+            ("scene JS", f"src/scenes/{slug}.js"),
+            ("preview", f"assets/previews/{slug}.jpg"),
+            ("wallpaper", f"assets/wallpapers/{slug}.jpg"),
+        ):
+            path = ROOT / rel
+            if not path.exists():
+                problems.append(f"{tag} missing {sub}: {rel}")
+
+    if problems:
+        for p in problems:
+            print(p, file=sys.stderr)
+        print(f"\n{len(problems)} problem(s) across {len(entries)} scene(s)", file=sys.stderr)
+        return 1
+
+    print(f"OK: {len(entries)} scenes validated")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,74 @@
+[
+    {
+        "slug": "code-rain",
+        "label": "Code Rain",
+        "franchise": "The Matrix",
+        "tags": ["sci-fi", "green", "text", "rain", "retro"],
+        "fallbackColor": "#021b0f",
+        "added": "0.1.0"
+    },
+    {
+        "slug": "hyperspace",
+        "label": "Hyperspace",
+        "franchise": "Star Wars",
+        "tags": ["sci-fi", "space", "stars", "blue"],
+        "fallbackColor": "#000010",
+        "added": "0.1.0"
+    },
+    {
+        "slug": "neon-rain",
+        "label": "Neon Rain",
+        "franchise": "Blade Runner",
+        "tags": ["sci-fi", "cyberpunk", "neon", "rain", "night", "purple"],
+        "fallbackColor": "#0d0412",
+        "added": "0.1.0"
+    },
+    {
+        "slug": "tron-grid",
+        "label": "The Grid",
+        "franchise": "Tron",
+        "tags": ["sci-fi", "neon", "grid", "blue", "retro"],
+        "fallbackColor": "#000814",
+        "added": "0.1.0"
+    },
+    {
+        "slug": "rainbow-road",
+        "label": "Rainbow Road",
+        "franchise": "Mario Kart",
+        "tags": ["space", "neon", "racing", "retro"],
+        "fallbackColor": "#0a001e",
+        "added": "0.1.0"
+    },
+    {
+        "slug": "soot-sprites",
+        "label": "Soot Sprites",
+        "franchise": "Studio Ghibli",
+        "tags": ["cozy", "anime", "cute", "pastel"],
+        "fallbackColor": "#e0deed",
+        "added": "0.1.0"
+    },
+    {
+        "slug": "upside-down",
+        "label": "The Upside Down",
+        "franchise": "Stranger Things",
+        "tags": ["horror", "red", "glitch", "smoke"],
+        "fallbackColor": "#1a0410",
+        "added": "0.1.0"
+    },
+    {
+        "slug": "refinery",
+        "label": "Refinery",
+        "franchise": "Severance",
+        "tags": ["retro", "green", "text", "corporate"],
+        "fallbackColor": "#d4ded9",
+        "added": "0.1.0"
+    },
+    {
+        "slug": "shimmer",
+        "label": "Shimmer",
+        "franchise": "Arcane",
+        "tags": ["cyberpunk", "magenta", "particles", "animated"],
+        "fallbackColor": "#22071a",
+        "added": "0.1.0"
+    }
+]

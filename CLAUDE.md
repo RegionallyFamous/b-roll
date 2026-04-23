@@ -5,7 +5,9 @@
 
 ## What this is
 
-B-Roll is a WordPress plugin that ships canvas wallpapers for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Each wallpaper is a pop-culture-themed PixiJS scene rendered on top of a painted 1920×1080 JPG backdrop. The plugin is architected to scale to hundreds of scenes without bundle bloat.
+B-Roll is a WordPress plugin that ships canvas wallpapers for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Each wallpaper is a pop-culture-themed PixiJS scene rendered on top of a painted 1920×1080 JPG backdrop.
+
+Since v0.6.0 the plugin exposes **one** wallpaper card to the WP Desktop shell — "B-Roll" — and scene selection lives in an **in-canvas picker** (a gear button injected over the wallpaper) that the plugin owns. The plugin is architected on three scaling pillars: a data-driven manifest (scenes are rows in JSON, not code), lazy-everything at boot (only `src/index.js` loads eagerly; the picker, per-scene JS, backdrops, and thumbnails load on-demand), and a search-first picker UI that stays usable at hundreds of scenes.
 
 - **Repo:** `RegionallyFamous/b-roll`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/b-roll/main/blueprint.json
@@ -13,12 +15,12 @@ B-Roll is a WordPress plugin that ships canvas wallpapers for [WP Desktop Mode](
 
 ## The architecture you need to know
 
-Not monolithic. The plugin is split into two layers:
-
 ```
 src/
-├── index.js            # thin registrar + shared helpers + raster preview URLs
-└── scenes/             # one file per scene
+├── index.js            # registrar + shared helpers + mount runner + lazy loaders + prefs
+├── picker.js           # in-canvas picker overlay (loaded on first gear click)
+├── scenes.json         # canonical scene manifest — single source of truth
+└── scenes/             # one file per scene; lazy-loaded when selected
     ├── code-rain.js    # self-registers under window.__bRoll.scenes['code-rain']
     ├── hyperspace.js
     └── ...
@@ -27,12 +29,46 @@ src/
 At boot, `index.js`:
 
 1. Attaches shared helpers (`rand`, `lerpColor`, `paintVGradient`, `makeBloomLayer`, etc.) to `window.__bRoll.helpers`.
-2. For every scene in the `SCENES` manifest:
-   - Calls `wp.desktop.registerModule({ id, url, isReady })` pointing at the scene's `src/scenes/<slug>.js`.
-   - Calls `wp.desktop.registerWallpaper({ id, label, type: 'canvas', preview, needs: ['pixijs', 'b-roll-<slug>'], mount })`.
-3. The shell only fetches a scene module the moment a user picks that wallpaper.
+2. Reads the hydrated bundle on `window.bRoll` (set by `wp_localize_script`): `pluginUrl`, `version`, `scenes` (the full manifest array), `scene` (user's current pick), `favorites`, `recents`, `restUrl`, `restNonce`.
+3. Registers **one** wallpaper via `wp.desktop.registerWallpaper({ id: 'b-roll', label: 'B-Roll', type: 'canvas', preview: <brand swatch>, needs: ['pixijs'], mount: mountBRoll })`. No per-scene registrations.
+4. Exposes `window.__bRoll.prefs` (with `get/save/recordRecent/toggleFavorite`) for the picker module to consume.
 
-This means **the `SCENES` array is the only place you add a scene-level registration**. Don't import scene files into `index.js` — they're lazy-fetched by the shell.
+The mount runner (`mountBRoll`) runs when the user activates the wallpaper:
+
+1. Creates a single `PIXI.Application` (`await app.init`).
+2. Loads the initial scene via `loadScene(slug)` — a `<script>` injection that resolves when the scene self-registers under `window.__bRoll.scenes[slug]`.
+3. Runs the scene's `setup` → wires `tick` + `onResize` → starts the ticker (or tick once + stop under `prefersReducedMotion`).
+4. Injects a gear button into the container; clicking it calls `loadPicker()` (injects `src/picker.js` on first click) and then `window.__bRoll.picker.open(...)`.
+5. `swap(slug)` **reuses the same Pixi app**: current scene's `cleanup` → `app.stage.removeChildren()` → load new scene JS if needed → new scene's `setup` → new `tick`. Errors on load or setup keep the previous scene running and surface via `console.error`.
+
+This means **adding a scene does not touch `index.js`**. It's a new row in `src/scenes.json` plus three asset files.
+
+## The scene manifest — `src/scenes.json`
+
+Single source of truth for scene metadata. Each entry:
+
+```json
+{
+    "slug": "rainbow-road",
+    "label": "Rainbow Road",
+    "franchise": "Mario Kart",
+    "tags": ["space", "neon", "racing", "retro"],
+    "fallbackColor": "#0a001e",
+    "added": "0.1.0"
+}
+```
+
+PHP loads it via `b_roll_scenes()` (in `b-roll.php`) to validate REST input and compute the default scene. JS receives the same array inlined as `window.bRoll.scenes` — zero extra round trip. The picker reads `franchise` + `tags` for filter chips and search, `fallbackColor` fills a card while its thumb loads, and `added` is available for a future "New in vX" badge.
+
+## Per-user persistence — `POST /b-roll/v1/prefs`
+
+One REST route, registered in `b-roll.php`, accepts any subset of `{ scene?, favorites?, recents? }` and writes the corresponding user meta:
+
+- `b_roll_scene` — string, current scene slug.
+- `b_roll_favorites` — array of slugs, capped to 50, validated against the manifest.
+- `b_roll_recents` — array of slugs, capped to 12, validated against the manifest.
+
+Permission: `is_user_logged_in()`. The JS prefs helper (`window.__bRoll.prefs.save(patch)`) mirrors every write to `localStorage` (`b-roll:prefs:v1`) so offline users still get a consistent picker; the next successful server save flushes through.
 
 ## Painted backdrop + Pixi motion overlay (v0.5.0+)
 
@@ -84,26 +120,50 @@ Every `src/scenes/<slug>.js` has the same shape:
 ```
 
 The shared mount runner in `src/index.js` handles:
-- Creating the Pixi `Application` (`await app.init`, `app.canvas`)
+- Creating the Pixi `Application` (`await app.init`, `app.canvas`) — **once per wallpaper activation, reused across scene swaps**
 - Styling the canvas (`position: absolute; inset: 0`)
 - Calling `tick` once with `dt=0` under `prefersReducedMotion`, then stopping the ticker
 - Subscribing to `wp-desktop.wallpaper.visibility` and pausing/resuming
-- Destroying the app on teardown (`app.destroy(true, { children: true, texture: true })`)
+- On scene swap: current scene's `cleanup(state, env)` → `app.stage.removeChildren()` → new scene's `setup(env)` → new `tick`
+- On wallpaper teardown: destroying the app (`app.destroy(true, { children: true, texture: true })`)
 
-So scene files **do not** build their own Pixi app, do not listen to visibility themselves, do not need to do teardown cleanup beyond releasing resources they allocated outside the Pixi scene graph (rare).
+So scene files **do not** build their own Pixi app, do not listen to visibility themselves, and do not need teardown cleanup beyond releasing resources they allocated outside the Pixi scene graph (rare).
+
+**Swap-in-place contract** (v0.6.0+): because the same `PIXI.Application` is reused across scene swaps, every scene's `setup` must tolerate being called on a fresh-but-reused app whose `app.stage` was just cleared. In practice this means: never cache anything module-level that you depend on across swaps (closures returned from `setup` are fine because `setup` is called anew); if your scene allocates things outside the Pixi scene graph (timers, listeners on `window`), release them in `cleanup`. Everything on `app.stage` is removed by the runner before your `setup` runs.
 
 ## The preview CSS gotcha (**important**)
 
 The `preview` value on a wallpaper registration is passed directly to `<wpd-swatch>` and applied as a CSS `background` property. **A bare URL is not a valid `background` value** — it must be wrapped in `url(...)` shorthand and ideally paired with a fallback color so a brief network hitch doesn't render a blank tile.
 
-Use the `preview()` helper in `src/index.js`. Since v0.4.1 it returns a URL pointing at `assets/previews/<slug>.jpg` (cache-busted with the plugin version):
+In v0.6.0+, the shell only sees one wallpaper card whose `preview` is a 3×3 collage (`assets/previews/b-roll.jpg`) generated by `tools/build-b-roll-swatch.py`. The per-scene preview JPGs in `assets/previews/<slug>.jpg` are now consumed by `src/picker.js` (with `<img loading="lazy" decoding="async">` and a `fallbackColor` underlay per card), not by the WP Desktop shell. Adding a new scene still requires shipping its `assets/previews/<slug>.jpg` (1.6:1 aspect, ~640px wide, JPG q75 keeps each ~50–100 KB) so the picker card renders.
+
+## The in-canvas picker — `src/picker.js`
+
+Loaded lazily on first gear click. Exposes `window.__bRoll.picker = { open(opts), close() }`.
+
+`opts` shape:
 
 ```javascript
-preview( slug, fallbackColor )
-// returns: url("<pluginUrl>/assets/previews/<slug>.jpg?v=<version>") center/cover no-repeat, <fallback>
+{
+    host: HTMLElement,                 // where to append the overlay (wallpaper container)
+    currentSlug: 'rainbow-road',
+    prefersReducedMotion: false,
+    onSelect( slug )   { /* user picked a scene */ },
+    onClose()          { /* overlay dismissed */ },
+}
 ```
 
-Adding a new scene therefore requires shipping a corresponding `assets/previews/<slug>.jpg` (1.6:1 aspect, ~640px wide, JPG q75 keeps each ~50–100 KB). Never inline a bare data URI or path string into the wallpaper's `preview` field — the v0.2 blank-swatch bug was exactly that.
+Invariants the picker holds:
+
+- Reads scenes from `window.__bRoll.config.scenes` (the manifest hydrated by PHP).
+- Reads + writes favorites/recents through `window.__bRoll.prefs` — the picker never hits REST directly; `prefs.toggleFavorite` / `savePrefs` route through `POST /b-roll/v1/prefs` with `localStorage` fallback.
+- Renders once per open; re-renders only when the query or tag filter changes (request-animation-frame throttled).
+- Virtualizes via CSS `content-visibility: auto` + `contain-intrinsic-size: 220px 140px` on each card — no windowing library.
+- Thumbnails `<img loading="lazy" decoding="async">`. Before load, the card background is `fallbackColor` from the manifest.
+- Keyboard-first: `/` focuses search, arrows navigate (grid-aware — Down moves a full row), Enter selects, `f` on a focused card toggles favorite, Esc closes. Focus restores to the previously-focused element (the gear) on close.
+- Accessible: `role="dialog" aria-modal="true"`, cards are `<button>` with `aria-pressed` reflecting the current selection.
+
+If you add new preference-driven UI (e.g. a "Shuffle" toggle), wire it through `window.__bRoll.prefs` so it gets the same REST + localStorage behavior for free.
 
 ## PixiJS v8 API conventions used throughout
 
@@ -130,13 +190,20 @@ b-roll/
 ├── CLAUDE.md               # this file
 ├── LICENSE                 # GPLv2
 ├── .gitignore
+├── bin/
+│   ├── new-scene           # scaffold a new scene (scene JS + manifest row)
+│   └── validate-scenes     # CI check: every manifest entry has JS + preview + wallpaper
+├── tools/
+│   └── build-b-roll-swatch.py  # regenerate assets/previews/b-roll.jpg collage
 ├── assets/
-│   ├── previews/           # painterly raster swatches for the picker
+│   ├── previews/           # painterly raster swatches (incl. b-roll.jpg brand swatch)
 │   └── wallpapers/         # painted 1920×1080 backdrops loaded per-scene
 └── src/
-    ├── index.js            # registrar + shared helpers + previews
+    ├── index.js            # registrar + shared mount + lazy loaders + prefs
+    ├── picker.js           # in-canvas picker overlay (loaded on first gear click)
+    ├── scenes.json         # canonical scene manifest
     └── scenes/
-        ├── code-rain.js    (+ 9 others)
+        ├── code-rain.js    (+ 8 others)
         └── ...
 ```
 
@@ -176,24 +243,25 @@ After the release, the Playground demo link auto-refreshes to the new zip on nex
 
 ### Add a new scene
 
-The `/new-scene` slash command (in `.claude/commands/new-scene.md`) scaffolds the file + manifest entry. Manually:
+Scaffold with `bin/new-scene`:
 
-1. Create `src/scenes/<slug>.js` from the skeleton above. Slug is kebab-case.
-2. Add an entry to `SCENES` in `src/index.js`:
-   ```javascript
-   { id: '<slug>', label: '<Display Name>' },
-   ```
-3. Drop a painterly raster swatch at `assets/previews/<slug>.jpg` (1.6:1, ~640px wide, JPG q75) and add a one-liner to `PREVIEWS` in `src/index.js`:
-   ```javascript
-   '<slug>': preview( '<slug>', '#fallback-color' ),
-   ```
-4. Drop a 1920×1080 painted backdrop at `assets/wallpapers/<slug>.jpg` (JPG q80, ~300–500 KB), and have `setup()` `await PIXI.Assets.load(...)` it as a `Sprite` (see "Painted backdrop + Pixi motion overlay" above).
+```bash
+bin/new-scene vaporwave "Vaporwave" "Aesthetic" sunset,retro,neon,pink '#1a0033'
+```
 
-That's the whole contract. The shell picks up the new scene the next time `wp-desktop.init` fires.
+That writes `src/scenes/vaporwave.js` (prefilled with the painted-backdrop loader) and appends a row to `src/scenes.json`. Then you still need:
+
+1. A painterly preview at `assets/previews/vaporwave.jpg` (1.6:1, ~640px wide, JPG q75, ~50–100 KB).
+2. A painted backdrop at `assets/wallpapers/vaporwave.jpg` (1920×1080, JPG q80, ~300–500 KB).
+
+Validate with `bin/validate-scenes` — it fails CI if any manifest entry is missing an asset.
+
+No JS edit is needed anywhere: `index.js` reads the manifest at runtime, and the picker picks up the new row automatically. The new scene appears in the picker grid the next time a user opens it.
 
 ## Gotchas & prior incidents
 
-- **The v0.2 blank-swatch bug** was the `preview` CSS issue above. Every preview must route through the `preview()` helper.
+- **The v0.2 blank-swatch bug** was the `preview` CSS issue above. Any CSS `background` string you return for a wallpaper's `preview` must use `url(...)` + a fallback color. The v0.6 brand swatch uses `previewBg('b-roll')` in `src/index.js` for exactly this reason.
+- **v0.5 → v0.6 migration**: when users upgrade, their shell-stored wallpaper pick (`b-roll/code-rain` or similar) stops matching because the shell only knows one `b-roll` card now. They pick "B-Roll" once and their scene selection afterward persists via user meta. Not worth writing a shim.
 - **GitHub release asset uploads** occasionally return "Error creating policy" right after release creation. The fix is a `sleep 2` + retry, or just wait and re-upload. The release itself is already created.
 - **catbox.moe** was used as a temporary host in v0.1 — it's no longer referenced anywhere. Don't reintroduce it; `raw.githubusercontent.com` and GitHub release downloads both serve with `Access-Control-Allow-Origin: *` which is what Playground needs.
 - **Playground's `?blueprint-url=`** expects a URL that serves with CORS. If you're hosting the blueprint somewhere new, verify with `curl -H "Origin: https://playground.wordpress.net" -I <url>` that `access-control-allow-origin: *` comes back on a real GET.

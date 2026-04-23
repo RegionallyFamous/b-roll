@@ -1,10 +1,10 @@
 # B-Roll for WP Desktop Mode
 
-A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Ten animated scenes that register themselves into the desktop shell's wallpaper picker the moment the plugin activates — and architected so each scene's Pixi code is only fetched when that scene is actually selected.
+A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Nine animated scenes living under one "B-Roll" wallpaper card, switchable via an in-canvas picker — architected to scale to hundreds without bloating the shell's picker or the plugin bundle.
 
 **Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode (active)
 
-## The ten scenes
+## The nine scenes
 
 | # | Scene | Franchise | One-liner |
 |---|---|---|---|
@@ -12,20 +12,39 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 | 02 | **Hyperspace** | Star Wars | 3D-layered radial starlines and a cinematic warp flash. |
 | 03 | **Neon Rain** | Blade Runner 2049 | Parallax city, two-pass neon signs, rain splashes, rare spinner. |
 | 04 | **The Grid** | Tron | Neon grid, light-cycles with gradient trails, intersection pulses. |
-| 05 | **Couch Gag** | The Simpsons | Sky + clouds + birds; every so often, a full living-room tableau drops in. |
-| 06 | **Rainbow Road** | Mario Kart | Scrolling neon road with bloom rails, distant planet, `?`-box. |
-| 07 | **Soot Sprites** | Studio Ghibli | Fluffy sprites; candy drops attract nearby ones into huddles. |
-| 08 | **The Upside Down** | Stranger Things | Tendrils from the edges, spiraling spores, glitchy title cards. |
-| 09 | **Refinery** | Severance | Numerals cluster into three shapes; occasionally turn "scary." |
-| 10 | **Shimmer** | Arcane | Rising magenta particles with trails, hex-grid waves, gold glints. |
+| 05 | **Rainbow Road** | Mario Kart | Scrolling neon road with bloom rails, distant planet, `?`-box. |
+| 06 | **Soot Sprites** | Studio Ghibli | Fluffy sprites; candy drops attract nearby ones into huddles. |
+| 07 | **The Upside Down** | Stranger Things | Tendrils from the edges, spiraling spores, glitchy title cards. |
+| 08 | **Refinery** | Severance | Numerals cluster into three shapes; occasionally turn "scary." |
+| 09 | **Shimmer** | Arcane | Rising magenta particles with trails, hex-grid waves, gold glints. |
 
-Pick any of them from **OS Settings → Wallpapers** once the plugin is active.
+Pick **B-Roll** from **OS Settings → Wallpapers**, then click the gear in the bottom-right of the live wallpaper to switch scenes. Your pick is remembered per-user.
+
+## v0.6.0 — One card, one picker, built for hundreds
+
+B-Roll used to register one shell wallpaper per scene. At nine scenes that was fine; at fifty it would have swamped the WP Desktop picker. v0.6 collapses the plugin into a **single "B-Roll" wallpaper card**. Scene selection moved into an in-canvas picker you open by hovering the wallpaper and clicking the gear in the bottom-right corner. Your choice is saved per-user via a new `POST /b-roll/v1/prefs` REST route (with a `localStorage` fallback on network failure), so your desktop remembers it across sessions.
+
+Architected on three scaling pillars:
+
+- **Manifest-driven**. The scene list lives in [src/scenes.json](src/scenes.json) with `{ slug, label, franchise, tags, fallbackColor, added }` per entry. Both PHP (for REST validation + default scene) and JS (for the picker) read the same file. Adding a scene is a manifest row plus three asset files — no code change in `index.js`.
+- **Lazy everything**. Boot only fetches [src/index.js](src/index.js). The picker UI ([src/picker.js](src/picker.js)) loads on first gear click. Each scene's Pixi implementation and its painted backdrop JPG load the moment that scene is chosen. Cold start stays O(1) in scene count.
+- **Search-first UI**. At 50+ scenes a grid is a wall. The picker opens with the search bar focused, fuzzy-matches across label + franchise + tags, exposes tag-chip filters derived from the manifest, and pins `Favorites` + `Recent` rows at the top. Keyboard-first: `/` focuses search, arrows navigate the grid, `Enter` selects, `f` toggles favorite, `Esc` closes. Virtualizes natively via CSS `content-visibility: auto` so 500 cards stay cheap. Thumbnails lazy-load via `<img loading="lazy">`.
+
+Also in this release:
+
+- Retired the **Couch Gag** scene (the suburban-backyard mood didn't sit cleanly next to the other nine). Plugin drops from ten scenes to nine.
+- New `assets/previews/b-roll.jpg` brand swatch (a 3×3 collage of the scene previews) for the shell's single card.
+- New `bin/new-scene` scaffolder and `bin/validate-scenes` CI check (every manifest entry must have JS + preview + wallpaper).
+- REST + persistence: `b_roll_scene`, `b_roll_favorites`, `b_roll_recents` in WP user meta; one REST route for the whole bundle.
+- Failure modes: a scene that 404s or throws in `setup` reverts to the previous scene without freezing the canvas; REST failures fall back to `localStorage` and retry on the next save.
+
+**Migration:** previously you picked the scene directly ("Rainbow Road") from the WP Desktop wallpaper picker. In v0.6 you pick "B-Roll" once; scene switching lives inside the wallpaper after that.
 
 ## v0.5.0 — Painted backdrops + live motion overlay
 
 Every scene now layers its existing Pixi animation on top of a **1920×1080 painterly JPG backdrop** (`assets/wallpapers/<slug>.jpg`, ~300–500 KB each, ~3.5 MB total). The painting carries everything that was static — sky gradients, city silhouettes, sigils, vignettes, lit windows, distant glows. The Pixi layers carry everything that moves: rain, glyph columns, light cycles, soot sprites, hex pulses, lightning, splashes, the falling couch.
 
-Practically, this means the backdrops do the heavy lifting on visual richness — Saturn really looks painted, the Blade Runner street really looks wet — and the motion stack stays tight and animated on top. A handful of procedural layers tied to old Pixi geometry got dropped in the process (Neon Rain's per-window flicker, the Tron horizon glow, Couch Gag's grass blades) because they no longer had buildings or hills to flicker over; the painting carries them statically instead. The plugin payload grew from ~677 KB to ~4.7 MB, mostly the JPGs.
+Practically, this means the backdrops do the heavy lifting on visual richness — Saturn really looks painted, the Blade Runner street really looks wet — and the motion stack stays tight and animated on top. A handful of procedural layers tied to old Pixi geometry got dropped in the process (Neon Rain's per-window flicker, the Tron horizon glow) because they no longer had buildings or hills to flicker over; the painting carries them statically instead. The plugin payload grew from ~677 KB to ~4.7 MB, mostly the JPGs.
 
 Every scene's `setup()` is now `async` so it can `await PIXI.Assets.load(url)` for its backdrop texture. `onResize()` re-runs the cover-fit math (`Math.max(scaleX, scaleY)`) so the painting fills 16:10 / 21:9 / 4:3 by cropping edges, never letterboxing.
 
@@ -41,7 +60,6 @@ Every scene was reworked for richer atmospherics without adding any external ass
 - **Hyperspace** — 3-layer parallax starfield, cubic acceleration streaks, a pulsing iris with 8 lens-flare spokes, chromatic warp-flash ghosts.
 - **Neon Rain** — wet-ground reflection band with ripple shimmer, fog haze between city layers, per-window flicker + block blackouts, distant lightning, droplet splashes.
 - **The Grid** — scrolling perspective grid with brighter near rows, intersection dots, horizon-glow reflection band, data packets traveling along fade-trails, collision rings.
-- **Couch Gag** — pulsing sun corona + lens-flare ghosts, 3 depth tiers of flapping birds, squash/stretch clouds, wind-swayed grass strip, wind gusts, bouncy couch landing.
 - **Rainbow Road** — slow-rotating Saturn with ring shadow, tinted starfield, scrolling chevron lane markings, abstract kart silhouettes racing to the camera, speed-line bursts from the vanishing point.
 - **Soot Sprites** — squash-and-stretch bounce physics, shared wind sway across the flock, dust-trail particles, eye-glance tracking toward the falling candy.
 - **The Upside Down** — tendrils animate grow → hold → retract → respawn with a bright tip blossom, 3-tier parallax spores, ash flakes with red/cyan chromatic aberration, scene-wide lightning veil flash, a static-line sweep rolling top→bottom.
@@ -61,30 +79,37 @@ https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.co
 1. Download the latest `b-roll.zip` from the [Releases](https://github.com/RegionallyFamous/b-roll/releases) page.
 2. WP Admin → Plugins → Add New → Upload Plugin → pick the zip → Activate.
 3. Enable desktop mode (admin bar toggle).
-4. OS Settings → Wallpapers → pick a scene.
+4. OS Settings → Wallpapers → pick **B-Roll**.
+5. Click the gear in the bottom-right of the wallpaper to switch scenes.
 
 Or clone this repo directly into `wp-content/plugins/b-roll/`.
 
 ## Architecture
 
-Designed to scale to hundreds of scenes without bloating the bundle or the picker.
+Designed to scale to hundreds of scenes without bloating the bundle or the shell's picker.
 
 ```
 b-roll/
-├── b-roll.php              # enqueues just src/index.js (+ plugin URL)
+├── b-roll.php              # enqueues src/index.js; REST route /b-roll/v1/prefs;
+│                             hydrates scenes.json + per-user prefs into bRoll localize.
 ├── blueprint.json          # Playground demo blueprint
+├── bin/
+│   ├── new-scene           # scaffold a new scene (JS stub + manifest row)
+│   └── validate-scenes     # CI check: every manifest entry has JS + both JPGs
+├── tools/
+│   └── build-b-roll-swatch.py   # regenerate assets/previews/b-roll.jpg
 ├── assets/
-│   ├── previews/           # painterly raster preview swatches (10× ~50–100 KB JPGs)
-│   └── wallpapers/         # painted 1920×1080 backdrops (10× ~300–500 KB JPGs)
+│   ├── previews/           # painterly thumbnails (1.6:1, ~640px, JPG q75) + b-roll.jpg brand swatch
+│   └── wallpapers/         # painted 1920×1080 backdrops (JPG q80)
 └── src/
-    ├── index.js            # thin registrar — metadata + raster preview URLs
-    │                         + shared mount runner. ~7 KB.
+    ├── index.js            # registrar + shared mount runner + lazy loaders + prefs plumbing
+    ├── picker.js           # in-canvas picker overlay (search, tags, favorites, recents)
+    ├── scenes.json         # canonical scene manifest (single source of truth)
     └── scenes/             # one self-registering file per scene
         ├── code-rain.js
         ├── hyperspace.js
         ├── neon-rain.js
         ├── tron-grid.js
-        ├── couch-gag.js
         ├── rainbow-road.js
         ├── soot-sprites.js
         ├── upside-down.js
@@ -92,15 +117,18 @@ b-roll/
         └── shimmer.js
 ```
 
-At boot, `index.js` does two things for every scene:
-1. Registers the scene's file as a **module** via `wp.desktop.registerModule({ id, url, isReady })`.
-2. Registers a wallpaper with `needs: ['pixijs', 'b-roll/<slug>']`, so the scene module is only fetched the moment that wallpaper is selected.
+At boot, `index.js` registers **one** wallpaper: `b-roll`. The moment a user activates it, the shared mount runner:
+
+1. Creates a single `PIXI.Application`.
+2. Reads `bRoll.scene` (from user meta, falling back to `rainbow-road`) and loads that scene's JS via a one-shot `<script>` injection.
+3. Runs the scene's `setup → tick → cleanup` lifecycle.
+4. Injects a small gear button into the wallpaper's container; clicking it lazy-loads `src/picker.js` and opens the picker overlay.
+5. When the user picks another scene, the runner calls the current scene's `cleanup`, clears `app.stage`, loads the new scene's JS if needed, and runs its `setup` — all **without re-initializing Pixi**. Failures (script 404, parse error, `setup` throw) keep the previous scene running.
 
 Consequences:
-- Activating the plugin loads ~7 KB (one file).
-- Picking a wallpaper lazy-loads just that scene's ~8–15 KB of Pixi code.
-- Previews are static JPGs lazily loaded by the browser when the picker scrolls them into view; no WebGL cost in the picker.
-- Adding a new scene = drop a file in `src/scenes/`, add one line to `SCENES` and one to `PREVIEWS` in `index.js`, drop a `<slug>.jpg` in `assets/previews/`, and drop a 1920×1080 `<slug>.jpg` in `assets/wallpapers/`. No bundler, no build step.
+- Activating the plugin loads one JS file. Picker loads only if the user clicks the gear. Each scene's ~8–15 KB loads the moment it's chosen.
+- Previews in the picker are static JPGs with `loading="lazy" decoding="async"`, so 500 cards stay cheap; the grid virtualizes natively via `content-visibility: auto`.
+- Adding a new scene = `bin/new-scene <slug> "<Label>" "<Franchise>" tag1,tag2` (writes JS stub + appends the manifest row), then drop the painterly preview at `assets/previews/<slug>.jpg` and the 1920×1080 painted backdrop at `assets/wallpapers/<slug>.jpg`. Run `bin/validate-scenes` to sanity-check before a PR.
 
 Each scene file self-registers under `window.__bRoll.scenes[<slug>]` with this shape:
 
