@@ -1,18 +1,18 @@
 /**
- * B-Roll scene: Rainbow Road (Mario Kart) — v0.4
+ * B-Roll scene: Rainbow Road (Mario Kart) — v0.5
  * ---------------------------------------------------------------
- * Scrolling rainbow-striped road in exaggerated perspective with
- * neon guardrails (crisp + bloom), white chevron lane markings
- * scrolling toward the viewer, and periodic abstract kart
- * silhouettes that spawn at the horizon and race to the bottom,
- * growing in scale as they approach.
+ * Painted backdrop (assets/wallpapers/rainbow-road.jpg — Saturn,
+ * tinted starfield and nebula) loaded as a Pixi Sprite, with the
+ * full motion stack rendering on top: scrolling rainbow-striped
+ * road in exaggerated perspective, neon guardrails (crisp +
+ * bloom), white chevron lane markings scrolling toward the
+ * viewer, periodic abstract kart silhouettes spawning at the
+ * horizon and racing to the bottom, occasional speed-line bursts
+ * from the vanishing point, rare shooting stars, and a spinning
+ * ? item box drifting through a few times a minute.
  *
- * Background: a tinted starfield (white / yellow / cyan / pink)
- * with per-star twinkle phase, a slow-rotating Saturn planet with
- * surface bands and a moving ring shadow, rare shooting stars,
- * and occasional speed-line bursts radiating from the vanishing
- * point. A spinning ? item box passes through a few times a
- * minute.
+ * The starfield and Saturn used to be Pixi Graphics; in v0.5 they
+ * live in the painting and the runtime no longer draws them.
  */
 ( function () {
 	'use strict';
@@ -21,53 +21,36 @@
 	var h = window.__bRoll.helpers;
 
 	var ROAD_COLORS = [ 0xff2d5a, 0xff993d, 0xffe84a, 0x31d16a, 0x3dc3ff, 0x8a5bff, 0xff2d5a ];
-	var STAR_TINTS  = [ 0xffffff, 0xffffff, 0xffffff, 0xffe8a8, 0xa8d8ff, 0xffb0d8 ];
 	var KART_COLORS = [ 0xff5a3d, 0x3dc3ff, 0x9cff3d, 0xffe84a, 0xff4aa0 ];
 
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/rainbow-road.jpg' + qs;
+	}
+
 	window.__bRoll.scenes[ 'rainbow-road' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 
-			var bg = new PIXI.Graphics(); app.stage.addChild( bg );
-			h.paintVGradient( bg, app.renderer.width, app.renderer.height, 0x0b0024, 0x000000, 14 );
+			// --- Painted backdrop (replaces v0.4 bg gradient + Saturn). //
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
+			}
+			fitBackdrop();
 
-			// Saturn container.
-			var planet = new PIXI.Container();
-			var planetBody = new PIXI.Graphics();
-			planetBody.circle( 0, 0, 34 ).fill( 0xe9a83e );
-			planetBody.ellipse( 0, -14, 28, 2 ).fill( { color: 0xc97830, alpha: 0.8 } );
-			planetBody.ellipse( 0, -6, 32, 2.5 ).fill( { color: 0xba6a28, alpha: 0.8 } );
-			planetBody.ellipse( 0, 4, 32, 2 ).fill( { color: 0xc97830, alpha: 0.8 } );
-			planetBody.ellipse( 0, 12, 28, 2 ).fill( { color: 0xba6a28, alpha: 0.8 } );
-			planetBody.ellipse( 0, 20, 20, 1.5 ).fill( { color: 0xc97830, alpha: 0.8 } );
-			planet.addChild( planetBody );
-			var ringShadow = new PIXI.Graphics();
-			ringShadow.ellipse( 0, 0, 46, 2.4 ).fill( { color: 0x7a4a1e, alpha: 0.55 } );
-			planet.addChild( ringShadow );
-			var ring = new PIXI.Graphics();
-			ring.ellipse( 0, 0, 54, 11 ).stroke( { color: 0xf6dca0, width: 2, alpha: 0.85 } );
-			ring.ellipse( 0, 0, 48, 8 ).stroke( { color: 0xeccb88, width: 0.8, alpha: 0.55 } );
-			planet.addChild( ring );
-			planet.x = app.renderer.width * 0.78;
-			planet.y = app.renderer.height * 0.25;
-			planet.alpha = 0.92;
-			app.stage.addChild( planet );
-
-			// Stars with color tints.
+			// Shared shooting-star + speed-line layer (still animated).
 			var stars = new PIXI.Graphics();
 			app.stage.addChild( stars );
-			var starData = [];
-			for ( var i = 0; i < 220; i++ ) {
-				starData.push( {
-					x: h.rand( 0, app.renderer.width ),
-					y: h.rand( 0, app.renderer.height * 0.48 ),
-					r: h.rand( 0.45, 1.9 ),
-					tw: Math.random() * h.tau,
-					twFreq: h.rand( 0.02, 0.06 ),
-					tint: h.choose( STAR_TINTS ),
-				} );
-			}
-
 			var shooters = [];
 			var speedLines = [];
 
@@ -101,7 +84,8 @@
 			app.stage.addChild( item );
 
 			return {
-				bg: bg, planet: planet, stars: stars, starData: starData,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
+				stars: stars,
 				shooters: shooters, speedLines: speedLines,
 				road: road, chev: chev, karts: karts, rails: rails,
 				bloomRails: bloomRails, bloomKarts: bloomKarts, bloomSpeed: bloomSpeed,
@@ -115,8 +99,8 @@
 			};
 		},
 
-		onResize: function ( state, env ) {
-			h.paintVGradient( state.bg, env.app.renderer.width, env.app.renderer.height, 0x0b0024, 0x000000, 14 );
+		onResize: function ( state ) {
+			state.fitBackdrop();
 		},
 
 		tick: function ( state, env ) {
@@ -124,18 +108,8 @@
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
 
-			// --- Saturn slow rotation ------------------------------- //
-			state.planet.rotation += 0.0008 * dt;
-
-			// --- Stars + shooters + speed-line bursts --------------- //
+			// --- Shooting stars (rendered into the stars layer) ----- //
 			state.stars.clear();
-			for ( var i = 0; i < state.starData.length; i++ ) {
-				var st = state.starData[ i ];
-				st.tw += st.twFreq * dt;
-				var a = 0.45 + 0.45 * Math.sin( st.tw );
-				state.stars.circle( st.x, st.y, st.r ).fill( { color: st.tint, alpha: a } );
-			}
-
 			state.shootT -= dt;
 			if ( state.shootT <= 0 ) {
 				state.shootT = h.rand( 60 * 4, 60 * 18 );
