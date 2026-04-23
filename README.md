@@ -21,6 +21,10 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 Pick any of them from **OS Settings → Wallpapers** once the plugin is active.
 
+## v0.4.1 — Painterly preview swatches
+
+The wallpaper picker no longer shows hand-coded SVG composites. Each scene now ships with a painterly raster thumbnail (1.6:1, ~640px wide, JPG q75, ~50–100 KB each) generated from a matte-painting prompt that captures the mood of the live animation without using any franchise IP. The full 10-image set adds ~650 KB to the plugin payload. The `src/index.js` registrar shrunk from ~1,120 lines to ~245 lines as a result. Picker URL: `assets/previews/<slug>.jpg?v=<plugin-version>` for cache-busting on bumps.
+
 ## v0.4.0 — Visual overhaul
 
 Every scene was reworked for richer atmospherics without adding any external assets. All ten scenes stay Pixi primitives + `Graphics` + `Text`, but now with additional layers per scene:
@@ -61,10 +65,10 @@ Designed to scale to hundreds of scenes without bloating the bundle or the picke
 b-roll/
 ├── b-roll.php              # enqueues just src/index.js (+ plugin URL)
 ├── blueprint.json          # Playground demo blueprint
+├── assets/previews/        # painterly raster preview swatches (10x ~50–100 KB JPGs)
 └── src/
-    ├── index.js            # thin registrar — metadata + SVG previews
-    │                         + shared mount runner. ~20KB with all 10
-    │                         previews inline.
+    ├── index.js            # thin registrar — metadata + raster preview URLs
+    │                         + shared mount runner. ~7 KB.
     └── scenes/             # one self-registering file per scene
         ├── code-rain.js
         ├── hyperspace.js
@@ -83,10 +87,10 @@ At boot, `index.js` does two things for every scene:
 2. Registers a wallpaper with `needs: ['pixijs', 'b-roll/<slug>']`, so the scene module is only fetched the moment that wallpaper is selected.
 
 Consequences:
-- Activating the plugin loads ~20KB (one file).
-- Picking a wallpaper lazy-loads just that scene's ~8–15KB of Pixi code.
-- Previews are inline SVG data URIs — no HTTP, no WebGL cost in the picker.
-- Adding a new scene = drop a file in `src/scenes/`, add one line to `SCENES` in `index.js`, add a preview swatch. No bundler, no build step.
+- Activating the plugin loads ~7 KB (one file).
+- Picking a wallpaper lazy-loads just that scene's ~8–15 KB of Pixi code.
+- Previews are static JPGs lazily loaded by the browser when the picker scrolls them into view; no WebGL cost in the picker.
+- Adding a new scene = drop a file in `src/scenes/`, add one line to `SCENES` and one to `PREVIEWS` in `index.js`, drop a `<slug>.jpg` in `assets/previews/`. No bundler, no build step.
 
 Each scene file self-registers under `window.__bRoll.scenes[<slug>]` with this shape:
 

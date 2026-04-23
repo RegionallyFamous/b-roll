@@ -17,7 +17,7 @@ Not monolithic. The plugin is split into two layers:
 
 ```
 src/
-├── index.js            # thin registrar + shared helpers + all preview SVGs
+├── index.js            # thin registrar + shared helpers + raster preview URLs
 └── scenes/             # one file per scene
     ├── code-rain.js    # self-registers under window.__bRoll.scenes['code-rain']
     ├── hyperspace.js
@@ -72,16 +72,16 @@ So scene files **do not** build their own Pixi app, do not listen to visibility 
 
 ## The preview CSS gotcha (**important**)
 
-The `preview` value on a wallpaper registration is passed directly to `<wpd-swatch>` and applied as a CSS `background` property. **Raw data URIs are not valid `background` values** — they must be wrapped in `url(...)`.
+The `preview` value on a wallpaper registration is passed directly to `<wpd-swatch>` and applied as a CSS `background` property. **A bare URL is not a valid `background` value** — it must be wrapped in `url(...)` shorthand and ideally paired with a fallback color so a brief network hitch doesn't render a blank tile.
 
-Use the `preview()` helper in `src/index.js`:
+Use the `preview()` helper in `src/index.js`. Since v0.4.1 it returns a URL pointing at `assets/previews/<slug>.jpg` (cache-busted with the plugin version):
 
 ```javascript
-preview( svgMarkup, fallbackColor )
-// returns: url("data:image/svg+xml;charset=utf-8,<encoded>") center/cover no-repeat, <fallback>
+preview( slug, fallbackColor )
+// returns: url("<pluginUrl>/assets/previews/<slug>.jpg?v=<version>") center/cover no-repeat, <fallback>
 ```
 
-Never set `preview: 'data:image/svg+xml,...'` directly — that was the v0.2 bug that rendered everything blank. The fallback color is shown if the SVG fails to load and prevents a flash of blank.
+Adding a new scene therefore requires shipping a corresponding `assets/previews/<slug>.jpg` (1.6:1 aspect, ~640px wide, JPG q75 keeps each ~50–100 KB). Never inline a bare data URI or path string into the wallpaper's `preview` field — the v0.2 blank-swatch bug was exactly that.
 
 ## PixiJS v8 API conventions used throughout
 
@@ -158,9 +158,9 @@ The `/new-scene` slash command (in `.claude/commands/new-scene.md`) scaffolds th
    ```javascript
    { id: '<slug>', label: '<Display Name>' },
    ```
-3. Add a preview SVG:
+3. Drop a painterly raster swatch at `assets/previews/<slug>.jpg` (1.6:1, ~640px wide, JPG q75) and add a one-liner to `PREVIEWS` in `src/index.js`:
    ```javascript
-   PREVIEWS[ '<slug>' ] = preview( "<svg ...>...</svg>", '#fallback-color' );
+   '<slug>': preview( '<slug>', '#fallback-color' ),
    ```
 
 That's the whole contract. The shell picks up the new scene the next time `wp-desktop.init` fires.
