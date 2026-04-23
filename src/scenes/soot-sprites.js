@@ -1,9 +1,16 @@
 /**
- * B-Roll scene: Soot Sprites (Studio Ghibli)
+ * B-Roll scene: Soot Sprites (Studio Ghibli) — v0.4
  * ---------------------------------------------------------------
- * Pastel sky with fluffy soot-sprite blobs of varied size. Candy
- * star-shapes occasionally fall; the nearest sprites sense them
- * and drift toward them to huddle.
+ * Pastel sky with fluffy soot-sprite blobs of varied size. Sprites
+ * now bob with squash-and-stretch (compressing vertically at the
+ * bottom of each arc, stretching upward as they rise), trail faint
+ * dust particles, and sway together on a gentle shared wind cycle.
+ *
+ * Candy star-shapes occasionally fall. The nearest sprites sense
+ * them and drift toward them to huddle; their eyes stay open and
+ * track the candy (glance offset in x/y) while it's nearby. Idle
+ * sprites still blink open for brief intervals at per-sprite
+ * random cadences.
  */
 ( function () {
 	'use strict';
@@ -18,6 +25,9 @@
 			var bg = new PIXI.Graphics();
 			app.stage.addChild( bg );
 			h.paintVGradient( bg, app.renderer.width, app.renderer.height, 0xffd7ea, 0xcce7ff, 20 );
+
+			var dustLayer = new PIXI.Graphics();
+			app.stage.addChild( dustLayer );
 
 			var spriteLayer = new PIXI.Container();
 			app.stage.addChild( spriteLayer );
@@ -35,12 +45,14 @@
 				shadow.ellipse( 0, 22, 18, 4 ).fill( { color: 0x000000, alpha: 0.15 } );
 				c.addChild( shadow );
 				c.addChild( base );
-				var leye = new PIXI.Graphics(); leye.circle( -5, -2, 2.4 ).fill( 0xffffff );
-				var reye = new PIXI.Graphics(); reye.circle(  5, -2, 2.4 ).fill( 0xffffff );
+				var leye = new PIXI.Graphics(); leye.circle( 0, 0, 2.4 ).fill( 0xffffff );
+				var reye = new PIXI.Graphics(); reye.circle( 0, 0, 2.4 ).fill( 0xffffff );
+				leye.x = -5; leye.y = -2;
+				reye.x =  5; reye.y = -2;
 				leye.visible = reye.visible = false;
 				c.addChild( leye ); c.addChild( reye );
 				c.scale.set( scaleHint );
-				return { node: c, leye: leye, reye: reye };
+				return { node: c, leye: leye, reye: reye, baseScale: scaleHint };
 			}
 
 			var sprites = [];
@@ -51,9 +63,14 @@
 				spriteLayer.addChild( s.node );
 				sprites.push( Object.assign( s, {
 					baseY: s.node.y, phase: Math.random() * h.tau,
-					amp: h.rand( 8, 35 ), vx: h.rand( -0.3, 0.3 ),
+					amp: h.rand( 8, 35 ),
+					bobFreq: h.rand( 0.018, 0.028 ),
+					vx: h.rand( -0.3, 0.3 ),
+					swayAmp: h.rand( 2, 6 ), swayPhase: Math.random() * h.tau,
 					blinkCD: h.rand( 60 * 3, 60 * 14 ), blinkT: 0,
 					attractTo: null,
+					lastX: s.node.x, lastY: s.node.y,
+					dustCD: h.rand( 6, 18 ),
 				} ) );
 			}
 
@@ -73,33 +90,50 @@
 				return { node: g, vy: 0.3, spin: h.rand( -0.02, 0.02 ), life: 1 };
 			}
 
-			return { bg: bg, sprites: sprites, candies: candies, makeCandy: makeCandy,
-				candyT: h.rand( 60 * 15, 60 * 40 ) };
+			return {
+				bg: bg, dustLayer: dustLayer, sprites: sprites,
+				candies: candies, makeCandy: makeCandy,
+				dust: [],
+				candyT: h.rand( 60 * 15, 60 * 40 ),
+				time: 0, windPhase: 0,
+			};
 		},
+
 		onResize: function ( state, env ) {
 			h.paintVGradient( state.bg, env.app.renderer.width, env.app.renderer.height, 0xffd7ea, 0xcce7ff, 20 );
 		},
-		tick: function ( state, env ) {
-			var w = env.app.renderer.width, hh = env.app.renderer.height;
 
-			state.candyT -= env.dt;
+		tick: function ( state, env ) {
+			var dt = env.dt;
+			var w = env.app.renderer.width, hh = env.app.renderer.height;
+			state.time += dt;
+			state.windPhase += 0.01 * dt;
+			var windOffset = Math.sin( state.windPhase ) * 2.2;
+
+			// --- Candy spawn/fall --------------------------------- //
+			state.candyT -= dt;
 			if ( state.candyT <= 0 ) {
 				state.candyT = h.rand( 60 * 25, 60 * 60 );
 				state.candies.push( state.makeCandy( h.rand( 60, w - 60 ), -10 ) );
 			}
 			for ( var cI = state.candies.length - 1; cI >= 0; cI-- ) {
 				var cc = state.candies[ cI ];
-				cc.node.y += cc.vy * env.dt;
-				cc.node.rotation += cc.spin * env.dt;
+				cc.node.y += cc.vy * dt;
+				cc.node.rotation += cc.spin * dt;
 				if ( cc.node.y > hh * 0.75 ) {
-					cc.life -= 0.005 * env.dt;
+					cc.life -= 0.005 * dt;
 					if ( cc.life <= 0 ) { cc.node.destroy(); state.candies.splice( cI, 1 ); continue; }
 				}
 				cc.node.alpha = cc.life;
 			}
 
+			// --- Sprites ------------------------------------------ //
 			for ( var i = 0; i < state.sprites.length; i++ ) {
 				var s = state.sprites[ i ];
+				s.lastX = s.node.x;
+				s.lastY = s.node.y;
+
+				// Find nearest candy within attraction radius.
 				s.attractTo = null;
 				var closest = Infinity;
 				for ( var cI2 = 0; cI2 < state.candies.length; cI2++ ) {
@@ -109,31 +143,92 @@
 					if ( d2 < 24000 && d2 < closest ) { closest = d2; s.attractTo = ca; }
 				}
 
-				s.phase += 0.02 * env.dt;
+				s.phase += s.bobFreq * dt;
 				if ( s.attractTo ) {
-					var dx2 = s.attractTo.node.x - s.node.x;
-					var dy2 = s.attractTo.node.y - s.node.y;
-					s.node.x += dx2 * 0.015 * env.dt;
-					s.node.y += dy2 * 0.015 * env.dt;
+					var dxa = s.attractTo.node.x - s.node.x;
+					var dya = s.attractTo.node.y - s.node.y;
+					s.node.x += dxa * 0.015 * dt;
+					s.node.y += dya * 0.015 * dt;
 				} else {
+					// Idle bob with shared wind sway.
 					s.node.y = s.baseY + Math.sin( s.phase ) * s.amp;
-					s.node.x += s.vx * env.dt;
+					s.node.x += s.vx * dt
+						+ Math.sin( state.windPhase + s.swayPhase ) * s.swayAmp * 0.02 * dt
+						+ windOffset * 0.01 * dt;
 					if ( s.node.x < -40 ) s.node.x = w + 40;
 					if ( s.node.x > w + 40 ) s.node.x = -40;
 				}
 
-				s.blinkCD -= env.dt;
-				if ( s.blinkCD <= 0 && s.blinkT === 0 ) {
-					s.blinkT = 14;
+				// Squash / stretch: velocity-based vertical scale.
+				var vyEst = s.node.y - s.lastY;
+				// Rising = stretch vertical, bottom of arc = squash.
+				// Use cos( phase ) so peak stretch aligns with mid-rise.
+				var sq = 1 - 0.18 * Math.sin( s.phase );
+				var st = 1 + 0.18 * Math.sin( s.phase );
+				// Blend with instantaneous velocity for landing impact.
+				st += Math.max( 0, -vyEst ) * 0.02;
+				sq -= Math.max( 0, -vyEst ) * 0.02;
+				s.node.scale.x = s.baseScale * sq;
+				s.node.scale.y = s.baseScale * st;
+
+				// Eye visibility + glance toward candy.
+				if ( s.attractTo ) {
 					s.leye.visible = s.reye.visible = true;
-				}
-				if ( s.blinkT > 0 ) {
-					s.blinkT -= env.dt;
-					if ( s.blinkT <= 0 ) {
-						s.leye.visible = s.reye.visible = false;
-						s.blinkCD = h.rand( 60 * 4, 60 * 16 );
+					var ex = s.attractTo.node.x - s.node.x;
+					var ey = s.attractTo.node.y - s.node.y;
+					var edist = Math.sqrt( ex * ex + ey * ey ) || 1;
+					var gx = ( ex / edist ) * 1.2;
+					var gy = ( ey / edist ) * 1.2;
+					s.leye.x = -5 + gx; s.leye.y = -2 + gy;
+					s.reye.x =  5 + gx; s.reye.y = -2 + gy;
+				} else {
+					// Idle eye blink loop.
+					s.leye.x = -5; s.leye.y = -2;
+					s.reye.x =  5; s.reye.y = -2;
+					s.blinkCD -= dt;
+					if ( s.blinkCD <= 0 && s.blinkT === 0 ) {
+						s.blinkT = 14;
+						s.leye.visible = s.reye.visible = true;
+					}
+					if ( s.blinkT > 0 ) {
+						s.blinkT -= dt;
+						if ( s.blinkT <= 0 ) {
+							s.leye.visible = s.reye.visible = false;
+							s.blinkCD = h.rand( 60 * 4, 60 * 16 );
+						}
 					}
 				}
+
+				// Dust trail: spawn a small faint puff if the sprite
+				// actually moved this frame.
+				var mvx = s.node.x - s.lastX;
+				var mvy = s.node.y - s.lastY;
+				var mvd = Math.sqrt( mvx * mvx + mvy * mvy );
+				if ( mvd > 0.25 ) {
+					s.dustCD -= dt;
+					if ( s.dustCD <= 0 ) {
+						s.dustCD = h.rand( 8, 22 );
+						state.dust.push( {
+							x: s.node.x + h.rand( -6, 6 ),
+							y: s.node.y + 18 * s.baseScale,
+							r: h.rand( 1.5, 3.2 ) * s.baseScale,
+							life: 1,
+							decay: h.rand( 0.015, 0.03 ),
+						} );
+					}
+				}
+			}
+
+			// --- Dust draw / decay ------------------------------- //
+			state.dustLayer.clear();
+			for ( var di = state.dust.length - 1; di >= 0; di-- ) {
+				var d = state.dust[ di ];
+				d.life -= d.decay * dt;
+				d.y -= 0.25 * dt;
+				d.x += windOffset * 0.08 * dt;
+				if ( d.life <= 0 ) { state.dust.splice( di, 1 ); continue; }
+				state.dustLayer.circle( d.x, d.y, d.r )
+					.fill( { color: 0x2a2028, alpha: d.life * 0.35 } );
 			}
 		},
 	};

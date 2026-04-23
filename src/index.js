@@ -620,6 +620,11 @@
 	].join( '' ), '#0a001e' );
 
 	// --- Soot Sprites (Ghibli) ------------------------------------ //
+	// --- Soot Sprites --------------------------------------------- //
+	// v0.4: squash-stretch bounce (big sprite landed = wide, mid-top
+	// sprite mid-rise = tall), eye-glance toward the falling candy,
+	// faint dust trails rising beneath moving sprites, petals still
+	// drifting in the pastel sky.
 	PREVIEWS[ 'soot-sprites' ] = preview( [
 		"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
 			"<defs>",
@@ -627,49 +632,69 @@
 					"<stop offset='0' stop-color='#ffd7ea'/><stop offset='1' stop-color='#cce7ff'/>",
 				"</linearGradient>",
 				"<filter id='so' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='1.5'/></filter>",
+				"<filter id='dust' x='-50%' y='-50%' width='200%' height='200%'><feGaussianBlur stdDeviation='.9'/></filter>",
 			"</defs>",
 			"<rect width='160' height='100' fill='url(#pg2)'/>",
-			// soft petals drifting
+			// Soft petals drifting.
 			"<g fill='#ffbfd4' opacity='.7'>",
 				"<circle cx='14' cy='18' r='1.5'/><circle cx='54' cy='10' r='1'/>",
 				"<circle cx='100' cy='16' r='1.2'/><circle cx='134' cy='8' r='1'/>",
 				"<circle cx='20' cy='36' r='1'/><circle cx='148' cy='30' r='1.2'/>",
 			"</g>",
-			// shadows
+			// Dust trails beneath moving sprites.
+			"<g fill='#2a2028' opacity='.35' filter='url(#dust)'>",
+				"<circle cx='40' cy='82' r='2.6'/><circle cx='44' cy='86' r='2'/>",
+				"<circle cx='36' cy='88' r='1.6'/>",
+				"<circle cx='76' cy='56' r='1.6'/><circle cx='80' cy='60' r='1.2'/>",
+				"<circle cx='132' cy='68' r='2'/><circle cx='129' cy='72' r='1.4'/>",
+			"</g>",
+			// Shadows.
 			"<g fill='#000' opacity='.12' filter='url(#so)'>",
-				"<ellipse cx='38' cy='78' rx='14' ry='3'/>",
-				"<ellipse cx='78' cy='56' rx='10' ry='2.5'/>",
+				"<ellipse cx='38' cy='78' rx='16' ry='3'/>",
+				"<ellipse cx='78' cy='56' rx='8' ry='2.5'/>",
 				"<ellipse cx='98' cy='82' rx='12' ry='3'/>",
 				"<ellipse cx='128' cy='64' rx='8' ry='2'/>",
 			"</g>",
-			// sprites
+			// Big left sprite (squashed = wider than tall after landing).
+			"<g fill='#161616' transform='translate(38 62) scale(1.15 .88)'>",
+				"<circle r='14'/>",
+				"<circle cx='-10' cy='-8' r='4'/><circle cx='10' cy='-8' r='4'/>",
+				"<circle cx='14' cy='2' r='4'/><circle cx='-14' cy='4' r='4'/>",
+				"<circle cx='4' cy='12' r='4'/><circle cx='-6' cy='-12' r='3'/>",
+				"<circle cx='8' cy='-12' r='3'/><circle cx='16' cy='10' r='3'/>",
+			"</g>",
+			// Mid-top sprite (stretched = taller than wide, mid-rise).
+			"<g fill='#161616' transform='translate(78 42) scale(.88 1.15)'>",
+				"<circle r='8'/>",
+				"<circle cx='-6' cy='-4' r='2.5'/><circle cx='6' cy='-4' r='2.5'/>",
+				"<circle cx='8' cy='4' r='2.5'/><circle cx='-6' cy='4' r='2.5'/>",
+			"</g>",
+			// Mid-bottom sprite.
 			"<g fill='#161616'>",
-				// big left
-				"<circle cx='38' cy='62' r='14'/>",
-				"<circle cx='28' cy='54' r='4'/><circle cx='48' cy='54' r='4'/>",
-				"<circle cx='52' cy='64' r='4'/><circle cx='24' cy='66' r='4'/>",
-				"<circle cx='42' cy='74' r='4'/><circle cx='32' cy='50' r='3'/>",
-				"<circle cx='46' cy='50' r='3'/><circle cx='54' cy='72' r='3'/>",
-				// small mid-top
-				"<circle cx='78' cy='42' r='8'/>",
-				"<circle cx='72' cy='38' r='2.5'/><circle cx='84' cy='38' r='2.5'/>",
-				"<circle cx='86' cy='46' r='2.5'/><circle cx='72' cy='46' r='2.5'/>",
-				// mid-bottom
 				"<circle cx='98' cy='70' r='11'/>",
 				"<circle cx='90' cy='62' r='3'/><circle cx='108' cy='62' r='3'/>",
 				"<circle cx='110' cy='74' r='3'/><circle cx='88' cy='74' r='3'/>",
 				"<circle cx='100' cy='82' r='3'/>",
-				// small right
+			"</g>",
+			// Small right sprite.
+			"<g fill='#161616'>",
 				"<circle cx='128' cy='52' r='8'/>",
 				"<circle cx='120' cy='48' r='2.5'/><circle cx='136' cy='50' r='2.5'/>",
 				"<circle cx='134' cy='58' r='2.5'/>",
 			"</g>",
-			// big sprite eyes
+			// Big sprite eyes glancing up-right toward falling candy.
 			"<g fill='#fff'>",
-				"<circle cx='33' cy='60' r='2'/><circle cx='43' cy='60' r='2'/>",
-				"<circle cx='33' cy='60' r='.8' fill='#161616'/><circle cx='43' cy='60' r='.8' fill='#161616'/>",
+				"<circle cx='35' cy='60' r='2'/><circle cx='45' cy='60' r='2'/>",
+				"<circle cx='35.6' cy='59.4' r='.8' fill='#161616'/>",
+				"<circle cx='45.6' cy='59.4' r='.8' fill='#161616'/>",
 			"</g>",
-			// candy falling
+			// Mid-bottom sprite eyes also looking up-left toward candy.
+			"<g fill='#fff'>",
+				"<circle cx='94' cy='68' r='1.8'/><circle cx='102' cy='68' r='1.8'/>",
+				"<circle cx='93.2' cy='67.4' r='.7' fill='#161616'/>",
+				"<circle cx='101.2' cy='67.4' r='.7' fill='#161616'/>",
+			"</g>",
+			// Candy falling (yellow star).
 			"<g transform='translate(66,20) rotate(15)'>",
 				"<polygon fill='#ffe04a' points='0,-5 1.5,-1.5 5,-1.5 2,1 3.5,5 0,2.5 -3.5,5 -2,1 -5,-1.5 -1.5,-1.5'/>",
 			"</g>",
