@@ -251,61 +251,107 @@
 	].join( '' ), '#000010' );
 
 	// --- Neon Rain ------------------------------------------------- //
+	// v0.4: wet-ground reflection band with ripple shimmer, fog haze
+	// between the 3 city layers, flickering windows at varied
+	// intensities, distant lightning silhouette on the horizon, neon
+	// signs with bloom, diagonal rain + ground-impact splashes.
 	PREVIEWS[ 'neon-rain' ] = preview( [
 		"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
 			"<defs>",
-				"<linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'>",
+				"<linearGradient id='nrSky' x1='0' y1='0' x2='0' y2='1'>",
 					"<stop offset='0' stop-color='#2e0a28'/>",
 					"<stop offset='.55' stop-color='#0d0412'/>",
+					"<stop offset='.88' stop-color='#050210'/>",
 					"<stop offset='1' stop-color='#000'/>",
 				"</linearGradient>",
-				"<filter id='neon' x='-40%' y='-40%' width='180%' height='180%'><feGaussianBlur stdDeviation='2.4'/></filter>",
-				"<filter id='soft' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='.6'/></filter>",
+				"<linearGradient id='nrRefl' x1='0' y1='0' x2='0' y2='1'>",
+					"<stop offset='0' stop-color='#2a1840' stop-opacity='.85'/>",
+					"<stop offset='1' stop-color='#000' stop-opacity='1'/>",
+				"</linearGradient>",
+				"<filter id='nrNeon' x='-40%' y='-40%' width='180%' height='180%'><feGaussianBlur stdDeviation='2.4'/></filter>",
+				"<filter id='nrSoft' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='.6'/></filter>",
 			"</defs>",
-			"<rect width='160' height='100' fill='url(#sky)'/>",
-			"<circle cx='124' cy='24' r='10' fill='#f0c6ff' opacity='.25' filter='url(#neon)'/>",
-			"<circle cx='124' cy='24' r='6' fill='#efe5ff' opacity='.95'/>",
-			// far city
+			"<rect width='160' height='100' fill='url(#nrSky)'/>",
+			// Distant lightning glow on the horizon.
+			"<rect x='40' y='40' width='60' height='14' fill='#d8baff' opacity='.12' filter='url(#nrNeon)'/>",
+			// Moon.
+			"<circle cx='124' cy='20' r='10' fill='#f0c6ff' opacity='.22' filter='url(#nrNeon)'/>",
+			"<circle cx='124' cy='20' r='5' fill='#efe5ff' opacity='.95'/>",
+			// Far city.
 			"<g fill='#1a0f22'>",
-				"<rect x='0' y='56' width='20' height='44'/><rect x='18' y='48' width='16' height='52'/>",
-				"<rect x='32' y='58' width='12' height='42'/><rect x='42' y='44' width='18' height='56'/>",
-				"<rect x='58' y='54' width='14' height='46'/><rect x='70' y='50' width='18' height='50'/>",
-				"<rect x='86' y='60' width='10' height='40'/><rect x='94' y='46' width='16' height='54'/>",
-				"<rect x='108' y='58' width='12' height='42'/><rect x='118' y='42' width='20' height='58'/>",
-				"<rect x='136' y='54' width='14' height='46'/><rect x='148' y='48' width='12' height='52'/>",
+				"<rect x='0' y='56' width='20' height='30'/><rect x='18' y='48' width='16' height='38'/>",
+				"<rect x='32' y='58' width='12' height='28'/><rect x='42' y='44' width='18' height='42'/>",
+				"<rect x='58' y='54' width='14' height='32'/><rect x='70' y='50' width='18' height='36'/>",
+				"<rect x='86' y='60' width='10' height='26'/><rect x='94' y='46' width='16' height='40'/>",
+				"<rect x='108' y='58' width='12' height='28'/><rect x='118' y='42' width='20' height='44'/>",
+				"<rect x='136' y='54' width='14' height='32'/><rect x='148' y='48' width='12' height='38'/>",
 			"</g>",
-			// mid city
+			// Fog haze between far and mid.
+			"<rect x='0' y='50' width='160' height='18' fill='#3a1440' opacity='.26'/>",
+			// Mid city.
 			"<g fill='#050308'>",
-				"<rect x='4' y='66' width='24' height='34'/><rect x='28' y='58' width='18' height='42'/>",
-				"<rect x='44' y='64' width='14' height='36'/><rect x='56' y='52' width='22' height='48'/>",
-				"<rect x='76' y='62' width='16' height='38'/><rect x='90' y='56' width='20' height='44'/>",
-				"<rect x='108' y='66' width='12' height='34'/><rect x='118' y='54' width='18' height='46'/>",
-				"<rect x='134' y='64' width='14' height='36'/><rect x='146' y='58' width='14' height='42'/>",
+				"<rect x='4' y='64' width='24' height='22'/><rect x='28' y='58' width='18' height='28'/>",
+				"<rect x='44' y='62' width='14' height='24'/><rect x='56' y='52' width='22' height='34'/>",
+				"<rect x='76' y='60' width='16' height='26'/><rect x='90' y='56' width='20' height='30'/>",
+				"<rect x='108' y='64' width='12' height='22'/><rect x='118' y='54' width='18' height='32'/>",
+				"<rect x='134' y='62' width='14' height='24'/><rect x='146' y='58' width='14' height='28'/>",
 			"</g>",
-			// windows
+			// Fog haze between mid and near.
+			"<rect x='0' y='62' width='160' height='14' fill='#1a0420' opacity='.28'/>",
+			// Windows (amber glow).
 			"<g fill='#ffc873'>",
-				"<rect x='10' y='70' width='1.5' height='2' opacity='.9'/><rect x='20' y='76' width='1.5' height='2' opacity='.7'/>",
-				"<rect x='32' y='62' width='1.5' height='2' opacity='.85'/><rect x='62' y='56' width='1.5' height='2' opacity='.9'/>",
-				"<rect x='68' y='72' width='1.5' height='2' opacity='.7'/><rect x='82' y='68' width='1.5' height='2' opacity='.8'/>",
-				"<rect x='96' y='60' width='1.5' height='2' opacity='.9'/><rect x='122' y='60' width='1.5' height='2' opacity='.8'/>",
-				"<rect x='140' y='70' width='1.5' height='2' opacity='.7'/><rect x='150' y='62' width='1.5' height='2' opacity='.85'/>",
+				"<rect x='10' y='68' width='1.4' height='1.8' opacity='.9'/><rect x='20' y='72' width='1.4' height='1.8' opacity='.55'/>",
+				"<rect x='32' y='60' width='1.4' height='1.8' opacity='.85'/><rect x='47' y='66' width='1.4' height='1.8' opacity='.75'/>",
+				"<rect x='62' y='56' width='1.4' height='1.8' opacity='.9'/><rect x='68' y='70' width='1.4' height='1.8' opacity='.65'/>",
+				"<rect x='82' y='66' width='1.4' height='1.8' opacity='.8'/><rect x='96' y='60' width='1.4' height='1.8' opacity='.9'/>",
+				"<rect x='100' y='68' width='1.4' height='1.8' opacity='.55'/><rect x='122' y='58' width='1.4' height='1.8' opacity='.85'/>",
+				"<rect x='128' y='68' width='1.4' height='1.8' opacity='.3'/><rect x='140' y='68' width='1.4' height='1.8' opacity='.7'/>",
+				"<rect x='150' y='62' width='1.4' height='1.8' opacity='.85'/>",
 			"</g>",
-			// neon signs
+			// Neon signs.
 			"<g font-family='Impact,sans-serif' font-weight='bold'>",
-				"<text x='44' y='26' font-size='14' fill='#ff4aa0' opacity='.4' filter='url(#neon)'>TYRELL</text>",
+				"<text x='44' y='26' font-size='14' fill='#ff4aa0' opacity='.4' filter='url(#nrNeon)'>TYRELL</text>",
 				"<text x='44' y='26' font-size='14' fill='#ff4aa0'>TYRELL</text>",
-				"<text x='118' y='44' font-size='8' fill='#64d8ff' opacity='.4' filter='url(#neon)'>NEXUS</text>",
-				"<text x='118' y='44' font-size='8' fill='#64d8ff'>NEXUS</text>",
+				"<text x='102' y='46' font-size='8' fill='#64d8ff' opacity='.4' filter='url(#nrNeon)'>NEXUS</text>",
+				"<text x='102' y='46' font-size='8' fill='#64d8ff'>NEXUS</text>",
 				"<text x='8' y='40' font-size='7' fill='#fff14d' opacity='.85'>2049</text>",
 			"</g>",
-			// rain
-			"<g stroke='#b4c8ff' stroke-width='.55' opacity='.7' filter='url(#soft)'>",
+			// Rain.
+			"<g stroke='#b4c8ff' stroke-width='.55' opacity='.7' filter='url(#nrSoft)'>",
 				"<line x1='14' y1='2' x2='9' y2='14'/><line x1='30' y1='6' x2='25' y2='18'/>",
 				"<line x1='50' y1='0' x2='45' y2='12'/><line x1='72' y1='8' x2='67' y2='20'/>",
 				"<line x1='92' y1='4' x2='87' y2='16'/><line x1='112' y1='10' x2='107' y2='22'/>",
 				"<line x1='134' y1='2' x2='129' y2='14'/><line x1='150' y1='8' x2='145' y2='20'/>",
 				"<line x1='20' y1='34' x2='15' y2='46'/><line x1='80' y1='38' x2='75' y2='50'/>",
 				"<line x1='140' y1='36' x2='135' y2='48'/>",
+				"<line x1='36' y1='60' x2='31' y2='72'/><line x1='108' y1='60' x2='103' y2='72'/>",
+			"</g>",
+			// Wet-ground reflection band (flipped skyline, ripple-tinted).
+			"<g transform='translate(0,176) scale(1,-0.55)' opacity='.6'>",
+				"<g fill='#2a1840'>",
+					"<rect x='4' y='64' width='24' height='22'/><rect x='28' y='58' width='18' height='28'/>",
+					"<rect x='44' y='62' width='14' height='24'/><rect x='56' y='52' width='22' height='34'/>",
+					"<rect x='76' y='60' width='16' height='26'/><rect x='90' y='56' width='20' height='30'/>",
+					"<rect x='108' y='64' width='12' height='22'/><rect x='118' y='54' width='18' height='32'/>",
+					"<rect x='134' y='62' width='14' height='24'/><rect x='146' y='58' width='14' height='28'/>",
+				"</g>",
+			"</g>",
+			// Ripple shimmer bands across reflection.
+			"<g fill='#64a0ff'>",
+				"<rect x='0' y='90' width='160' height='.6' opacity='.25'/>",
+				"<rect x='0' y='93' width='160' height='.6' opacity='.2'/>",
+				"<rect x='0' y='96' width='160' height='.6' opacity='.15'/>",
+				"<rect x='0' y='98' width='160' height='.6' opacity='.1'/>",
+			"</g>",
+			// Water-surface line.
+			"<rect x='0' y='88.4' width='160' height='.6' fill='#8a64b0' opacity='.5'/>",
+			// Splash circles (ground impacts).
+			"<g stroke='#a8c8ff' fill='none' stroke-width='.35'>",
+				"<circle cx='28' cy='90' r='1.6' opacity='.55'/>",
+				"<circle cx='76' cy='92' r='2.0' opacity='.4'/>",
+				"<circle cx='126' cy='91' r='1.4' opacity='.55'/>",
+				"<circle cx='52' cy='93' r='.9' opacity='.7'/>",
+				"<circle cx='100' cy='90' r='1.1' opacity='.65'/>",
 			"</g>",
 		"</svg>",
 	].join( '' ), '#0d0412' );
