@@ -427,41 +427,77 @@
 	].join( '' ), '#000814' );
 
 	// --- Couch Gag (Simpsons) ------------------------------------- //
+	// v0.4: pulsing sun corona + lens-flare ghost spots, 3 depths of
+	// flapping birds, drifting clouds, wind-swayed grass strip at
+	// the bottom, a wind-gust streak mid-sky, and the couch landed
+	// in its bouncy hold pose.
 	PREVIEWS[ 'couch-gag' ] = preview( [
 		"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
 			"<defs>",
-				"<linearGradient id='sky3' x1='0' y1='0' x2='0' y2='1'>",
+				"<linearGradient id='cgSky' x1='0' y1='0' x2='0' y2='1'>",
 					"<stop offset='0' stop-color='#7ab9f0'/><stop offset='1' stop-color='#daefff'/>",
 				"</linearGradient>",
-				"<radialGradient id='sun' cx='.5' cy='.5' r='.55'>",
+				"<radialGradient id='cgSun' cx='.5' cy='.5' r='.55'>",
 					"<stop offset='0' stop-color='#fffad2'/><stop offset='.45' stop-color='#ffde3a'/><stop offset='1' stop-color='#ffde3a' stop-opacity='0'/>",
 				"</radialGradient>",
-				"<filter id='sh' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='1.2'/></filter>",
+				"<filter id='cgSh' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='1.2'/></filter>",
+				"<filter id='cgSoft' x='-40%' y='-40%' width='180%' height='180%'><feGaussianBlur stdDeviation='2.6'/></filter>",
 			"</defs>",
-			"<rect width='160' height='100' fill='url(#sky3)'/>",
-			// sun
-			"<circle cx='130' cy='22' r='22' fill='url(#sun)'/>",
-			// sun rays
-			"<g stroke='#ffdd55' stroke-width='.8' opacity='.35'>",
-				"<line x1='130' y1='-4' x2='130' y2='2'/><line x1='152' y1='6' x2='148' y2='10'/>",
-				"<line x1='164' y1='22' x2='158' y2='22'/><line x1='152' y1='38' x2='148' y2='34'/>",
-				"<line x1='108' y1='6' x2='112' y2='10'/><line x1='102' y1='22' x2='108' y2='22'/>",
+			"<rect width='160' height='100' fill='url(#cgSky)'/>",
+			// Sun with pulsing corona.
+			"<circle cx='130' cy='22' r='34' fill='#ffde3a' opacity='.16' filter='url(#cgSoft)'/>",
+			"<circle cx='130' cy='22' r='24' fill='url(#cgSun)'/>",
+			// Lens-flare ghost spots along the sun→screen-center axis.
+			"<circle cx='115' cy='34' r='3.8' fill='#ffb868' opacity='.45'/>",
+			"<circle cx='100' cy='46' r='2.4' fill='#8abff0' opacity='.35'/>",
+			"<circle cx='80' cy='60' r='5' fill='#ffde3a' opacity='.22'/>",
+			"<circle cx='60' cy='74' r='3' fill='#ff6a88' opacity='.28'/>",
+			// Wind-gust streaks mid-sky.
+			"<g stroke='#ffffff' stroke-width='.55' opacity='.6'>",
+				"<line x1='28' y1='36' x2='58' y2='35'/>",
+				"<line x1='20' y1='42' x2='50' y2='41'/>",
+				"<line x1='34' y1='30' x2='62' y2='29'/>",
 			"</g>",
-			// clouds with subtle shadow
+			// Drifting clouds (with subtle shadow bases).
 			"<g>",
-				"<ellipse cx='30' cy='25' rx='20' ry='7' fill='#dde9f5' opacity='.5' filter='url(#sh)'/>",
+				"<ellipse cx='30' cy='25' rx='22' ry='7' fill='#dde9f5' opacity='.5' filter='url(#cgSh)'/>",
 				"<g fill='#fff'>",
 					"<circle cx='20' cy='20' r='8'/><circle cx='30' cy='16' r='9'/><circle cx='40' cy='22' r='8'/>",
 					"<circle cx='26' cy='26' r='7'/><circle cx='36' cy='27' r='7'/>",
 				"</g>",
-				"<ellipse cx='72' cy='34' rx='16' ry='5' fill='#dde9f5' opacity='.5' filter='url(#sh)'/>",
+				"<ellipse cx='85' cy='18' rx='18' ry='5' fill='#dde9f5' opacity='.4' filter='url(#cgSh)'/>",
 				"<g fill='#fff'>",
-					"<circle cx='64' cy='30' r='6'/><circle cx='74' cy='28' r='7'/><circle cx='82' cy='32' r='6'/>",
+					"<circle cx='78' cy='14' r='7'/><circle cx='88' cy='12' r='8'/><circle cx='96' cy='16' r='7'/>",
 				"</g>",
 			"</g>",
-			// couch shadow
-			"<ellipse cx='80' cy='86' rx='40' ry='3' fill='#000' opacity='.2' filter='url(#sh)'/>",
-			// couch
+			// Multi-depth birds.
+			"<g stroke='#000' fill='none'>",
+				// far (tiny)
+				"<path stroke-width='.5' d='M 52 10 q 1.5 -1.3 3 0 q 1.5 -1.3 3 0'/>",
+				"<path stroke-width='.5' d='M 108 8 q 1.5 -1.3 3 0 q 1.5 -1.3 3 0'/>",
+				// mid
+				"<path stroke-width='.75' d='M 70 28 q 2 -1.8 4 0 q 2 -1.8 4 0'/>",
+				"<path stroke-width='.75' d='M 100 32 q 2 -1.8 4 0 q 2 -1.8 4 0'/>",
+				// near
+				"<path stroke-width='1.0' d='M 42 48 q 2.6 -2.4 5 0 q 2.6 -2.4 5 0'/>",
+			"</g>",
+			// Wind-swayed grass strip.
+			"<g stroke-linecap='round'>",
+				"<path d='M 2 98 q .5 -6 1.5 -12' stroke='#3a9e3a' stroke-width='1.1' fill='none'/>",
+				"<path d='M 8 98 q -.6 -7 -1.2 -14' stroke='#44b842' stroke-width='1.1' fill='none'/>",
+				"<path d='M 14 98 q .8 -8 1.7 -15' stroke='#2f8a35' stroke-width='1' fill='none'/>",
+				"<path d='M 22 98 q -.7 -7 -1.5 -14' stroke='#4ac84e' stroke-width='1.1' fill='none'/>",
+				"<path d='M 30 98 q .5 -6 1.2 -12' stroke='#3a9e3a' stroke-width='1' fill='none'/>",
+				"<path d='M 38 98 q -.5 -6 -1 -12' stroke='#44b842' stroke-width='.9' fill='none'/>",
+				"<path d='M 46 98 q .8 -8 1.6 -15' stroke='#2f8a35' stroke-width='1.1' fill='none'/>",
+				"<path d='M 132 98 q .4 -5 .9 -10' stroke='#3a9e3a' stroke-width='.9' fill='none'/>",
+				"<path d='M 138 98 q -.6 -6 -1.2 -12' stroke='#44b842' stroke-width='1' fill='none'/>",
+				"<path d='M 144 98 q .7 -7 1.3 -13' stroke='#4ac84e' stroke-width='1.1' fill='none'/>",
+				"<path d='M 152 98 q -.5 -5 -1 -10' stroke='#2f8a35' stroke-width='.9' fill='none'/>",
+			"</g>",
+			// Couch shadow.
+			"<ellipse cx='80' cy='86' rx='40' ry='3' fill='#000' opacity='.2' filter='url(#cgSh)'/>",
+			// Couch (landed and bouncing in place).
 			"<g>",
 				"<rect x='48' y='66' width='64' height='18' rx='3' fill='#c36a1e'/>",
 				"<rect x='52' y='60' width='16' height='10' rx='2' fill='#e89254'/>",
@@ -472,11 +508,6 @@
 				"<rect x='50' y='84' width='4' height='6' fill='#3d1e08'/>",
 				"<rect x='108' y='84' width='4' height='6' fill='#3d1e08'/>",
 				"<rect x='48' y='67' width='64' height='1.5' fill='#e89254' opacity='.5'/>",
-			"</g>",
-			// tiny birds
-			"<g stroke='#000' stroke-width='.8' fill='none'>",
-				"<path d='M 70 14 q 2 -2 4 0 q 2 -2 4 0'/>",
-				"<path d='M 98 20 q 2 -2 4 0 q 2 -2 4 0'/>",
 			"</g>",
 		"</svg>",
 	].join( '' ), '#7ab9f0' );
