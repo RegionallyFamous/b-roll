@@ -27,7 +27,7 @@ Pick any of them from **OS Settings → Wallpapers** once the plugin is active.
 
 Open a hosted WordPress + Desktop Mode + B-Roll environment:
 
-https://playground.wordpress.net/?blueprint-url=https://files.catbox.moe/a9u8e1.json
+https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/b-roll/main/blueprint.json
 
 (First load takes ~20–30 seconds while Playground boots and both plugins install.)
 
