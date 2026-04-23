@@ -702,6 +702,12 @@
 	].join( '' ), '#e0deed' );
 
 	// --- The Upside Down (Stranger Things) ------------------------ //
+	// --- The Upside Down ------------------------------------------ //
+	// v0.4: 3-depth parallax spores (faint far, bright near), ash
+	// flakes with red/cyan chromatic aberration, 4 tendrils in
+	// mixed life phases (fully grown, mid-grow, tiny early sprout,
+	// mid-retract, with blossom head dots), red lightning + scene-
+	// wide white veil flash, a bright static sweep line mid-screen.
 	PREVIEWS[ 'upside-down' ] = preview( [
 		"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
 			"<defs>",
@@ -712,36 +718,79 @@
 				"<filter id='usm' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='.6'/></filter>",
 			"</defs>",
 			"<rect width='160' height='100' fill='url(#ud2)'/>",
-			// lightning at top
+			// Scene-wide veil brighten from a strike in progress.
+			"<rect width='160' height='100' fill='#ffe0d8' opacity='.12'/>",
+			// Lightning at top.
 			"<g stroke='#ff5533' opacity='.85'>",
 				"<path d='M 70 0 L 66 10 L 72 12 L 62 24' stroke-width='.9' fill='none'/>",
 				"<path d='M 70 0 L 66 10 L 72 12 L 62 24' stroke-width='2' stroke='#ff8855' opacity='.4' fill='none' filter='url(#ug)'/>",
 				"<path d='M 110 0 L 114 12 L 108 14 L 118 26' stroke-width='.7' fill='none'/>",
 			"</g>",
-			// tendrils from edges
-			"<g stroke='#4a0820' fill='none' filter='url(#usm)'>",
-				"<path d='M 0 16 Q 20 28 28 46 Q 36 64 52 74' stroke-width='1.2' opacity='.8'/>",
-				"<path d='M 0 16 Q 20 28 28 46 Q 36 64 52 74' stroke-width='2.6' opacity='.4'/>",
-				"<path d='M 160 86 Q 140 76 132 58 Q 124 40 108 26' stroke-width='1.2' opacity='.8'/>",
-				"<path d='M 0 88 Q 14 76 40 82' stroke-width='1' opacity='.6'/>",
-				"<path d='M 160 14 Q 146 6 130 16' stroke-width='1' opacity='.6'/>",
+			// Tendrils in mixed growth phases.
+			"<g fill='none' stroke='#3a0614' filter='url(#usm)'>",
+				// Fully grown from left edge.
+				"<path d='M 0 16 Q 20 28 28 46 Q 36 64 52 74' stroke-width='1.4' opacity='.85'/>",
+				// Mid-growing from right edge.
+				"<path d='M 160 86 Q 140 76 132 58' stroke-width='1.2' opacity='.8'/>",
+				// Short early sprout from bottom.
+				"<path d='M 0 88 Q 6 82 14 80' stroke-width='.9' opacity='.6'/>",
+				// Mid-retract from top.
+				"<path d='M 160 14 Q 150 16 140 22' stroke-width='1' opacity='.55'/>",
 			"</g>",
-			// glowing spores
+			// Tendril tip blossoms (bright dots at growing heads).
+			"<g fill='#8a1a2e' opacity='.8'>",
+				"<circle cx='132' cy='58' r='1.6'/>",
+				"<circle cx='14' cy='80' r='1.4'/>",
+				"<circle cx='140' cy='22' r='1.4'/>",
+			"</g>",
+			// Far spores (dim, small).
+			"<g fill='#ffccdd' opacity='.45'>",
+				"<circle cx='12' cy='28' r='.7'/><circle cx='56' cy='14' r='.8'/>",
+				"<circle cx='108' cy='32' r='.7'/><circle cx='148' cy='26' r='.9'/>",
+				"<circle cx='26' cy='56' r='.8'/><circle cx='138' cy='60' r='.7'/>",
+			"</g>",
+			// Mid spores with halo.
 			"<g>",
-				"<circle cx='22' cy='22' r='2.5' fill='#ffccdd' opacity='.2' filter='url(#ug)'/><circle cx='22' cy='22' r='1.2' fill='#ffccdd'/>",
-				"<circle cx='58' cy='38' r='3' fill='#ffccdd' opacity='.15' filter='url(#ug)'/><circle cx='58' cy='38' r='1.4' fill='#ffccdd'/>",
-				"<circle cx='92' cy='26' r='2' fill='#ffccdd' opacity='.18' filter='url(#ug)'/><circle cx='92' cy='26' r='1' fill='#ffccdd'/>",
-				"<circle cx='124' cy='68' r='3' fill='#ffccdd' opacity='.15' filter='url(#ug)'/><circle cx='124' cy='68' r='1.4' fill='#ffccdd'/>",
-				"<circle cx='36' cy='74' r='2' fill='#ffccdd' opacity='.18' filter='url(#ug)'/><circle cx='36' cy='74' r='1' fill='#ffccdd'/>",
-				"<circle cx='144' cy='42' r='2.5' fill='#ffccdd' opacity='.2' filter='url(#ug)'/><circle cx='144' cy='42' r='1.2' fill='#ffccdd'/>",
-				"<circle cx='72' cy='88' r='1.6' fill='#ffccdd' opacity='.9'/>",
-				"<circle cx='104' cy='86' r='1' fill='#ffccdd' opacity='.85'/>",
+				"<circle cx='22' cy='22' r='2.5' fill='#ffccdd' opacity='.2' filter='url(#ug)'/>",
+				"<circle cx='22' cy='22' r='1.2' fill='#ffccdd'/>",
+				"<circle cx='92' cy='26' r='2' fill='#ffccdd' opacity='.18' filter='url(#ug)'/>",
+				"<circle cx='92' cy='26' r='1' fill='#ffccdd'/>",
+				"<circle cx='124' cy='68' r='2.6' fill='#ffccdd' opacity='.2' filter='url(#ug)'/>",
+				"<circle cx='124' cy='68' r='1.3' fill='#ffccdd'/>",
+				"<circle cx='36' cy='74' r='2' fill='#ffccdd' opacity='.18' filter='url(#ug)'/>",
+				"<circle cx='36' cy='74' r='1' fill='#ffccdd'/>",
 			"</g>",
-			// glitch title
+			// Near spores (bright, bigger halo).
+			"<g>",
+				"<circle cx='58' cy='38' r='3.6' fill='#ffccdd' opacity='.22' filter='url(#ug)'/>",
+				"<circle cx='58' cy='38' r='1.8' fill='#ffccdd'/>",
+				"<circle cx='144' cy='42' r='3.2' fill='#ffccdd' opacity='.22' filter='url(#ug)'/>",
+				"<circle cx='144' cy='42' r='1.6' fill='#ffccdd'/>",
+				"<circle cx='72' cy='88' r='2' fill='#ffccdd' opacity='.95'/>",
+			"</g>",
+			// Ash flakes with chromatic aberration.
+			"<g>",
+				"<circle cx='29' cy='44' r='.9' fill='#ff4060' opacity='.3'/>",
+				"<circle cx='31' cy='44' r='.9' fill='#60e0ff' opacity='.25'/>",
+				"<circle cx='30' cy='44' r='.9' fill='#1a0008' opacity='.85'/>",
+				"<circle cx='79' cy='72' r='1' fill='#ff4060' opacity='.3'/>",
+				"<circle cx='81' cy='72' r='1' fill='#60e0ff' opacity='.25'/>",
+				"<circle cx='80' cy='72' r='1' fill='#1a0008' opacity='.85'/>",
+				"<circle cx='113' cy='52' r='.8' fill='#ff4060' opacity='.3'/>",
+				"<circle cx='115' cy='52' r='.8' fill='#60e0ff' opacity='.25'/>",
+				"<circle cx='114' cy='52' r='.8' fill='#1a0008' opacity='.85'/>",
+			"</g>",
+			// Static-line sweep crossing mid-frame.
+			"<g>",
+				"<rect y='52' width='160' height='2' fill='#ff4055' opacity='.35'/>",
+				"<rect y='54' width='160' height='1.4' fill='#fff' opacity='.75'/>",
+				"<rect y='56' width='160' height='2' fill='#60e0ff' opacity='.25'/>",
+			"</g>",
+			// Glitch title.
 			"<g font-family='Georgia,serif' font-size='14' font-weight='bold' font-style='italic' letter-spacing='3'>",
-				"<text x='80' y='58' fill='#64e0ff' opacity='.55' text-anchor='middle' transform='translate(-2 0)'>CHAPTER</text>",
-				"<text x='80' y='58' fill='#00ffaa' opacity='.45' text-anchor='middle'>CHAPTER</text>",
-				"<text x='80' y='58' fill='#ff2420' text-anchor='middle' transform='translate(2 0)'>CHAPTER</text>",
+				"<text x='80' y='42' fill='#64e0ff' opacity='.55' text-anchor='middle' transform='translate(-3 1)'>CHAPTER</text>",
+				"<text x='80' y='42' fill='#00ffaa' opacity='.45' text-anchor='middle'>CHAPTER</text>",
+				"<text x='80' y='42' fill='#ff2420' text-anchor='middle' transform='translate(3 -1)'>CHAPTER</text>",
 			"</g>",
 		"</svg>",
 	].join( '' ), '#1a0410' );
