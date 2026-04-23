@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name:       B-Roll for WP Desktop Mode
- * Plugin URI:        https://github.com/regionallyfamous/b-roll
- * Description:       A pack of pop-culture-themed PixiJS wallpapers for WP Desktop Mode. Scenes include Code Rain (Matrix), Hyperspace (Star Wars), Neon Rain (Blade Runner), The Grid (Tron), Couch Gag (Simpsons), Rainbow Road (Mario Kart), Soot Sprites (Ghibli), Upside Down (Stranger Things), Refinery (Severance), and Shimmer (Arcane).
- * Version:           0.1.0
+ * Plugin URI:        https://github.com/RegionallyFamous/b-roll
+ * Description:       A pack of pop-culture-themed PixiJS wallpapers for WP Desktop Mode. Scenes are lazy-loaded per-selection so adding hundreds stays cheap.
+ * Version:           0.3.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            regionallyfamous
@@ -18,13 +18,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Enqueue the scenes bundle.
- *
- * Depends on the `wp-desktop` handle, which the host plugin only registers
- * when the desktop shell is being rendered. That dependency effectively gates
- * our code to desktop-mode contexts.
- */
 add_action(
 	'admin_enqueue_scripts',
 	function () {
@@ -33,19 +26,19 @@ add_action(
 		}
 
 		wp_enqueue_script(
-			'b-roll-scenes',
-			plugins_url( 'src/scenes.js', __FILE__ ),
+			'b-roll',
+			plugins_url( 'src/index.js', __FILE__ ),
 			array( 'wp-desktop', 'wp-hooks' ),
-			'0.1.0',
+			'0.3.0',
 			true
 		);
 
 		wp_localize_script(
-			'b-roll-scenes',
+			'b-roll',
 			'bRoll',
 			array(
 				'pluginUrl' => untrailingslashit( plugins_url( '', __FILE__ ) ),
-				'version'   => '0.1.0',
+				'version'   => '0.3.0',
 			)
 		);
 	}
