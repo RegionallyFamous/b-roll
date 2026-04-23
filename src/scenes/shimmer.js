@@ -1,10 +1,21 @@
 /**
- * B-Roll scene: Shimmer (Arcane)
+ * B-Roll scene: Shimmer (Arcane) — v0.4
  * ---------------------------------------------------------------
- * Magenta→gold gradient with Zaun silhouette at the bottom,
- * rising bioluminescent particles with trails, hex-grid flashes
- * that radiate from specific origin points, gold glints, pulsing
- * chem-tank glow at the floor.
+ * Magenta→gold gradient with Piltover silhouette at the top and
+ * Zaun silhouette at the bottom. The base now bubbles: a dedicated
+ * bubble layer spawns gold→pink spheres at the floor that rise
+ * and pop at the top of the chem tank, giving the scene a
+ * literal "chemicals boiling" read.
+ *
+ * Magenta hex-grid pulses still radiate outward but now cycle
+ * faster (spawning every ~6–18s instead of 10–30s) and the
+ * wave ring is thicker with a clearer leading edge. A slow
+ * color-shift wave sweeps down the frame, tinting the gradient
+ * cyan/pink as it passes. Rare purple lightning flashes over
+ * the Piltover silhouette with a veil flash across the sky.
+ *
+ * Rising particles with bloom trails, upper-frame glints, and
+ * Zaun window flicker continue from v0.3.
  */
 ( function () {
 	'use strict';
@@ -31,6 +42,28 @@
 				}
 			}
 			drawBg();
+
+			// Color-shift wave overlay (tints a horizontal band).
+			var colorWave = new PIXI.Graphics();
+			app.stage.addChild( colorWave );
+
+			// Distant lightning silhouetting Piltover.
+			var lightning = new PIXI.Graphics();
+			app.stage.addChild( lightning );
+
+			var pilt = new PIXI.Graphics();
+			app.stage.addChild( pilt );
+			function drawPilt() {
+				pilt.clear();
+				var w = app.renderer.width, hh = app.renderer.height;
+				var top = hh * 0.04;
+				pilt.poly( [
+					0, top, 40, top - 6, 80, top + 4, 130, top - 12, 180, top + 2,
+					240, top - 8, 300, top + 4, 360, top - 10, 420, top + 2,
+					480, top - 4, 540, top, w, top - 4, w, 0, 0, 0,
+				] ).fill( { color: 0x1c1228, alpha: 0.5 } );
+			}
+			drawPilt();
 
 			var zaun = new PIXI.Graphics();
 			app.stage.addChild( zaun );
@@ -60,25 +93,16 @@
 			}
 			drawZaun();
 
-			var pilt = new PIXI.Graphics();
-			app.stage.addChild( pilt );
-			function drawPilt() {
-				pilt.clear();
-				var w = app.renderer.width, hh = app.renderer.height;
-				var top = hh * 0.04;
-				pilt.poly( [
-					0, top, 40, top - 6, 80, top + 4, 130, top - 12, 180, top + 2,
-					240, top - 8, 300, top + 4, 360, top - 10, 420, top + 2,
-					480, top - 4, 540, top, w, top - 4, w, 0, 0, 0,
-				] ).fill( { color: 0x1c1228, alpha: 0.5 } );
-			}
-			drawPilt();
-
 			var windowLights = new PIXI.Graphics();
 			app.stage.addChild( windowLights );
 
 			var tank = new PIXI.Graphics();
 			app.stage.addChild( tank );
+
+			// Rising chemical bubbles from the floor.
+			var bubbleLayer = new PIXI.Graphics();
+			app.stage.addChild( bubbleLayer );
+			var bubbles = [];
 
 			var hex = new PIXI.Graphics();
 			hex.alpha = 0;
@@ -105,28 +129,43 @@
 			var glintLayer = new PIXI.Graphics();
 			app.stage.addChild( glintLayer );
 
-			return { bg: bg, drawBg: drawBg, zaun: zaun, drawZaun: drawZaun, zaunWindows: zaunWindows,
-				pilt: pilt, drawPilt: drawPilt, windowLights: windowLights, tank: tank,
+			return {
+				bg: bg, drawBg: drawBg,
+				colorWave: colorWave, waveY: -999, waveT: h.rand( 60 * 8, 60 * 22 ),
+				waveTint: 0xff4ab8,
+				lightning: lightning, lightningLife: 0, lightningT: h.rand( 60 * 20, 60 * 55 ),
+				lightningFlash: 0, lightningPath: null,
+				pilt: pilt, drawPilt: drawPilt,
+				zaun: zaun, drawZaun: drawZaun, zaunWindows: zaunWindows,
+				windowLights: windowLights, tank: tank,
+				bubbleLayer: bubbleLayer, bubbles: bubbles,
+				bubbleSpawnCD: 0,
 				hex: hex, hexAlpha: 0, hexOrigin: { x: w / 2, y: hh * 0.88 },
 				particles: particles, bloomParticles: bloomParticles, pts: pts,
-				glintLayer: glintLayer, hexT: h.rand( 60 * 12, 60 * 35 ) };
+				glintLayer: glintLayer, hexT: h.rand( 60 * 6, 60 * 18 ),
+			};
 		},
+
 		onResize: function ( state, env ) {
 			state.drawBg(); state.drawZaun(); state.drawPilt();
 			state.hexOrigin = { x: env.app.renderer.width / 2, y: env.app.renderer.height * 0.88 };
 		},
+
 		tick: function ( state, env ) {
+			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var t = env.app.ticker.lastTime;
 
+			// --- Zaun window flicker --------------------------- //
 			state.windowLights.clear();
 			for ( var i = 0; i < state.zaunWindows.length; i++ ) {
 				var wi = state.zaunWindows[ i ];
-				wi.tw += 0.02 * env.dt;
+				wi.tw += 0.02 * dt;
 				var a = wi.alpha * ( 0.7 + 0.3 * Math.sin( wi.tw ) );
 				state.windowLights.rect( wi.x, wi.y, 2, 3 ).fill( { color: 0xff8c5a, alpha: a } );
 			}
 
+			// --- Chem-tank pulse (base glow) ------------------- //
 			state.tank.clear();
 			var tankPulse = 0.55 + 0.35 * Math.sin( t * 0.002 );
 			for ( var r = 8; r >= 1; r-- ) {
@@ -134,14 +173,50 @@
 					.fill( { color: h.lerpColor( 0xff4ab8, 0x16051a, r / 8 ), alpha: tankPulse * 0.1 } );
 			}
 
+			// --- Rising chemical bubbles ----------------------- //
+			state.bubbleSpawnCD -= dt;
+			if ( state.bubbleSpawnCD <= 0 ) {
+				state.bubbleSpawnCD = h.rand( 2, 8 );
+				var bx = h.rand( w * 0.1, w * 0.9 );
+				state.bubbles.push( {
+					x: bx, y: hh + 4,
+					vy: -h.rand( 0.25, 0.7 ),
+					r: h.rand( 1.2, 4 ),
+					phase: Math.random() * h.tau,
+					wobble: h.rand( 0.5, 1.8 ),
+					life: 1,
+					color: h.lerpColor( 0xff4ab8, 0xffe08a, Math.random() ),
+				} );
+			}
+			state.bubbleLayer.clear();
+			for ( var bi = state.bubbles.length - 1; bi >= 0; bi-- ) {
+				var b = state.bubbles[ bi ];
+				b.phase += 0.05 * dt;
+				b.y += b.vy * dt;
+				var bbx = b.x + Math.sin( b.phase ) * b.wobble;
+				var riseFrac = 1 - ( b.y - hh * 0.6 ) / ( hh * 0.4 );
+				riseFrac = h.clamp( riseFrac, 0, 1 );
+				if ( b.y < hh * 0.58 ) {
+					b.life -= 0.02 * dt;
+					if ( b.life <= 0 ) { state.bubbles.splice( bi, 1 ); continue; }
+				}
+				state.bubbleLayer.circle( bbx, b.y, b.r )
+					.fill( { color: b.color, alpha: b.life * ( 0.35 + riseFrac * 0.25 ) } );
+				state.bubbleLayer.circle( bbx, b.y, b.r * 2.2 )
+					.fill( { color: b.color, alpha: b.life * 0.12 } );
+				state.bubbleLayer.circle( bbx - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.3 )
+					.fill( { color: 0xffe08a, alpha: b.life * 0.45 } );
+			}
+
+			// --- Rising particles + bloom trails --------------- //
 			state.particles.clear();
 			state.bloomParticles.clear();
 			for ( var j = 0; j < state.pts.length; j++ ) {
 				var p = state.pts[ j ];
 				p.prevX = p.x + Math.sin( p.phase ) * p.amp;
 				p.prevY = p.y;
-				p.phase += 0.04 * env.dt;
-				p.y += p.vy * env.dt;
+				p.phase += 0.04 * dt;
+				p.y += p.vy * dt;
 				if ( p.y < -10 ) { p.y = hh + 20; p.x = h.rand( 0, w ); }
 				var px = p.x + Math.sin( p.phase ) * p.amp;
 				var prog = 1 - ( p.y / hh );
@@ -152,6 +227,7 @@
 				state.bloomParticles.circle( px, p.y, p.r * 3 ).fill( { color: color, alpha: 0.12 + prog * 0.18 } );
 			}
 
+			// --- Upper-frame glints ---------------------------- //
 			state.glintLayer.clear();
 			var G = 22;
 			for ( var g = 0; g < G; g++ ) {
@@ -167,22 +243,83 @@
 				}
 			}
 
-			state.hexT -= env.dt;
+			// --- Color-shift wave ------------------------------ //
+			state.waveT -= dt;
+			if ( state.waveT <= 0 && state.waveY < -50 ) {
+				state.waveT = h.rand( 60 * 12, 60 * 28 );
+				state.waveY = -40;
+				state.waveTint = h.choose( [ 0xff4ab8, 0x64e0ff, 0xffa040, 0xb080ff ] );
+			}
+			state.colorWave.clear();
+			if ( state.waveY > -50 ) {
+				state.waveY += 0.9 * dt;
+				if ( state.waveY > hh + 40 ) {
+					state.waveY = -999;
+				} else {
+					// Wide gradient band (3 rects of varying alpha).
+					state.colorWave.rect( 0, state.waveY - 30, w, 20 )
+						.fill( { color: state.waveTint, alpha: 0.04 } );
+					state.colorWave.rect( 0, state.waveY - 10, w, 20 )
+						.fill( { color: state.waveTint, alpha: 0.11 } );
+					state.colorWave.rect( 0, state.waveY + 10, w, 30 )
+						.fill( { color: state.waveTint, alpha: 0.05 } );
+				}
+			}
+
+			// --- Distant lightning ------------------------------ //
+			state.lightningT -= dt;
+			state.lightning.clear();
+			if ( state.lightningT <= 0 && state.lightningLife <= 0 ) {
+				state.lightningT = h.rand( 60 * 20, 60 * 55 );
+				state.lightningLife = 1;
+				state.lightningFlash = 1;
+				// Pre-generate a bolt path.
+				var steps = 10;
+				var startX = h.rand( w * 0.1, w * 0.9 );
+				var path = [ startX, 0 ];
+				var x2 = startX, y2 = 0;
+				for ( var li = 0; li < steps; li++ ) {
+					x2 += h.rand( -20, 20 );
+					y2 += ( hh * 0.18 ) / steps;
+					path.push( x2, y2 );
+				}
+				state.lightningPath = path;
+			}
+			if ( state.lightningFlash > 0 ) {
+				state.lightningFlash -= 0.06 * dt;
+				state.lightning.rect( 0, 0, w, hh * 0.35 )
+					.fill( { color: 0xb080ff, alpha: state.lightningFlash * 0.18 } );
+			}
+			if ( state.lightningLife > 0 && state.lightningPath ) {
+				state.lightningLife -= 0.04 * dt;
+				var P = state.lightningPath;
+				for ( var lp = 0; lp < P.length - 2; lp += 2 ) {
+					state.lightning.moveTo( P[ lp ], P[ lp + 1 ] ).lineTo( P[ lp + 2 ], P[ lp + 3 ] )
+						.stroke( { color: 0xd8b8ff, alpha: state.lightningLife * 0.95, width: 1.1 } );
+					state.lightning.moveTo( P[ lp ], P[ lp + 1 ] ).lineTo( P[ lp + 2 ], P[ lp + 3 ] )
+						.stroke( { color: 0xb080ff, alpha: state.lightningLife * 0.45, width: 3 } );
+				}
+			}
+
+			// --- Hex-grid magenta pulse ------------------------- //
+			state.hexT -= dt;
 			if ( state.hexT <= 0 ) {
-				state.hexT = h.rand( 60 * 10, 60 * 30 );
+				state.hexT = h.rand( 60 * 6, 60 * 18 );
 				state.hexAlpha = 1;
 				state.hexOrigin = { x: h.rand( w * 0.2, w * 0.8 ), y: hh * 0.88 };
 			}
 			if ( state.hexAlpha > 0 ) {
-				state.hexAlpha = Math.max( 0, state.hexAlpha - 0.015 * env.dt );
+				state.hexAlpha = Math.max( 0, state.hexAlpha - 0.015 * dt );
 				state.hex.clear();
 				var HEX_R = 30, HEX_H = HEX_R * Math.sqrt( 3 );
+				var waveRadius = ( 1 - state.hexAlpha ) * 450;
 				for ( var y = 0; y < hh + HEX_H; y += HEX_H * 0.5 ) {
 					for ( var x = 0; x < w + HEX_R * 2; x += HEX_R * 1.5 ) {
 						var ox = ( Math.round( y / ( HEX_H * 0.5 ) ) % 2 ) * HEX_R * 0.75;
 						var cx = x + ox, cy = y;
 						var dist = Math.hypot( cx - state.hexOrigin.x, cy - state.hexOrigin.y );
-						var wave = Math.max( 0, 1 - Math.abs( dist - ( 1 - state.hexAlpha ) * 400 ) / 80 );
+						var wave = Math.max( 0, 1 - Math.abs( dist - waveRadius ) / 60 );
+						var edge = Math.max( 0, 1 - Math.abs( dist - waveRadius ) / 20 );
 						state.hex.poly( [
 							cx - HEX_R, cy,
 							cx - HEX_R * 0.5, cy - HEX_H * 0.5,
@@ -190,7 +327,7 @@
 							cx + HEX_R, cy,
 							cx + HEX_R * 0.5, cy + HEX_H * 0.5,
 							cx - HEX_R * 0.5, cy + HEX_H * 0.5,
-						] ).stroke( { color: 0xff7ad0, alpha: state.hexAlpha * 0.35 + wave * 0.6, width: 1 } );
+						] ).stroke( { color: 0xff7ad0, alpha: state.hexAlpha * 0.3 + wave * 0.55 + edge * 0.3, width: 1 } );
 					}
 				}
 			}

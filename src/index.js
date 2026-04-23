@@ -872,6 +872,13 @@
 	].join( '' ), '#d4ded9' );
 
 	// --- Shimmer (Arcane) ----------------------------------------- //
+	// --- Shimmer (Arcane) ----------------------------------------- //
+	// v0.4: lavender distant-lightning bolt over Piltover with its
+	// sky veil flash, a horizontal cyan color-shift wave sweeping
+	// the mid-gradient, thicker magenta hex-grid pulse radiating
+	// from a spawn point, chemical bubbles rising from the base
+	// with highlight dots, additive particle-rise bloom, Zaun
+	// window flicker.
 	PREVIEWS[ 'shimmer' ] = preview( [
 		"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
 			"<defs>",
@@ -884,9 +891,14 @@
 				"<filter id='pg3' x='-40%' y='-40%' width='180%' height='180%'><feGaussianBlur stdDeviation='2'/></filter>",
 			"</defs>",
 			"<rect width='160' height='100' fill='url(#sh2)'/>",
-			// chem-tank glow at bottom
-			"<rect width='160' height='100' fill='url(#tank)' opacity='.75'/>",
-			// piltover silhouette top
+			// Sky veil flash from lightning.
+			"<rect width='160' height='35' fill='#b080ff' opacity='.12'/>",
+			// Distant lavender lightning bolt.
+			"<g stroke='#d8b8ff' fill='none' opacity='.9'>",
+				"<path d='M 58 0 L 54 6 L 60 8 L 52 18' stroke-width='1.1'/>",
+				"<path d='M 58 0 L 54 6 L 60 8 L 52 18' stroke-width='3' stroke='#b080ff' opacity='.45'/>",
+			"</g>",
+			// Piltover silhouette top.
 			"<g fill='#3a2a4a' opacity='.55'>",
 				"<polygon points='0,0 0,6 24,4 38,10 58,6 74,12 92,4 112,10 134,6 152,10 160,4 160,0'/>",
 			"</g>",
@@ -894,16 +906,24 @@
 				"<circle cx='38' cy='8' r='1'/><circle cx='74' cy='10' r='.8'/>",
 				"<circle cx='112' cy='8' r='.9'/><circle cx='152' cy='8' r='.8'/>",
 			"</g>",
-			// hex grid
-			"<g stroke='#ff7ad0' fill='none' stroke-width='.5' opacity='.55'>",
-				"<polygon points='34,48 40,44 46,48 46,54 40,58 34,54'/>",
-				"<polygon points='46,54 52,50 58,54 58,60 52,64 46,60'/>",
-				"<polygon points='58,48 64,44 70,48 70,54 64,58 58,54'/>",
-				"<polygon points='70,54 76,50 82,54 82,60 76,64 70,60'/>",
-				"<polygon points='82,48 88,44 94,48 94,54 88,58 82,54'/>",
-				"<polygon points='94,54 100,50 106,54 106,60 100,64 94,60'/>",
+			// Color-shift wave sweeping the gradient (cyan band mid-frame).
+			"<g>",
+				"<rect y='32' width='160' height='6' fill='#64e0ff' opacity='.05'/>",
+				"<rect y='38' width='160' height='8' fill='#64e0ff' opacity='.12'/>",
+				"<rect y='46' width='160' height='10' fill='#64e0ff' opacity='.05'/>",
 			"</g>",
-			// zaun silhouette
+			// Chem-tank glow at bottom.
+			"<rect width='160' height='100' fill='url(#tank)' opacity='.75'/>",
+			// Hex grid with clearer radiating ring edge.
+			"<g stroke='#ff7ad0' fill='none' opacity='.55'>",
+				"<polygon points='34,48 40,44 46,48 46,54 40,58 34,54' stroke-width='.5'/>",
+				"<polygon points='46,54 52,50 58,54 58,60 52,64 46,60' stroke-width='.8'/>",
+				"<polygon points='58,48 64,44 70,48 70,54 64,58 58,54' stroke-width='1.2'/>",
+				"<polygon points='70,54 76,50 82,54 82,60 76,64 70,60' stroke-width='1.2'/>",
+				"<polygon points='82,48 88,44 94,48 94,54 88,58 82,54' stroke-width='.8'/>",
+				"<polygon points='94,54 100,50 106,54 106,60 100,64 94,60' stroke-width='.5'/>",
+			"</g>",
+			// Zaun silhouette.
 			"<g fill='#0a0210'>",
 				"<rect x='0' y='74' width='14' height='26'/><rect x='12' y='68' width='14' height='32'/>",
 				"<rect x='24' y='78' width='10' height='22'/><rect x='32' y='72' width='16' height='28'/>",
@@ -914,14 +934,29 @@
 				"<rect x='130' y='74' width='12' height='26'/><rect x='140' y='70' width='12' height='30'/>",
 				"<rect x='150' y='76' width='10' height='24'/>",
 			"</g>",
-			// windows
+			// Windows.
 			"<g fill='#ff8c5a'>",
 				"<rect x='4' y='78' width='1.5' height='2'/><rect x='18' y='74' width='1.5' height='2'/>",
 				"<rect x='40' y='78' width='1.5' height='2'/><rect x='58' y='76' width='1.5' height='2'/>",
 				"<rect x='80' y='74' width='1.5' height='2'/><rect x='102' y='76' width='1.5' height='2'/>",
 				"<rect x='122' y='74' width='1.5' height='2'/><rect x='144' y='76' width='1.5' height='2'/>",
 			"</g>",
-			// rising particles with glow
+			// Rising chemical bubbles from the base (gold→pink).
+			"<g>",
+				"<circle cx='22' cy='92' r='2.8' fill='#ff4ab8' opacity='.32' filter='url(#pg3)'/>",
+				"<circle cx='22' cy='92' r='1.8' fill='#ff7cc8' opacity='.65'/>",
+				"<circle cx='21' cy='91' r='.6' fill='#ffe08a' opacity='.8'/>",
+				"<circle cx='58' cy='88' r='3' fill='#ffa888' opacity='.3' filter='url(#pg3)'/>",
+				"<circle cx='58' cy='88' r='2' fill='#ffb0a0' opacity='.6'/>",
+				"<circle cx='56.8' cy='86.8' r='.6' fill='#ffe08a' opacity='.8'/>",
+				"<circle cx='100' cy='94' r='3.5' fill='#ff4ab8' opacity='.3' filter='url(#pg3)'/>",
+				"<circle cx='100' cy='94' r='2.4' fill='#ff7cc8' opacity='.6'/>",
+				"<circle cx='98.5' cy='92.5' r='.7' fill='#ffe08a' opacity='.8'/>",
+				"<circle cx='138' cy='86' r='2.2' fill='#ffd090' opacity='.3' filter='url(#pg3)'/>",
+				"<circle cx='138' cy='86' r='1.4' fill='#ffe0a0' opacity='.6'/>",
+				"<circle cx='137' cy='85' r='.5' fill='#fff0c8' opacity='.8'/>",
+			"</g>",
+			// Rising particles with glow.
 			"<g>",
 				"<circle cx='16' cy='56' r='3' fill='#ff4ab8' opacity='.4' filter='url(#pg3)'/>",
 				"<circle cx='16' cy='56' r='1.4' fill='#ff7cc8'/>",
