@@ -1,21 +1,26 @@
 /**
- * B-Roll scene: Refinery (Severance) — v0.4
+ * B-Roll scene: Refinery (Severance) — v0.5
  * ---------------------------------------------------------------
- * Pale grid pool of drifting numerals. Particles now bob on a
- * per-instance sine wobble layered on their target positions, so
- * the whole pool breathes even while "idle."
+ * Painted backdrop (assets/wallpapers/refinery.jpg — sterile
+ * seafoam-and-cream void with a soft radial vignette, faint CRT
+ * scanlines, and a subtle Lumon-style sigil in the lower-left
+ * corner) loaded as a Sprite. On top: a pool of drifting numerals
+ * that bob on a per-instance sine wobble so the whole pool
+ * breathes even while "idle."
  *
  * Periodically numbers gather into a cluster shape (ring, spiral,
  * crescent) and enter a "scary" phase: affected numbers briefly
  * flash red+bold AND scale-pulse with a sine amp, mimicking the
  * show's MDR scary-numbers beat.
  *
- * MDR-style selector box now snaps through an invisible grid of
- * cells one cell at a time (dwell, then ease to the next cell),
- * rather than drifting to random pixel coords. A bin progress
- * bar at the bottom of the frame fills over ~20s and resets. The
- * Lumon mark in the corner slowly rotates. A CRT text cursor
- * blinks in the top-left. A radial vignette darkens the edges.
+ * MDR-style selector box snaps through an invisible 6×4 cell grid
+ * one cell at a time (dwell, then ease to the next cell). A bin
+ * progress bar at the bottom of the frame fills over ~20s and
+ * resets. A CRT text cursor blinks in the top-left. The v0.4
+ * 24×24 graph grid, radial vignette, and rotating Lumon mark
+ * are now baked into the painting (the painted vignette and
+ * sigil are static, but the painting's softer aesthetic preserves
+ * the Severance mood without the rotation animation).
  */
 ( function () {
 	'use strict';
@@ -26,39 +31,30 @@
 	var DIGITS = '0123456789'.split( '' );
 	var SEL_COLS = 6, SEL_ROWS = 4;
 
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/refinery.jpg' + qs;
+	}
+
 	window.__bRoll.scenes[ 'refinery' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 			var w = app.renderer.width, hh = app.renderer.height;
 
-			var bg = new PIXI.Graphics();
-			app.stage.addChild( bg );
-			h.paintVGradient( bg, w, hh, 0xe6f0ea, 0xb8cec3, 12 );
-
-			var grid = new PIXI.Graphics();
-			grid.alpha = 0.12;
-			app.stage.addChild( grid );
-			function drawGrid() {
-				grid.clear();
-				var w = app.renderer.width, hh = app.renderer.height;
-				for ( var x = 0; x < w; x += 24 ) grid.moveTo( x, 0 ).lineTo( x, hh ).stroke( { color: 0x0d2d4e, width: 0.5 } );
-				for ( var y = 0; y < hh; y += 24 ) grid.moveTo( 0, y ).lineTo( w, y ).stroke( { color: 0x0d2d4e, width: 0.5 } );
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
 			}
-			drawGrid();
-
-			var vignette = new PIXI.Graphics();
-			app.stage.addChild( vignette );
-			function drawVignette() {
-				vignette.clear();
-				var w = app.renderer.width, hh = app.renderer.height;
-				var rings = 16;
-				for ( var vi = 0; vi < rings; vi++ ) {
-					var tn = vi / rings;
-					vignette.rect( 0, 0, w, hh )
-						.stroke( { color: 0x0d2d4e, width: ( 1 - tn ) * 3 + 1, alpha: Math.pow( tn, 3 ) * 0.04 } );
-				}
-			}
-			drawVignette();
+			fitBackdrop();
 
 			var numberLayer = new PIXI.Container();
 			app.stage.addChild( numberLayer );
@@ -129,31 +125,9 @@
 			cursor.x = 24; cursor.y = 20;
 			app.stage.addChild( cursor );
 
-			// Lumon mark in bottom-right.
-			var mark = new PIXI.Graphics();
-			mark.circle( 0, 0, 22 ).stroke( { color: 0x0d2d4e, width: 2 } );
-			mark.circle( 0, 0, 14 ).stroke( { color: 0x0d2d4e, width: 1.5 } );
-			mark.moveTo( -22, 0 ).lineTo( 22, 0 ).stroke( { color: 0x0d2d4e, width: 1 } );
-			mark.moveTo( 0, -22 ).lineTo( 0, 22 ).stroke( { color: 0x0d2d4e, width: 1 } );
-			// Create the Lumon container so we can rotate the mark
-			// ring without rotating the text label under it.
-			var markContainer = new PIXI.Container();
-			markContainer.addChild( mark );
-			var markText = new PIXI.Text( {
-				text: 'LUMON',
-				style: { fontFamily: 'Georgia, serif', fontSize: 11, fill: 0x0d2d4e, letterSpacing: 2 },
-			} );
-			markText.anchor.set( 0.5, 0 );
-			markText.y = 28;
-			markContainer.addChild( markText );
-			markContainer.alpha = 0.5;
-			app.stage.addChild( markContainer );
-
 			return {
-				bg: bg, grid: grid, drawGrid: drawGrid,
-				vignette: vignette, drawVignette: drawVignette,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				particles: particles, selector: selector,
-				mark: mark, markContainer: markContainer,
 				progress: progress, progressFrame: progressFrame, progressFill: progressFill,
 				progressLabel: progressLabel, progressT: 0,
 				cursor: cursor, cursorBlink: 0,
@@ -168,12 +142,9 @@
 
 		onResize: function ( state, env ) {
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			h.paintVGradient( state.bg, w, hh, 0xe6f0ea, 0xb8cec3, 12 );
-			state.drawGrid();
-			state.drawVignette();
+			state.fitBackdrop();
 			state.selCellW = w / SEL_COLS;
 			state.selCellH = hh / SEL_ROWS;
-			state.markContainer.x = w - 60; state.markContainer.y = hh - 60;
 		},
 
 		tick: function ( state, env ) {
@@ -181,7 +152,6 @@
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var t = env.app.ticker.lastTime;
 			state.time += dt;
-			state.markContainer.x = w - 60; state.markContainer.y = hh - 60;
 
 			// --- MDR selector snap through grid cells ---------- //
 			state.selDwell -= dt;
@@ -287,10 +257,6 @@
 				state.cursor.visible = ! state.cursor.visible;
 				state.cursorBlink = 0;
 			}
-
-			// --- Slowly rotating Lumon mark -------------------- //
-			state.mark.rotation += 0.0025 * dt;
-			state.markContainer.alpha = 0.42 + 0.1 * Math.sin( t * 0.0018 );
 		},
 	};
 } )();

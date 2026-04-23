@@ -1,19 +1,19 @@
 /**
- * B-Roll scene: Hyperspace (Star Wars) — v0.4
+ * B-Roll scene: Hyperspace (Star Wars) — v0.5
  * ---------------------------------------------------------------
- * Three-layer parallax starfield: a deep twinkling point-star
- * background that doesn't stretch, a mid band of thin radial
- * streaks, and a near band of bright streaks with bright lead
- * dots. Streak speed accelerates cubically as stars approach the
- * screen edge so the motion reads as "accelerating into warp",
- * not a constant pan.
+ * Painted backdrop (assets/wallpapers/hyperspace.jpg — deep
+ * starfield with tinted nebula) loaded as a Sprite. On top: an
+ * additional twinkling point-star layer for live motion, a mid
+ * band of thin radial streaks, and a near band of bright streaks
+ * with bright lead dots. Streak speed accelerates cubically as
+ * stars approach the screen edge so the motion reads as
+ * "accelerating into warp," not a constant pan.
  *
  * A central iris holds a pulsing blue core plus eight lens-flare
  * spokes (H/V + diagonals) that breathe with the core. A warp-
  * flash event every ~18–35 seconds blasts the screen white and
  * is followed by cyan + magenta chromatic ghosts that decay at
  * different rates so the flash reads as anamorphic, not flat.
- *
  * A subtle radial vignette finishes the frame.
  */
 ( function () {
@@ -25,13 +25,31 @@
 	var STREAK_NUM = 360;
 	var TWINKLE_NUM = 160;
 
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/hyperspace.jpg' + qs;
+	}
+
 	window.__bRoll.scenes[ 'hyperspace' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 
-			// Layer stack back→front.
-			var bg       = new PIXI.Graphics(); app.stage.addChild( bg );
-			var glow     = new PIXI.Graphics(); app.stage.addChild( glow );
+			// Painted starfield + nebula backdrop (replaces v0.4 bg + glow).
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
+			}
+			fitBackdrop();
+
 			var twinkle  = new PIXI.Graphics(); app.stage.addChild( twinkle );
 			var linesFar = new PIXI.Graphics(); app.stage.addChild( linesFar );
 			var linesNear= new PIXI.Graphics(); app.stage.addChild( linesNear );
@@ -48,21 +66,6 @@
 			var flash        = new PIXI.Graphics(); flash.alpha = 0;        app.stage.addChild( flash );
 
 			var vignette = new PIXI.Graphics(); app.stage.addChild( vignette );
-
-			function drawBg() {
-				var w = app.renderer.width, hh = app.renderer.height;
-				h.paintVGradient( bg, w, hh, 0x000014, 0x000000, 10 );
-				var cx = w / 2, cy = hh / 2;
-				var R = Math.min( w, hh ) * 0.38;
-				glow.clear();
-				for ( var i = 14; i >= 0; i-- ) {
-					var t = i / 14;
-					glow.circle( cx, cy, R * ( i + 1 ) / 14 ).fill( {
-						color: h.lerpColor( 0x000000, 0x1a4088, 1 - t ),
-						alpha: 0.09 * ( 1 - t ) + 0.01,
-					} );
-				}
-			}
 
 			function drawVignette() {
 				var w = app.renderer.width, hh = app.renderer.height;
@@ -111,11 +114,11 @@
 				var t = {}; spawnTwinkle( t ); twinkles.push( t );
 			}
 
-			drawBg();
 			drawVignette();
 
 			return {
-				bg: bg, glow: glow, drawBg: drawBg, drawVignette: drawVignette,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
+				drawVignette: drawVignette,
 				twinkle: twinkle, linesFar: linesFar, linesNear: linesNear,
 				bloomGlow: bloomGlow, flare: flare,
 				flash: flash, flashCyan: flashCyan, flashMagenta: flashMagenta,
@@ -127,8 +130,8 @@
 			};
 		},
 
-		onResize: function ( state, env ) {
-			state.drawBg();
+		onResize: function ( state ) {
+			state.fitBackdrop();
 			state.drawVignette();
 		},
 

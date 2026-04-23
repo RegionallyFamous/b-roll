@@ -1,28 +1,32 @@
 /**
- * B-Roll scene: Couch Gag (The Simpsons) — v0.4
+ * B-Roll scene: Couch Gag (The Simpsons) — v0.5
  * ---------------------------------------------------------------
- * Springfield-blue sky with a pulsing sun + lens-flare ghost spots
- * along the sun→screen-center axis. Three depth tiers of flapping
- * birds (far/mid/near) with animated wing V-angles plus idle
- * up-and-down bob. Clouds now subtly squash and stretch as they
- * drift — scaleX wobbles ±4% at a per-cloud frequency so they
- * breathe instead of sliding rigidly.
+ * Painted backdrop (assets/wallpapers/couch-gag.jpg — Springfield-
+ * blue sky with a warm yellow sun, distant rolling hills, and a
+ * lush wildflower meadow) loaded as a Sprite. On top: three depth
+ * tiers of flapping birds (far/mid/near) with animated wing
+ * V-angles plus idle up-and-down bob, drifting clouds that subtly
+ * squash and stretch as they go (scaleX wobbles ±4% at a per-cloud
+ * frequency), occasional wind gusts that send faint white streaks
+ * flying across the middle of the sky, soft lens-flare ghosts
+ * tracking the painted sun → screen-center axis, and the couch
+ * gag tableau that drops in, bounces, holds (gentle bob), and
+ * fades out on a long cadence.
  *
- * A wind-swayed grass strip runs across the bottom, each blade
- * with its own sway phase and wind coupling, and occasional wind
- * gusts send a set of faint white streaks flying across the
- * middle of the sky.
- *
- * Couch gag timeline keeps the drop-in tableau but now the room
- * overshoots and bounces on landing, and during the "hold" phase
- * the whole room bobs subtly on a ~3s cycle so it never feels
- * static.
+ * The v0.4 sky gradient, Pixi sun + corona, and procedural grass
+ * blades are now baked into the painting.
  */
 ( function () {
 	'use strict';
 	window.__bRoll = window.__bRoll || {};
 	window.__bRoll.scenes = window.__bRoll.scenes || {};
 	var h = window.__bRoll.helpers;
+
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/couch-gag.jpg' + qs;
+	}
 
 	function drawBird( g, wingT, size ) {
 		g.clear();
@@ -35,41 +39,27 @@
 			.stroke( { color: 0x000000, width: 0.9 * size } );
 	}
 
-	function drawGrass( g, blades, time ) {
-		g.clear();
-		for ( var i = 0; i < blades.length; i++ ) {
-			var b = blades[ i ];
-			var sway = Math.sin( time * b.freq + b.phase ) * b.amp;
-			g.moveTo( b.x, b.rootY )
-				.bezierCurveTo(
-					b.x + sway * 0.4, b.rootY - b.h * 0.5,
-					b.x + sway * 0.7, b.rootY - b.h * 0.75,
-					b.x + sway, b.rootY - b.h,
-				)
-				.stroke( { color: b.color, width: b.w } );
-		}
-	}
-
 	window.__bRoll.scenes[ 'couch-gag' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 
-			var bg = new PIXI.Graphics(); app.stage.addChild( bg );
-			h.paintVGradient( bg, app.renderer.width, app.renderer.height, 0x7ab9f0, 0xdaefff, 14 );
-
-			var sunCorona = new PIXI.Graphics(); app.stage.addChild( sunCorona );
-			var sun       = new PIXI.Graphics(); app.stage.addChild( sun );
-			var flare     = new PIXI.Graphics(); app.stage.addChild( flare );
-
-			function drawSun() {
-				sun.clear();
-				sun.circle( 0, 0, 28 ).fill( { color: 0xfff2a6, alpha: 0.85 } );
-				sun.circle( 0, 0, 22 ).fill( 0xffde3a );
+			// Painted sky / sun / hills / meadow backdrop.
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
 			}
-			drawSun();
-			sun.x = app.renderer.width - 80;
-			sun.y = 80;
-			sunCorona.x = sun.x; sunCorona.y = sun.y;
+			fitBackdrop();
+
+			// Lens-flare ghosts tracking the painted sun → screen-center axis.
+			var flare = new PIXI.Graphics(); app.stage.addChild( flare );
 
 			// Clouds.
 			function makeCloud() {
@@ -79,7 +69,7 @@
 					[ 96, -10, 28 ], [ 22, 8, 30 ], [ 56, 10, 32 ], [ 86, 6, 26 ],
 				];
 				parts.forEach( function ( p ) { g.circle( p[ 0 ], p[ 1 ], p[ 2 ] ).fill( 0xffffff ); } );
-				g.alpha = 0.96;
+				g.alpha = 0.85;
 				return g;
 			}
 			var clouds = [];
@@ -123,30 +113,10 @@
 				}
 			} );
 
-			// Wind gust streaks.
+			// Wind streaks (their own layer; v0.4 piggybacked on the grass).
+			var windLayer = new PIXI.Graphics(); app.stage.addChild( windLayer );
 			var windStreaks = [];
 			var windCD = h.rand( 60 * 4, 60 * 12 );
-
-			// Grass strip (near bottom).
-			var grassLayer = new PIXI.Graphics(); app.stage.addChild( grassLayer );
-			var blades = [];
-			function rebuildGrass() {
-				var w = app.renderer.width, hh = app.renderer.height;
-				blades = [];
-				for ( var bx = -10; bx < w + 10; bx += 6 ) {
-					blades.push( {
-						x: bx + h.rand( -1.5, 1.5 ),
-						rootY: hh - 2,
-						h: h.rand( 10, 22 ),
-						w: h.rand( 0.7, 1.4 ),
-						color: h.choose( [ 0x3a9e3a, 0x44b842, 0x2f8a35, 0x4ac84e ] ),
-						freq: h.rand( 0.04, 0.12 ),
-						phase: h.rand( 0, h.tau ),
-						amp: h.rand( 0.8, 2.4 ),
-					} );
-				}
-			}
-			rebuildGrass();
 
 			// Couch room (unchanged structure, drops in periodically).
 			var room = new PIXI.Container();
@@ -188,10 +158,10 @@
 			room.pivot.set( 180, 115 );
 
 			return {
-				bg: bg, sun: sun, sunCorona: sunCorona, flare: flare,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
+				flare: flare,
 				clouds: clouds, birds: birds,
-				grassLayer: grassLayer, blades: blades, rebuildGrass: rebuildGrass,
-				windStreaks: windStreaks, windCD: windCD,
+				windLayer: windLayer, windStreaks: windStreaks, windCD: windCD,
 				room: room, roomT: h.rand( 60 * 15, 60 * 40 ),
 				phase: 'idle',
 				hold: 0, landVY: 0,
@@ -199,11 +169,8 @@
 			};
 		},
 
-		onResize: function ( state, env ) {
-			h.paintVGradient( state.bg, env.app.renderer.width, env.app.renderer.height, 0x7ab9f0, 0xdaefff, 14 );
-			state.sun.x = env.app.renderer.width - 80;
-			state.sunCorona.x = state.sun.x; state.sunCorona.y = state.sun.y;
-			state.rebuildGrass();
+		onResize: function ( state ) {
+			state.fitBackdrop();
 		},
 
 		tick: function ( state, env ) {
@@ -211,27 +178,23 @@
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
 
-			// --- Sun corona pulse + lens flare ghosts ---------------- //
-			var pulse = 0.8 + 0.2 * Math.sin( state.time * 0.04 );
-			state.sunCorona.clear();
-			state.sunCorona.circle( 0, 0, 40 * pulse ).fill( { color: 0xfff2a6, alpha: 0.28 } );
-			state.sunCorona.circle( 0, 0, 60 * pulse ).fill( { color: 0xffde3a, alpha: 0.12 } );
-			state.sunCorona.circle( 0, 0, 90 * pulse ).fill( { color: 0xffde3a, alpha: 0.05 } );
-
+			// --- Lens-flare ghosts (origin = painted sun, upper center) //
 			state.flare.clear();
+			var sunX = w * 0.5, sunY = hh * 0.18;
 			var cx = w / 2, cy = hh / 2;
-			var dx = cx - state.sun.x, dy = cy - state.sun.y;
+			var dx = cx - sunX, dy = cy - sunY;
+			var pulse = 0.85 + 0.15 * Math.sin( state.time * 0.04 );
 			var ghosts = [
-				{ t: 0.30, r: 14, color: 0xffb868, alpha: 0.35 },
-				{ t: 0.60, r: 8,  color: 0x8abff0, alpha: 0.25 },
-				{ t: 0.95, r: 22, color: 0xffde3a, alpha: 0.18 },
-				{ t: 1.25, r: 10, color: 0xff6a88, alpha: 0.22 },
+				{ t: 0.30, r: 14, color: 0xffb868, alpha: 0.30 },
+				{ t: 0.60, r: 8,  color: 0x8abff0, alpha: 0.22 },
+				{ t: 0.95, r: 22, color: 0xffde3a, alpha: 0.16 },
+				{ t: 1.25, r: 10, color: 0xff6a88, alpha: 0.20 },
 			];
 			for ( var gi = 0; gi < ghosts.length; gi++ ) {
 				var gg = ghosts[ gi ];
-				var gx = state.sun.x + dx * gg.t;
-				var gy = state.sun.y + dy * gg.t;
-				state.flare.circle( gx, gy, gg.r ).fill( { color: gg.color, alpha: gg.alpha } );
+				var gx = sunX + dx * gg.t;
+				var gy = sunY + dy * gg.t;
+				state.flare.circle( gx, gy, gg.r * pulse ).fill( { color: gg.color, alpha: gg.alpha } );
 			}
 
 			// --- Clouds (drift + squash/stretch) --------------------- //
@@ -241,7 +204,7 @@
 				if ( cc.node.x > w + 140 ) cc.node.x = -140;
 				var s = 1 + 0.04 * Math.sin( state.time * cc.breatheFreq + cc.breathePhase );
 				cc.node.scale.x = cc.baseSx * s;
-				cc.node.scale.y = cc.baseSy * ( 2 - s ); // conserves mass a bit
+				cc.node.scale.y = cc.baseSy * ( 2 - s );
 			}
 
 			// --- Birds (flap + bob + wrap) --------------------------- //
@@ -274,20 +237,17 @@
 					} );
 				}
 			}
-			// Draw wind streaks directly onto the grass layer's Graphics (reuse).
+			state.windLayer.clear();
 			for ( var si = state.windStreaks.length - 1; si >= 0; si-- ) {
 				var ws = state.windStreaks[ si ];
 				ws.x += ws.speed * dt;
 				ws.life -= 0.012 * dt;
-				if ( ws.x > w + ws.len || ws.life <= 0 ) state.windStreaks.splice( si, 1 );
-			}
-
-			// --- Grass + wind streaks draw -------------------------- //
-			drawGrass( state.grassLayer, state.blades, state.time );
-			for ( var sj = 0; sj < state.windStreaks.length; sj++ ) {
-				var wsj = state.windStreaks[ sj ];
-				state.grassLayer.moveTo( wsj.x, wsj.y ).lineTo( wsj.x - wsj.len, wsj.y - 1 )
-					.stroke( { color: 0xffffff, alpha: wsj.life * 0.55, width: 0.8 } );
+				if ( ws.x > w + ws.len || ws.life <= 0 ) {
+					state.windStreaks.splice( si, 1 );
+					continue;
+				}
+				state.windLayer.moveTo( ws.x, ws.y ).lineTo( ws.x - ws.len, ws.y - 1 )
+					.stroke( { color: 0xffffff, alpha: ws.life * 0.55, width: 0.8 } );
 			}
 
 			// --- Couch drop + hold + bounce ------------------------- //
@@ -322,7 +282,6 @@
 				}
 			} else if ( state.phase === 'hold' ) {
 				state.hold -= dt;
-				// Gentle sit-bounce: room bobs on a ~8s cycle during hold.
 				state.room.y = hh * 0.55 + Math.sin( state.time * 0.012 ) * 2.4
 					+ Math.sin( state.time * 0.028 ) * 0.6;
 				if ( state.hold <= 0 ) state.phase = 'out';

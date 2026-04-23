@@ -1,17 +1,21 @@
 /**
- * B-Roll scene: The Upside Down (Stranger Things) — v0.4
+ * B-Roll scene: The Upside Down (Stranger Things) — v0.5
  * ---------------------------------------------------------------
- * Red-violet murk with 3 depth tiers of drifting spores, ash
- * flakes with subtle chromatic aberration, and tendrils that now
- * animate as four distinct life phases — grow (ink spreading from
- * an edge along a quadratic curve), hold, retract (shrinking
- * back), gone (sleep) — then respawn with fresh endpoints.
+ * Painted backdrop (assets/wallpapers/upside-down.jpg — heavy
+ * red-violet fog, dense oxblood smoke at the base, faint ember
+ * highlights) loaded as a Sprite. On top: 3 depth tiers of
+ * drifting spores, ash flakes with subtle chromatic aberration,
+ * and tendrils that animate as four distinct life phases — grow
+ * (ink spreading from an edge along a quadratic curve), hold,
+ * retract (shrinking back), gone (sleep) — then respawn with
+ * fresh endpoints.
  *
  * Red lightning strikes now also brighten the entire scene via a
  * short white/red veil flash. Every 30–90 seconds a bright static
  * line sweeps from the top of the frame to the bottom like a TV
  * rolling out of sync. A CRT scanline overlay and a 3-channel
- * chromatic glitch title card round it out.
+ * chromatic glitch title card round it out. The v0.4 horizontal
+ * murk gradient is now baked into the painting.
  */
 ( function () {
 	'use strict';
@@ -58,23 +62,30 @@
 		};
 	}
 
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/upside-down.jpg' + qs;
+	}
+
 	window.__bRoll.scenes[ 'upside-down' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 			var w = app.renderer.width, hh = app.renderer.height;
 
-			var bg = new PIXI.Graphics();
-			app.stage.addChild( bg );
-			function drawBg() {
-				bg.clear();
-				var w = app.renderer.width, hh = app.renderer.height;
-				for ( var i = 0; i < 22; i++ ) {
-					var t = i / 21;
-					var c = h.lerpColor( 0x4a0a20, 0x050007, Math.abs( t - 0.35 ) * 1.4 );
-					bg.rect( 0, ( i * hh ) / 22, w, hh / 22 + 1 ).fill( c );
-				}
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
 			}
-			drawBg();
+			fitBackdrop();
 
 			var veil      = new PIXI.Graphics(); app.stage.addChild( veil );
 			var flash     = new PIXI.Graphics(); app.stage.addChild( flash );
@@ -141,7 +152,7 @@
 			app.stage.addChild( card );
 
 			return {
-				bg: bg, drawBg: drawBg,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				veil: veil, flash: flash, tendrils: tendrils,
 				ashLayer: ashLayer, ash: ash,
 				sporeLayer: sporeLayer, spores: spores,
@@ -157,7 +168,7 @@
 		},
 
 		onResize: function ( state, env ) {
-			state.drawBg();
+			state.fitBackdrop();
 			state.drawScan();
 			state.card.x = env.app.renderer.width / 2;
 			state.card.y = env.app.renderer.height * 0.45;

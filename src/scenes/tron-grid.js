@@ -1,12 +1,13 @@
 /**
- * B-Roll scene: The Grid (Tron) — v0.4
+ * B-Roll scene: The Grid (Tron) — v0.5
  * ---------------------------------------------------------------
- * Perspective grid with horizontal rows that scroll toward the
+ * Painted backdrop (assets/wallpapers/tron-grid.jpg — sunset sky,
+ * horizon glow, distant moons, and a dark reflective plain
+ * stretching to the vanishing point) loaded as a Sprite. On top:
+ * a perspective grid with horizontal rows that scroll toward the
  * viewer and grow brighter/wider as they approach. Near-row
  * intersections gain small bright dots so the grid "flashes" as
- * cells pass under the camera. A warm horizon glow sits at the
- * vanishing point with a mirrored reflection band just below it
- * to fake a glossy floor.
+ * cells pass under the camera.
  *
  * Two light cycles step cell-by-cell on the grid leaving long
  * fade-trails drawn in crisp + bloom passes. Data-packet sprites
@@ -14,6 +15,9 @@
  * the trail toward the tail, glowing as they go. When a cycle
  * head intersects another cycle's trail, a collision flash
  * detonates and the colliding cycle respawns.
+ *
+ * The v0.4 bg gradient + horizon glow + floor reflection band
+ * are now baked into the painting.
  */
 ( function () {
 	'use strict';
@@ -24,57 +28,42 @@
 	var N_ROWS = 14;
 	var CYCLE_COLORS = [ 0x00eaff, 0xff6d1f ];
 
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/tron-grid.jpg' + qs;
+	}
+
 	window.__bRoll.scenes[ 'tron-grid' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 
-			var bg        = new PIXI.Graphics(); app.stage.addChild( bg );
-			var horizon   = new PIXI.Graphics(); app.stage.addChild( horizon );
-			var reflection= new PIXI.Graphics(); app.stage.addChild( reflection );
-			var grid      = new PIXI.Graphics(); app.stage.addChild( grid );
-			var dots      = new PIXI.Graphics(); app.stage.addChild( dots );
-			var trails    = new PIXI.Graphics(); app.stage.addChild( trails );
-			var packets   = new PIXI.Graphics(); app.stage.addChild( packets );
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
+			}
+			fitBackdrop();
+
+			var grid    = new PIXI.Graphics(); app.stage.addChild( grid );
+			var dots    = new PIXI.Graphics(); app.stage.addChild( dots );
+			var trails  = new PIXI.Graphics(); app.stage.addChild( trails );
+			var packets = new PIXI.Graphics(); app.stage.addChild( packets );
 
 			var bloom = h.makeBloomLayer( PIXI, 10 );
 			app.stage.addChild( bloom );
-			var bloomHorizon = new PIXI.Graphics(); bloom.addChild( bloomHorizon );
 			var bloomGrid    = new PIXI.Graphics(); bloom.addChild( bloomGrid );
 			var bloomTrails  = new PIXI.Graphics(); bloom.addChild( bloomTrails );
 			var bloomPackets = new PIXI.Graphics(); bloom.addChild( bloomPackets );
 
 			var flash = new PIXI.Graphics(); flash.alpha = 0; app.stage.addChild( flash );
-
-			function paintBg() {
-				h.paintVGradient( bg, app.renderer.width, app.renderer.height, 0x001626, 0x000000, 14 );
-			}
-			paintBg();
-
-			function drawHorizon() {
-				var w = app.renderer.width, hh = app.renderer.height;
-				horizon.clear(); bloomHorizon.clear(); reflection.clear();
-				var hy = hh * 0.52;
-				horizon.rect( 0, hy - 1, w, 2 ).fill( 0xff9f4a );
-				// Upward glow above horizon line.
-				for ( var i = 0; i < 22; i++ ) {
-					var t = i / 22;
-					horizon.rect( 0, hy - i - 2, w, 1 ).fill( {
-						color: h.lerpColor( 0xff6d1f, 0x000000, t ),
-						alpha: ( 1 - t ) * 0.55,
-					} );
-				}
-				// Bloom band to make the horizon look red-hot.
-				bloomHorizon.rect( 0, hy - 6, w, 12 ).fill( { color: 0xff9040, alpha: 0.65 } );
-				// Downward reflection glow on the floor (dimmer, wider).
-				for ( var j = 0; j < 34; j++ ) {
-					var u = j / 34;
-					reflection.rect( 0, hy + 2 + j, w, 1 ).fill( {
-						color: h.lerpColor( 0xff6d1f, 0x000000, u * 1.1 ),
-						alpha: ( 1 - u ) * 0.28,
-					} );
-				}
-			}
-			drawHorizon();
 
 			function makeCycle( color, gx, gy, dir ) {
 				return {
@@ -95,21 +84,19 @@
 			var collisions = [];
 
 			return {
-				bg: bg, horizon: horizon, reflection: reflection, grid: grid,
-				dots: dots, trails: trails, packets: packets,
-				bloomHorizon: bloomHorizon, bloomGrid: bloomGrid, bloomTrails: bloomTrails,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
+				grid: grid, dots: dots, trails: trails, packets: packets,
+				bloomGrid: bloomGrid, bloomTrails: bloomTrails,
 				bloomPackets: bloomPackets, flash: flash,
 				cycles: cycles, dataPackets: dataPackets, collisions: collisions,
 				makeCycle: makeCycle,
-				paintBg: paintBg, drawHorizon: drawHorizon,
 				phase: 0,
 				packetCD: h.rand( 90, 240 ),
 			};
 		},
 
-		onResize: function ( state, env ) {
-			state.paintBg();
-			state.drawHorizon();
+		onResize: function ( state ) {
+			state.fitBackdrop();
 		},
 
 		tick: function ( state, env ) {

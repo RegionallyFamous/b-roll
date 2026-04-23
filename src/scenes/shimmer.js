@@ -1,21 +1,22 @@
 /**
- * B-Roll scene: Shimmer (Arcane) — v0.4
+ * B-Roll scene: Shimmer (Arcane) — v0.5
  * ---------------------------------------------------------------
- * Magenta→gold gradient with Piltover silhouette at the top and
- * Zaun silhouette at the bottom. The base now bubbles: a dedicated
- * bubble layer spawns gold→pink spheres at the floor that rise
- * and pop at the top of the chem tank, giving the scene a
+ * Painted backdrop (assets/wallpapers/shimmer.jpg — magenta-and-
+ * violet cavern walls, distant Piltover-like skyline silhouette,
+ * golden chemical haze rising from the bottom) loaded as a
+ * Sprite. On top: a dedicated bubble layer spawns gold→pink
+ * spheres at the floor that rise and pop, giving the scene a
  * literal "chemicals boiling" read.
  *
- * Magenta hex-grid pulses still radiate outward but now cycle
- * faster (spawning every ~6–18s instead of 10–30s) and the
- * wave ring is thicker with a clearer leading edge. A slow
- * color-shift wave sweeps down the frame, tinting the gradient
- * cyan/pink as it passes. Rare purple lightning flashes over
- * the Piltover silhouette with a veil flash across the sky.
+ * Magenta hex-grid pulses radiate outward every ~6–18s, the wave
+ * ring thick with a clear leading edge. A slow color-shift wave
+ * sweeps down the frame, tinting the painting cyan/pink as it
+ * passes. Rare purple lightning flashes across the upper sky
+ * with a veil flash. Rising particles with bloom trails and
+ * upper-frame glints round it out.
  *
- * Rising particles with bloom trails, upper-frame glints, and
- * Zaun window flicker continue from v0.3.
+ * The v0.4 magenta-to-gold gradient, Piltover silhouette, Zaun
+ * silhouette + window flicker are now baked into the painting.
  */
 ( function () {
 	'use strict';
@@ -23,78 +24,38 @@
 	window.__bRoll.scenes = window.__bRoll.scenes || {};
 	var h = window.__bRoll.helpers;
 
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/shimmer.jpg' + qs;
+	}
+
 	window.__bRoll.scenes[ 'shimmer' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 			var w = app.renderer.width, hh = app.renderer.height;
 
-			var bg = new PIXI.Graphics();
-			app.stage.addChild( bg );
-			function drawBg() {
-				bg.clear();
-				var w = app.renderer.width, hh = app.renderer.height;
-				var steps = 26;
-				for ( var i = 0; i < steps; i++ ) {
-					var t = i / ( steps - 1 ), c;
-					if ( t < 0.3 ) c = h.lerpColor( 0xc29033, 0x8a2c5b, t / 0.3 );
-					else           c = h.lerpColor( 0x8a2c5b, 0x16051a, ( t - 0.3 ) / 0.7 );
-					bg.rect( 0, ( i * hh ) / steps, w, hh / steps + 1 ).fill( c );
-				}
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
 			}
-			drawBg();
+			fitBackdrop();
 
 			// Color-shift wave overlay (tints a horizontal band).
 			var colorWave = new PIXI.Graphics();
 			app.stage.addChild( colorWave );
 
-			// Distant lightning silhouetting Piltover.
+			// Distant lightning over the painted Piltover skyline.
 			var lightning = new PIXI.Graphics();
 			app.stage.addChild( lightning );
-
-			var pilt = new PIXI.Graphics();
-			app.stage.addChild( pilt );
-			function drawPilt() {
-				pilt.clear();
-				var w = app.renderer.width, hh = app.renderer.height;
-				var top = hh * 0.04;
-				pilt.poly( [
-					0, top, 40, top - 6, 80, top + 4, 130, top - 12, 180, top + 2,
-					240, top - 8, 300, top + 4, 360, top - 10, 420, top + 2,
-					480, top - 4, 540, top, w, top - 4, w, 0, 0, 0,
-				] ).fill( { color: 0x1c1228, alpha: 0.5 } );
-			}
-			drawPilt();
-
-			var zaun = new PIXI.Graphics();
-			app.stage.addChild( zaun );
-			var zaunWindows = [];
-			function drawZaun() {
-				zaun.clear();
-				zaunWindows = [];
-				var w = app.renderer.width, hh = app.renderer.height;
-				var base = hh * 0.82, x = 0;
-				while ( x < w ) {
-					var bw = h.rand( 30, 90 );
-					var bh = h.rand( 40, 140 );
-					zaun.rect( x, base - bh, bw, hh ).fill( { color: 0x0a0210, alpha: 0.97 } );
-					for ( var wy = base - bh + 8; wy < hh - 8; wy += 16 ) {
-						for ( var wx = x + 4; wx < x + bw - 5; wx += 10 ) {
-							if ( Math.random() < 0.32 ) {
-								zaunWindows.push( { x: wx, y: wy, alpha: h.rand( 0.4, 0.9 ), tw: Math.random() * h.tau } );
-							}
-						}
-					}
-					x += bw + h.rand( 1, 3 );
-				}
-				for ( var p = 0; p < 8; p++ ) {
-					var px = h.rand( 40, w - 60 );
-					zaun.rect( px, base - 4, 4, hh ).fill( { color: 0x190214, alpha: 0.95 } );
-				}
-			}
-			drawZaun();
-
-			var windowLights = new PIXI.Graphics();
-			app.stage.addChild( windowLights );
 
 			var tank = new PIXI.Graphics();
 			app.stage.addChild( tank );
@@ -130,14 +91,12 @@
 			app.stage.addChild( glintLayer );
 
 			return {
-				bg: bg, drawBg: drawBg,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				colorWave: colorWave, waveY: -999, waveT: h.rand( 60 * 8, 60 * 22 ),
 				waveTint: 0xff4ab8,
 				lightning: lightning, lightningLife: 0, lightningT: h.rand( 60 * 20, 60 * 55 ),
 				lightningFlash: 0, lightningPath: null,
-				pilt: pilt, drawPilt: drawPilt,
-				zaun: zaun, drawZaun: drawZaun, zaunWindows: zaunWindows,
-				windowLights: windowLights, tank: tank,
+				tank: tank,
 				bubbleLayer: bubbleLayer, bubbles: bubbles,
 				bubbleSpawnCD: 0,
 				hex: hex, hexAlpha: 0, hexOrigin: { x: w / 2, y: hh * 0.88 },
@@ -147,7 +106,7 @@
 		},
 
 		onResize: function ( state, env ) {
-			state.drawBg(); state.drawZaun(); state.drawPilt();
+			state.fitBackdrop();
 			state.hexOrigin = { x: env.app.renderer.width / 2, y: env.app.renderer.height * 0.88 };
 		},
 
@@ -155,15 +114,6 @@
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var t = env.app.ticker.lastTime;
-
-			// --- Zaun window flicker --------------------------- //
-			state.windowLights.clear();
-			for ( var i = 0; i < state.zaunWindows.length; i++ ) {
-				var wi = state.zaunWindows[ i ];
-				wi.tw += 0.02 * dt;
-				var a = wi.alpha * ( 0.7 + 0.3 * Math.sin( wi.tw ) );
-				state.windowLights.rect( wi.x, wi.y, 2, 3 ).fill( { color: 0xff8c5a, alpha: a } );
-			}
 
 			// --- Chem-tank pulse (base glow) ------------------- //
 			state.tank.clear();

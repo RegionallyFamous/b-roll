@@ -1,16 +1,21 @@
 /**
- * B-Roll scene: Soot Sprites (Studio Ghibli) — v0.4
+ * B-Roll scene: Soot Sprites (Studio Ghibli) — v0.5
  * ---------------------------------------------------------------
- * Pastel sky with fluffy soot-sprite blobs of varied size. Sprites
- * now bob with squash-and-stretch (compressing vertically at the
- * bottom of each arc, stretching upward as they rise), trail faint
- * dust particles, and sway together on a gentle shared wind cycle.
+ * Painted backdrop (assets/wallpapers/soot-sprites.jpg — pastel
+ * lavender-pink dusk sky, distant misty hills, painterly trees
+ * and drifting cherry-blossom petals) loaded as a Sprite. On top:
+ * fluffy soot-sprite blobs of varied size that bob with squash-
+ * and-stretch (compressing vertically at the bottom of each arc,
+ * stretching upward as they rise), trail faint dust particles,
+ * and sway together on a gentle shared wind cycle.
  *
  * Candy star-shapes occasionally fall. The nearest sprites sense
  * them and drift toward them to huddle; their eyes stay open and
  * track the candy (glance offset in x/y) while it's nearby. Idle
  * sprites still blink open for brief intervals at per-sprite
  * random cadences.
+ *
+ * The v0.4 sky gradient is now baked into the painting.
  */
 ( function () {
 	'use strict';
@@ -18,13 +23,29 @@
 	window.__bRoll.scenes = window.__bRoll.scenes || {};
 	var h = window.__bRoll.helpers;
 
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/soot-sprites.jpg' + qs;
+	}
+
 	window.__bRoll.scenes[ 'soot-sprites' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 
-			var bg = new PIXI.Graphics();
-			app.stage.addChild( bg );
-			h.paintVGradient( bg, app.renderer.width, app.renderer.height, 0xffd7ea, 0xcce7ff, 20 );
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
+			}
+			fitBackdrop();
 
 			var dustLayer = new PIXI.Graphics();
 			app.stage.addChild( dustLayer );
@@ -91,7 +112,8 @@
 			}
 
 			return {
-				bg: bg, dustLayer: dustLayer, sprites: sprites,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
+				dustLayer: dustLayer, sprites: sprites,
 				candies: candies, makeCandy: makeCandy,
 				dust: [],
 				candyT: h.rand( 60 * 15, 60 * 40 ),
@@ -99,8 +121,8 @@
 			};
 		},
 
-		onResize: function ( state, env ) {
-			h.paintVGradient( state.bg, env.app.renderer.width, env.app.renderer.height, 0xffd7ea, 0xcce7ff, 20 );
+		onResize: function ( state ) {
+			state.fitBackdrop();
 		},
 
 		tick: function ( state, env ) {

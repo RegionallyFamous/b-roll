@@ -1,12 +1,16 @@
 /**
- * B-Roll scene: Code Rain (The Matrix) — v0.4
+ * B-Roll scene: Code Rain (The Matrix) — v0.5
  * ---------------------------------------------------------------
- * Three parallax depth buckets (far / mid / near) of falling green
- * glyph columns. Per-column phosphor wobble, ±1px head-glyph
- * micro-jitter, occasional bright-white flashes, and rare phrase
- * cascades that lock 6 adjacent columns so a short word like
- * MATRIX or UNPLUG drops through them in sync. CRT vignette and
- * film grain finish the look.
+ * Painted backdrop (assets/wallpapers/code-rain.jpg — moody CRT
+ * bezel close-up with green phosphor wash) loaded as a Sprite.
+ * On top: three parallax depth buckets (far / mid / near) of
+ * falling green glyph columns. Per-column phosphor wobble, ±1px
+ * head-glyph micro-jitter, occasional bright-white flashes, and
+ * rare phrase cascades that lock 6 adjacent columns so a short
+ * word like MATRIX or UNPLUG drops through them in sync. A flat
+ * scanline overlay and stepped film grain finish the look. The
+ * v0.4 bg gradient + radial vignette are now baked into the
+ * painting.
  */
 ( function () {
 	'use strict';
@@ -44,23 +48,35 @@
 		return 0;
 	}
 
+	function backdropUrl() {
+		var cfg = window.bRoll || {};
+		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/code-rain.jpg' + qs;
+	}
+
 	window.__bRoll.scenes[ 'code-rain' ] = {
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 
 			// Layer stack (back→front):
-			//   bg       gradient background
+			//   backdrop painted CRT bezel + green phosphor wash
 			//   bloom    additive blurred glow for heads + bloom tail
 			//   crisp    all tail glyphs + heads
 			//   scan     static scanline multiply overlay
 			//   grain    per-frame-stepped film grain
-			//   vignette radial corner darkening
-			var bg = new PIXI.Graphics();
-			app.stage.addChild( bg );
-			function paintBg() {
-				h.paintVGradient( bg, app.renderer.width, app.renderer.height, 0x02110a, 0x000604, 12 );
+			var tex = await PIXI.Assets.load( backdropUrl() );
+			var backdrop = new PIXI.Sprite( tex );
+			app.stage.addChild( backdrop );
+			function fitBackdrop() {
+				var s = Math.max(
+					app.renderer.width  / tex.width,
+					app.renderer.height / tex.height
+				);
+				backdrop.scale.set( s );
+				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
 			}
-			paintBg();
+			fitBackdrop();
 
 			var bloom = h.makeBloomLayer( PIXI, 7 );
 			app.stage.addChild( bloom );
@@ -83,30 +99,6 @@
 			var grain = new PIXI.Graphics();
 			grain.alpha = 0.13;
 			app.stage.addChild( grain );
-
-			var vignette = new PIXI.Graphics();
-			app.stage.addChild( vignette );
-			function drawVignette() {
-				var w = app.renderer.width, hh = app.renderer.height;
-				vignette.clear();
-				// Approximate a radial vignette by stacking transparent-to-black
-				// concentric ring strokes from the center outward. Only drawn on
-				// setup/resize so cost is amortized.
-				var cx = w / 2, cy = hh / 2;
-				var maxR = Math.sqrt( cx * cx + cy * cy );
-				var rings = 22;
-				for ( var i = 0; i < rings; i++ ) {
-					var t = i / ( rings - 1 );
-					var r = maxR * ( 0.50 + t * 0.55 );
-					var a = Math.pow( t, 2.4 ) * 0.95;
-					vignette.circle( cx, cy, r ).stroke( {
-						width: maxR * 0.08 / rings,
-						color: 0x000000,
-						alpha: a,
-					} );
-				}
-			}
-			drawVignette();
 
 			function makeCol( x, bucketIdx ) {
 				var B = BUCKETS[ bucketIdx ];
@@ -186,8 +178,9 @@
 			}
 
 			var state = {
-				bg: bg, scan: scan, grain: grain, vignette: vignette,
-				paintBg: paintBg, drawScan: drawScan, drawVignette: drawVignette,
+				backdrop: backdrop, fitBackdrop: fitBackdrop,
+				scan: scan, grain: grain,
+				drawScan: drawScan,
 				cols: cols, layout: layout,
 				time: 0,
 				grainTick: 0,
@@ -198,10 +191,9 @@
 			return state;
 		},
 
-		onResize: function ( state, env ) {
-			state.paintBg();
+		onResize: function ( state ) {
+			state.fitBackdrop();
 			state.drawScan();
-			state.drawVignette();
 			state.layout();
 		},
 
