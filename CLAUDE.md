@@ -5,7 +5,7 @@
 
 ## What this is
 
-B-Roll is a WordPress plugin that ships canvas wallpapers for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Each wallpaper is a pop-culture-themed PixiJS scene. The plugin is architected to scale to hundreds of scenes without bundle bloat.
+B-Roll is a WordPress plugin that ships canvas wallpapers for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Each wallpaper is a pop-culture-themed PixiJS scene rendered on top of a painted 1920×1080 JPG backdrop. The plugin is architected to scale to hundreds of scenes without bundle bloat.
 
 - **Repo:** `RegionallyFamous/b-roll`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/b-roll/main/blueprint.json
@@ -33,6 +33,28 @@ At boot, `index.js`:
 3. The shell only fetches a scene module the moment a user picks that wallpaper.
 
 This means **the `SCENES` array is the only place you add a scene-level registration**. Don't import scene files into `index.js` — they're lazy-fetched by the shell.
+
+## Painted backdrop + Pixi motion overlay (v0.5.0+)
+
+Every scene's `setup()` is `async` and starts by loading a high-res painted backdrop:
+
+```javascript
+var url = window.bRoll.pluginUrl + '/assets/wallpapers/<slug>.jpg?v=' + window.bRoll.version;
+var tex = await PIXI.Assets.load( url );
+var backdrop = new PIXI.Sprite( tex );
+app.stage.addChild( backdrop );
+function fitBackdrop() {
+    var s = Math.max( app.renderer.width / tex.width, app.renderer.height / tex.height );
+    backdrop.scale.set( s );
+    backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+    backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
+}
+fitBackdrop();
+```
+
+`onResize(state, env)` then re-runs `state.fitBackdrop()`. The painting carries everything that was static (gradients, silhouettes, sigils, vignettes); Pixi carries everything that moves (rain, glyphs, sprites, lightning). Don't redraw a `bg` Graphics gradient in `setup` — it's superseded by the painting. Don't re-add static silhouettes (Saturn, city skyline, Lumon mark, Piltover) — they're baked in. Animated layers stay in Pixi and render on top of the backdrop with no logic changes.
+
+Backdrop assets are 1920×1080 JPG q80, ~300–500 KB each, stored in `assets/wallpapers/<slug>.jpg`. Cover-fit (`Math.max(scaleX, scaleY)`) handles 16:10 / 21:9 / 4:3 by cropping edges, never letterboxing.
 
 ## The scene-file contract
 
@@ -108,6 +130,9 @@ b-roll/
 ├── CLAUDE.md               # this file
 ├── LICENSE                 # GPLv2
 ├── .gitignore
+├── assets/
+│   ├── previews/           # painterly raster swatches for the picker
+│   └── wallpapers/         # painted 1920×1080 backdrops loaded per-scene
 └── src/
     ├── index.js            # registrar + shared helpers + previews
     └── scenes/
@@ -115,7 +140,7 @@ b-roll/
         └── ...
 ```
 
-Version lives in three places — keep in sync on release: the `Version:` header in `b-roll.php`, the `'0.3.0'` string in `wp_enqueue_script`, and the `'version'` value in `wp_localize_script`.
+Version lives in three places — keep in sync on release: the `Version:` header in `b-roll.php`, the version string in `wp_enqueue_script`, and the `'version'` value in `wp_localize_script`.
 
 ## Workflows
 
@@ -162,6 +187,7 @@ The `/new-scene` slash command (in `.claude/commands/new-scene.md`) scaffolds th
    ```javascript
    '<slug>': preview( '<slug>', '#fallback-color' ),
    ```
+4. Drop a 1920×1080 painted backdrop at `assets/wallpapers/<slug>.jpg` (JPG q80, ~300–500 KB), and have `setup()` `await PIXI.Assets.load(...)` it as a `Sprite` (see "Painted backdrop + Pixi motion overlay" above).
 
 That's the whole contract. The shell picks up the new scene the next time `wp-desktop.init` fires.
 

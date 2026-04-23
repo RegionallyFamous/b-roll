@@ -21,6 +21,14 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 Pick any of them from **OS Settings → Wallpapers** once the plugin is active.
 
+## v0.5.0 — Painted backdrops + live motion overlay
+
+Every scene now layers its existing Pixi animation on top of a **1920×1080 painterly JPG backdrop** (`assets/wallpapers/<slug>.jpg`, ~300–500 KB each, ~3.5 MB total). The painting carries everything that was static — sky gradients, city silhouettes, sigils, vignettes, lit windows, distant glows. The Pixi layers carry everything that moves: rain, glyph columns, light cycles, soot sprites, hex pulses, lightning, splashes, the falling couch.
+
+Practically, this means the backdrops do the heavy lifting on visual richness — Saturn really looks painted, the Blade Runner street really looks wet — and the motion stack stays tight and animated on top. A handful of procedural layers tied to old Pixi geometry got dropped in the process (Neon Rain's per-window flicker, the Tron horizon glow, Couch Gag's grass blades) because they no longer had buildings or hills to flicker over; the painting carries them statically instead. The plugin payload grew from ~677 KB to ~4.7 MB, mostly the JPGs.
+
+Every scene's `setup()` is now `async` so it can `await PIXI.Assets.load(url)` for its backdrop texture. `onResize()` re-runs the cover-fit math (`Math.max(scaleX, scaleY)`) so the painting fills 16:10 / 21:9 / 4:3 by cropping edges, never letterboxing.
+
 ## v0.4.1 — Painterly preview swatches
 
 The wallpaper picker no longer shows hand-coded SVG composites. Each scene now ships with a painterly raster thumbnail (1.6:1, ~640px wide, JPG q75, ~50–100 KB each) generated from a matte-painting prompt that captures the mood of the live animation without using any franchise IP. The full 10-image set adds ~650 KB to the plugin payload. The `src/index.js` registrar shrunk from ~1,120 lines to ~245 lines as a result. Picker URL: `assets/previews/<slug>.jpg?v=<plugin-version>` for cache-busting on bumps.
@@ -65,7 +73,9 @@ Designed to scale to hundreds of scenes without bloating the bundle or the picke
 b-roll/
 ├── b-roll.php              # enqueues just src/index.js (+ plugin URL)
 ├── blueprint.json          # Playground demo blueprint
-├── assets/previews/        # painterly raster preview swatches (10x ~50–100 KB JPGs)
+├── assets/
+│   ├── previews/           # painterly raster preview swatches (10× ~50–100 KB JPGs)
+│   └── wallpapers/         # painted 1920×1080 backdrops (10× ~300–500 KB JPGs)
 └── src/
     ├── index.js            # thin registrar — metadata + raster preview URLs
     │                         + shared mount runner. ~7 KB.
@@ -90,7 +100,7 @@ Consequences:
 - Activating the plugin loads ~7 KB (one file).
 - Picking a wallpaper lazy-loads just that scene's ~8–15 KB of Pixi code.
 - Previews are static JPGs lazily loaded by the browser when the picker scrolls them into view; no WebGL cost in the picker.
-- Adding a new scene = drop a file in `src/scenes/`, add one line to `SCENES` and one to `PREVIEWS` in `index.js`, drop a `<slug>.jpg` in `assets/previews/`. No bundler, no build step.
+- Adding a new scene = drop a file in `src/scenes/`, add one line to `SCENES` and one to `PREVIEWS` in `index.js`, drop a `<slug>.jpg` in `assets/previews/`, and drop a 1920×1080 `<slug>.jpg` in `assets/wallpapers/`. No bundler, no build step.
 
 Each scene file self-registers under `window.__bRoll.scenes[<slug>]` with this shape:
 
