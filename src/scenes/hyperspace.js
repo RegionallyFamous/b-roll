@@ -1,10 +1,20 @@
 /**
- * B-Roll scene: Hyperspace (Star Wars)
+ * B-Roll scene: Hyperspace (Star Wars) — v0.4
  * ---------------------------------------------------------------
- * 3D-parallax starfield stretched into radial lines from centre.
- * Near stars are wider and brighter with lead dots; far stars are
- * thin. A pulsing blue warp-glow sits at centre. Cinematic warp
- * flash every 20–40 seconds.
+ * Three-layer parallax starfield: a deep twinkling point-star
+ * background that doesn't stretch, a mid band of thin radial
+ * streaks, and a near band of bright streaks with bright lead
+ * dots. Streak speed accelerates cubically as stars approach the
+ * screen edge so the motion reads as "accelerating into warp",
+ * not a constant pan.
+ *
+ * A central iris holds a pulsing blue core plus eight lens-flare
+ * spokes (H/V + diagonals) that breathe with the core. A warp-
+ * flash event every ~18–35 seconds blasts the screen white and
+ * is followed by cyan + magenta chromatic ghosts that decay at
+ * different rates so the flash reads as anamorphic, not flat.
+ *
+ * A subtle radial vignette finishes the frame.
  */
 ( function () {
 	'use strict';
@@ -12,103 +22,209 @@
 	window.__bRoll.scenes = window.__bRoll.scenes || {};
 	var h = window.__bRoll.helpers;
 
+	var STREAK_NUM = 360;
+	var TWINKLE_NUM = 160;
+
 	window.__bRoll.scenes[ 'hyperspace' ] = {
 		setup: function ( env ) {
 			var PIXI = env.PIXI, app = env.app;
 
-			var bg = new PIXI.Graphics();
-			app.stage.addChild( bg );
-			var glow = new PIXI.Graphics();
-			app.stage.addChild( glow );
-			var linesFar = new PIXI.Graphics();
-			var linesNear = new PIXI.Graphics();
-			app.stage.addChild( linesFar );
-			app.stage.addChild( linesNear );
+			// Layer stack back→front.
+			var bg       = new PIXI.Graphics(); app.stage.addChild( bg );
+			var glow     = new PIXI.Graphics(); app.stage.addChild( glow );
+			var twinkle  = new PIXI.Graphics(); app.stage.addChild( twinkle );
+			var linesFar = new PIXI.Graphics(); app.stage.addChild( linesFar );
+			var linesNear= new PIXI.Graphics(); app.stage.addChild( linesNear );
 
-			var bloom = h.makeBloomLayer( PIXI, 8 );
-			var bloomGlow = new PIXI.Graphics();
-			bloom.addChild( bloomGlow );
+			var bloom = h.makeBloomLayer( PIXI, 10 );
 			app.stage.addChild( bloom );
+			var bloomGlow = new PIXI.Graphics(); bloom.addChild( bloomGlow );
+			var flare     = new PIXI.Graphics(); bloom.addChild( flare );
 
-			var flash = new PIXI.Graphics();
-			flash.alpha = 0;
-			app.stage.addChild( flash );
+			// Chromatic ghosts sit below the main flash so the R/G/B split shows
+			// as colored halos around the white blast as it decays.
+			var flashCyan    = new PIXI.Graphics(); flashCyan.alpha = 0;    app.stage.addChild( flashCyan );
+			var flashMagenta = new PIXI.Graphics(); flashMagenta.alpha = 0; app.stage.addChild( flashMagenta );
+			var flash        = new PIXI.Graphics(); flash.alpha = 0;        app.stage.addChild( flash );
+
+			var vignette = new PIXI.Graphics(); app.stage.addChild( vignette );
 
 			function drawBg() {
 				var w = app.renderer.width, hh = app.renderer.height;
-				h.paintVGradient( bg, w, hh, 0x000010, 0x000000, 8 );
+				h.paintVGradient( bg, w, hh, 0x000014, 0x000000, 10 );
 				var cx = w / 2, cy = hh / 2;
-				var R = Math.min( w, hh ) * 0.35;
+				var R = Math.min( w, hh ) * 0.38;
 				glow.clear();
 				for ( var i = 14; i >= 0; i-- ) {
 					var t = i / 14;
-					glow.circle( cx, cy, R * ( i + 1 ) / 14 )
-						.fill( { color: h.lerpColor( 0x000000, 0x183c7a, 1 - t ), alpha: 0.08 * ( 1 - t ) + 0.01 } );
+					glow.circle( cx, cy, R * ( i + 1 ) / 14 ).fill( {
+						color: h.lerpColor( 0x000000, 0x1a4088, 1 - t ),
+						alpha: 0.09 * ( 1 - t ) + 0.01,
+					} );
 				}
 			}
-			drawBg();
 
-			var NUM = 340;
-			var stars = [];
-			function spawn( s ) {
+			function drawVignette() {
+				var w = app.renderer.width, hh = app.renderer.height;
+				vignette.clear();
+				var cx = w / 2, cy = hh / 2;
+				var maxR = Math.sqrt( cx * cx + cy * cy );
+				var rings = 18;
+				for ( var i = 0; i < rings; i++ ) {
+					var t = i / ( rings - 1 );
+					var r = maxR * ( 0.55 + t * 0.50 );
+					var a = Math.pow( t, 2.6 ) * 0.9;
+					vignette.circle( cx, cy, r ).stroke( {
+						width: maxR * 0.08 / rings,
+						color: 0x000000,
+						alpha: a,
+					} );
+				}
+			}
+
+			function spawnStreak( s, seeded ) {
 				s.angle = Math.random() * h.tau;
-				s.r = h.rand( 6, 40 );
 				s.depth = h.rand( 0.3, 1 );
-				s.speed = h.rand( 0.35, 1.8 ) * s.depth;
-				s.tint = h.lerpColor( 0x88ccff, 0xffffff, Math.random() );
-			}
-			for ( var i = 0; i < NUM; i++ ) {
-				var s = {};
-				spawn( s );
-				s.r = h.rand( 10, Math.min( app.renderer.width, app.renderer.height ) * 0.6 );
-				stars.push( s );
+				s.speed = h.rand( 0.4, 2.0 ) * s.depth;
+				s.tint  = h.lerpColor( 0x88ccff, 0xffffff, Math.random() );
+				s.r = seeded
+					? h.rand( 10, Math.min( app.renderer.width, app.renderer.height ) * 0.6 )
+					: h.rand( 4, 14 );
 			}
 
-			return { bg: bg, glow: glow, drawBg: drawBg, linesFar: linesFar, linesNear: linesNear,
-				bloomGlow: bloomGlow, flash: flash, stars: stars, spawn: spawn,
-				tFlash: 60 * h.rand( 18, 30 ) };
+			function spawnTwinkle( t ) {
+				t.x = Math.random();  // normalized 0..1, multiplied at draw time
+				t.y = Math.random();
+				t.base = h.rand( 0.25, 0.9 );
+				t.freq = h.rand( 0.008, 0.04 );
+				t.phase = h.rand( 0, h.tau );
+				t.size = Math.random() < 0.15 ? 1.4 : 0.7;
+				t.tint = Math.random() < 0.2 ? 0xffe8c0 : 0xffffff;
+			}
+
+			var streaks = [];
+			for ( var i = 0; i < STREAK_NUM; i++ ) {
+				var s = {}; spawnStreak( s, true ); streaks.push( s );
+			}
+			var twinkles = [];
+			for ( var j = 0; j < TWINKLE_NUM; j++ ) {
+				var t = {}; spawnTwinkle( t ); twinkles.push( t );
+			}
+
+			drawBg();
+			drawVignette();
+
+			return {
+				bg: bg, glow: glow, drawBg: drawBg, drawVignette: drawVignette,
+				twinkle: twinkle, linesFar: linesFar, linesNear: linesNear,
+				bloomGlow: bloomGlow, flare: flare,
+				flash: flash, flashCyan: flashCyan, flashMagenta: flashMagenta,
+				vignette: vignette,
+				streaks: streaks, twinkles: twinkles,
+				spawnStreak: spawnStreak,
+				tFlash: 60 * h.rand( 8, 18 ),
+				time: 0,
+			};
 		},
-		onResize: function ( state ) { state.drawBg(); },
+
+		onResize: function ( state, env ) {
+			state.drawBg();
+			state.drawVignette();
+		},
+
 		tick: function ( state, env ) {
+			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var cx = w / 2, cy = hh / 2;
 			var maxR = Math.sqrt( cx * cx + cy * cy );
+			state.time += dt;
 
+			// --- Twinkle (deep background) --------------------------- //
+			state.twinkle.clear();
+			for ( var ti = 0; ti < state.twinkles.length; ti++ ) {
+				var tw = state.twinkles[ ti ];
+				var a = tw.base + 0.35 * Math.sin( state.time * tw.freq + tw.phase );
+				if ( a < 0.05 ) continue;
+				state.twinkle.circle( tw.x * w, tw.y * hh, tw.size ).fill( { color: tw.tint, alpha: a } );
+			}
+
+			// --- Core iris + lens-flare spokes ----------------------- //
 			state.bloomGlow.clear();
-			var pulse = 0.55 + 0.25 * Math.sin( env.app.ticker.lastTime * 0.002 );
-			state.bloomGlow.circle( cx, cy, maxR * 0.11 ).fill( { color: 0x4a82ff, alpha: pulse } );
-			state.bloomGlow.circle( cx, cy, maxR * 0.18 ).fill( { color: 0x183c7a, alpha: pulse * 0.55 } );
+			state.flare.clear();
+			var pulse = 0.55 + 0.3 * Math.sin( state.time * 0.09 );
+			state.bloomGlow.circle( cx, cy, maxR * 0.12 ).fill( { color: 0x4a82ff, alpha: pulse } );
+			state.bloomGlow.circle( cx, cy, maxR * 0.20 ).fill( { color: 0x183c7a, alpha: pulse * 0.55 } );
+			state.bloomGlow.circle( cx, cy, maxR * 0.05 ).fill( { color: 0xe8f2ff, alpha: Math.min( 1, pulse + 0.3 ) } );
+			// Eight spokes: horizontal, vertical, and four diagonals. Length
+			// breathes with the core pulse.
+			var spokeLen = maxR * ( 0.42 + pulse * 0.18 );
+			var spokeA = 0.55 * pulse;
+			for ( var sp = 0; sp < 8; sp++ ) {
+				var a = ( sp / 8 ) * h.tau;
+				var ex = cx + Math.cos( a ) * spokeLen, ey = cy + Math.sin( a ) * spokeLen;
+				var w0 = sp % 2 === 0 ? 4 : 2.2;
+				state.flare.moveTo( cx, cy ).lineTo( ex, ey ).stroke( {
+					color: 0xb4d0ff, alpha: spokeA, width: w0,
+				} );
+			}
 
+			// --- Streaks --------------------------------------------- //
 			state.linesFar.clear();
 			state.linesNear.clear();
-
-			for ( var i = 0; i < state.stars.length; i++ ) {
-				var s = state.stars[ i ];
+			for ( var i = 0; i < state.streaks.length; i++ ) {
+				var s = state.streaks[ i ];
 				var prevR = s.r;
-				s.r += ( 0.5 + s.speed * 6 ) * env.dt;
-				if ( s.r > maxR ) { state.spawn( s ); continue; }
+				// Cubic acceleration: speed grows with normalized distance.
+				var prog = s.r / maxR;
+				var accel = 0.3 + s.speed * 3.2 + prog * prog * 9.0;
+				s.r += accel * dt;
+				if ( s.r > maxR + 20 ) { state.spawnStreak( s, false ); continue; }
 				var cos = Math.cos( s.angle ), sin = Math.sin( s.angle );
 				var x0 = cx + cos * prevR, y0 = cy + sin * prevR;
 				var x1 = cx + cos * s.r, y1 = cy + sin * s.r;
-				var prog = s.r / maxR;
-				var alpha = h.clamp( ( prog - 0.05 ) * 1.3, 0, 1 );
-				var width = 0.5 + s.depth * 2.0 * prog;
+				var alpha = h.clamp( ( prog - 0.04 ) * 1.5, 0, 1 );
+				// Width eases cubically so streaks really pop near the edge.
+				var widthMul = 0.35 + prog * prog * 1.85;
+				var width = ( 0.45 + s.depth * 1.8 ) * widthMul;
 				var layer = s.depth > 0.65 ? state.linesNear : state.linesFar;
-				layer.moveTo( x0, y0 ).lineTo( x1, y1 )
-					.stroke( { color: s.tint, alpha: alpha, width: width } );
-				if ( s.depth > 0.65 && prog > 0.3 ) {
-					state.linesNear.circle( x1, y1, width * 0.9 ).fill( { color: 0xffffff, alpha: alpha } );
+				layer.moveTo( x0, y0 ).lineTo( x1, y1 ).stroke( {
+					color: s.tint, alpha: alpha, width: width,
+				} );
+				if ( s.depth > 0.65 && prog > 0.28 ) {
+					state.linesNear.circle( x1, y1, width * 0.95 ).fill( {
+						color: 0xffffff, alpha: alpha,
+					} );
 				}
 			}
 
-			state.tFlash -= env.dt;
-			if ( state.tFlash <= 0 && state.flash.alpha < 0.02 ) {
+			// --- Warp flash + chromatic ghosts ----------------------- //
+			state.tFlash -= dt;
+			if ( state.tFlash <= 0 && state.flash.alpha < 0.03 ) {
 				state.tFlash = 60 * h.rand( 18, 35 );
+				// Main white blast.
 				state.flash.clear().rect( 0, 0, w, hh ).fill( 0xdbe8ff );
 				state.flash.alpha = 1;
-				for ( var k = 0; k < state.stars.length; k++ ) state.stars[ k ].r += h.rand( 40, 180 );
+				// Chromatic ghosts offset left/right to simulate an anamorphic
+				// RGB split. They decay slower than the main flash.
+				state.flashCyan.clear().rect( -4, 0, w + 4, hh ).fill( { color: 0x4affee, alpha: 0.85 } );
+				state.flashCyan.alpha = 0.85;
+				state.flashMagenta.clear().rect( 4, 0, w + 4, hh ).fill( { color: 0xff4ac8, alpha: 0.85 } );
+				state.flashMagenta.alpha = 0.85;
+				// Jolt all streaks forward so the flash reads as an acceleration
+				// pulse, not a passive bloom.
+				for ( var kk = 0; kk < state.streaks.length; kk++ ) {
+					state.streaks[ kk ].r += h.rand( 60, 220 );
+				}
 			}
-			if ( state.flash.alpha > 0 ) state.flash.alpha = Math.max( 0, state.flash.alpha - 0.05 * env.dt );
+			if ( state.flash.alpha > 0 ) {
+				state.flash.alpha = Math.max( 0, state.flash.alpha - 0.055 * dt );
+			}
+			if ( state.flashCyan.alpha > 0 ) {
+				state.flashCyan.alpha = Math.max( 0, state.flashCyan.alpha - 0.035 * dt );
+			}
+			if ( state.flashMagenta.alpha > 0 ) {
+				state.flashMagenta.alpha = Math.max( 0, state.flashMagenta.alpha - 0.03 * dt );
+			}
 		},
 	};
 } )();
