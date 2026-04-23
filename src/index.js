@@ -513,6 +513,11 @@
 	].join( '' ), '#7ab9f0' );
 
 	// --- Rainbow Road (Mario Kart) -------------------------------- //
+	// --- Rainbow Road --------------------------------------------- //
+	// v0.4: tinted starfield (white + amber + cyan + pink), Saturn
+	// planet with surface bands + ring shadow, scrolling chevron
+	// lane markings, 2 abstract kart silhouettes mid-race, a speed-
+	// line burst radiating from the vanishing point, neon guardrails.
 	PREVIEWS[ 'rainbow-road' ] = preview( [
 		"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
 			"<defs>",
@@ -525,26 +530,49 @@
 				"<filter id='rl' x='-40%' y='-40%' width='180%' height='180%'><feGaussianBlur stdDeviation='1.6'/></filter>",
 			"</defs>",
 			"<rect width='160' height='100' fill='url(#sp2)'/>",
-			// distant planet with rings
-			"<circle cx='124' cy='28' r='12' fill='url(#planet)'/>",
-			"<ellipse cx='124' cy='28' rx='18' ry='3' fill='none' stroke='#f6dca0' stroke-width='.8' opacity='.85'/>",
-			"<ellipse cx='124' cy='28' rx='18' ry='3' fill='none' stroke='#f6dca0' stroke-width='.4' opacity='.4' transform='translate(0 1.5)'/>",
-			// starfield
-			"<g fill='#fff'>",
-				"<circle cx='8' cy='8' r='.7'/><circle cx='20' cy='12' r='.4'/>",
-				"<circle cx='34' cy='6' r='.9'/><circle cx='50' cy='14' r='.5'/>",
-				"<circle cx='66' cy='10' r='.6'/><circle cx='78' cy='6' r='.7'/>",
-				"<circle cx='92' cy='16' r='.5'/><circle cx='102' cy='10' r='.4'/>",
-				"<circle cx='146' cy='8' r='.8'/><circle cx='156' cy='18' r='.5'/>",
-				"<circle cx='10' cy='26' r='.4'/><circle cx='44' cy='30' r='.5'/>",
-				"<circle cx='150' cy='42' r='.6'/><circle cx='22' cy='40' r='.4'/>",
+			// Saturn: body + surface bands + ring + ring shadow.
+			"<g transform='translate(124 28) rotate(-8)'>",
+				"<circle r='12' fill='url(#planet)'/>",
+				"<ellipse cy='-5' rx='10' ry='.8' fill='#ba6a28' opacity='.7'/>",
+				"<ellipse cy='-1' rx='11.5' ry='.9' fill='#c97830' opacity='.7'/>",
+				"<ellipse cy='4'  rx='11' ry='.8' fill='#ba6a28' opacity='.7'/>",
+				"<ellipse cy='8'  rx='8' ry='.6' fill='#c97830' opacity='.7'/>",
+				"<ellipse cy='0' rx='16' ry='1' fill='#7a4a1e' opacity='.6'/>",
+				"<ellipse rx='18' ry='3' fill='none' stroke='#f6dca0' stroke-width='.8' opacity='.9'/>",
+				"<ellipse rx='15' ry='2.3' fill='none' stroke='#eccb88' stroke-width='.4' opacity='.55'/>",
 			"</g>",
-			// shooting star
+			// Tinted starfield.
+			"<g>",
+				"<circle cx='8' cy='8' r='.7' fill='#fff'/>",
+				"<circle cx='20' cy='12' r='.4' fill='#ffe8a8'/>",
+				"<circle cx='34' cy='6' r='.9' fill='#fff'/>",
+				"<circle cx='50' cy='14' r='.5' fill='#a8d8ff'/>",
+				"<circle cx='66' cy='10' r='.6' fill='#fff'/>",
+				"<circle cx='78' cy='6' r='.7' fill='#ffb0d8'/>",
+				"<circle cx='92' cy='16' r='.5' fill='#fff'/>",
+				"<circle cx='102' cy='10' r='.4' fill='#a8d8ff'/>",
+				"<circle cx='146' cy='8' r='.8' fill='#fff'/>",
+				"<circle cx='156' cy='18' r='.5' fill='#ffe8a8'/>",
+				"<circle cx='10' cy='26' r='.4' fill='#fff'/>",
+				"<circle cx='44' cy='30' r='.5' fill='#ffb0d8'/>",
+				"<circle cx='22' cy='40' r='.4' fill='#fff'/>",
+				"<circle cx='150' cy='42' r='.6' fill='#a8d8ff'/>",
+			"</g>",
+			// Shooting star.
 			"<g opacity='.8'>",
 				"<line x1='30' y1='20' x2='50' y2='26' stroke='#fff' stroke-width='.8' stroke-linecap='round'/>",
 				"<circle cx='52' cy='27' r='1' fill='#fff'/>",
 			"</g>",
-			// road perspective
+			// Speed-line burst from vanishing point (80, 50).
+			"<g stroke='#fff' stroke-width='.6' stroke-linecap='round' opacity='.7'>",
+				"<line x1='74' y1='44' x2='66' y2='36'/>",
+				"<line x1='86' y1='44' x2='94' y2='36'/>",
+				"<line x1='88' y1='50' x2='100' y2='50'/>",
+				"<line x1='72' y1='50' x2='60' y2='50'/>",
+				"<line x1='78' y1='44' x2='76' y2='32'/>",
+				"<line x1='82' y1='44' x2='84' y2='32'/>",
+			"</g>",
+			// Road perspective stripes.
 			"<g>",
 				"<polygon points='76,50 84,50 110,100 50,100' fill='#ff2d5a'/>",
 				"<polygon points='74,52 86,52 115,100 45,100' fill='#ff993d' opacity='.95'/>",
@@ -553,17 +581,36 @@
 				"<polygon points='68,58 92,58 130,100 30,100' fill='#3dc3ff' opacity='.6'/>",
 				"<polygon points='66,60 94,60 140,100 20,100' fill='#8a5bff' opacity='.4'/>",
 			"</g>",
-			// guardrails with glow
+			// Guardrails with glow.
 			"<g>",
 				"<polygon points='76,50 75,50 40,100 42,100' fill='#64d8ff' opacity='.55' filter='url(#rl)'/>",
 				"<polygon points='76,50 75,50 42,100 44,100' fill='#b0f0ff'/>",
 				"<polygon points='84,50 85,50 120,100 118,100' fill='#ff4aa0' opacity='.55' filter='url(#rl)'/>",
 				"<polygon points='84,50 85,50 118,100 116,100' fill='#ffb0d8'/>",
 			"</g>",
-			// centre line
+			// Centre line.
 			"<line x1='80' y1='52' x2='80' y2='100' stroke='#fff' stroke-width='1.2' opacity='.6'/>",
-			// item box
-			"<g transform='translate(116,40) rotate(8)'>",
+			// Chevron lane markings scrolling toward viewer.
+			"<g fill='none' stroke='#fff' stroke-linecap='round'>",
+				"<polyline points='78,56 82,58 78,60' stroke-width='.6' opacity='.55'/>",
+				"<polyline points='76,68 84,72 76,76' stroke-width='1.2' opacity='.75'/>",
+				"<polyline points='73,84 87,90 73,96' stroke-width='2' opacity='.9'/>",
+			"</g>",
+			// Kart silhouettes (far + near).
+			"<g>",
+				// Far kart near horizon, cyan.
+				"<ellipse cx='78' cy='62' rx='3.5' ry='1.4' fill='#3dc3ff'/>",
+				"<circle cx='76' cy='63.2' r='.9' fill='#1a1020'/>",
+				"<circle cx='80' cy='63.2' r='.9' fill='#1a1020'/>",
+				// Near kart, red, lower-right.
+				"<ellipse cx='96' cy='86' rx='9' ry='3.6' fill='#ff5a3d'/>",
+				"<ellipse cx='96' cy='84' rx='5' ry='2' fill='#fff' opacity='.6'/>",
+				"<circle cx='91' cy='88.5' r='2.4' fill='#1a1020'/>",
+				"<circle cx='101' cy='88.5' r='2.4' fill='#1a1020'/>",
+				"<ellipse cx='96' cy='90' rx='10' ry='2.6' fill='#ff5a3d' opacity='.35' filter='url(#rl)'/>",
+			"</g>",
+			// Spinning ? item box drifting across upper road.
+			"<g transform='translate(116,40) rotate(18)'>",
 				"<rect x='-9' y='-9' width='18' height='18' rx='3' fill='#ff9e1a' filter='url(#rl)' opacity='.6'/>",
 				"<rect x='-8' y='-8' width='16' height='16' rx='2.5' fill='#ff9e1a'/>",
 				"<rect x='-6.5' y='-6.5' width='13' height='13' rx='2' fill='#ffcc4a'/>",
