@@ -796,6 +796,13 @@
 	].join( '' ), '#1a0410' );
 
 	// --- Refinery (Severance) ------------------------------------- //
+	// --- Refinery (Severance) ------------------------------------- //
+	// v0.4: scary-number cluster mid-pulse (red + scaled up),
+	// scattered bobbing numerals at subtly shifted positions, MDR
+	// selector box snapped to one of the 6x4 grid cells, quota
+	// progress bar filling along the bottom, blinking CRT cursor
+	// top-left, subtle radial vignette on the edges, slowly rotated
+	// Lumon mark bottom-right.
 	PREVIEWS[ 'refinery' ] = preview( [
 		"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
 			"<defs>",
@@ -807,43 +814,60 @@
 					"<line x1='0' y1='0' x2='12' y2='0' stroke='#0d2d4e' stroke-width='.3' opacity='.2'/>",
 					"<line x1='0' y1='0' x2='0' y2='12' stroke='#0d2d4e' stroke-width='.3' opacity='.2'/>",
 				"</pattern>",
+				"<radialGradient id='vig' cx='.5' cy='.5' r='.78'>",
+					"<stop offset='.55' stop-color='#0d2d4e' stop-opacity='0'/>",
+					"<stop offset='1' stop-color='#0d2d4e' stop-opacity='.28'/>",
+				"</radialGradient>",
 			"</defs>",
 			"<rect width='160' height='100' fill='url(#lg2)'/>",
 			"<rect width='160' height='100' fill='url(#grd)'/>",
-			// numerals cluster (ring shape)
-			"<g font-family='ui-monospace,monospace' fill='#0d2d4e' text-anchor='middle'>",
-				"<text x='34' y='38' font-size='11' font-weight='bold' fill='#b22430'>7</text>",
-				"<text x='46' y='32' font-size='14' font-weight='bold' fill='#b22430'>1</text>",
-				"<text x='58' y='34' font-size='10' font-weight='bold' fill='#b22430'>9</text>",
-				"<text x='30' y='52' font-size='12' font-weight='bold' fill='#b22430'>4</text>",
-				"<text x='64' y='50' font-size='10' font-weight='bold' fill='#b22430'>2</text>",
-				"<text x='34' y='68' font-size='13' font-weight='bold' fill='#b22430'>0</text>",
-				"<text x='48' y='72' font-size='10' font-weight='bold' fill='#b22430'>5</text>",
-				"<text x='60' y='66' font-size='11' font-weight='bold' fill='#b22430'>8</text>",
-				// scattered outside
-				"<text x='88' y='20' font-size='9' opacity='.7'>3</text>",
-				"<text x='104' y='28' font-size='7' opacity='.55'>6</text>",
-				"<text x='118' y='18' font-size='8' opacity='.6'>1</text>",
-				"<text x='94' y='48' font-size='10' opacity='.7'>9</text>",
-				"<text x='110' y='58' font-size='8' opacity='.55'>2</text>",
-				"<text x='124' y='46' font-size='9' opacity='.65'>7</text>",
-				"<text x='138' y='40' font-size='8' opacity='.55'>0</text>",
-				"<text x='98' y='74' font-size='11' opacity='.75'>4</text>",
-				"<text x='118' y='80' font-size='9' opacity='.6'>8</text>",
-				"<text x='132' y='72' font-size='8' opacity='.55'>5</text>",
-				"<text x='84' y='88' font-size='9' opacity='.6'>0</text>",
-				"<text x='14' y='26' font-size='7' opacity='.5'>6</text>",
-				"<text x='14' y='80' font-size='7' opacity='.5'>3</text>",
+			// Scary-number cluster pulse (larger, red, slightly enlarged).
+			"<g font-family='ui-monospace,monospace' text-anchor='middle' fill='#b22430' font-weight='bold'>",
+				"<text x='34' y='39' font-size='14'>7</text>",
+				"<text x='47' y='31' font-size='17'>1</text>",
+				"<text x='60' y='35' font-size='12'>9</text>",
+				"<text x='29' y='53' font-size='15'>4</text>",
+				"<text x='66' y='51' font-size='12'>2</text>",
+				"<text x='34' y='69' font-size='16'>0</text>",
+				"<text x='49' y='73' font-size='12'>5</text>",
+				"<text x='62' y='67' font-size='14'>8</text>",
 			"</g>",
-			// MDR selector box
-			"<rect x='20' y='24' width='54' height='56' rx='2' fill='#0d2d4e' opacity='.05' stroke='#0d2d4e' stroke-width='.8' opacity='.7'/>",
-			// Lumon mark
-			"<g transform='translate(140,82)' stroke='#0d2d4e' fill='none' opacity='.8'>",
+			// Ambient bobbing numerals (idle pool outside the cluster).
+			"<g font-family='ui-monospace,monospace' fill='#0d2d4e' text-anchor='middle'>",
+				"<text x='89' y='22' font-size='9' opacity='.7'>3</text>",
+				"<text x='105' y='27' font-size='7' opacity='.55'>6</text>",
+				"<text x='118' y='19' font-size='8' opacity='.6'>1</text>",
+				"<text x='95' y='49' font-size='10' opacity='.7'>9</text>",
+				"<text x='111' y='57' font-size='8' opacity='.55'>2</text>",
+				"<text x='125' y='47' font-size='9' opacity='.65'>7</text>",
+				"<text x='139' y='41' font-size='8' opacity='.55'>0</text>",
+				"<text x='99' y='75' font-size='11' opacity='.75'>4</text>",
+				"<text x='119' y='79' font-size='9' opacity='.6'>8</text>",
+				"<text x='133' y='73' font-size='8' opacity='.55'>5</text>",
+				"<text x='85' y='89' font-size='9' opacity='.6'>0</text>",
+				"<text x='15' y='27' font-size='7' opacity='.5'>6</text>",
+				"<text x='15' y='81' font-size='7' opacity='.5'>3</text>",
+				"<text x='150' y='66' font-size='8' opacity='.55'>4</text>",
+			"</g>",
+			// MDR selector snapped on cluster cell (col 1, row 1).
+			"<rect x='22' y='24' width='50' height='52' rx='1' fill='#0d2d4e' fill-opacity='.05' stroke='#0d2d4e' stroke-width='.9' stroke-opacity='.9'/>",
+			// CRT cursor blinking top-left.
+			"<rect x='8' y='7' width='4' height='8' fill='#0d2d4e' opacity='.85'/>",
+			// Quota progress bar along the bottom.
+			"<g>",
+				"<text x='14' y='97' font-size='6' font-family='ui-monospace,monospace' fill='#0d2d4e' letter-spacing='2'>QUOTA</text>",
+				"<rect x='42' y='92' width='72' height='4' fill='none' stroke='#0d2d4e' stroke-width='.6' opacity='.8'/>",
+				"<rect x='43' y='93' width='46' height='2' fill='#0d2d4e' opacity='.55'/>",
+			"</g>",
+			// Slowly rotated Lumon mark bottom-right.
+			"<g transform='translate(140,82) rotate(12)' stroke='#0d2d4e' fill='none' opacity='.8'>",
 				"<circle cx='0' cy='0' r='7' stroke-width='.8'/>",
 				"<circle cx='0' cy='0' r='4' stroke-width='.6'/>",
 				"<line x1='-7' y1='0' x2='7' y2='0' stroke-width='.4'/>",
 				"<line x1='0' y1='-7' x2='0' y2='7' stroke-width='.4'/>",
 			"</g>",
+			// Vignette on top.
+			"<rect width='160' height='100' fill='url(#vig)'/>",
 		"</svg>",
 	].join( '' ), '#d4ded9' );
 
