@@ -21,6 +21,21 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 Pick any of them from **OS Settings → Wallpapers** once the plugin is active.
 
+## v0.4.0 — Visual overhaul
+
+Every scene was reworked for richer atmospherics without adding any external assets. All ten scenes stay Pixi primitives + `Graphics` + `Text`, but now with additional layers per scene:
+
+- **Code Rain** — 3-depth parallax columns, per-column phosphor wobble, occasional synced `MATRIX`-style phrase cascades across adjacent columns, CRT vignette + per-frame film grain.
+- **Hyperspace** — 3-layer parallax starfield, cubic acceleration streaks, a pulsing iris with 8 lens-flare spokes, chromatic warp-flash ghosts.
+- **Neon Rain** — wet-ground reflection band with ripple shimmer, fog haze between city layers, per-window flicker + block blackouts, distant lightning, droplet splashes.
+- **The Grid** — scrolling perspective grid with brighter near rows, intersection dots, horizon-glow reflection band, data packets traveling along fade-trails, collision rings.
+- **Couch Gag** — pulsing sun corona + lens-flare ghosts, 3 depth tiers of flapping birds, squash/stretch clouds, wind-swayed grass strip, wind gusts, bouncy couch landing.
+- **Rainbow Road** — slow-rotating Saturn with ring shadow, tinted starfield, scrolling chevron lane markings, abstract kart silhouettes racing to the camera, speed-line bursts from the vanishing point.
+- **Soot Sprites** — squash-and-stretch bounce physics, shared wind sway across the flock, dust-trail particles, eye-glance tracking toward the falling candy.
+- **The Upside Down** — tendrils animate grow → hold → retract → respawn with a bright tip blossom, 3-tier parallax spores, ash flakes with red/cyan chromatic aberration, scene-wide lightning veil flash, a static-line sweep rolling top→bottom.
+- **Refinery** — per-number sine bob, scary-number scale pulse, MDR selector box snapping through a 6×4 cell grid, quota progress bar filling along the bottom, blinking CRT cursor, rotating Lumon mark, corner vignette.
+- **Shimmer** — chemical bubbles rising from the base with gold→pink tints and specular highlights, thicker-core magenta hex-grid pulses, color-shift waves sweeping the gradient, distant lavender lightning over Piltover.
+
 ## Install
 
 ### Playground (one-click demo)
