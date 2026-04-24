@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: Soot Sprites (Studio Ghibli) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/soot-sprites.jpg — pastel
+ * Painted backdrop (assets/wallpapers/soot-sprites.webp — pastel
  * lavender-pink dusk sky, distant misty hills, painterly trees
  * and drifting cherry-blossom petals) loaded as a Sprite. On top:
  * fluffy soot-sprite blobs of varied size that bob with squash-
@@ -26,7 +26,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/soot-sprites.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/soot-sprites.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'soot-sprites' ] = {

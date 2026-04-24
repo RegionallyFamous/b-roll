@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: Code Rain (The Matrix) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/code-rain.jpg — moody CRT
+ * Painted backdrop (assets/wallpapers/code-rain.webp — moody CRT
  * bezel close-up with green phosphor wash) loaded as a Sprite.
  * On top: three parallax depth buckets (far / mid / near) of
  * falling green glyph columns. Per-column phosphor wobble, ±1px
@@ -51,7 +51,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/code-rain.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/code-rain.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'code-rain' ] = {

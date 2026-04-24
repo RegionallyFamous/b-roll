@@ -25,7 +25,7 @@ SCENE_STUB = """\
 /**
  * B-Roll scene: {label} ({franchise})
  * ---------------------------------------------------------------
- * Painted backdrop at assets/wallpapers/{slug}.jpg. Add Pixi
+ * Painted backdrop at assets/wallpapers/{slug}.webp. Add Pixi
  * motion overlays here; see existing scenes for patterns.
  */
 ( function () {{
@@ -37,7 +37,7 @@ SCENE_STUB = """\
 \tfunction backdropUrl() {{
 \t\tvar cfg = window.bRoll || {{}};
 \t\tvar qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-\t\treturn ( cfg.pluginUrl || '' ) + '/assets/wallpapers/{slug}.jpg' + qs;
+\t\treturn ( cfg.pluginUrl || '' ) + '/assets/wallpapers/{slug}.webp' + qs;
 \t}}
 
 \twindow.__bRoll.scenes[ '{slug}' ] = {{
@@ -115,8 +115,8 @@ def main(argv: list[str]) -> int:
 
     MANIFEST.write_text(json.dumps(manifest, indent=4) + "\n")
 
-    preview = PREVIEWS / f"{slug}.jpg"
-    wallpaper = WALLPAPERS / f"{slug}.jpg"
+    preview = PREVIEWS / f"{slug}.webp"
+    wallpaper = WALLPAPERS / f"{slug}.webp"
 
     print(f"  wrote {scene_path.relative_to(ROOT)}")
     print(f"  appended entry to {MANIFEST.relative_to(ROOT)}")

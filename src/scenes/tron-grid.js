@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: The Grid (Tron) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/tron-grid.jpg — sunset sky,
+ * Painted backdrop (assets/wallpapers/tron-grid.webp — sunset sky,
  * horizon glow, distant moons, and a dark reflective plain
  * stretching to the vanishing point) loaded as a Sprite. On top:
  * a perspective grid with horizontal rows that scroll toward the
@@ -31,7 +31,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/tron-grid.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/tron-grid.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'tron-grid' ] = {

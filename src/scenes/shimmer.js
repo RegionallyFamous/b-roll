@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: Shimmer (Arcane) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/shimmer.jpg — magenta-and-
+ * Painted backdrop (assets/wallpapers/shimmer.webp — magenta-and-
  * violet cavern walls, distant Piltover-like skyline silhouette,
  * golden chemical haze rising from the bottom) loaded as a
  * Sprite. On top: a dedicated bubble layer spawns gold→pink
@@ -27,7 +27,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/shimmer.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/shimmer.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'shimmer' ] = {

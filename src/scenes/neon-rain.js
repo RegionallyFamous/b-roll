@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: Neon Rain (Blade Runner 2049) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/neon-rain.jpg — three depths
+ * Painted backdrop (assets/wallpapers/neon-rain.webp — three depths
  * of city silhouettes, neon signs, lit windows, wet asphalt with
  * reflections, low fog, cloudy night sky) loaded as a Sprite. On
  * top: diagonal rain drops that produce splash circles on ground
@@ -23,7 +23,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/neon-rain.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/neon-rain.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'neon-rain' ] = {

@@ -24,7 +24,7 @@ except ImportError:
 ROOT = Path(__file__).resolve().parent.parent
 PREVIEWS = ROOT / "assets" / "previews"
 MANIFEST = ROOT / "src" / "scenes.json"
-OUT = PREVIEWS / "b-roll.jpg"
+OUT = PREVIEWS / "b-roll.webp"
 
 # Output dims mirror the per-scene previews (~640 wide, 1.6:1).
 W, H = 960, 600
@@ -46,7 +46,7 @@ def pick_slugs(manifest: list[dict]) -> list[str]:
 
 
 def load_tile(slug: str, tw: int, th: int) -> Image.Image:
-    path = PREVIEWS / f"{slug}.jpg"
+    path = PREVIEWS / f"{slug}.webp"
     if not path.exists():
         tile = Image.new("RGB", (tw, th), "#111")
     else:
@@ -141,7 +141,7 @@ def main() -> int:
     draw_wordmark(canvas)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    canvas.save(OUT, "JPEG", quality=82, optimize=True, progressive=True)
+    canvas.save(OUT, "WEBP", quality=82, method=6)
     print(f"wrote {OUT.relative_to(ROOT)} ({OUT.stat().st_size} bytes, {W}x{H})")
     return 0
 

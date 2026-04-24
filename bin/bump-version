@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Bump the three version strings in b-roll.php atomically.
+
+CLAUDE.md: "Version lives in three places - keep in sync on release:
+the `Version:` header in `b-roll.php`, the version string in
+`wp_enqueue_script`, and the `'version'` value in `wp_localize_script`."
+
+This exists because manually editing only the header has bitten every
+recent release — CI catches it, but the release still burns a tag
+cycle. Run this instead of editing b-roll.php by hand.
+
+Usage:
+    bin/bump-version 0.9.0                # set all three to 0.9.0
+    bin/bump-version --patch              # 0.8.0 -> 0.8.1
+    bin/bump-version --minor              # 0.8.0 -> 0.9.0
+    bin/bump-version --major              # 0.8.0 -> 1.0.0
+
+After bumping, runs bin/check-version to assert the file is coherent.
+"""
+from __future__ import annotations
+
+import argparse
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+PLUGIN = ROOT / "b-roll.php"
+
+
+def current_version(text: str) -> str:
+    m = re.search(r"^\s*\*\s*Version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$", text, re.MULTILINE)
+    if not m:
+        raise SystemExit("error: could not parse current Version: header in b-roll.php")
+    return m.group(1)
+
+
+def bump(current: str, which: str) -> str:
+    major, minor, patch = (int(x) for x in current.split("."))
+    if which == "major":
+        return f"{major + 1}.0.0"
+    if which == "minor":
+        return f"{major}.{minor + 1}.0"
+    if which == "patch":
+        return f"{major}.{minor}.{patch + 1}"
+    raise SystemExit(f"unknown bump: {which}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("version", nargs="?", help="explicit x.y.z to set")
+    group.add_argument("--major", action="store_true", help="bump major, reset minor/patch")
+    group.add_argument("--minor", action="store_true", help="bump minor, reset patch")
+    group.add_argument("--patch", action="store_true", help="bump patch")
+    args = parser.parse_args()
+
+    text = PLUGIN.read_text()
+    cur = current_version(text)
+
+    if args.version:
+        if not re.match(r"^[0-9]+\.[0-9]+\.[0-9]+$", args.version):
+            raise SystemExit(f"error: {args.version} is not x.y.z")
+        target = args.version
+    elif args.major:
+        target = bump(cur, "major")
+    elif args.minor:
+        target = bump(cur, "minor")
+    else:
+        target = bump(cur, "patch")
+
+    if target == cur:
+        print(f"already at {target}")
+        return 0
+
+    # Header line.
+    text, header_n = re.subn(
+        r"(^\s*\*\s*Version:\s*)[0-9]+\.[0-9]+\.[0-9]+(\s*$)",
+        lambda m: f"{m.group(1)}{target}{m.group(2)}",
+        text,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    # wp_enqueue_script — the version literal sits right after the
+    # `array( 'wp-desktop', ... )` dependencies arg. Anchor on that
+    # so we don't accidentally rewrite other string literals.
+    text, enq_n = re.subn(
+        r"(array\(\s*'wp-desktop'[^)]*\)\s*,\s*['\"])[0-9]+\.[0-9]+\.[0-9]+(['\"])",
+        lambda m: f"{m.group(1)}{target}{m.group(2)}",
+        text,
+        count=1,
+        flags=re.DOTALL,
+    )
+    # wp_localize 'version' value.
+    text, loc_n = re.subn(
+        r"(['\"]version['\"]\s*=>\s*['\"])[0-9]+\.[0-9]+\.[0-9]+(['\"])",
+        lambda m: f"{m.group(1)}{target}{m.group(2)}",
+        text,
+        count=1,
+    )
+
+    if not (header_n == enq_n == loc_n == 1):
+        raise SystemExit(
+            f"error: expected 1 replacement per site, got header={header_n} enqueue={enq_n} localize={loc_n}"
+        )
+
+    PLUGIN.write_text(text)
+    print(f"bumped b-roll.php: {cur} -> {target}")
+
+    # Sanity-check the result via the sibling script.
+    return subprocess.call([sys.executable, str(ROOT / "bin" / "check-version"), "--expect", target])
+
+
+if __name__ == "__main__":
+    sys.exit(main())

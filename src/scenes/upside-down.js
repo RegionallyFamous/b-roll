@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: The Upside Down (Stranger Things) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/upside-down.jpg — heavy
+ * Painted backdrop (assets/wallpapers/upside-down.webp — heavy
  * red-violet fog, dense oxblood smoke at the base, faint ember
  * highlights) loaded as a Sprite. On top: 3 depth tiers of
  * drifting spores, ash flakes with subtle chromatic aberration,
@@ -65,7 +65,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/upside-down.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/upside-down.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'upside-down' ] = {

@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: Hyperspace (Star Wars) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/hyperspace.jpg — deep
+ * Painted backdrop (assets/wallpapers/hyperspace.webp — deep
  * starfield with tinted nebula) loaded as a Sprite. On top: an
  * additional twinkling point-star layer for live motion, a mid
  * band of thin radial streaks, and a near band of bright streaks
@@ -28,7 +28,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/hyperspace.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/hyperspace.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'hyperspace' ] = {

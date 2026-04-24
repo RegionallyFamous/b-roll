@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# One-time: point this clone at the in-repo hooks in .githooks/.
+#
+# Safe to re-run. Leaves your existing hooks alone because we set
+# core.hooksPath rather than copying into .git/hooks.
+set -e
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+chmod +x .githooks/pre-commit
+
+git config core.hooksPath .githooks
+echo "ok: core.hooksPath -> .githooks"
+echo "    pre-commit will run bin/check-version on any commit that touches b-roll.php."

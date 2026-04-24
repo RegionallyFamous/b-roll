@@ -90,6 +90,13 @@
 		var near = new PIXI.Container(); fg.addChild( near );
 		var bins = { far: far, mid: mid, near: near };
 
+		// Depth-of-field: `far` cut-outs get a gentle blur so they
+		// read as atmospheric background, `mid` is sharp-ish, `near`
+		// is crisp. Scenes can opt out per def with `def.blur = 0`.
+		// BlurFilter only exists when the Pixi "filters" bundle is
+		// loaded; guard so older bundles don't explode.
+		var hasBlur = !! PIXI.BlurFilter;
+
 		var drifters = [];
 		var jobs = defs.map( function ( def ) {
 			var url = cutoutUrl( slug, def.file );
@@ -97,6 +104,15 @@
 				var sprite = new PIXI.Sprite( tex );
 				sprite.anchor.set( 0.5 );
 				( bins[ def.z || 'mid' ] || mid ).addChild( sprite );
+
+				if ( hasBlur ) {
+					var defaultBlur = def.z === 'far' ? 2.2 : def.z === 'near' ? 0 : 0.6;
+					var bAmt = def.blur != null ? def.blur : defaultBlur;
+					if ( bAmt > 0 ) {
+						var blur = new PIXI.BlurFilter( { strength: bAmt, quality: 2 } );
+						sprite.filters = [ blur ];
+					}
+				}
 
 				var zAlpha = def.z === 'far' ? 0.55 : def.z === 'near' ? 0.95 : 0.80;
 				var baseAlpha = def.alpha != null ? def.alpha : zAlpha;
@@ -287,7 +303,7 @@
 
 	function previewBg( slug ) {
 		var s = SCENE_MAP[ slug ] || {};
-		var url = assetUrl( 'assets/previews/' + slug + '.jpg' );
+		var url = assetUrl( 'assets/previews/' + slug + '.webp' );
 		return "url(\"" + url + "\") center/cover no-repeat, " + ( s.fallbackColor || '#111' );
 	}
 
@@ -440,7 +456,7 @@
 				'transition:opacity .4s ease;opacity:1;pointer-events:none;';
 			container.appendChild( firstPaint );
 			function setFirstPaint( slug ) {
-				var url = assetUrl( 'assets/wallpapers/' + slug + '.jpg' );
+				var url = assetUrl( 'assets/wallpapers/' + slug + '.webp' );
 				firstPaint.style.backgroundImage = 'url("' + url + '")';
 			}
 
@@ -458,6 +474,28 @@
 			app.canvas.style.inset = '0';
 			app.canvas.style.width = '100%';
 			app.canvas.style.height = '100%';
+
+			// ARIA live region: a visually-hidden status node appended
+			// to document.body so scene changes are announced by
+			// assistive tech ("Now playing: Neon Rain"). Polite so it
+			// never interrupts active reading.
+			var live = document.createElement( 'div' );
+			live.setAttribute( 'data-b-roll-live', '' );
+			live.setAttribute( 'role', 'status' );
+			live.setAttribute( 'aria-live', 'polite' );
+			live.setAttribute( 'aria-atomic', 'true' );
+			live.style.cssText =
+				'position:absolute;width:1px;height:1px;margin:-1px;' +
+				'padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);' +
+				'clip-path:inset(50%);white-space:nowrap;';
+			document.body.appendChild( live );
+			function announce( slug ) {
+				var s = SCENE_MAP[ slug ];
+				if ( ! s ) return;
+				var msg = 'Now playing: ' + ( s.label || slug );
+				if ( s.franchise ) msg += ' (' + s.franchise + ')';
+				live.textContent = msg;
+			}
 
 			var env = {
 				app: app, PIXI: PIXI, ctx: ctx,
@@ -516,6 +554,76 @@
 				}
 			}
 			app.renderer.on( 'resize', onResize );
+
+			// Color-aware OS accent. We sample the active backdrop
+			// once per scene, produce a single vivid RGB, and push it
+			// into `--wp-admin-theme-color` so the Dock / Admin Bar /
+			// focus rings tint to match the wallpaper. Saturated
+			// pixels are weighted more heavily so a painterly
+			// backdrop with dark corners still yields a bright,
+			// on-brand hue rather than a muddy average.
+			var accentCache = {};
+			var originalAccent = document.documentElement.style.getPropertyValue( '--wp-admin-theme-color' );
+			function sampleAccent( slug ) {
+				if ( accentCache[ slug ] ) return Promise.resolve( accentCache[ slug ] );
+				var url = assetUrl( 'assets/wallpapers/' + slug + '.webp' );
+				return new Promise( function ( resolve ) {
+					var img = new window.Image();
+					img.onload = function () {
+						try {
+							var W = 32, H = 32;
+							var c = document.createElement( 'canvas' );
+							c.width = W; c.height = H;
+							var g = c.getContext( '2d' );
+							if ( ! g ) { resolve( null ); return; }
+							g.drawImage( img, 0, 0, W, H );
+							var data = g.getImageData( 0, 0, W, H ).data;
+							var sumR = 0, sumG = 0, sumB = 0, totalW = 0;
+							for ( var i = 0; i < data.length; i += 4 ) {
+								var r = data[ i ], gg = data[ i + 1 ], b = data[ i + 2 ];
+								var mx = Math.max( r, gg, b ), mn = Math.min( r, gg, b );
+								var sat = mx === 0 ? 0 : ( mx - mn ) / mx;
+								var bri = mx / 255;
+								// Favor vivid mid-bright pixels. Dark
+								// corners and washed-out sky are both
+								// suppressed.
+								var w = sat * ( 0.35 + bri * 0.65 );
+								if ( w <= 0 ) continue;
+								sumR += r * w; sumG += gg * w; sumB += b * w;
+								totalW += w;
+							}
+							if ( totalW <= 0 ) { resolve( null ); return; }
+							var R = Math.round( sumR / totalW );
+							var G = Math.round( sumG / totalW );
+							var B = Math.round( sumB / totalW );
+							// Clamp brightness into a usable range so
+							// very dark or very pale hues still give a
+							// readable accent color.
+							var L = ( 0.299 * R + 0.587 * G + 0.114 * B ) / 255;
+							var target = L < 0.35 ? 0.45 : L > 0.75 ? 0.60 : L;
+							var k = target / Math.max( 0.05, L );
+							R = Math.min( 255, Math.round( R * k ) );
+							G = Math.min( 255, Math.round( G * k ) );
+							B = Math.min( 255, Math.round( B * k ) );
+							var css = 'rgb(' + R + ',' + G + ',' + B + ')';
+							accentCache[ slug ] = css;
+							resolve( css );
+						} catch ( e ) { resolve( null ); }
+					};
+					img.onerror = function () { resolve( null ); };
+					img.src = url;
+				} );
+			}
+			function applyAccent( slug ) {
+				sampleAccent( slug ).then( function ( css ) {
+					if ( ! css ) return;
+					// Push to both a public custom prop (for scenes /
+					// picker to consume) and the WP Admin chrome var
+					// so the Dock + Admin Bar tint to match.
+					document.documentElement.style.setProperty( '--b-roll-accent', css );
+					document.documentElement.style.setProperty( '--wp-admin-theme-color', css );
+				} );
+			}
 
 			// Crossfade helper: take a pixel snapshot of the current
 			// canvas, overlay it on top of the container, then let
@@ -585,6 +693,10 @@
 					// scene's setup is very slow, the backdrop is at
 					// least the correct one under the snapshot.
 					setFirstPaint( nextSlug );
+					// Fire-and-forget accent sampling. Cached per
+					// slug so subsequent hover previews reuse the
+					// same computed hue.
+					applyAccent( nextSlug );
 
 					if ( prev.impl ) {
 						if ( prev.tick ) app.ticker.remove( prev.tick );
@@ -616,6 +728,7 @@
 					}
 					swapping = false;
 					fadeAndRemove( crossfadeNode );
+					announce( nextSlug );
 					drainPending();
 					return { ok: true };
 				} catch ( err ) {
@@ -864,7 +977,16 @@
 				}
 				if ( gear.parentNode ) gear.parentNode.removeChild( gear );
 				if ( tooltip && tooltip.parentNode ) tooltip.parentNode.removeChild( tooltip );
+				if ( live.parentNode ) live.parentNode.removeChild( live );
 				if ( firstPaint.parentNode ) firstPaint.parentNode.removeChild( firstPaint );
+				// Restore the original WP accent so switching away
+				// from B-Roll doesn't leave our tint behind.
+				if ( originalAccent ) {
+					document.documentElement.style.setProperty( '--wp-admin-theme-color', originalAccent );
+				} else {
+					document.documentElement.style.removeProperty( '--wp-admin-theme-color' );
+				}
+				document.documentElement.style.removeProperty( '--b-roll-accent' );
 				app.renderer.off( 'resize', onResize );
 				if ( currentTick ) app.ticker.remove( currentTick );
 				if ( currentImpl && currentImpl.cleanup ) {

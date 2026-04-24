@@ -20,6 +20,16 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 Pick **B-Roll** from **OS Settings → Wallpapers**, then click the gear in the bottom-right of the live wallpaper to switch scenes. Your pick is remembered per-user.
 
+## v0.9.0 — Color-aware OS, cinematic depth, smaller zip
+
+v0.9 is the "plugin disappears into the OS" release. The wallpaper now drives the Dock and Admin Bar color, the cut-outs feel like real cinematography, and the whole plugin shed another third of its payload.
+
+- **Color-aware OS accent.** On every scene swap we sample the active backdrop at 32×32, weight pixels by saturation × brightness, and push the result into `--wp-admin-theme-color`. The Dock, Admin Bar, and focus rings tint to match the wallpaper. Cached per-slug so hover previews reuse the same hue. Restored cleanly on teardown.
+- **Depth-of-field blur on cut-outs.** `far` cut-outs get a `PIXI.BlurFilter(2.2)`, `mid` a gentle `0.6`, `near` stays sharp. Scenes can override per-def with `blur: N` in `scenes.json`. Reads as real cinematography instead of a sticker sheet.
+- **ARIA live region.** A visually-hidden `role="status" aria-live="polite"` node announces "Now playing: Neon Rain (Blade Runner)" on every swap. Respects screen readers without touching visible chrome.
+- **WebP for wallpapers + previews.** The painted backdrops went JPG → WebP q82 (3.8 MB → 1.1 MB, 29% of original) and so did the picker thumbnails. Combined with v0.8's cut-out WebP conversion, the full plugin zip is now **5.1 MB — down from 22.7 MB at the start of v0.7**.
+- **`bin/bump-version` + pre-commit hook.** The three version strings in `b-roll.php` (header, `wp_enqueue_script`, `wp_localize_script`) are now bumped atomically. A pre-commit hook runs `bin/check-version` whenever `b-roll.php` is in the commit, catching the mismatch that bit the last two releases. Install via `bin/install-hooks` (one-time).
+
 ## v0.8.0 — Crossfades, live preview, parallax, WebP
 
 v0.8 is a perceived-quality release. Nothing about the scene list or the easter-egg surface changed, but everything about the *swap* got crisper:

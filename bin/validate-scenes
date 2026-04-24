@@ -3,8 +3,8 @@
 
 Checks:
   - src/scenes/<slug>.js exists
-  - assets/previews/<slug>.jpg exists
-  - assets/wallpapers/<slug>.jpg exists
+  - assets/previews/<slug>.webp exists
+  - assets/wallpapers/<slug>.webp exists
   - scenes.json is parseable
   - each entry has the required keys
 
@@ -61,8 +61,8 @@ def main() -> int:
             continue
         for sub, rel in (
             ("scene JS", f"src/scenes/{slug}.js"),
-            ("preview", f"assets/previews/{slug}.jpg"),
-            ("wallpaper", f"assets/wallpapers/{slug}.jpg"),
+            ("preview", f"assets/previews/{slug}.webp"),
+            ("wallpaper", f"assets/wallpapers/{slug}.webp"),
         ):
             path = ROOT / rel
             if not path.exists():

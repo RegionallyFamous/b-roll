@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: Refinery (Severance) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/refinery.jpg — sterile
+ * Painted backdrop (assets/wallpapers/refinery.webp — sterile
  * seafoam-and-cream void with a soft radial vignette, faint CRT
  * scanlines, and a subtle Lumon-style sigil in the lower-left
  * corner) loaded as a Sprite. On top: a pool of drifting numerals
@@ -34,7 +34,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/refinery.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/refinery.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'refinery' ] = {

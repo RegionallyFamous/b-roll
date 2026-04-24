@@ -1,7 +1,7 @@
 /**
  * B-Roll scene: Rainbow Road (Mario Kart) — v0.5
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/rainbow-road.jpg — Saturn,
+ * Painted backdrop (assets/wallpapers/rainbow-road.webp — Saturn,
  * tinted starfield and nebula) loaded as a Pixi Sprite, with the
  * full motion stack rendering on top: scrolling rainbow-striped
  * road in exaggerated perspective, neon guardrails (crisp +
@@ -26,7 +26,7 @@
 	function backdropUrl() {
 		var cfg = window.bRoll || {};
 		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/rainbow-road.jpg' + qs;
+		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/rainbow-road.webp' + qs;
 	}
 
 	window.__bRoll.scenes[ 'rainbow-road' ] = {

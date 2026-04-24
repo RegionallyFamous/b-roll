@@ -308,7 +308,7 @@
 		prefetchedBackdrops[ slug ] = true;
 		try {
 			var cfg = window.__bRoll.config || {};
-			var url = cfg.assetUrl ? cfg.assetUrl( 'assets/wallpapers/' + slug + '.jpg' ) : '';
+			var url = cfg.assetUrl ? cfg.assetUrl( 'assets/wallpapers/' + slug + '.webp' ) : '';
 			if ( ! url ) return;
 			var img = new window.Image();
 			img.decoding = 'async';
@@ -442,7 +442,7 @@
 			btn.setAttribute( 'aria-label', scene.label + ( scene.franchise ? ' \u2014 ' + scene.franchise : '' ) );
 			btn.setAttribute( 'aria-pressed', isCurrent ? 'true' : 'false' );
 			btn.style.background = scene.fallbackColor || '#111';
-			var thumb = cfg.assetUrl ? cfg.assetUrl( 'assets/previews/' + slug + '.jpg' ) : '/assets/previews/' + slug + '.jpg';
+			var thumb = cfg.assetUrl ? cfg.assetUrl( 'assets/previews/' + slug + '.webp' ) : '/assets/previews/' + slug + '.webp';
 			btn.innerHTML = [
 				'<img loading="lazy" decoding="async" alt="" src="' + escAttr( thumb ) + '" />',
 				isCurrent ? '<span data-b-roll-now>Now playing</span>' : '',

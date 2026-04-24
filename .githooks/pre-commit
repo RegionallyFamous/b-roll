@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# B-Roll pre-commit hook.
+#
+# Mirrors the `check-version` step the release workflow runs on a tag
+# push, but at commit time — catches the "Version: header bumped, but
+# wp_enqueue_script / wp_localize_script left behind" class of mistake
+# locally instead of burning a tag cycle.
+#
+# Install with: bin/install-hooks  (sets core.hooksPath to .githooks)
+# Skip with:    git commit --no-verify
+
+set -e
+
+root="$(git rev-parse --show-toplevel)"
+changed="$(git diff --cached --name-only)"
+
+# Only run when the plugin manifest is in the commit — any other
+# commit is fine regardless of version coherency.
+if ! grep -qxF "b-roll.php" <<< "$changed"; then
+    exit 0
+fi
+
+if ! "$root/bin/check-version"; then
+    echo "" >&2
+    echo "pre-commit: version strings in b-roll.php are out of sync." >&2
+    echo "  -> run 'bin/bump-version X.Y.Z' to fix atomically." >&2
+    echo "  -> or use 'git commit --no-verify' to skip this check." >&2
+    exit 1
+fi
