@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Smoke-test: boot WordPress in Playground CLI with this plugin mounted,
+# run the activation blueprint, exit non-zero on any fatal or failed step.
+#
+# Doesn't render scenes (no GL headless) - the goal is catching PHP fatals,
+# missing hooks, broken REST registration, and blueprint regressions.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+BLUEPRINT="ci/smoke.blueprint.json"
+
+if [[ ! -f "$BLUEPRINT" ]]; then
+    echo "error: missing $BLUEPRINT" >&2
+    exit 1
+fi
+
+# Mount the repo root as the b-roll plugin directory. The CLI copies
+# mounted files into the in-memory filesystem before activation runs.
+npx --yes @wp-playground/cli@latest run-blueprint \
+    --blueprint="$BLUEPRINT" \
+    --mount="$(pwd):/wordpress/wp-content/plugins/b-roll"
+
+echo "OK: plugin activates under Playground"

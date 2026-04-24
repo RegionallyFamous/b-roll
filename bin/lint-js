@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Syntax-check every JS file in src/, then run ESLint.
+# `node --check` catches parse errors cheaply; ESLint catches logic bugs.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+fail=0
+while IFS= read -r -d '' file; do
+    if ! node --check "$file"; then
+        echo "error: parse error in $file" >&2
+        fail=1
+    fi
+done < <(find src -type f -name '*.js' -print0)
+
+if [[ "$fail" -ne 0 ]]; then
+    exit 1
+fi
+
+echo "OK: all JS files parsed"
+
+if [[ -x node_modules/.bin/eslint ]]; then
+    node_modules/.bin/eslint src
+else
+    npx --no-install eslint src 2>/dev/null || npx eslint src
+fi

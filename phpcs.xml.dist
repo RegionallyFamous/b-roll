@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<ruleset name="b-roll">
+    <description>PHPCS config for the B-Roll WordPress plugin.</description>
+
+    <file>b-roll.php</file>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
+    <exclude-pattern>dist/*</exclude-pattern>
+    <exclude-pattern>tools/*</exclude-pattern>
+
+    <rule ref="WordPress-Extra">
+        <!-- Single-file plugin; filename matches the plugin slug, which
+             conflicts with WP's per-file class-name convention. -->
+        <exclude name="WordPress.Files.FileName"/>
+
+        <!-- Inline plugin header comment is fine; no full docblocks needed
+             on the closures we register with add_action. -->
+        <exclude name="Squiz.Commenting.FunctionComment.Missing"/>
+        <exclude name="Squiz.Commenting.FileComment.Missing"/>
+        <exclude name="Squiz.Commenting.ClassComment.Missing"/>
+        <exclude name="Generic.Commenting.DocComment.MissingShort"/>
+        <exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+
+        <!-- The plugin uses sanitize_key / sanitize_text_field on all REST
+             inputs; we don't need Yoda conditions or heavy formatting
+             enforcement on a 180-line plugin. -->
+        <exclude name="WordPress.PHP.YodaConditions"/>
+        <exclude name="Universal.Operators.DisallowShortTernary.Found"/>
+    </rule>
+
+    <!-- Keep the security-relevant rules hot. -->
+    <rule ref="WordPress.Security"/>
+    <rule ref="WordPress.DB.PreparedSQL"/>
+
+    <config name="minimum_supported_wp_version" value="6.0"/>
+    <config name="testVersion" value="7.4-"/>
+</ruleset>

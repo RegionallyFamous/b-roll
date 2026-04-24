@@ -1,6 +1,12 @@
 *.zip
 .DS_Store
 node_modules/
+vendor/
+dist/
+composer.lock
+package-lock.json
+_tools/raw/
+_tools/batch.txt
 .idea/
 .vscode/
 *.log

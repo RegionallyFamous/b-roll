@@ -190,9 +190,25 @@ b-roll/
 ├── CLAUDE.md               # this file
 ├── LICENSE                 # GPLv2
 ├── .gitignore
+├── .eslintrc.json          # ESLint config (dev-only; excluded from the zip)
+├── package.json            # ESLint + @wp-playground/cli dev deps
+├── composer.json           # PHPCS + WPCS dev deps
+├── phpcs.xml.dist          # PHPCS ruleset (dev-only; excluded from the zip)
+├── .github/workflows/
+│   ├── ci.yml              # PR + push checks; callable from release.yml
+│   └── release.yml         # v* tag -> build zip + cut GitHub release
+├── .claude/commands/       # /release, /new-scene slash commands
 ├── bin/
 │   ├── new-scene           # scaffold a new scene (scene JS + manifest row)
-│   └── validate-scenes     # CI check: every manifest entry has JS + preview + wallpaper
+│   ├── validate-scenes     # manifest vs. asset files
+│   ├── check-version       # b-roll.php version strings must agree
+│   ├── check-blueprint     # blueprint.json structure + optional URL probe
+│   ├── build-zip           # dist/b-roll.zip + size budget
+│   ├── lint-php            # php -l on every *.php
+│   ├── lint-js             # node --check + eslint on src/
+│   └── smoke-playground    # @wp-playground/cli activation smoke test
+├── ci/
+│   └── smoke.blueprint.json  # blueprint used by bin/smoke-playground
 ├── tools/
 │   └── build-b-roll-swatch.py  # regenerate assets/previews/b-roll.jpg collage
 ├── assets/
@@ -221,25 +237,42 @@ For faster iteration, you can install the plugin into a local WordPress install 
 
 ### Cut a release
 
-The `/release <version>` slash command (in `.claude/commands/release.md`) automates the full flow. Manually, the shape is:
+Releases are tag-driven. Push a `v*` tag and `.github/workflows/release.yml` builds the zip and publishes the GitHub release automatically.
+
+The `/release <version>` slash command (in `.claude/commands/release.md`) walks the flow. The shape is:
 
 ```bash
-# Update version string in b-roll.php (3 places), commit
-# Build the zip
-cd ..
-python3 -c "
-import zipfile, os, pathlib
-src = pathlib.Path('b-roll')
-with zipfile.ZipFile('b-roll.zip', 'w', zipfile.ZIP_DEFLATED) as z:
-    for p in sorted(src.rglob('*')):
-        if '.git' in p.parts: continue
-        if p.is_file(): z.write(p, arcname=str(p.relative_to('.')))
-"
-# Cut release + upload via gh
-gh release create v0.X.0 ./b-roll.zip --title "v0.X.0 — <summary>" --notes "<body>"
+# 1. Bump the 3 version strings in b-roll.php
+# 2. Sanity-check they agree:
+bin/check-version --expect 0.X.0
+# 3. Commit, push main, push the tag:
+git commit -am "chore: bump version to v0.X.0"
+git push origin main
+git tag v0.X.0 && git push origin v0.X.0
 ```
 
+On tag push, `release.yml`:
+1. Reruns the full `ci.yml` suite.
+2. Asserts the tag matches `b-roll.php`'s version via `bin/check-version --expect`.
+3. Runs `bin/build-zip` -> `dist/b-roll.zip`.
+4. Runs `gh release create "$tag" dist/b-roll.zip --generate-notes` (auto-notes from commits since the previous tag), retrying once after 3s if the asset upload 409s.
+5. Verifies `releases/latest/download/b-roll.zip` resolves.
+
 After the release, the Playground demo link auto-refreshes to the new zip on next load (no blueprint edits needed).
+
+### CI suite
+
+`.github/workflows/ci.yml` runs on every PR + push to `main`, and is also called from `release.yml` as `workflow_call`. Jobs run in parallel:
+
+- `validate-scenes` — `bin/validate-scenes` (every manifest entry has JS + preview + wallpaper).
+- `check-version` — three version strings in `b-roll.php` must agree.
+- `json-valid` — `blueprint.json`, `src/scenes.json`, `package.json`, `composer.json`, `ci/smoke.blueprint.json`, `.eslintrc.json` all parse; `bin/check-blueprint` asserts blueprint structure.
+- `php-lint` — matrix on PHP 7.4 + 8.3; `php -l` on every `*.php`, then PHPCS with `WordPress-Extra` on 8.3.
+- `js-lint` — `node --check` on every `src/**.js`, then ESLint.
+- `zip-budget` — `bin/build-zip` with a 7 MB cap; uploads `b-roll.zip` as a workflow artifact for download-and-test.
+- `playground-smoke` — `bin/smoke-playground` boots the plugin under `@wp-playground/cli` with the desktop-mode dep + activation step, catching PHP fatals and REST registration regressions.
+
+Every CI step is a `bin/` script a developer can run locally with the same exit semantics — "green on laptop" matches "green on CI".
 
 ### Add a new scene
 

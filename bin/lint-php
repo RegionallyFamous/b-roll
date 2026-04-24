@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Run `php -l` on every tracked PHP file in the plugin.
+# Fails if any file has a syntax error.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+fail=0
+while IFS= read -r -d '' file; do
+    if ! php -l "$file" > /dev/null; then
+        echo "error: syntax error in $file" >&2
+        fail=1
+    fi
+done < <(find . -type f -name '*.php' \
+    -not -path './vendor/*' \
+    -not -path './node_modules/*' \
+    -not -path './dist/*' \
+    -print0)
+
+if [[ "$fail" -ne 0 ]]; then
+    exit 1
+fi
+
+echo "OK: all PHP files parsed"
