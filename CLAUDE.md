@@ -281,17 +281,25 @@ b-roll/
 │   ├── wallpapers/         # painted 1920×1080 backdrops loaded per-scene
 │   ├── cutouts/            # per-scene transparent cut-outs (motion profile in scenes.json)
 │   └── drifters/           # shared drifter library (src/drifters.json)
-└── src/
-    ├── index.js            # registrar + shared mount + lazy loaders + prefs + env mechanics
-    ├── picker.js           # in-canvas picker overlay (loaded on first gear click)
-    ├── audio.js            # opt-in Web Audio analyser (loaded on first mic toggle)
-    ├── easter-eggs.js      # Konami + keyword + corner-peek triggers
-    ├── drifters.json       # shared drifter library manifest
-    ├── scenes.json         # canonical scene manifest
-    └── scenes/
-        ├── code-rain.js    (+ 13 others)
-        └── ...
+├── src/
+│   ├── index.js            # registrar + shared mount + lazy loaders + prefs + env mechanics
+│   ├── picker.js           # in-canvas picker overlay (loaded on first gear click)
+│   ├── audio.js            # opt-in Web Audio analyser (loaded on first mic toggle)
+│   ├── easter-eggs.js      # Konami + keyword + corner-peek triggers
+│   ├── drifters.json       # shared drifter library manifest
+│   ├── scenes.json         # canonical scene manifest
+│   └── scenes/
+│       ├── code-rain.js    (+ 13 others)
+│       └── ...
+└── b-roll-icons/           # sibling plugin (independent activation + versioning)
+    ├── b-roll-icons.php    # plugin bootstrap
+    ├── includes/           # registry.php, dock-filter.php, rest.php, enqueue.php
+    ├── src/picker.js       # floating pill picker (vanilla DOM, no build step)
+    ├── sets/<slug>/        # one dir per icon set: manifest.json + 1..13 SVGs
+    └── bin/validate-sets
 ```
+
+**Sibling plugin: b-roll-icons (v0.1.0+).** Lives in-repo under `b-roll-icons/` but has its own plugin header, its own version, its own REST namespace (`/b-roll-icons/v1/prefs`), its own user_meta key (`b_roll_icons_set`), and ships to WordPress.org as its own plugin zip. The wiring is a PHP filter on WP Desktop Mode's `wp_desktop_dock_items` + `wp_desktop_icons` that swaps each dock/desktop item's `icon` field to the URL of the active set's SVG, keyed by admin menu slug (`edit.php` → `posts.svg`, `upload.php` → `media.svg`, …). Picks are independent from b-roll — users can mix a Matrix icon set with the Outrun wallpaper. Adding a new set is a new directory under `sets/<slug>/` with a `manifest.json` + SVGs; `bin/validate-sets` gates JSON + SVG XML validity. See `b-roll-icons/README.md` for the full contract.
 
 Version lives in three places — keep in sync on release: the `Version:` header in `b-roll.php`, the version string in `wp_enqueue_script`, and the `'version'` value in `wp_localize_script`.
 

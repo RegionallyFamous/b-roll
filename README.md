@@ -4,6 +4,8 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 **Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode (active)
 
+**Sibling plugin:** [B-Roll Icons](./b-roll-icons/) — themed icon sets that re-skin the Dock (v0.1.0 ships the Code Rain / Matrix set). Activate both plugins and pick each independently.
+
 ## The nine scenes
 
 | # | Scene | Franchise | One-liner |

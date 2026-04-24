@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Dashboard">
+  <title>Dashboard - Code Rain</title>
+  <g fill="none" stroke="#00ff41" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 3v18"/>
+    <path d="M9 3v18" opacity=".75"/>
+    <path d="M15 3v18" opacity=".55"/>
+    <path d="M21 3v18" opacity=".4"/>
+  </g>
+  <g fill="#00ff41">
+    <circle cx="3"  cy="7"  r="1"/>
+    <circle cx="3"  cy="12" r="1"/>
+    <circle cx="3"  cy="17" r="1"/>
+    <circle cx="9"  cy="9"  r="1" opacity=".75"/>
+    <circle cx="9"  cy="14" r="1" opacity=".75"/>
+    <circle cx="15" cy="5"  r="1" opacity=".55"/>
+    <circle cx="15" cy="11" r="1" opacity=".55"/>
+    <circle cx="15" cy="17" r="1" opacity=".55"/>
+    <circle cx="21" cy="8"  r="1" opacity=".4"/>
+    <circle cx="21" cy="14" r="1" opacity=".4"/>
+  </g>
+  <rect x="5.2" y="15" width="1.6" height="3" fill="#baffbf"/>
+  <rect x="5.2" y="15" width="1.6" height="3" fill="#baffbf" opacity=".6"/>
+</svg>
