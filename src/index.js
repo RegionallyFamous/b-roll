@@ -626,6 +626,23 @@
 				await swap( defaultScene() );
 			}
 
+			// Warm the HTTP + Pixi texture cache for the user's likely
+			// next picks (favorites + recents), so opening the picker
+			// and clicking a card feels instant. The picker.js module
+			// exposes a cheap prefetch helper that's a no-op on repeat
+			// calls; load it once on idle.
+			var ric = window.requestIdleCallback || function ( fn ) { return setTimeout( fn, 600 ); };
+			ric( function () {
+				loadPicker().then( function () {
+					var pre = window.__bRoll.prefetchScene;
+					if ( typeof pre !== 'function' ) return;
+					var likely = {};
+					( prefsState.favorites || [] ).forEach( function ( s ) { likely[ s ] = true; } );
+					( prefsState.recents   || [] ).forEach( function ( s ) { likely[ s ] = true; } );
+					Object.keys( likely ).forEach( pre );
+				} ).catch( function () { /* non-fatal */ } );
+			} );
+
 			return function teardown() {
 				if ( window.wp && window.wp.hooks ) {
 					window.wp.hooks.removeAction( 'wp-desktop.wallpaper.visibility', visHook );
