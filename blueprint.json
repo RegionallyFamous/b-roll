@@ -32,8 +32,13 @@
       "meta": { "wp_desktop_mode": "1" }
     },
     {
+      "step": "writeFile",
+      "path": "/wordpress/wp-content/mu-plugins/b-roll-playground-defaults.php",
+      "data": "<?php\n/**\n * B-Roll Playground demo: pre-select the B-Roll wallpaper.\n *\n * WP Desktop Mode fires `wp_desktop_default_wallpaper` when a user has\n * no saved OS settings yet. Returning `b-roll` here makes the shell\n * boot straight into the animated wallpaper instead of the default\n * dark slab.\n */\nadd_filter( 'wp_desktop_default_wallpaper', static function () {\n\treturn 'b-roll';\n} );\n"
+    },
+    {
       "step": "runPHP",
-      "code": "<?php require_once '/wordpress/wp-load.php'; if ( function_exists( 'wpdm_save_os_settings' ) ) { wpdm_save_os_settings( 1, array( 'wallpaper' => 'b-roll' ) ); } else { update_user_meta( 1, 'wp_desktop_os_settings', array( 'wallpaper' => 'b-roll' ) ); }"
+      "code": "<?php require_once '/wordpress/wp-load.php'; if ( function_exists( 'wpdm_save_os_settings' ) ) { wpdm_save_os_settings( 1, array( 'wallpaper' => 'b-roll' ) ); }"
     }
   ]
 }
