@@ -27,6 +27,14 @@
       "options": { "activate": true }
     },
     {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "url",
+        "url": "https://github.com/RegionallyFamous/b-roll/releases/download/b-roll-icons-v0.1.0/b-roll-icons.zip"
+      },
+      "options": { "activate": true }
+    },
+    {
       "step": "updateUserMeta",
       "userId": 1,
       "meta": { "wp_desktop_mode": "1" }
