@@ -525,11 +525,11 @@
 				g.zIndex = 1000;
 				var bg = new PIXI.Graphics();
 				var label = new PIXI.Text( {
-					text: '\u2699  Change scene',
+					text: '\u2699  CHANGE SCENE',
 					style: {
 						fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-						fontSize: 16, fontWeight: '600', fill: 0xffffff,
-						letterSpacing: 0.4,
+						fontSize: 36, fontWeight: '700', fill: 0xffffff,
+						letterSpacing: 1.2,
 					},
 				} );
 				label.anchor.set( 0.5 );
@@ -539,17 +539,17 @@
 				g.addChild( bg );
 				g.addChild( label );
 				function redraw( pulse ) {
-					var w = label.width + 36;
-					var hh = 44;
+					var w = label.width + 80;
+					var hh = 96;
 					bg.clear();
 					bg.roundRect( -w / 2, -hh / 2, w, hh, hh / 2 )
-						.fill( { color: 0x101014, alpha: 0.88 } )
-						.stroke( { color: 0xffffff, width: 1.5, alpha: 0.65 } );
+						.fill( { color: 0xff2d6f, alpha: 0.96 } )
+						.stroke( { color: 0xffffff, width: 4, alpha: 0.95 } );
 					ringPulse.clear();
 					if ( pulse > 0 ) {
-						var pr = ( w / 2 ) + pulse * 26;
-						ringPulse.roundRect( -pr, -hh / 2 - pulse * 14, pr * 2, hh + pulse * 28, ( hh + pulse * 28 ) / 2 )
-							.stroke( { color: 0xffffff, width: 2, alpha: ( 1 - pulse ) * 0.55 } );
+						var pr = ( w / 2 ) + pulse * 60;
+						ringPulse.roundRect( -pr, -hh / 2 - pulse * 30, pr * 2, hh + pulse * 60, ( hh + pulse * 60 ) / 2 )
+							.stroke( { color: 0xffffff, width: 4, alpha: ( 1 - pulse ) * 0.7 } );
 						ringPulse.alpha = 1;
 					} else {
 						ringPulse.alpha = 0;
@@ -562,14 +562,14 @@
 				} );
 				g.on( 'pointerover', function () { bg.alpha = 1.15; } );
 				g.on( 'pointerout',  function () { bg.alpha = 1.0; } );
-				return { node: g, redraw: redraw, getWidth: function () { return label.width + 36; } };
+				return { node: g, redraw: redraw, getWidth: function () { return label.width + 80; } };
 			}
 			function placePixiGear() {
 				if ( ! pixiGear ) return;
 				var w = app.renderer.width / app.renderer.resolution;
 				var hh = app.renderer.height / app.renderer.resolution;
-				pixiGear.node.x = w - pixiGear.getWidth() / 2 - 24;
-				pixiGear.node.y = hh - 22 - 24;
+				pixiGear.node.x = w / 2;
+				pixiGear.node.y = hh / 2;
 			}
 			function mountPixiGear() {
 				if ( ! pixiGear ) pixiGear = buildPixiGear();
