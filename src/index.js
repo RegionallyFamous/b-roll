@@ -541,18 +541,23 @@
 			gear.innerHTML =
 				'<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 			var gearStyles = {
-				position: 'absolute', right: '20px', bottom: '20px',
-				width: '52px', height: '52px', borderRadius: '50%',
+				position: 'fixed', right: '24px', bottom: '24px',
+				width: '56px', height: '56px', borderRadius: '50%',
 				border: '1.5px solid rgba(255,255,255,.55)',
-				background: 'rgba(18,18,22,.78)', color: '#fff',
+				background: 'rgba(18,18,22,.82)', color: '#fff',
 				backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
 				display: 'flex', alignItems: 'center', justifyContent: 'center',
-				cursor: 'pointer', zIndex: '2147483646', padding: '0', outline: 'none',
+				cursor: 'pointer', zIndex: '2147483647', padding: '0', outline: 'none',
 				opacity: '1',
-				boxShadow: '0 8px 24px rgba(0,0,0,.45)',
+				boxShadow: '0 8px 24px rgba(0,0,0,.5)',
 			};
 			Object.keys( gearStyles ).forEach( function ( k ) { gear.style[ k ] = gearStyles[ k ]; } );
-			container.appendChild( gear );
+			// Mount on document.body, NOT the wallpaper container, so OS chrome
+			// (dock, menubar, taskbar) can't cover or clip it. Singleton — if
+			// the wallpaper remounts, replace the previous gear.
+			var prevGear = document.querySelector( '[data-b-roll-gear]' );
+			if ( prevGear && prevGear.parentNode ) prevGear.parentNode.removeChild( prevGear );
+			document.body.appendChild( gear );
 
 			// First-load hint pill that points at the gear. Auto-hides after
 			// ~7s, or immediately on first click. Dismissed forever once seen.
@@ -577,18 +582,20 @@
 				hint.setAttribute( 'data-b-roll-hint', '' );
 				hint.textContent = 'Click to change scene';
 				var hintStyles = {
-					position: 'absolute', right: '82px', bottom: '30px',
+					position: 'fixed', right: '92px', bottom: '36px',
 					padding: '8px 12px', borderRadius: '8px',
-					background: 'rgba(18,18,22,.85)', color: '#fff',
+					background: 'rgba(18,18,22,.88)', color: '#fff',
 					font: '500 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
 					letterSpacing: '.2px', whiteSpace: 'nowrap',
 					border: '1px solid rgba(255,255,255,.18)',
 					boxShadow: '0 6px 18px rgba(0,0,0,.35)',
-					zIndex: '2147483646', pointerEvents: 'none',
+					zIndex: '2147483647', pointerEvents: 'none',
 					opacity: '0', transform: 'translateY(6px)',
 				};
 				Object.keys( hintStyles ).forEach( function ( k ) { hint.style[ k ] = hintStyles[ k ]; } );
-				container.appendChild( hint );
+				var prevHint = document.querySelector( '[data-b-roll-hint]' );
+				if ( prevHint && prevHint.parentNode ) prevHint.parentNode.removeChild( prevHint );
+				document.body.appendChild( hint );
 				// Fade in after a beat so it reads as deliberate, not flashed.
 				setTimeout( function () {
 					if ( ! hint ) return;
