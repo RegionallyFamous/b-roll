@@ -30,6 +30,10 @@
       "step": "updateUserMeta",
       "userId": 1,
       "meta": { "wp_desktop_mode": "1" }
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php require_once '/wordpress/wp-load.php'; if ( function_exists( 'wpdm_save_os_settings' ) ) { wpdm_save_os_settings( 1, array( 'wallpaper' => 'b-roll' ) ); } else { update_user_meta( 1, 'wp_desktop_os_settings', array( 'wallpaper' => 'b-roll' ) ); }"
     }
   ]
 }
