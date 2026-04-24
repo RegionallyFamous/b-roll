@@ -104,7 +104,7 @@ add_action(
 			'b-roll',
 			plugins_url( 'src/index.js', __FILE__ ),
 			array( 'wp-desktop', 'wp-hooks' ),
-			'0.7.7',
+			'0.8.0',
 			true
 		);
 
@@ -115,7 +115,7 @@ add_action(
 			'bRoll',
 			array(
 				'pluginUrl' => untrailingslashit( plugins_url( '', __FILE__ ) ),
-				'version'   => '0.7.7',
+				'version'   => '0.8.0',
 				'scenes'    => b_roll_scenes(),
 				'scene'     => b_roll_get_user_scene( $uid ),
 				'favorites' => b_roll_get_user_slug_list( $uid, 'b_roll_favorites' ),
