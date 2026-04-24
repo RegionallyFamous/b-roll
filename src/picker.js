@@ -25,7 +25,7 @@
 
 	var STYLE_ID = 'b-roll-picker-styles';
 	var CSS = [
-		'[data-b-roll-overlay]{position:absolute;inset:0;z-index:10;display:flex;align-items:stretch;justify-content:center;background:rgba(6,6,10,.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4f4f8}',
+		'[data-b-roll-overlay]{position:fixed;inset:0;z-index:2147483646;display:flex;align-items:stretch;justify-content:center;background:rgba(6,6,10,.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4f4f8}',
 		'[data-b-roll-overlay][data-reduced=false]{animation:brOverlayIn .18s ease}',
 		'@keyframes brOverlayIn{from{opacity:0}to{opacity:1}}',
 		'[data-b-roll-panel]{flex:1;max-width:1180px;margin:auto;padding:24px 28px 32px;display:flex;flex-direction:column;gap:16px;max-height:100%;overflow:hidden}',
@@ -109,7 +109,11 @@
 		var prefs = window.__bRoll.prefs;
 		var scenes = cfg.scenes || [];
 		var sceneMap = cfg.sceneMap || {};
-		var host = opts.host || document.body;
+		// Always mount the picker on document.body. WP Desktop Mode applies
+		// pointer-events: none to .wp-desktop-wallpaper, so anything mounted
+		// inside the wallpaper container (i.e. `opts.host`) would be inert.
+		// The z-index on [data-b-roll-overlay] keeps it above OS chrome.
+		var host = document.body;
 		var reduced = !! opts.prefersReducedMotion;
 
 		var previouslyFocused = document.activeElement;

@@ -508,66 +508,40 @@
 			// ---------- Scene-picker trigger (DOM, not Pixi) ---------- //
 			//
 			// WP Desktop Mode applies `pointer-events: none` to the wallpaper
-			// container (see assets/css/desktop.css, .wp-desktop-wallpaper),
-			// so anything rendered *inside* the Pixi canvas can never receive
+			// container (assets/css/desktop.css, .wp-desktop-wallpaper), so
+			// anything rendered *inside* the Pixi canvas can never receive
 			// clicks. The trigger therefore lives as a DOM element appended
 			// to document.body with a max z-index, where it's guaranteed to
-			// be above the OS chrome and to receive pointer events regardless
-			// of what the wallpaper layer sets.
-			//
-			// Visibility modes:
-			//   - "hero":   big centered pill the first time you ever mount
-			//               this wallpaper, until dismissed or clicked once.
-			//   - "corner": small pill anchored bottom-right for every load
-			//               afterwards.
+			// be above the OS chrome and clickable regardless of what the
+			// wallpaper layer sets.
 			//
 			// Keyboard shortcut: `?` toggles the picker from anywhere.
 			// Escape hatch:     `window.__bRoll.openPicker()` from devtools.
-
-			var HERO_SEEN_KEY = 'bRollGearHeroSeen';
-			var heroSeen = false;
-			try { heroSeen = window.localStorage.getItem( HERO_SEEN_KEY ) === '1'; } catch ( e ) { /* ignore */ }
-			var mode = heroSeen ? 'corner' : 'hero';
 
 			if ( ! document.getElementById( 'b-roll-gear-style' ) ) {
 				var gearStyle = document.createElement( 'style' );
 				gearStyle.id = 'b-roll-gear-style';
 				gearStyle.textContent =
-					'@keyframes bRollGearPulse{' +
-						'0%,100%{transform:translate(-50%,-50%) scale(1)}' +
-						'50%{transform:translate(-50%,-50%) scale(1.04)}' +
-					'}' +
 					'[data-b-roll-gear]{' +
-						'position:fixed;z-index:2147483647;' +
-						'border:0;outline:0;cursor:pointer;' +
-						'font:600 16px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
-						'color:#fff;letter-spacing:.3px;' +
-						'padding:14px 22px;border-radius:999px;' +
-						'background:rgba(16,16,20,.88);' +
-						'border:1.5px solid rgba(255,255,255,.6);' +
-						'box-shadow:0 10px 30px rgba(0,0,0,.55);' +
+						'position:fixed;right:24px;bottom:24px;z-index:2147483647;' +
+						'width:44px;height:44px;padding:0;border-radius:50%;' +
+						'display:flex;align-items:center;justify-content:center;' +
+						'cursor:pointer;outline:none;' +
+						'color:#fff;' +
+						'background:rgba(18,18,22,.72);' +
+						'border:1px solid rgba(255,255,255,.35);' +
 						'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
-						'transition:transform .2s ease,background .2s ease,box-shadow .2s ease;' +
+						'box-shadow:0 6px 18px rgba(0,0,0,.35);' +
+						'opacity:.85;' +
+						'transition:opacity .18s ease,transform .18s ease,background .18s ease;' +
 					'}' +
-					'[data-b-roll-gear][data-mode="hero"]{' +
-						'left:50%;top:50%;transform:translate(-50%,-50%);' +
-						'font-size:22px;padding:20px 32px;' +
-						'background:#ff2d6f;border-color:rgba(255,255,255,.95);' +
-						'box-shadow:0 18px 48px rgba(255,45,111,.55),0 0 0 4px rgba(255,255,255,.08);' +
-						'animation:bRollGearPulse 1.6s ease-in-out infinite;' +
+					'[data-b-roll-gear]:hover{' +
+						'opacity:1;transform:translateY(-1px) scale(1.04);' +
+						'background:rgba(28,28,34,.9);' +
 					'}' +
-					'[data-b-roll-gear][data-mode="hero"]:hover{' +
-						'background:#ff4f84;' +
-					'}' +
-					'[data-b-roll-gear][data-mode="corner"]{' +
-						'right:24px;bottom:24px;' +
-					'}' +
-					'[data-b-roll-gear][data-mode="corner"]:hover{' +
-						'transform:translateY(-2px);' +
-						'background:rgba(28,28,34,.92);' +
-					'}' +
-					'[data-b-roll-gear]:active{transform:translate(-50%,-50%) scale(.98)}' +
-					'[data-b-roll-gear][data-mode="corner"]:active{transform:scale(.96)}';
+					'[data-b-roll-gear]:active{transform:scale(.96)}' +
+					'[data-b-roll-gear] svg{transition:transform 1.2s ease}' +
+					'[data-b-roll-gear]:hover svg{transform:rotate(60deg)}';
 				document.head.appendChild( gearStyle );
 			}
 
@@ -578,19 +552,20 @@
 			var gear = document.createElement( 'button' );
 			gear.type = 'button';
 			gear.setAttribute( 'data-b-roll-gear', '' );
-			gear.setAttribute( 'data-mode', mode );
 			gear.setAttribute( 'aria-label', 'Change B-Roll scene' );
 			gear.setAttribute( 'title', 'Change scene  (?)' );
-			gear.textContent = mode === 'hero' ? '\u2699  Change wallpaper' : '\u2699  Change scene';
+			gear.innerHTML =
+				'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none"' +
+				' stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+				'<circle cx="12" cy="12" r="3"/>' +
+				'<path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3' +
+				' 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1' +
+				'a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1' +
+				'a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3' +
+				'H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1' +
+				'a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1' +
+				'a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 			document.body.appendChild( gear );
-
-			function markHeroSeen() {
-				if ( heroSeen ) return;
-				heroSeen = true;
-				try { window.localStorage.setItem( HERO_SEEN_KEY, '1' ); } catch ( e ) { /* ignore */ }
-				gear.setAttribute( 'data-mode', 'corner' );
-				gear.textContent = '\u2699  Change scene';
-			}
 
 			window.__bRoll.openPicker = function () { openPicker(); };
 			window.addEventListener( 'keydown', function ( e ) {
@@ -625,10 +600,7 @@
 					if ( window.console ) window.console.error( 'B-Roll: picker failed to load', err );
 				}
 			}
-			gear.addEventListener( 'click', function () {
-				markHeroSeen();
-				openPicker();
-			} );
+			gear.addEventListener( 'click', function () { openPicker(); } );
 
 			// ---------- Visibility + kickoff ---------- //
 
