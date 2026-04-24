@@ -311,40 +311,77 @@
 			return;
 		}
 		state.active = next;
-		applyLive( next );
-		persist( slug );
+		var handledLive = applyLive( next );
+		persist( slug, function ( ok ) {
+			if ( ! ok ) return;
+			// Live DOM swap handles the Dock tiles inline; the Taskbar
+			// (bottom pill for plugin menus) and any desktop icons
+			// render from a different code path we don't walk, so
+			// trigger a soft reload when the set changes so the shell
+			// rebuilds from the filtered server payload. Reload is
+			// behind a 160ms delay so the pill's close animation has
+			// time to play — feels like a deliberate "applying" beat.
+			if ( ! handledLive ) {
+				setTimeout( function () {
+					try { window.location.reload(); } catch ( e ) { /* ignore */ }
+				}, 160 );
+			}
+		} );
 		closePicker();
 	}
 
 	function applyLive( slug ) {
-		// Live swap: walk the shell's rendered dock tiles and poke any
-		// img src or CSS background-image. The shell typically renders
-		// <img> inside each dock item; we find them by the menu href
-		// which the shell exposes as `data-slug` or in the link's href.
+		// Walks the shell's rendered dock tiles (built by WP Desktop
+		// Mode's dock.ts — each tile is `.wp-desktop-dock__item` with
+		// `data-menu-slug="edit.php"` etc.) and replaces the inner
+		// icon element with an <img src> pointing at the active set's
+		// SVG. Returns true if every tile was handled inline — false
+		// means the caller should trigger a hard reload to let the
+		// server-side filter rebuild the payload from scratch.
 		var set = null;
 		for ( var i = 0; i < state.sets.length; i++ ) {
 			if ( state.sets[ i ].slug === slug ) { set = state.sets[ i ]; break; }
 		}
-		if ( ! set && slug !== '' ) return;
+		if ( slug !== '' && ! set ) return false;
 
-		var tiles = document.querySelectorAll( 'wpd-dock [data-slug], [data-wpdm-dock-item]' );
+		var tiles = document.querySelectorAll( '.wp-desktop-dock__item[data-menu-slug]' );
+		if ( ! tiles.length ) return false;
+
+		var handledAll = true;
 		tiles.forEach( function ( tile ) {
-			var slugAttr = tile.getAttribute( 'data-slug' ) || tile.getAttribute( 'data-wpdm-dock-item' ) || '';
+			var slugAttr = tile.getAttribute( 'data-menu-slug' ) || '';
 			var key = menuSlugToKey( slugAttr );
 			var url = '';
 			if ( set ) {
 				url = ( key && set.icons[ key ] ) || set.icons.fallback || '';
 			}
-			var img = tile.querySelector( 'img' );
-			if ( img && url ) {
+			var primary = tile.querySelector( '.wp-desktop-dock__item-primary' );
+			if ( ! primary ) { handledAll = false; return; }
+
+			if ( url ) {
+				var existing = primary.querySelector( '.wp-desktop-dock__item-img, .dashicons, .wp-desktop-dock__item-svg, .wp-desktop-dock__item-letter' );
+				var img = primary.querySelector( 'img.wp-desktop-dock__item-img' );
+				if ( ! img ) {
+					img = document.createElement( 'img' );
+					img.className = 'wp-desktop-dock__item-img';
+					img.setAttribute( 'aria-hidden', 'true' );
+					img.alt = '';
+					if ( existing ) {
+						primary.replaceChild( img, existing );
+					} else {
+						primary.insertBefore( img, primary.firstChild );
+					}
+				}
 				img.src = url;
-				img.style.filter = '';
-			} else if ( img && ! url ) {
-				// Pass-through: shell will reassert default on next redraw,
-				// but we flag the element so a full reload is unnecessary.
-				img.removeAttribute( 'src' );
+			} else {
+				// Pass-through mode: we can't perfectly reconstruct the
+				// shell's original icon (which might be a dashicon span,
+				// a plugin SVG, or a letter fallback) from client-side
+				// state. Signal a reload so the server rebuilds cleanly.
+				handledAll = false;
 			}
 		} );
+		return handledAll;
 	}
 
 	function menuSlugToKey( slug ) {
@@ -366,8 +403,9 @@
 		return '';
 	}
 
-	function persist( slug ) {
-		if ( ! cfg.restUrl ) return;
+	function persist( slug, done ) {
+		if ( ! cfg.restUrl ) { if ( done ) done( false ); return; }
+		var cb = typeof done === 'function' ? done : function () {};
 		try {
 			fetch( cfg.restUrl, {
 				method: 'POST',
@@ -377,11 +415,15 @@
 				},
 				credentials: 'same-origin',
 				body: JSON.stringify( { set: slug } ),
+			} ).then( function ( r ) {
+				cb( !! ( r && r.ok ) );
 			} ).catch( function () {
 				try { localStorage.setItem( 'b-roll-icons:active', slug ); } catch ( e ) {}
+				cb( false );
 			} );
 		} catch ( e ) {
 			try { localStorage.setItem( 'b-roll-icons:active', slug ); } catch ( ee ) {}
+			cb( false );
 		}
 	}
 
