@@ -506,41 +506,102 @@
 
 			// ---------- Gear button ---------- //
 
+			// Inject a one-time stylesheet for the gear's pulse + hover.
+			if ( ! document.getElementById( 'b-roll-gear-style' ) ) {
+				var gearStyle = document.createElement( 'style' );
+				gearStyle.id = 'b-roll-gear-style';
+				gearStyle.textContent =
+					'@keyframes bRollGearPulse{' +
+						'0%{box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,.55)}' +
+						'70%{box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 18px rgba(255,255,255,0)}' +
+						'100%{box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,0)}' +
+					'}' +
+					'[data-b-roll-gear]{' +
+						'transition:transform .18s ease,background .18s ease,box-shadow .18s ease;' +
+					'}' +
+					'[data-b-roll-gear]:hover{' +
+						'transform:scale(1.06);' +
+						'background:rgba(28,28,34,.85)!important;' +
+					'}' +
+					'[data-b-roll-gear]:active{transform:scale(.96)}' +
+					'[data-b-roll-gear].is-pulsing{animation:bRollGearPulse 1.6s ease-out 3}' +
+					'[data-b-roll-gear] svg{transition:transform 1.2s ease}' +
+					'[data-b-roll-gear]:hover svg{transform:rotate(60deg)}' +
+					'[data-b-roll-hint]{' +
+						'transition:opacity .35s ease,transform .35s ease;' +
+					'}';
+				document.head.appendChild( gearStyle );
+			}
+
 			var gear = document.createElement( 'button' );
 			gear.type = 'button';
 			gear.setAttribute( 'aria-label', 'Change B-Roll scene' );
+			gear.setAttribute( 'title', 'Change scene' );
 			gear.setAttribute( 'data-b-roll-gear', '' );
-			gear.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+			gear.innerHTML =
+				'<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 			var gearStyles = {
-				position: 'absolute', right: '16px', bottom: '16px',
-				width: '40px', height: '40px', borderRadius: '50%',
-				border: '1px solid rgba(255,255,255,.18)',
-				background: 'rgba(18,18,22,.55)', color: 'rgba(255,255,255,.92)',
+				position: 'absolute', right: '20px', bottom: '20px',
+				width: '52px', height: '52px', borderRadius: '50%',
+				border: '1.5px solid rgba(255,255,255,.55)',
+				background: 'rgba(18,18,22,.78)', color: '#fff',
 				backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
 				display: 'flex', alignItems: 'center', justifyContent: 'center',
-				cursor: 'pointer', zIndex: '2', padding: '0', outline: 'none',
-				opacity: '0', transition: 'opacity .25s ease',
-				boxShadow: '0 6px 18px rgba(0,0,0,.35)',
+				cursor: 'pointer', zIndex: '2147483646', padding: '0', outline: 'none',
+				opacity: '1',
+				boxShadow: '0 8px 24px rgba(0,0,0,.45)',
 			};
 			Object.keys( gearStyles ).forEach( function ( k ) { gear.style[ k ] = gearStyles[ k ]; } );
-			if ( ctx.prefersReducedMotion ) {
-				gear.style.transition = 'none';
-				gear.style.opacity = '1';
-			}
 			container.appendChild( gear );
 
-			var idleTimer = null;
-			function revealGear() {
-				if ( ctx.prefersReducedMotion ) return;
-				gear.style.opacity = '1';
-				if ( idleTimer ) clearTimeout( idleTimer );
-				idleTimer = setTimeout( function () { gear.style.opacity = '0'; }, 2200 );
+			// First-load hint pill that points at the gear. Auto-hides after
+			// ~7s, or immediately on first click. Dismissed forever once seen.
+			var HINT_KEY = 'bRollGearHintSeen';
+			var hint = null;
+			var hintTimer = null;
+			function dismissHint() {
+				if ( ! hint ) return;
+				hint.style.opacity = '0';
+				hint.style.transform = 'translateY(6px)';
+				if ( hintTimer ) { clearTimeout( hintTimer ); hintTimer = null; }
+				setTimeout( function () {
+					if ( hint && hint.parentNode ) hint.parentNode.removeChild( hint );
+					hint = null;
+				}, 400 );
+				try { window.localStorage.setItem( HINT_KEY, '1' ); } catch ( e ) { /* ignore */ }
 			}
-			container.addEventListener( 'pointermove', revealGear );
-			container.addEventListener( 'pointerenter', revealGear );
-			container.addEventListener( 'keydown', revealGear );
-			gear.addEventListener( 'focus', function () { gear.style.opacity = '1'; } );
-			gear.addEventListener( 'blur', revealGear );
+			var hintAlreadySeen = false;
+			try { hintAlreadySeen = window.localStorage.getItem( HINT_KEY ) === '1'; } catch ( e ) { /* ignore */ }
+			if ( ! hintAlreadySeen ) {
+				hint = document.createElement( 'div' );
+				hint.setAttribute( 'data-b-roll-hint', '' );
+				hint.textContent = 'Click to change scene';
+				var hintStyles = {
+					position: 'absolute', right: '82px', bottom: '30px',
+					padding: '8px 12px', borderRadius: '8px',
+					background: 'rgba(18,18,22,.85)', color: '#fff',
+					font: '500 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+					letterSpacing: '.2px', whiteSpace: 'nowrap',
+					border: '1px solid rgba(255,255,255,.18)',
+					boxShadow: '0 6px 18px rgba(0,0,0,.35)',
+					zIndex: '2147483646', pointerEvents: 'none',
+					opacity: '0', transform: 'translateY(6px)',
+				};
+				Object.keys( hintStyles ).forEach( function ( k ) { hint.style[ k ] = hintStyles[ k ]; } );
+				container.appendChild( hint );
+				// Fade in after a beat so it reads as deliberate, not flashed.
+				setTimeout( function () {
+					if ( ! hint ) return;
+					hint.style.opacity = '1';
+					hint.style.transform = 'translateY(0)';
+				}, 600 );
+				hintTimer = setTimeout( dismissHint, 7000 );
+			}
+			// Pulse the gear on first load too (CSS animation runs 3 times).
+			if ( ! ctx.prefersReducedMotion ) {
+				gear.classList.add( 'is-pulsing' );
+				setTimeout( function () { gear.classList.remove( 'is-pulsing' ); }, 5200 );
+			}
 
 			var pickerOpen = false;
 			async function openPicker() {
@@ -566,7 +627,11 @@
 					if ( window.console ) window.console.error( 'B-Roll: picker failed to load', err );
 				}
 			}
-			gear.addEventListener( 'click', openPicker );
+			gear.addEventListener( 'click', function () {
+				dismissHint();
+				gear.classList.remove( 'is-pulsing' );
+				openPicker();
+			} );
 
 			// ---------- Visibility + kickoff ---------- //
 
@@ -599,10 +664,8 @@
 				if ( pickerOpen && window.__bRoll.picker && window.__bRoll.picker.close ) {
 					try { window.__bRoll.picker.close(); } catch ( e ) { /* ignore */ }
 				}
-				if ( idleTimer ) clearTimeout( idleTimer );
-				container.removeEventListener( 'pointermove', revealGear );
-				container.removeEventListener( 'pointerenter', revealGear );
-				container.removeEventListener( 'keydown', revealGear );
+				if ( hintTimer ) clearTimeout( hintTimer );
+				if ( hint && hint.parentNode ) hint.parentNode.removeChild( hint );
 				if ( gear.parentNode ) gear.parentNode.removeChild( gear );
 				app.renderer.off( 'resize', onResize );
 				if ( currentTick ) app.ticker.remove( currentTick );
