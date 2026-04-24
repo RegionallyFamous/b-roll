@@ -21,9 +21,12 @@ ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "dist"
 ZIP_NAME = "b-roll.zip"
 
-# ~7 MB budget. Current payload is ~4.7 MB; this leaves ~50% headroom
-# but trips hard if someone accidentally commits, say, a PNG asset.
-DEFAULT_MAX_BYTES = 7 * 1024 * 1024
+# ~30 MB budget. v0.7 added ~18 MB of cut-out PNGs on top of the ~4.7 MB
+# painted backdrops, putting the current payload around ~22.7 MB. The
+# budget leaves ~7 MB headroom for further cut-outs / scenes; trips hard
+# if anything accidentally doubles the payload (e.g. uncompressed PNGs,
+# raw build inputs leaking out of _tools/raw/).
+DEFAULT_MAX_BYTES = 30 * 1024 * 1024
 
 EXCLUDE_TOP_LEVEL = {
     ".git",
