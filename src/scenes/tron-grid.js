@@ -106,11 +106,11 @@
 
 		onEgg: function ( name, state, env ) {
 			if ( name === 'festival' ) {
-				h.showEggDrifter( state.drifters, 'mcp.png', { resetT: true } );
+				h.showEggDrifter( state.drifters, 'mcp.webp', { resetT: true } );
 				state.flash.clear().rect( 0, 0, env.app.renderer.width, env.app.renderer.height )
 					.fill( { color: 0xff6d1f, alpha: 0.6 } );
 				state.flash.alpha = 1;
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'mcp.png' ); }, 10000 );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'mcp.webp' ); }, 10000 );
 			} else if ( name === 'reveal' ) {
 				// Type 'tron' → both cycles speed up + force packet bursts.
 				for ( var i = 0; i < state.cycles.length; i++ ) state.cycles[ i ].interval = 3;
@@ -119,8 +119,8 @@
 				}, 6000 );
 				state.packetCD = 0;
 			} else if ( name === 'peek' ) {
-				h.showEggDrifter( state.drifters, 'disc.png', { scaleMul: 2.0, resetT: true } );
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'disc.png' ); }, 4000 );
+				h.showEggDrifter( state.drifters, 'disc.webp', { scaleMul: 2.0, resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'disc.webp' ); }, 4000 );
 			}
 		},
 

@@ -20,6 +20,19 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 Pick **B-Roll** from **OS Settings → Wallpapers**, then click the gear in the bottom-right of the live wallpaper to switch scenes. Your pick is remembered per-user.
 
+## v0.8.0 — Crossfades, live preview, parallax, WebP
+
+v0.8 is a perceived-quality release. Nothing about the scene list or the easter-egg surface changed, but everything about the *swap* got crisper:
+
+- **Crossfade scene swaps.** Before teardown we snapshot the current canvas into a DOM overlay, run the old scene's cleanup, set up the new scene, then fade the snapshot over ~350 ms. No more hard cut. Respects `prefers-reduced-motion`.
+- **Instant first paint.** A plain DOM `<img>` backdrop sits under the Pixi canvas and paints the scene's JPG immediately, so there is never a blank frame while Pixi boots or a new scene's `setup()` loads textures.
+- **Live preview on hover.** Dwell a card in the picker for 350 ms and the wallpaper swaps to it live — no commit, no "recent", revert on pointer-leave or panel close. Makes the picker feel like a proper browser.
+- **Mouse parallax on cut-outs.** Every foreground cut-out now reads `env.parallax` and nudges 6–24 px based on its depth slot. Scenes get it for free via `h.tickDrifters()`. Smoothed on the ticker so it never jitters.
+- **Gear onboarding tooltip.** First time you see the wallpaper, a "Change wallpaper `?`" tooltip points at the gear for ~6 s, then disappears forever (`localStorage`).
+- **WebP cut-outs.** All 36 cut-outs were converted from PNG to WebP q85 method=6. The full plugin zip dropped from ~22.7 MB to ~7.8 MB (66% smaller) with no visible quality loss. Pixi v8 loads transparent WebP natively in every modern browser.
+- **Page Visibility pause.** The ticker now stops on `document.visibilitychange` (tab hidden, minimize, background workspace) in addition to the existing WP Desktop hook. Pure battery back.
+- **Swap queue.** Rapid hover previews no longer get dropped mid-flight — the latest requested slug is drained once the current swap finishes.
+
 ## v0.7.0 — Painted foreground cut-outs + interactive easter eggs
 
 Every scene now layers a third tier on top of the painted backdrop and the Pixi motion stack: a **foreground container of painted PNG cut-outs** that drift across the frame on per-cutout motion profiles. Four cut-outs per scene (36 in total) — agents, X-wings, light cycles, Bullet Bills, soot huddles, Demogorgons, MDR mugs, Shimmer vials — each with its own depth slot (`far` / `mid` / `near`), opacity, and motion type (`cross`, `drift`, `bob`, `tumble`, `orbit`).

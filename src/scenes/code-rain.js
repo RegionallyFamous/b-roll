@@ -213,8 +213,8 @@
 				// Bullet-time + flash every column white briefly.
 				state.eggBulletTime = 600; // ~10s @ 60fps
 				for ( var i = 0; i < state.cols.length; i++ ) state.cols[ i ].flash = 1;
-				h.showEggDrifter( state.drifters, 'pills.png', { resetT: true } );
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'pills.png' ); }, 5000 );
+				h.showEggDrifter( state.drifters, 'pills.webp', { resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'pills.webp' ); }, 5000 );
 			} else if ( name === 'reveal' ) {
 				// Type 'matrix' → spell WAKE UP NEO across mid columns.
 				var phrase = 'WAKE UP NEO';
@@ -228,8 +228,8 @@
 				state.eggPhraseTick = 360; // ~6s
 			} else if ( name === 'peek' ) {
 				// Center the pills cut-out big for ~4s.
-				var d = h.showEggDrifter( state.drifters, 'pills.png', { scaleMul: 1.6, resetT: true } );
-				if ( d ) setTimeout( function () { h.hideEggDrifter( state.drifters, 'pills.png' ); }, 4000 );
+				var d = h.showEggDrifter( state.drifters, 'pills.webp', { scaleMul: 1.6, resetT: true } );
+				if ( d ) setTimeout( function () { h.hideEggDrifter( state.drifters, 'pills.webp' ); }, 4000 );
 			}
 		},
 

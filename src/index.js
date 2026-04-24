@@ -61,8 +61,8 @@
 	// ============================================================ //
 	// Cut-out drifters — v0.7 foreground layer.
 	//
-	// Each scene ships a few transparent-PNG cut-outs at
-	// assets/cutouts/<slug>/*.png. Scenes declare them in
+	// Each scene ships a few transparent cut-outs (WebP since
+	// v0.8.0, PNG before) at assets/cutouts/<slug>/*. Scenes declare them in
 	// scenes.json with a motion profile; mountCutouts() loads
 	// textures and returns a drifters[] array, and tickDrifters()
 	// advances them every frame.
@@ -210,11 +210,22 @@
 
 	function tickDrifters( drifters, env ) {
 		if ( ! drifters || ! drifters.length ) return;
+		var px = env.parallax ? env.parallax.x : 0;
+		var py = env.parallax ? env.parallax.y : 0;
 		for ( var i = 0; i < drifters.length; i++ ) {
 			var d = drifters[ i ];
 			if ( d.hidden ) { d.sprite.visible = false; continue; }
 			d.sprite.visible = true;
 			motionUpdate( d, env );
+			// Cheap depth-weighted parallax. `far` barely moves,
+			// `near` moves most. Scenes can override with def.parallax.
+			var base = d.def.parallax != null
+				? d.def.parallax
+				: ( d.def.z === 'near' ? 24 : d.def.z === 'far' ? 6 : 14 );
+			if ( base && ! env.reducedMotion ) {
+				d.sprite.x += px * base;
+				d.sprite.y += py * base * 0.5;
+			}
 		}
 	}
 
@@ -416,6 +427,23 @@
 
 	function mountBRoll( container, ctx ) {
 		return (async function () {
+			// ---------- Instant first-paint backdrop ---------- //
+			// A plain DOM <img> under the Pixi canvas. Shows the
+			// painted JPG immediately (usually <100 ms) so the user
+			// never sees a blank frame while Pixi boots or while a
+			// new scene's setup() is async-loading textures.
+			var firstPaint = document.createElement( 'div' );
+			firstPaint.setAttribute( 'data-b-roll-firstpaint', '' );
+			firstPaint.style.cssText =
+				'position:absolute;inset:0;background-size:cover;' +
+				'background-position:center;background-repeat:no-repeat;' +
+				'transition:opacity .4s ease;opacity:1;pointer-events:none;';
+			container.appendChild( firstPaint );
+			function setFirstPaint( slug ) {
+				var url = assetUrl( 'assets/wallpapers/' + slug + '.jpg' );
+				firstPaint.style.backgroundImage = 'url("' + url + '")';
+			}
+
 			var PIXI = window.PIXI;
 			var app  = new PIXI.Application();
 			await app.init( {
@@ -431,16 +459,54 @@
 			app.canvas.style.width = '100%';
 			app.canvas.style.height = '100%';
 
-			var env = { app: app, PIXI: PIXI, ctx: ctx, helpers: window.__bRoll.helpers };
+			var env = {
+				app: app, PIXI: PIXI, ctx: ctx,
+				helpers: window.__bRoll.helpers,
+				// Normalized mouse offset from the center of the
+				// canvas, -1..1 on each axis. Scenes read this via
+				// h.tickDrifters() for cheap parallax. Listeners
+				// live on window (canvas + container are pointer-
+				// events: none in WP Desktop Mode).
+				parallax: { x: 0, y: 0 },
+				reducedMotion: !! ctx.prefersReducedMotion,
+			};
+			// Smoothed target so rapid mouse movement doesn't jitter.
+			var parallaxTarget = { x: 0, y: 0 };
+			function onPointerMove( ev ) {
+				var r = container.getBoundingClientRect();
+				if ( ! r.width || ! r.height ) return;
+				parallaxTarget.x = ( ( ev.clientX - r.left ) / r.width  - 0.5 ) * 2;
+				parallaxTarget.y = ( ( ev.clientY - r.top )  / r.height - 0.5 ) * 2;
+			}
+			window.addEventListener( 'pointermove', onPointerMove, { passive: true } );
+
 			var currentSlug = null;
 			var currentImpl = null;
 			var currentState = null;
 			var currentTick = null;
 			var swapping = false;
+			// If hover previews fire faster than scenes can load,
+			// we keep the LATEST requested slug here and drain it
+			// right after the current swap finishes. Only the last
+			// target matters — intermediate hops are discarded.
+			var pendingSlug = null;
+			function drainPending() {
+				if ( pendingSlug && pendingSlug !== currentSlug ) {
+					var next = pendingSlug;
+					pendingSlug = null;
+					swap( next );
+				} else {
+					pendingSlug = null;
+				}
+			}
 
 			function stepFactory( impl, state ) {
 				return function ( ticker ) {
 					env.dt = Math.min( 2.5, ticker.deltaTime );
+					// Ease parallax toward the target at ~12% / frame,
+					// so tick consumers see a smoothed value.
+					env.parallax.x += ( parallaxTarget.x - env.parallax.x ) * 0.12;
+					env.parallax.y += ( parallaxTarget.y - env.parallax.y ) * 0.12;
 					if ( impl.tick ) impl.tick( state, env );
 				};
 			}
@@ -451,21 +517,75 @@
 			}
 			app.renderer.on( 'resize', onResize );
 
+			// Crossfade helper: take a pixel snapshot of the current
+			// canvas, overlay it on top of the container, then let
+			// the caller run teardown + setup underneath. Once the
+			// new scene has rendered its first frame, the snapshot
+			// fades out over ~350 ms and is removed. No scene code
+			// changes needed. Respects prefersReducedMotion.
+			function snapshotOverlay() {
+				if ( env.reducedMotion ) return null;
+				var src = app.canvas;
+				if ( ! src || ! src.width || ! src.height ) return null;
+				try {
+					var snap = document.createElement( 'canvas' );
+					snap.width  = src.width;
+					snap.height = src.height;
+					var g = snap.getContext( '2d' );
+					if ( ! g ) return null;
+					g.drawImage( src, 0, 0 );
+					snap.style.cssText =
+						'position:absolute;inset:0;width:100%;height:100%;' +
+						'pointer-events:none;opacity:1;' +
+						'transition:opacity .38s cubic-bezier(.2,.8,.2,1);';
+					container.appendChild( snap );
+					return snap;
+				} catch ( e ) {
+					return null;
+				}
+			}
+			function fadeAndRemove( node ) {
+				if ( ! node ) return;
+				// Two rAFs so the new scene has time to paint a frame
+				// before the snapshot starts fading.
+				window.requestAnimationFrame( function () {
+					window.requestAnimationFrame( function () {
+						node.style.opacity = '0';
+						setTimeout( function () {
+							if ( node.parentNode ) node.parentNode.removeChild( node );
+						}, 420 );
+					} );
+				} );
+			}
+
 			async function swap( nextSlug ) {
-				if ( swapping ) return { ok: false, error: new Error( 'swap in progress' ) };
+				if ( swapping ) {
+					// Latest requester wins; coalesce hover previews.
+					pendingSlug = nextSlug;
+					return { ok: false, error: new Error( 'queued' ) };
+				}
 				if ( nextSlug === currentSlug ) return { ok: true };
 				if ( ! SCENE_MAP[ nextSlug ] ) return { ok: false, error: new Error( 'unknown scene: ' + nextSlug ) };
 				swapping = true;
 				var prev = {
 					slug: currentSlug, impl: currentImpl, state: currentState, tick: currentTick,
 				};
+				var crossfadeNode = null;
 				try {
 					await loadScene( nextSlug );
 					var impl = window.__bRoll.scenes[ nextSlug ];
 					if ( ! impl || typeof impl.setup !== 'function' ) {
 						throw new Error( 'Scene impl missing: ' + nextSlug );
 					}
-					// Tear down previous scene cleanly.
+					// Snapshot BEFORE teardown so we cover the blank
+					// window while the next scene's setup is running.
+					if ( prev.impl ) crossfadeNode = snapshotOverlay();
+
+					// Swap the first-paint JPG too, so if the new
+					// scene's setup is very slow, the backdrop is at
+					// least the correct one under the snapshot.
+					setFirstPaint( nextSlug );
+
 					if ( prev.impl ) {
 						if ( prev.tick ) app.ticker.remove( prev.tick );
 						try {
@@ -495,12 +615,18 @@
 						window.__bRoll.eggs.setActive( nextSlug, state, env, container );
 					}
 					swapping = false;
+					fadeAndRemove( crossfadeNode );
+					drainPending();
 					return { ok: true };
 				} catch ( err ) {
 					if ( window.console ) window.console.error( 'B-Roll: swap failed', nextSlug, err );
-					// Leave previous scene running (it was never torn down if setup fell first;
-					// if we got past cleanup, the canvas will be empty but the app is alive).
+					// Don't leave a stale snapshot on top of a working
+					// scene if swap failed after we took one.
+					if ( crossfadeNode && crossfadeNode.parentNode ) {
+						crossfadeNode.parentNode.removeChild( crossfadeNode );
+					}
 					swapping = false;
+					drainPending();
 					return { ok: false, error: err };
 				}
 			}
@@ -541,7 +667,33 @@
 					'}' +
 					'[data-b-roll-gear]:active{transform:scale(.96)}' +
 					'[data-b-roll-gear] svg{transition:transform 1.2s ease}' +
-					'[data-b-roll-gear]:hover svg{transform:rotate(60deg)}';
+					'[data-b-roll-gear]:hover svg{transform:rotate(60deg)}' +
+					'[data-b-roll-tooltip]{' +
+						'position:fixed;right:78px;bottom:32px;z-index:2147483647;' +
+						'padding:8px 12px;border-radius:10px;' +
+						'font:500 13px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;' +
+						'color:#fff;background:rgba(18,18,22,.92);' +
+						'border:1px solid rgba(255,255,255,.18);' +
+						'box-shadow:0 6px 18px rgba(0,0,0,.35);' +
+						'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
+						'pointer-events:none;white-space:nowrap;' +
+						'opacity:0;transform:translateX(6px);' +
+						'transition:opacity .25s ease,transform .25s ease;' +
+					'}' +
+					'[data-b-roll-tooltip][data-show="1"]{opacity:1;transform:translateX(0)}' +
+					'[data-b-roll-tooltip]::after{' +
+						'content:"";position:absolute;right:-5px;top:50%;' +
+						'width:10px;height:10px;background:inherit;' +
+						'border-right:1px solid rgba(255,255,255,.18);' +
+						'border-bottom:1px solid rgba(255,255,255,.18);' +
+						'transform:translateY(-50%) rotate(-45deg);' +
+					'}' +
+					'[data-b-roll-tooltip] kbd{' +
+						'display:inline-block;margin-left:6px;padding:1px 6px;' +
+						'font:600 11px/1 ui-monospace,SFMono-Regular,monospace;' +
+						'border-radius:5px;background:rgba(255,255,255,.12);' +
+						'border:1px solid rgba(255,255,255,.22);' +
+					'}';
 				document.head.appendChild( gearStyle );
 			}
 
@@ -566,6 +718,37 @@
 				'a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1' +
 				'a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 			document.body.appendChild( gear );
+
+			// First-run onboarding tooltip: tells the user what the
+			// gear does so they don't have to guess. Dismisses on
+			// click/hover/open/close and on timeout. Only ever shown
+			// once per browser via localStorage.
+			var TOOLTIP_KEY = 'bRollTooltipSeen';
+			var tooltipSeen = false;
+			try { tooltipSeen = window.localStorage.getItem( TOOLTIP_KEY ) === '1'; } catch ( e ) { /* ignore */ }
+			var tooltip = null;
+			function dismissTooltip() {
+				if ( ! tooltip ) return;
+				try { window.localStorage.setItem( TOOLTIP_KEY, '1' ); } catch ( e ) { /* ignore */ }
+				tooltip.setAttribute( 'data-show', '0' );
+				var t = tooltip; tooltip = null;
+				setTimeout( function () {
+					if ( t && t.parentNode ) t.parentNode.removeChild( t );
+				}, 300 );
+			}
+			if ( ! tooltipSeen ) {
+				tooltip = document.createElement( 'div' );
+				tooltip.setAttribute( 'data-b-roll-tooltip', '' );
+				tooltip.setAttribute( 'role', 'status' );
+				tooltip.innerHTML = 'Change wallpaper <kbd>?</kbd>';
+				document.body.appendChild( tooltip );
+				// Delay a beat so the animated entrance actually plays.
+				setTimeout( function () {
+					if ( tooltip ) tooltip.setAttribute( 'data-show', '1' );
+				}, 900 );
+				setTimeout( dismissTooltip, 6000 );
+				gear.addEventListener( 'pointerenter', dismissTooltip, { once: true } );
+			}
 
 			window.__bRoll.openPicker = function () { openPicker(); };
 			window.addEventListener( 'keydown', function ( e ) {
@@ -593,6 +776,14 @@
 								recordRecent( slug );
 							} );
 						},
+						// Live preview: picker calls this when the
+						// user dwells on a card for ~350 ms, and
+						// again with the committed slug to revert on
+						// leave/close. No prefs are saved so the
+						// preview is ephemeral.
+						onPreview: function ( slug ) {
+							swap( slug );
+						},
 						onClose: function () { pickerOpen = false; gear.focus(); },
 					} );
 				} catch ( err ) {
@@ -600,7 +791,10 @@
 					if ( window.console ) window.console.error( 'B-Roll: picker failed to load', err );
 				}
 			}
-			gear.addEventListener( 'click', function () { openPicker(); } );
+			gear.addEventListener( 'click', function () {
+				dismissTooltip();
+				openPicker();
+			} );
 
 			// ---------- Visibility + kickoff ---------- //
 
@@ -614,15 +808,31 @@
 				window.wp.hooks.addAction( 'wp-desktop.wallpaper.visibility', visHook, onVis );
 			}
 
+			// Also pause when the browser tab itself is hidden. WP
+			// Desktop only fires the hook when the user navigates
+			// wallpapers inside the app; `document.hidden` covers
+			// minimize, tab switch, background workspace, etc., and
+			// is free battery back when nothing is visible anyway.
+			function onDocVis() {
+				if ( document.hidden ) app.ticker.stop();
+				else if ( ! ctx.prefersReducedMotion ) app.ticker.start();
+			}
+			document.addEventListener( 'visibilitychange', onDocVis );
+
 			loadEasterEggs().catch( function ( e ) {
 				if ( window.console ) window.console.warn( 'B-Roll: eggs failed to load', e );
 			} );
 
 			var initial = prefsState.scene || defaultScene();
+			// Paint the first-paint backdrop BEFORE Pixi sets up the
+			// scene so the user sees the right JPG instantly, not
+			// whatever default image the renderer flashes.
+			setFirstPaint( initial );
 			var first = await swap( initial );
 			if ( ! first.ok && initial !== defaultScene() ) {
 				// Retired or broken scene — reset and try default.
 				savePrefs( { scene: '' } );
+				setFirstPaint( defaultScene() );
 				await swap( defaultScene() );
 			}
 
@@ -647,10 +857,14 @@
 				if ( window.wp && window.wp.hooks ) {
 					window.wp.hooks.removeAction( 'wp-desktop.wallpaper.visibility', visHook );
 				}
+				document.removeEventListener( 'visibilitychange', onDocVis );
+				window.removeEventListener( 'pointermove', onPointerMove );
 				if ( pickerOpen && window.__bRoll.picker && window.__bRoll.picker.close ) {
 					try { window.__bRoll.picker.close(); } catch ( e ) { /* ignore */ }
 				}
 				if ( gear.parentNode ) gear.parentNode.removeChild( gear );
+				if ( tooltip && tooltip.parentNode ) tooltip.parentNode.removeChild( tooltip );
+				if ( firstPaint.parentNode ) firstPaint.parentNode.removeChild( firstPaint );
 				app.renderer.off( 'resize', onResize );
 				if ( currentTick ) app.ticker.remove( currentTick );
 				if ( currentImpl && currentImpl.cleanup ) {

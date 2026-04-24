@@ -148,8 +148,8 @@
 				}
 			} else if ( name === 'peek' ) {
 				// Bring jiji in close for a few seconds.
-				h.showEggDrifter( state.drifters, 'jiji.png', { scaleMul: 1.8, resetT: true } );
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'jiji.png' ); }, 4500 );
+				h.showEggDrifter( state.drifters, 'jiji.webp', { scaleMul: 1.8, resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'jiji.webp' ); }, 4500 );
 			}
 		},
 

@@ -145,9 +145,9 @@
 
 		onEgg: function ( name, state, env ) {
 			if ( name === 'festival' ) {
-				h.showEggDrifter( state.drifters, 'stardestroyer.png', { resetT: true } );
+				h.showEggDrifter( state.drifters, 'stardestroyer.webp', { resetT: true } );
 				state.eggDestroyerHide = setTimeout( function () {
-					h.hideEggDrifter( state.drifters, 'stardestroyer.png' );
+					h.hideEggDrifter( state.drifters, 'stardestroyer.webp' );
 				}, 12000 );
 			} else if ( name === 'reveal' ) {
 				// Force a warp flash + jolt all streaks.
@@ -157,8 +157,8 @@
 				}
 			} else if ( name === 'peek' ) {
 				// Quick big star destroyer flyby.
-				h.showEggDrifter( state.drifters, 'stardestroyer.png', { scaleMul: 1.4, resetT: true } );
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'stardestroyer.png' ); }, 6000 );
+				h.showEggDrifter( state.drifters, 'stardestroyer.webp', { scaleMul: 1.4, resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'stardestroyer.webp' ); }, 6000 );
 			}
 		},
 

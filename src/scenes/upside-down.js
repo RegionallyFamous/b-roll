@@ -175,10 +175,10 @@
 		onEgg: function ( name, state, env ) {
 			if ( name === 'festival' ) {
 				// Konami → Demogorgon stomps in for a moment.
-				h.showEggDrifter( state.drifters, 'demogorgon.png', { resetT: true, scaleMul: 1.2 } );
+				h.showEggDrifter( state.drifters, 'demogorgon.webp', { resetT: true, scaleMul: 1.2 } );
 				state.lightLife = 1;
 				state.flashLife = 1;
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'demogorgon.png' ); }, 6000 );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'demogorgon.webp' ); }, 6000 );
 			} else if ( name === 'reveal' ) {
 				// Type 'hawkins' → fire title card immediately.
 				state.cardPhase = 'in';

@@ -459,9 +459,23 @@
 				onSelectSlug( slug );
 			} );
 			// Hover/focus prefetch: by the time they click, assets
-			// are already warm.
-			btn.addEventListener( 'pointerenter', function () { prefetchScene( slug ); } );
-			btn.addEventListener( 'focus', function () { prefetchScene( slug ); } );
+			// are already warm. Hovering for >350 ms also kicks off a
+			// live preview (swaps the wallpaper so the user can see
+			// the scene without committing). We revert on leave.
+			btn.addEventListener( 'pointerenter', function () {
+				prefetchScene( slug );
+				schedulePreview( slug );
+			} );
+			btn.addEventListener( 'pointerleave', function () {
+				cancelPreview();
+			} );
+			btn.addEventListener( 'focus', function () {
+				prefetchScene( slug );
+				schedulePreview( slug );
+			} );
+			btn.addEventListener( 'blur', function () {
+				cancelPreview();
+			} );
 			var fav = btn.querySelector( '[data-b-roll-fav]' );
 			if ( fav ) {
 				fav.addEventListener( 'click', function ( ev ) {
@@ -477,6 +491,9 @@
 		}
 
 		function onSelectSlug( slug ) {
+			cancelPreview( /* skipRevert */ true );
+			committedSlug = slug;
+			previewingSlug = null;
 			if ( typeof opts.onSelect === 'function' ) opts.onSelect( slug );
 			var cards = panel.querySelectorAll( '[data-b-roll-card]' );
 			for ( var i = 0; i < cards.length; i++ ) {
@@ -494,6 +511,38 @@
 				}
 			}
 			opts.currentSlug = slug;
+		}
+
+		// Live-preview on hover. After PREVIEW_DELAY_MS of dwelling on
+		// a card, we swap the wallpaper to that scene without saving
+		// any preference or recording a "recent". On leave, we revert
+		// to the committed slug. Close also reverts if preview is
+		// still active.
+		var PREVIEW_DELAY_MS = 350;
+		var committedSlug = opts.currentSlug || null;
+		var previewingSlug = null;
+		var previewTimer = null;
+		function schedulePreview( slug ) {
+			if ( typeof opts.onPreview !== 'function' ) return;
+			if ( slug === committedSlug && ! previewingSlug ) return;
+			if ( previewTimer ) clearTimeout( previewTimer );
+			previewTimer = setTimeout( function () {
+				previewTimer = null;
+				if ( slug === previewingSlug ) return;
+				previewingSlug = slug;
+				try { opts.onPreview( slug ); } catch ( e ) { /* ignore */ }
+			}, PREVIEW_DELAY_MS );
+		}
+		function cancelPreview( skipRevert ) {
+			if ( previewTimer ) { clearTimeout( previewTimer ); previewTimer = null; }
+			if ( skipRevert ) return;
+			if ( previewingSlug && previewingSlug !== committedSlug ) {
+				var target = committedSlug;
+				previewingSlug = null;
+				if ( typeof opts.onPreview === 'function' && target ) {
+					try { opts.onPreview( target ); } catch ( e ) { /* ignore */ }
+				}
+			}
 		}
 
 		function renderBody() {
@@ -634,6 +683,7 @@
 
 		function close() {
 			if ( ! overlay.parentNode ) return;
+			cancelPreview();
 			overlay.parentNode.removeChild( overlay );
 			if ( active === instance ) active = null;
 			try { if ( previouslyFocused && previouslyFocused.focus ) previouslyFocused.focus(); } catch ( e ) { /* ignore */ }

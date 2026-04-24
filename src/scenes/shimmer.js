@@ -132,9 +132,9 @@
 				}
 			} else if ( name === 'reveal' ) {
 				// Type 'jinx' → monkey-bomb appears + lightning.
-				h.showEggDrifter( state.drifters, 'monkey-bomb.png', { resetT: true, scaleMul: 1.2 } );
+				h.showEggDrifter( state.drifters, 'monkey-bomb.webp', { resetT: true, scaleMul: 1.2 } );
 				state.lightningLife = 1; state.lightningFlash = 1;
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'monkey-bomb.png' ); }, 5000 );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'monkey-bomb.webp' ); }, 5000 );
 			} else if ( name === 'peek' ) {
 				// Triple-click → focused hex pulse near the click region.
 				state.hexAlpha = 1;

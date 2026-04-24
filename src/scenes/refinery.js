@@ -154,8 +154,8 @@
 				state.clusterT = 60 * 5;
 			} else if ( name === 'reveal' ) {
 				// Type 'praise kier' → elevator slams in big.
-				h.showEggDrifter( state.drifters, 'elevator.png', { resetT: true, scaleMul: 1.4 } );
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'elevator.png' ); }, 4500 );
+				h.showEggDrifter( state.drifters, 'elevator.webp', { resetT: true, scaleMul: 1.4 } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'elevator.webp' ); }, 4500 );
 			} else if ( name === 'peek' ) {
 				// Triple-click → scary cluster cycle now.
 				if ( state.phase === 'idle' ) {

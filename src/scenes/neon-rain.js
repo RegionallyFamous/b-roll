@@ -95,14 +95,14 @@
 		onEgg: function ( name, state, env ) {
 			if ( name === 'festival' ) {
 				// All cut-outs visible at once + force lightning + rain boost.
-				h.showEggDrifter( state.drifters, 'unicorn.png', { resetT: true } );
+				h.showEggDrifter( state.drifters, 'unicorn.webp', { resetT: true } );
 				state.lightT = 0;
 				state.eggRainBoost = 600;
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'unicorn.png' ); }, 9000 );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'unicorn.webp' ); }, 9000 );
 			} else if ( name === 'reveal' ) {
 				// Type 'blade' → unicorn appears center, glowing.
-				h.showEggDrifter( state.drifters, 'unicorn.png', { scaleMul: 1.4, resetT: true } );
-				setTimeout( function () { h.hideEggDrifter( state.drifters, 'unicorn.png' ); }, 7000 );
+				h.showEggDrifter( state.drifters, 'unicorn.webp', { scaleMul: 1.4, resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'unicorn.webp' ); }, 7000 );
 			} else if ( name === 'peek' ) {
 				// Quick lightning + spinner pass.
 				state.lightT = 0;

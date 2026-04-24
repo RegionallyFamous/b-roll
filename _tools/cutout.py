@@ -7,7 +7,9 @@ Usage:
 Post-processing:
 - runs rembg (u2net) on the source
 - trims transparent borders to a tight bounding box with 8px padding
-- clamps long edge to 1024px and saves PNG q90 optimized
+- clamps long edge to 1024px
+- saves WebP q85 method=6 (typical ~15% of the equivalent PNG at the
+  same visual quality; all modern browsers render transparent WebP)
 """
 from __future__ import annotations
 import sys
@@ -39,7 +41,11 @@ def process(src: Path, dst: Path) -> None:
     if max(cut.size) > MAX_EDGE:
         cut.thumbnail((MAX_EDGE, MAX_EDGE), Image.LANCZOS)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    cut.save(dst, "PNG", optimize=True)
+    # If the caller passed a .png dst, coerce it to .webp so the batch
+    # file from earlier drops remain compatible.
+    if dst.suffix.lower() == ".png":
+        dst = dst.with_suffix(".webp")
+    cut.save(dst, "WEBP", quality=85, method=6)
     print(f"ok {src.name} -> {dst} ({cut.width}x{cut.height})")
 
 def main():
