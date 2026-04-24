@@ -493,6 +493,10 @@
 					if ( window.__bRoll.eggs && window.__bRoll.eggs.setActive ) {
 						window.__bRoll.eggs.setActive( nextSlug, state, env, container );
 					}
+					// Pixi-drawn gear overlay sits on top of every scene and
+					// survives swaps. Re-mount after each swap because the
+					// scene tear-down wipes app.stage.removeChildren() above.
+					mountPixiGear();
 					swapping = false;
 					return { ok: true };
 				} catch ( err ) {
@@ -504,7 +508,101 @@
 				}
 			}
 
-			// ---------- Gear button ---------- //
+			// ---------- Pixi-rendered gear overlay ---------- //
+
+			// The DOM gear (further down) is the nice-looking one, but in some
+			// hosts (WP Desktop Mode iframes, transformed ancestors, etc.) the
+			// DOM layer is clipped or covered. The Pixi gear is drawn into the
+			// same canvas the wallpaper renders to, so if you can see the
+			// wallpaper, you will see this button. It also doubles as the
+			// scene picker affordance on touch.
+			var pixiGear = null;
+			var pixiGearPulse = 0;
+			function buildPixiGear() {
+				var g = new PIXI.Container();
+				g.eventMode = 'static';
+				g.cursor = 'pointer';
+				g.zIndex = 1000;
+				var bg = new PIXI.Graphics();
+				var label = new PIXI.Text( {
+					text: '\u2699  Change scene',
+					style: {
+						fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+						fontSize: 16, fontWeight: '600', fill: 0xffffff,
+						letterSpacing: 0.4,
+					},
+				} );
+				label.anchor.set( 0.5 );
+				var ringPulse = new PIXI.Graphics();
+				ringPulse.alpha = 0;
+				g.addChild( ringPulse );
+				g.addChild( bg );
+				g.addChild( label );
+				function redraw( pulse ) {
+					var w = label.width + 36;
+					var hh = 44;
+					bg.clear();
+					bg.roundRect( -w / 2, -hh / 2, w, hh, hh / 2 )
+						.fill( { color: 0x101014, alpha: 0.88 } )
+						.stroke( { color: 0xffffff, width: 1.5, alpha: 0.65 } );
+					ringPulse.clear();
+					if ( pulse > 0 ) {
+						var pr = ( w / 2 ) + pulse * 26;
+						ringPulse.roundRect( -pr, -hh / 2 - pulse * 14, pr * 2, hh + pulse * 28, ( hh + pulse * 28 ) / 2 )
+							.stroke( { color: 0xffffff, width: 2, alpha: ( 1 - pulse ) * 0.55 } );
+						ringPulse.alpha = 1;
+					} else {
+						ringPulse.alpha = 0;
+					}
+				}
+				redraw( 0 );
+				g.on( 'pointertap', function () {
+					dismissHint();
+					openPicker();
+				} );
+				g.on( 'pointerover', function () { bg.alpha = 1.15; } );
+				g.on( 'pointerout',  function () { bg.alpha = 1.0; } );
+				return { node: g, redraw: redraw, getWidth: function () { return label.width + 36; } };
+			}
+			function placePixiGear() {
+				if ( ! pixiGear ) return;
+				var w = app.renderer.width / app.renderer.resolution;
+				var hh = app.renderer.height / app.renderer.resolution;
+				pixiGear.node.x = w - pixiGear.getWidth() / 2 - 24;
+				pixiGear.node.y = hh - 22 - 24;
+			}
+			function mountPixiGear() {
+				if ( ! pixiGear ) pixiGear = buildPixiGear();
+				app.stage.sortableChildren = true;
+				if ( ! pixiGear.node.parent ) app.stage.addChild( pixiGear.node );
+				else app.stage.setChildIndex( pixiGear.node, app.stage.children.length - 1 );
+				placePixiGear();
+				pixiGearPulse = 1;
+			}
+			// Animate the pulse + keep the gear pinned on resize via the ticker.
+			app.ticker.add( function () {
+				if ( ! pixiGear ) return;
+				if ( pixiGearPulse > 0 ) {
+					pixiGearPulse = Math.max( 0, pixiGearPulse - 0.008 );
+					pixiGear.redraw( pixiGearPulse );
+				}
+				placePixiGear();
+			} );
+
+			// Console escape hatch + keyboard shortcut. Press `?` from anywhere
+			// (no input field focused) to open the picker. Also exposed as
+			// window.__bRoll.openPicker() so power users can open it from the
+			// browser devtools.
+			window.__bRoll.openPicker = function () { openPicker(); };
+			window.addEventListener( 'keydown', function ( e ) {
+				if ( e.key !== '?' ) return;
+				var t = e.target;
+				if ( t && ( t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable ) ) return;
+				e.preventDefault();
+				openPicker();
+			} );
+
+			// ---------- DOM gear button (belt + suspenders) ---------- //
 
 			// Inject a one-time stylesheet for the gear's pulse + hover.
 			if ( ! document.getElementById( 'b-roll-gear-style' ) ) {
