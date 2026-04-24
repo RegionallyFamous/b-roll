@@ -100,10 +100,16 @@ function b_roll_get_user_slug_list( $uid, $key ) {
  */
 function b_roll_sanitize_shuffle( $raw ) {
 	if ( is_bool( $raw ) ) {
-		return array( 'enabled' => $raw, 'minutes' => 15 );
+		return array(
+			'enabled' => $raw,
+			'minutes' => 15,
+		);
 	}
 	if ( ! is_array( $raw ) ) {
-		return array( 'enabled' => false, 'minutes' => 15 );
+		return array(
+			'enabled' => false,
+			'minutes' => 15,
+		);
 	}
 	$enabled = ! empty( $raw['enabled'] );
 	$minutes = isset( $raw['minutes'] ) ? (int) $raw['minutes'] : 15;
@@ -113,7 +119,10 @@ function b_roll_sanitize_shuffle( $raw ) {
 	if ( $minutes > 240 ) {
 		$minutes = 240;
 	}
-	return array( 'enabled' => $enabled, 'minutes' => $minutes );
+	return array(
+		'enabled' => $enabled,
+		'minutes' => $minutes,
+	);
 }
 
 function b_roll_get_user_shuffle( $uid ) {
