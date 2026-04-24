@@ -1,83 +1,83 @@
 {
   "frames": {
-    "tie.webp": {
-      "frame": {
-        "x": 0,
-        "y": 0,
-        "w": 1020,
-        "h": 768
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 1020,
-        "h": 768
-      },
-      "sourceSize": {
-        "w": 1020,
-        "h": 768
-      }
-    },
     "asteroid.webp": {
       "frame": {
-        "x": 1022,
+        "x": 0,
         "y": 0,
-        "w": 851,
-        "h": 676
+        "w": 791,
+        "h": 749
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 851,
-        "h": 676
+        "w": 791,
+        "h": 749
       },
       "sourceSize": {
-        "w": 851,
-        "h": 676
+        "w": 791,
+        "h": 749
       }
     },
-    "xwing.webp": {
+    "tie.webp": {
       "frame": {
-        "x": 0,
-        "y": 770,
-        "w": 1024,
-        "h": 604
+        "x": 793,
+        "y": 0,
+        "w": 869,
+        "h": 715
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 604
+        "w": 869,
+        "h": 715
       },
       "sourceSize": {
-        "w": 1024,
-        "h": 604
+        "w": 869,
+        "h": 715
       }
     },
     "stardestroyer.webp": {
       "frame": {
         "x": 0,
-        "y": 1376,
-        "w": 1024,
-        "h": 541
+        "y": 751,
+        "w": 971,
+        "h": 503
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 541
+        "w": 971,
+        "h": 503
       },
       "sourceSize": {
-        "w": 1024,
-        "h": 541
+        "w": 971,
+        "h": 503
+      }
+    },
+    "xwing.webp": {
+      "frame": {
+        "x": 973,
+        "y": 751,
+        "w": 974,
+        "h": 475
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 974,
+        "h": 475
+      },
+      "sourceSize": {
+        "w": 974,
+        "h": 475
       }
     }
   },
@@ -87,8 +87,8 @@
     "image": "hyperspace.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 1875,
-      "h": 1917
+      "w": 1949,
+      "h": 1254
     },
     "scale": "1"
   }

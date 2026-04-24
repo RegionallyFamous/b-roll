@@ -10,3 +10,6 @@ _tools/batch.txt
 .idea/
 .vscode/
 *.log
+.env
+.env.local
+.env.*.local

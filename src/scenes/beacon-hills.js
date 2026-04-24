@@ -1,28 +1,32 @@
 /**
- * B-Roll scene: Beacon Hills (Lord of the Rings) — v0.10
+ * B-Roll scene: Beacon Hills (Teen Wolf) — v0.12
  * ---------------------------------------------------------------
- * Pre-dawn Misty Mountains. A cold blue stone wall hugs the near
- * foreground; distant peaks step back into fog. Hero motion is the
- * beacon chain: torches on successive mountain peaks light one
- * after another across the frame, L→R, on a ~40s cycle, each with
- * a warm bloom flash and a tint swell.
+ * A misty Pacific Northwest forest at dusk — Beacon Hills, the town,
+ * ringed by silhouetted firs. Hero motion is the beacon chain:
+ * watchtower fires on successive ridgelines kindle one after another
+ * across the frame, L→R, on a ~40s cycle, each with a warm bloom
+ * flash and a cold-blue tint swell — the town signaling itself that
+ * something is loose in the woods tonight.
  *
  * Periodic beat (~20s): faint ember sparks rise from below the
- * frame, curling upward — suggestion of elvish-script glyphs without
- * rendering real runes (too literal, distracts from the beacons).
+ * frame, curling upward like fireflies through the canopy.
  *
- * Rare wow (~90s): a distant horn-call veil — a brief full-frame
- * wash of Rohan gold, held ~0.8s, then eased out.
+ * Rare wow (~90s): a distant howl-veil — a brief full-frame wash of
+ * silver moonlight, held ~0.8s, then eased out.
+ *
+ * Foreground cut-outs (per-scene, painted): a wolf mid-howl, a
+ * lacrosse stick, and a full moon — drifting / bobbing at z-depths
+ * defined in scenes.json.
  *
  * Cross-cutting mechanics read from env:
- *   - env.tod:    'night' deepens cold tint, 'dawn'/'day' lightens
+ *   - env.tod:    'night' deepens the cold tint, 'dawn'/'day' lightens
  *   - env.season: 'winter' biases embers toward snow-like motes
  *   - env.audio:  bass kicks advance the beacon chain by one step
  *   - env.perfTier: 'low' halves ember count
  *
  * Easter-egg hooks:
- *   - festival: all 5 beacons light at once + horn veil
- *   - reveal:   gandalf-staff drifter pops in (peek)
+ *   - festival: all 5 beacons light at once + howl veil
+ *   - reveal:   borrowed lantern flares as a stand-in moonglow
  */
 ( function () {
 	'use strict';
@@ -82,6 +86,7 @@
 			app.stage.addChild( fg );
 
 			var shared = await h.mountSharedDrifters( app, PIXI, [ 'crow', 'lantern' ], fg );
+			var cutouts = await h.mountCutouts( app, PIXI, 'beacon-hills', fg );
 
 			var emberPool = [];
 			for ( var i = 0; i < EMBER_NUM_NORMAL; i++ ) {
@@ -105,7 +110,7 @@
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				tint: tint, embers: embers, beaconGlow: beaconGlow,
 				hornVeil: hornVeil, bloom: bloom,
-				beacons: beacons, emberPool: emberPool, shared: shared,
+				beacons: beacons, emberPool: emberPool, shared: shared, cutouts: cutouts,
 				time: 0, currentIdx: -1, chainT: 0,
 				nextHornT: 60 * h.rand( 60, 90 ),
 				hornAlpha: 0,
@@ -149,7 +154,7 @@
 				for ( var i = 0; i < state.beacons.length; i++ ) state.beacons[ i ].lit = 1.4;
 				state.hornAlpha = 0.6;
 			} else if ( name === 'reveal' || name === 'peek' ) {
-				// Borrow the lantern as a stand-in Gandalf staff.
+				// Borrow the lantern sprite as a stand-in moonglow flare.
 				if ( state.shared && state.shared.length ) {
 					state.shared[ 0 ].t = 0;
 					state.shared[ 0 ].alphaMul = 1.5;
@@ -171,6 +176,7 @@
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
 			h.tickDrifters( state.shared, env );
+			h.tickDrifters( state.cutouts, env );
 
 			// --- Time-of-day cold tint -------------------------- //
 			// Default pre-dawn: subtle cold blue wash. Dawn/day

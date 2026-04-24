@@ -1,83 +1,83 @@
 {
   "frames": {
-    "phone.webp": {
+    "agent.webp": {
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 210,
-        "h": 731
+        "w": 868,
+        "h": 1024
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 210,
-        "h": 731
+        "w": 868,
+        "h": 1024
       },
       "sourceSize": {
-        "w": 210,
-        "h": 731
+        "w": 868,
+        "h": 1024
+      }
+    },
+    "phone.webp": {
+      "frame": {
+        "x": 870,
+        "y": 0,
+        "w": 526,
+        "h": 903
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 526,
+        "h": 903
+      },
+      "sourceSize": {
+        "w": 526,
+        "h": 903
       }
     },
     "mirror-shard.webp": {
       "frame": {
-        "x": 212,
+        "x": 1398,
         "y": 0,
-        "w": 696,
-        "h": 624
+        "w": 590,
+        "h": 823
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 696,
-        "h": 624
+        "w": 590,
+        "h": 823
       },
       "sourceSize": {
-        "w": 696,
-        "h": 624
-      }
-    },
-    "agent.webp": {
-      "frame": {
-        "x": 910,
-        "y": 0,
-        "w": 1024,
-        "h": 572
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 1024,
-        "h": 572
-      },
-      "sourceSize": {
-        "w": 1024,
-        "h": 572
+        "w": 590,
+        "h": 823
       }
     },
     "pills.webp": {
       "frame": {
         "x": 0,
-        "y": 733,
-        "w": 1024,
-        "h": 540
+        "y": 1026,
+        "w": 895,
+        "h": 789
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 540
+        "w": 895,
+        "h": 789
       },
       "sourceSize": {
-        "w": 1024,
-        "h": 540
+        "w": 895,
+        "h": 789
       }
     }
   },
@@ -87,8 +87,8 @@
     "image": "code-rain.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 1936,
-      "h": 1273
+      "w": 1990,
+      "h": 1815
     },
     "scale": "1"
   }

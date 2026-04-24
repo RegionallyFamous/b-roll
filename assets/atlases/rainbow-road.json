@@ -1,83 +1,83 @@
 {
   "frames": {
-    "airship.webp": {
+    "chain-chomp.webp": {
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 683
+        "w": 971,
+        "h": 870
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 683
+        "w": 971,
+        "h": 870
       },
       "sourceSize": {
-        "w": 1024,
-        "h": 683
+        "w": 971,
+        "h": 870
+      }
+    },
+    "airship.webp": {
+      "frame": {
+        "x": 973,
+        "y": 0,
+        "w": 836,
+        "h": 839
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 836,
+        "h": 839
+      },
+      "sourceSize": {
+        "w": 836,
+        "h": 839
       }
     },
     "banana.webp": {
       "frame": {
-        "x": 1026,
-        "y": 0,
-        "w": 1002,
-        "h": 679
+        "x": 0,
+        "y": 872,
+        "w": 961,
+        "h": 708
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1002,
-        "h": 679
+        "w": 961,
+        "h": 708
       },
       "sourceSize": {
-        "w": 1002,
-        "h": 679
-      }
-    },
-    "chain-chomp.webp": {
-      "frame": {
-        "x": 0,
-        "y": 685,
-        "w": 1024,
-        "h": 572
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 1024,
-        "h": 572
-      },
-      "sourceSize": {
-        "w": 1024,
-        "h": 572
+        "w": 961,
+        "h": 708
       }
     },
     "bullet-bill.webp": {
       "frame": {
-        "x": 0,
-        "y": 1259,
-        "w": 1024,
-        "h": 359
+        "x": 963,
+        "y": 872,
+        "w": 959,
+        "h": 561
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 359
+        "w": 959,
+        "h": 561
       },
       "sourceSize": {
-        "w": 1024,
-        "h": 359
+        "w": 959,
+        "h": 561
       }
     }
   },
@@ -87,8 +87,8 @@
     "image": "rainbow-road.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 2030,
-      "h": 1618
+      "w": 1924,
+      "h": 1580
     },
     "scale": "1"
   }

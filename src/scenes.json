@@ -570,17 +570,55 @@
   {
     "slug": "beacon-hills",
     "label": "Beacon Hills",
-    "franchise": "The Lord of the Rings",
+    "franchise": "Teen Wolf",
     "tags": [
-      "fantasy",
+      "supernatural",
+      "forest",
       "misty",
-      "fire",
       "night",
+      "moon",
       "blue"
     ],
     "fallbackColor": "#0d1820",
     "added": "0.10.0",
-    "cutouts": []
+    "cutouts": [
+      {
+        "file": "full-moon.webp",
+        "motion": "drift",
+        "period": 120,
+        "scale": 0.42,
+        "z": "far",
+        "alpha": 0.7,
+        "x": 0.7,
+        "y": 0.22,
+        "ax": 0.08,
+        "ay": 0.02
+      },
+      {
+        "file": "wolf-howl.webp",
+        "motion": "bob",
+        "period": 44,
+        "scale": 0.38,
+        "z": "mid",
+        "alpha": 0.85,
+        "x": 0.22,
+        "y": 0.72,
+        "bob": 6,
+        "wobble": 0.04
+      },
+      {
+        "file": "lacrosse-stick.webp",
+        "motion": "tumble",
+        "period": 50,
+        "scale": 0.24,
+        "z": "near",
+        "alpha": 0.9,
+        "spin": 0.02,
+        "sway": 40,
+        "xMin": 0.1,
+        "xMax": 0.9
+      }
+    ]
   },
   {
     "slug": "nerv-entry-plug",
@@ -595,7 +633,44 @@
     ],
     "fallbackColor": "#1a0a0a",
     "added": "0.10.0",
-    "cutouts": []
+    "cutouts": [
+      {
+        "file": "at-field-glyph.webp",
+        "motion": "orbit",
+        "period": 55,
+        "scale": 0.22,
+        "z": "mid",
+        "alpha": 0.8,
+        "cx": 0.78,
+        "cy": 0.45,
+        "radius": 0.12,
+        "squash": 0.6
+      },
+      {
+        "file": "lcl-bubble-cluster.webp",
+        "motion": "bob",
+        "period": 28,
+        "scale": 0.28,
+        "z": "near",
+        "alpha": 0.85,
+        "x": 0.22,
+        "y": 0.6,
+        "bob": 22,
+        "wobble": 0.1
+      },
+      {
+        "file": "sync-bar-strip.webp",
+        "motion": "bob",
+        "period": 40,
+        "scale": 0.35,
+        "z": "mid",
+        "alpha": 0.75,
+        "x": 0.5,
+        "y": 0.88,
+        "bob": 4,
+        "wobble": 0.02
+      }
+    ]
   },
   {
     "slug": "wasteland",
@@ -610,7 +685,43 @@
     ],
     "fallbackColor": "#3a1a08",
     "added": "0.10.0",
-    "cutouts": []
+    "cutouts": [
+      {
+        "file": "chrome-skull.webp",
+        "motion": "bob",
+        "period": 36,
+        "scale": 0.3,
+        "z": "near",
+        "alpha": 0.9,
+        "x": 0.2,
+        "y": 0.68,
+        "bob": 8,
+        "wobble": 0.05
+      },
+      {
+        "file": "dust-devil.webp",
+        "motion": "drift",
+        "period": 70,
+        "scale": 0.5,
+        "z": "far",
+        "alpha": 0.55,
+        "x": 0.62,
+        "y": 0.5,
+        "ax": 0.25,
+        "ay": 0.06
+      },
+      {
+        "file": "vulture-silhouette.webp",
+        "motion": "cross",
+        "period": 80,
+        "scale": 0.2,
+        "z": "mid",
+        "alpha": 0.7,
+        "y": 0.25,
+        "dir": "ltr",
+        "bob": 10
+      }
+    ]
   },
   {
     "slug": "attract-mode",
@@ -625,7 +736,43 @@
     ],
     "fallbackColor": "#000010",
     "added": "0.10.0",
-    "cutouts": []
+    "cutouts": [
+      {
+        "file": "vector-ship.webp",
+        "motion": "drift",
+        "period": 35,
+        "scale": 0.18,
+        "z": "mid",
+        "alpha": 0.95,
+        "x": 0.5,
+        "y": 0.55,
+        "ax": 0.25,
+        "ay": 0.18
+      },
+      {
+        "file": "vector-asteroid.webp",
+        "motion": "tumble",
+        "period": 55,
+        "scale": 0.22,
+        "z": "near",
+        "alpha": 0.9,
+        "spin": 0.03,
+        "sway": 45,
+        "xMin": 0.1,
+        "xMax": 0.9
+      },
+      {
+        "file": "vector-bullet.webp",
+        "motion": "cross",
+        "period": 14,
+        "scale": 0.12,
+        "z": "near",
+        "alpha": 0.95,
+        "y": 0.45,
+        "dir": "ltr",
+        "bob": 2
+      }
+    ]
   },
   {
     "slug": "outrun",
@@ -640,6 +787,42 @@
     ],
     "fallbackColor": "#1a0932",
     "added": "0.10.0",
-    "cutouts": []
+    "cutouts": [
+      {
+        "file": "palm-tree.webp",
+        "motion": "bob",
+        "period": 50,
+        "scale": 0.7,
+        "z": "near",
+        "alpha": 0.88,
+        "x": 0.14,
+        "y": 0.58,
+        "bob": 3,
+        "wobble": 0.02
+      },
+      {
+        "file": "delorean-style-coupe.webp",
+        "motion": "cross",
+        "period": 30,
+        "scale": 0.32,
+        "z": "mid",
+        "alpha": 0.92,
+        "y": 0.78,
+        "dir": "ltr",
+        "bob": 4
+      },
+      {
+        "file": "cassette-tape.webp",
+        "motion": "tumble",
+        "period": 40,
+        "scale": 0.22,
+        "z": "near",
+        "alpha": 0.9,
+        "spin": 0.03,
+        "sway": 35,
+        "xMin": 0.2,
+        "xMax": 0.8
+      }
+    ]
   }
 ]

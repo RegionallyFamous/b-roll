@@ -1,0 +1,58 @@
+{
+  "code-rain": {
+    "prompt": "A pure deep matte black void, edge-to-edge full bleed 16:9 landscape. A very subtle dark phosphor green ambient wash bleeds gently from the center, falling off into pure black at the corners. Faint horizontal CRT scanline texture across the whole frame, barely visible. Soft painterly atmosphere, no hard edges, no objects, no shapes, no characters, no figures, no text, no glyphs, no logos, no watermarks, no border, no frame, no bezel, no monitor, no television, no cabinet. The composition is intentionally EMPTY — designed to have falling green code rendered on top. Mood: ominous, electric, hidden depth.",
+    "quality": "high"
+  },
+  "hyperspace": {
+    "prompt": "A breathtaking deep-space painted nebula stretching across a 16:9 landscape, edge-to-edge full bleed. A dense band of stars cuts diagonally with brighter star clusters; a vast cool teal and warm magenta nebula cloud blooms in the mid frame, painterly brushwork visible in the gas lanes. Deep navy void at the corners with thousands of pinprick stars at varied brightness. NO planets, NO ships, NO text, NO logos, NO watermarks, NO crosshairs. Style: traditional oil painting on canvas, cinematic, atmospheric. Mood: vast, awestruck, cold-warm complementary palette.",
+    "quality": "high"
+  },
+  "neon-rain": {
+    "prompt": "A rain-soaked cyberpunk metropolis street at night, viewed down a long perspective alley with sky-scraping towers receding into purple-blue smog. Hundreds of saturated neon shop signs in cyan, magenta, hot pink, amber, and electric red glow on both sides at multiple heights. Wet asphalt mirrors every neon below. Thick atmospheric haze and falling rain catches every light source. Distant skyline barely visible through the smog. Painterly oil-painting style with loose impressionistic brushwork on the neon highlights, photorealistic feel overall. Edge-to-edge full bleed 16:9 landscape. NO people, NO vehicles, NO text on signs (signs are just glowing color shapes), NO logos, NO watermarks, NO HUD elements. Mood: melancholy, futuristic, cinematic.",
+    "quality": "high"
+  },
+  "tron-grid": {
+    "prompt": "A retrofuturistic synthwave landscape: deep cyan and electric blue grid plain stretching to a low horizon, sun-bleached magenta-to-orange gradient sky with thin horizontal cirrus clouds, and a single huge low planet rising on the upper right with a faint ring system. Subtle starfield in the upper sky. Painterly digital concept-art style with crisp grid line work and soft glow bloom on the brightest areas. Edge-to-edge full bleed 16:9 landscape. NO vehicles, NO buildings, NO characters, NO text, NO logos, NO watermarks. Mood: nostalgic, aspirational, vast.",
+    "quality": "high"
+  },
+  "rainbow-road": {
+    "prompt": "A dreamy candy-colored galactic vista in deep space: a giant ringed gas planet (warm cream, peach, and lavender bands) on the right third of frame, surrounded by a dense painterly nebula in pastel turquoise, soft pink, and pale violet. Hundreds of stars at varied brightness. Wisps of gas and stardust trail across the lower half. Painterly oil-painting style, soft saturated palette, dreamlike. Edge-to-edge full bleed 16:9 landscape. NO racetrack, NO vehicles, NO characters, NO text, NO logos, NO watermarks. Mood: joyful, weightless, magical.",
+    "quality": "high"
+  },
+  "soot-sprites": {
+    "prompt": "A serene painterly Japanese-countryside landscape at golden hour: rolling green-gold meadow in the foreground with tiny wildflowers, a winding earth path leading toward distant blue-violet mountains, gnarled silhouettes of two old trees framing the left and right edges of the frame, soft layered cloud formations in a warm peach-and-lavender sky. Painterly oil-painting style with loose brushwork in the sky and detailed grass texture in the foreground. Studio-Ghibli-influenced palette but no recognizable characters. Edge-to-edge full bleed 16:9 landscape. NO people, NO animals, NO text, NO logos, NO watermarks. Mood: peaceful, nostalgic, warm.",
+    "quality": "high"
+  },
+  "upside-down": {
+    "prompt": "A menacing alternate-dimension sky viewed from below: angry roiling crimson-and-purple storm clouds with electrical undertones, thin lightning glow filtering through the cloud breaks, deep wine-red shadows pooling at the lower frame, sparse pinpoint white stars barely visible through the storm. Painterly oil-painting style with heavy palette-knife texture in the clouds. Edge-to-edge full bleed 16:9 landscape. NO creatures, NO tendrils, NO figures, NO text, NO logos, NO watermarks. Mood: dread, cosmic horror, suffocating.",
+    "quality": "high"
+  },
+  "refinery": {
+    "prompt": "A vintage 1980s corporate office wall: pale seafoam-green wall with subtle eggshell texture, slight horizontal beige tint at the very bottom suggesting a wood-panel wainscoting line, soft warm fluorescent overhead lighting catching the upper third. Faintly visible faded carpet seam at the bottom edge. Edge-to-edge full bleed 16:9 landscape. NO furniture, NO computers, NO people, NO text, NO logos, NO watermarks, NO signs. Style: subtle painterly photorealism with airy soft-focus quality. Mood: clinical, sterile, faintly unsettling, mid-century corporate.",
+    "quality": "high"
+  },
+  "shimmer": {
+    "prompt": "A dramatic dark-fantasy underground cavern: jagged purple-magenta rock formations framing the left and right edges, opening onto a deep chasm filled with billowing pink-and-gold mist and the silhouette of a distant gothic spired city far below. Beams of warm amber-pink light pierce down from cracks in the cavern roof. Painterly oil-painting style with rich saturated jewel tones, dramatic chiaroscuro, atmospheric depth. Edge-to-edge full bleed 16:9 landscape. NO characters, NO creatures, NO text, NO logos, NO watermarks. Mood: mysterious, magical, foreboding.",
+    "quality": "high"
+  },
+  "beacon-hills": {
+    "prompt": "A moody pacific-northwest forest at dusk: dense, mist-veiled silhouettes of pine trees in layered receding ridges, deep navy-and-charcoal palette with a subtle teal-violet glow on the horizon, low fog pooling between the tree lines, a thin sliver of cool moonlight on the highest ridge. Painterly oil-painting style with soft atmospheric perspective. Edge-to-edge full bleed 16:9 landscape. NO animals, NO people, NO text, NO logos, NO watermarks, NO buildings. Mood: still, watchful, faintly supernatural.",
+    "quality": "high"
+  },
+  "nerv-entry-plug": {
+    "prompt": "A close-up view from inside an amber-colored liquid medium, like looking through deep honey lit from within: warm amber and burnt-orange swirls fill the entire frame with painterly fluid-dynamic motion, soft refracted highlights catching upper edges, scattered tiny bubbles drifting through the liquid, deeper crimson shadows at the corners suggesting curvature of an enclosing chamber. Painterly oil-painting style, no horizontal lines, no scanlines, no grid, no HUD overlay. Edge-to-edge full bleed 16:9 landscape. NO text, NO logos, NO watermarks, NO crosshairs, NO machinery, NO figures. Mood: warm, suspended, womb-like, faintly eerie.",
+    "quality": "high"
+  },
+  "wasteland": {
+    "prompt": "A vast post-apocalyptic desert wasteland at burnt-orange dusk. Foreground: cracked, parched earth fissures running toward a low horizon. Mid-ground: a single massive rust-stained sandstone bluff on the LEFT third of the frame, hard-edged silhouette catching the last of the warm sunset light on its right face. Far ground: faint ochre mesas dissolving into atmospheric dust haze. Sky: deep ochre-to-burnt-sienna gradient with thin cirrus clouds streaked by high winds. Style: traditional oil painting on canvas, visible painterly brushwork and palette-knife texture, rich pigment, dramatic chiaroscuro. NOT digital vector, NOT low-poly, NOT geometric, NOT cartoon. Mood: cinematic, oppressive heat, desolation. Composition empty of vehicles, people, animals, text, logos, and watermarks. Edge-to-edge full bleed 16:9 landscape.",
+    "quality": "high"
+  },
+  "attract-mode": {
+    "prompt": "The deep dark void inside an unlit arcade CRT monitor, viewed from a few inches away. The void is mostly pure black with a very subtle deep-purple-to-cobalt phosphor glow drifting slowly through the center, and a faint suggestion of curved CRT screen edges in the four corners (extremely subtle vignette). Faint horizontal scanlines barely visible across the whole frame. Painterly atmosphere, NO bezel rendered as a solid frame, NO text, NO HISCORE, NO score readout, NO vector graphics, NO asteroids, NO ships, NO logos, NO watermarks. The composition is intentionally EMPTY — designed for vector arcade graphics to be drawn on top in code. Edge-to-edge full bleed 16:9 landscape. Mood: anticipatory, electric stillness.",
+    "quality": "high"
+  },
+  "outrun": {
+    "prompt": "A retrowave roadside vista at twilight: deep violet-to-magenta gradient sky with a hot-pink horizon glow, layered silhouettes of low rolling hills receding into atmospheric perspective, a single warm-yellow palm tree silhouette on the right edge, faint stars beginning to appear in the upper sky, a distant geometric silhouette of mountains in the deepest layer. Painterly digital concept-art style with crisp silhouettes and soft gradient skies. Edge-to-edge full bleed 16:9 landscape. NO road, NO vehicles, NO text, NO logos, NO watermarks. Mood: nostalgic, cruising, late-summer dusk.",
+    "quality": "high"
+  }
+}

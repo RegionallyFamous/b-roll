@@ -1,6 +1,6 @@
 # B-Roll for WP Desktop Mode
 
-A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Nine animated scenes living under one "B-Roll" wallpaper card, switchable via an in-canvas picker — architected to scale to hundreds without bloating the shell's picker or the plugin bundle.
+A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). **Fourteen** painterly animated scenes living under one "B-Roll" wallpaper card, switchable via an in-canvas picker — architected to scale to hundreds without bloating the shell's picker or the plugin bundle.
 
 **Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode (active)
 
@@ -19,6 +19,16 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 | 09 | **Shimmer** | Arcane | Rising magenta particles with trails, hex-grid waves, gold glints. |
 
 Pick **B-Roll** from **OS Settings → Wallpapers**, then click the gear in the bottom-right of the live wallpaper to switch scenes. Your pick is remembered per-user.
+
+## v0.12.0 — Painted overhaul (gpt-image-1.5 quality)
+
+The whole pack got repainted at much higher fidelity, and the five v0.10 scenes finally received their per-scene foreground cast:
+
+- **All 14 wallpapers regenerated** through OpenAI's `gpt-image-1.5` at `quality: high`, then resized to a 1920×1080 WebP backdrop and a 640×360 picker preview. Every scene benefits, but the standouts are: **Code Rain** (the wooden TV bezel is gone — pure dark phosphor now), **Wasteland** (painterly post-apocalyptic desert instead of a geometric placeholder), **Attract Mode** (a dark arcade CRT void with vector glow instead of a sparse black field), and **Nerv Entry Plug** (warm amber LCL refraction instead of clinical instrument lines). Prompts live in [`_tools/wallpaper-prompts.json`](_tools/wallpaper-prompts.json) and the renderer is [`_tools/gen-wallpaper.py`](_tools/gen-wallpaper.py); both are batch-mode and 429-aware.
+- **All 64 cut-outs and drifters regenerated** through the same model at 1024×1024, then put through `rembg` (u2net) for background removal, trimmed, and saved as transparent WebP. New tool [`_tools/gen-cutout.py`](_tools/gen-cutout.py) drives the whole pipeline; prompts in [`_tools/cutout-prompts.json`](_tools/cutout-prompts.json) are franchise-safe descriptive ("anime soot sprite") rather than brand-tagged.
+- **Foreground cast for the five v0.10 scenes.** `beacon-hills`, `nerv-entry-plug`, `wasteland`, `attract-mode`, and `outrun` now mount per-scene cut-outs in addition to whatever shared drifters they already used. Three new cut-outs per scene (e.g. wolf-howl + lacrosse-stick + full-moon for Beacon Hills; chrome-skull + dust-devil + vulture-silhouette for Wasteland; vector-asteroid + vector-ship + vector-bullet for Attract Mode), declared in `src/scenes.json` and atlas-packed alongside the existing nine.
+- **Beacon Hills realigned to Teen Wolf.** The slug always pointed at the Teen Wolf town; the v0.10 metadata accidentally tagged it Lord of the Rings. Franchise + tags + scene docstring now match the wolf-howl / lacrosse-stick / full-moon cast and the misty Pacific Northwest backdrop the new prompt produced.
+- **Atlases rebuilt for all 14 scenes** so the new cut-outs ship in the same single-WebP-per-scene round-trip path the original nine use.
 
 ## v0.11.0 — Auto-close picker + chaos cast
 

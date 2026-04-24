@@ -88,6 +88,10 @@
 			var gameOver = new PIXI.Graphics(); gameOver.alpha = 0;
 			app.stage.addChild( gameOver );
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var cutouts = await h.mountCutouts( app, PIXI, 'attract-mode', fg );
+
 			var asteroids = [];
 			for ( var i = 0; i < 7; i++ ) asteroids.push( spawnAsteroid( h.rand( 1, 2 ) ) );
 
@@ -103,6 +107,7 @@
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				vectors: vectors, scan: scan, pellets: pellets, ghosts: ghosts, gameOver: gameOver, bloom: bloom,
+				cutouts: cutouts,
 				asteroids: asteroids, ships: ships,
 				pelletT: pelletT, ghostTrail: ghostTrail,
 				time: 0, wipeT: -1,
@@ -144,6 +149,7 @@
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
+			h.tickDrifters( state.cutouts, env );
 			state.vectors.clear();
 			state.pellets.clear();
 			state.ghosts.clear();

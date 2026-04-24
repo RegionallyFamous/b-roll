@@ -1,83 +1,83 @@
 {
   "frames": {
-    "totoro.webp": {
+    "kodama.webp": {
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 553,
-        "h": 750
+        "w": 1024,
+        "h": 1024
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 553,
-        "h": 750
+        "w": 1024,
+        "h": 1024
       },
       "sourceSize": {
-        "w": 553,
-        "h": 750
+        "w": 1024,
+        "h": 1024
       }
     },
     "jiji.webp": {
       "frame": {
-        "x": 555,
+        "x": 1026,
         "y": 0,
-        "w": 921,
-        "h": 690
+        "w": 958,
+        "h": 1024
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 921,
-        "h": 690
+        "w": 958,
+        "h": 1024
       },
       "sourceSize": {
-        "w": 921,
-        "h": 690
+        "w": 958,
+        "h": 1024
       }
     },
-    "kodama.webp": {
+    "totoro.webp": {
       "frame": {
         "x": 0,
-        "y": 752,
-        "w": 1024,
-        "h": 671
+        "y": 1026,
+        "w": 846,
+        "h": 916
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 671
+        "w": 846,
+        "h": 916
       },
       "sourceSize": {
-        "w": 1024,
-        "h": 671
+        "w": 846,
+        "h": 916
       }
     },
     "konpeito.webp": {
       "frame": {
-        "x": 1026,
-        "y": 752,
-        "w": 608,
-        "h": 600
+        "x": 848,
+        "y": 1026,
+        "w": 727,
+        "h": 686
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 608,
-        "h": 600
+        "w": 727,
+        "h": 686
       },
       "sourceSize": {
-        "w": 608,
-        "h": 600
+        "w": 727,
+        "h": 686
       }
     }
   },
@@ -87,8 +87,8 @@
     "image": "soot-sprites.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 1636,
-      "h": 1423
+      "w": 1986,
+      "h": 1942
     },
     "scale": "1"
   }

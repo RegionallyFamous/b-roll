@@ -4,28 +4,28 @@
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 318,
-        "h": 750
+        "w": 627,
+        "h": 1024
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 318,
-        "h": 750
+        "w": 627,
+        "h": 1024
       },
       "sourceSize": {
-        "w": 318,
-        "h": 750
+        "w": 627,
+        "h": 1024
       }
     },
     "recognizer.webp": {
       "frame": {
-        "x": 320,
+        "x": 629,
         "y": 0,
         "w": 1024,
-        "h": 649
+        "h": 921
       },
       "rotated": false,
       "trimmed": false,
@@ -33,51 +33,51 @@
         "x": 0,
         "y": 0,
         "w": 1024,
-        "h": 649
+        "h": 921
       },
       "sourceSize": {
         "w": 1024,
-        "h": 649
-      }
-    },
-    "lightcycle.webp": {
-      "frame": {
-        "x": 0,
-        "y": 752,
-        "w": 1024,
-        "h": 572
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 1024,
-        "h": 572
-      },
-      "sourceSize": {
-        "w": 1024,
-        "h": 572
+        "h": 921
       }
     },
     "disc.webp": {
       "frame": {
         "x": 0,
-        "y": 1326,
-        "w": 1024,
-        "h": 572
+        "y": 1026,
+        "w": 856,
+        "h": 686
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 572
+        "w": 856,
+        "h": 686
       },
       "sourceSize": {
-        "w": 1024,
-        "h": 572
+        "w": 856,
+        "h": 686
+      }
+    },
+    "lightcycle.webp": {
+      "frame": {
+        "x": 858,
+        "y": 1026,
+        "w": 997,
+        "h": 536
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 997,
+        "h": 536
+      },
+      "sourceSize": {
+        "w": 997,
+        "h": 536
       }
     }
   },
@@ -87,8 +87,8 @@
     "image": "tron-grid.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 1346,
-      "h": 1898
+      "w": 1857,
+      "h": 1712
     },
     "scale": "1"
   }

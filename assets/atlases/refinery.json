@@ -1,11 +1,51 @@
 {
   "frames": {
-    "goat.webp": {
+    "elevator.webp": {
       "frame": {
         "x": 0,
         "y": 0,
+        "w": 882,
+        "h": 969
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 882,
+        "h": 969
+      },
+      "sourceSize": {
+        "w": 882,
+        "h": 969
+      }
+    },
+    "mug.webp": {
+      "frame": {
+        "x": 884,
+        "y": 0,
+        "w": 657,
+        "h": 892
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 657,
+        "h": 892
+      },
+      "sourceSize": {
+        "w": 657,
+        "h": 892
+      }
+    },
+    "goat.webp": {
+      "frame": {
+        "x": 0,
+        "y": 971,
         "w": 688,
-        "h": 679
+        "h": 826
       },
       "rotated": false,
       "trimmed": false,
@@ -13,71 +53,31 @@
         "x": 0,
         "y": 0,
         "w": 688,
-        "h": 679
+        "h": 826
       },
       "sourceSize": {
         "w": 688,
-        "h": 679
+        "h": 826
       }
     },
     "waffle.webp": {
       "frame": {
         "x": 690,
-        "y": 0,
-        "w": 1024,
-        "h": 572
+        "y": 971,
+        "w": 881,
+        "h": 666
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 1024,
-        "h": 572
+        "w": 881,
+        "h": 666
       },
       "sourceSize": {
-        "w": 1024,
-        "h": 572
-      }
-    },
-    "elevator.webp": {
-      "frame": {
-        "x": 0,
-        "y": 681,
-        "w": 1024,
-        "h": 557
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 1024,
-        "h": 557
-      },
-      "sourceSize": {
-        "w": 1024,
-        "h": 557
-      }
-    },
-    "mug.webp": {
-      "frame": {
-        "x": 1026,
-        "y": 681,
-        "w": 621,
-        "h": 550
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 621,
-        "h": 550
-      },
-      "sourceSize": {
-        "w": 621,
-        "h": 550
+        "w": 881,
+        "h": 666
       }
     }
   },
@@ -87,8 +87,8 @@
     "image": "refinery.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 1716,
-      "h": 1238
+      "w": 1573,
+      "h": 1797
     },
     "scale": "1"
   }

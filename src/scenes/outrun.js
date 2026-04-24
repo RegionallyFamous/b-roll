@@ -59,9 +59,14 @@
 			var nightVision = new PIXI.Graphics(); nightVision.alpha = 0;
 			app.stage.addChild( nightVision );
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var cutouts = await h.mountCutouts( app, PIXI, 'outrun', fg );
+
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				sun: sun, grid: grid, chrome: chrome, scan: scan, nightVision: nightVision, bloom: bloom,
+				cutouts: cutouts,
 				time: 0,
 				scroll: 0,
 				speed: 1,
@@ -112,6 +117,7 @@
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
+			h.tickDrifters( state.cutouts, env );
 			var horizonY = hh * 0.55;
 
 			// --- Retrowave sun ---------------------------------- //

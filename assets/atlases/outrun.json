@@ -1,0 +1,75 @@
+{
+  "frames": {
+    "palm-tree.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 560,
+        "h": 1024
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 560,
+        "h": 1024
+      },
+      "sourceSize": {
+        "w": 560,
+        "h": 1024
+      }
+    },
+    "cassette-tape.webp": {
+      "frame": {
+        "x": 562,
+        "y": 0,
+        "w": 797,
+        "h": 702
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 797,
+        "h": 702
+      },
+      "sourceSize": {
+        "w": 797,
+        "h": 702
+      }
+    },
+    "delorean-style-coupe.webp": {
+      "frame": {
+        "x": 0,
+        "y": 1026,
+        "w": 977,
+        "h": 577
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 977,
+        "h": 577
+      },
+      "sourceSize": {
+        "w": 977,
+        "h": 577
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "outrun.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1361,
+      "h": 1603
+    },
+    "scale": "1"
+  }
+}

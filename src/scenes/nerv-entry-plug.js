@@ -66,6 +66,10 @@
 			var lclFill = new PIXI.Graphics(); lclFill.alpha = 0;
 			app.stage.addChild( lclFill );
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var cutouts = await h.mountCutouts( app, PIXI, 'nerv-entry-plug', fg );
+
 			// Orbiting Angel-tracker glyphs around the cross.
 			var glyphs = [];
 			for ( var gi = 0; gi < 6; gi++ ) {
@@ -80,6 +84,7 @@
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				ripple: ripple, hexLattice: hexLattice, cross: cross, hud: hud, lclFill: lclFill, bloom: bloom,
+				cutouts: cutouts,
 				glyphs: glyphs,
 				time: 0,
 				crossPulse: 0,
@@ -126,6 +131,7 @@
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var cx = w / 2, cy = hh / 2;
 			state.time += dt;
+			h.tickDrifters( state.cutouts, env );
 
 			// --- Refraction ripple (perf-gated) ----------------- //
 			if ( env.perfTier !== 'low' ) {

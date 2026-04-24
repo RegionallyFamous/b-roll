@@ -1,0 +1,75 @@
+{
+  "frames": {
+    "lcl-bubble-cluster.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 1024
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 1024
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 1024
+      }
+    },
+    "at-field-glyph.webp": {
+      "frame": {
+        "x": 1026,
+        "y": 0,
+        "w": 1019,
+        "h": 901
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1019,
+        "h": 901
+      },
+      "sourceSize": {
+        "w": 1019,
+        "h": 901
+      }
+    },
+    "sync-bar-strip.webp": {
+      "frame": {
+        "x": 0,
+        "y": 1026,
+        "w": 932,
+        "h": 157
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 932,
+        "h": 157
+      },
+      "sourceSize": {
+        "w": 932,
+        "h": 157
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "nerv-entry-plug.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2047,
+      "h": 1183
+    },
+    "scale": "1"
+  }
+}

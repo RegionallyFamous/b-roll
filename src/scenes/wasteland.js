@@ -74,6 +74,7 @@
 			var fg = new PIXI.Container();
 			app.stage.addChild( fg );
 			var shared = await h.mountSharedDrifters( app, PIXI, [ 'crow' ], fg );
+			var cutouts = await h.mountCutouts( app, PIXI, 'wasteland', fg );
 
 			// Dust-devil vortices along the horizon.
 			var devils = [];
@@ -102,7 +103,7 @@
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				tint: tint, dust: dust, roadGlow: roadGlow, flares: flares, chromeVeil: chromeVeil, bloom: bloom,
-				shared: shared,
+				shared: shared, cutouts: cutouts,
 				cars: makeCars( 2 ),
 				devils: devils, flarePts: flarePts,
 				time: 0,
@@ -154,6 +155,7 @@
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
 			h.tickDrifters( state.shared, env );
+			h.tickDrifters( state.cutouts, env );
 
 			// --- TOD tint --------------------------------------- //
 			state.tint.clear();
