@@ -1,0 +1,95 @@
+{
+  "frames": {
+    "mcp.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 318,
+        "h": 750
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 318,
+        "h": 750
+      },
+      "sourceSize": {
+        "w": 318,
+        "h": 750
+      }
+    },
+    "recognizer.webp": {
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "w": 1024,
+        "h": 649
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 649
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 649
+      }
+    },
+    "lightcycle.webp": {
+      "frame": {
+        "x": 0,
+        "y": 752,
+        "w": 1024,
+        "h": 572
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 572
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 572
+      }
+    },
+    "disc.webp": {
+      "frame": {
+        "x": 0,
+        "y": 1326,
+        "w": 1024,
+        "h": 572
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 572
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 572
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "tron-grid.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1346,
+      "h": 1898
+    },
+    "scale": "1"
+  }
+}

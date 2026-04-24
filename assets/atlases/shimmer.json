@@ -1,0 +1,95 @@
+{
+  "frames": {
+    "monkey-bomb.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 486,
+        "h": 715
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 486,
+        "h": 715
+      },
+      "sourceSize": {
+        "w": 486,
+        "h": 715
+      }
+    },
+    "vial.webp": {
+      "frame": {
+        "x": 488,
+        "y": 0,
+        "w": 377,
+        "h": 698
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 377,
+        "h": 698
+      },
+      "sourceSize": {
+        "w": 377,
+        "h": 698
+      }
+    },
+    "hex-crystal.webp": {
+      "frame": {
+        "x": 867,
+        "y": 0,
+        "w": 1024,
+        "h": 572
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 572
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 572
+      }
+    },
+    "moth.webp": {
+      "frame": {
+        "x": 0,
+        "y": 717,
+        "w": 1024,
+        "h": 477
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 477
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 477
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "shimmer.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1893,
+      "h": 1194
+    },
+    "scale": "1"
+  }
+}

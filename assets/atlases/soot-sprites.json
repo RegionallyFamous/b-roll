@@ -1,0 +1,95 @@
+{
+  "frames": {
+    "totoro.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 553,
+        "h": 750
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 553,
+        "h": 750
+      },
+      "sourceSize": {
+        "w": 553,
+        "h": 750
+      }
+    },
+    "jiji.webp": {
+      "frame": {
+        "x": 555,
+        "y": 0,
+        "w": 921,
+        "h": 690
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 921,
+        "h": 690
+      },
+      "sourceSize": {
+        "w": 921,
+        "h": 690
+      }
+    },
+    "kodama.webp": {
+      "frame": {
+        "x": 0,
+        "y": 752,
+        "w": 1024,
+        "h": 671
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 671
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 671
+      }
+    },
+    "konpeito.webp": {
+      "frame": {
+        "x": 1026,
+        "y": 752,
+        "w": 608,
+        "h": 600
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 608,
+        "h": 600
+      },
+      "sourceSize": {
+        "w": 608,
+        "h": 600
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "soot-sprites.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1636,
+      "h": 1423
+    },
+    "scale": "1"
+  }
+}

@@ -566,5 +566,80 @@
         "egg": true
       }
     ]
+  },
+  {
+    "slug": "beacon-hills",
+    "label": "Beacon Hills",
+    "franchise": "The Lord of the Rings",
+    "tags": [
+      "fantasy",
+      "misty",
+      "fire",
+      "night",
+      "blue"
+    ],
+    "fallbackColor": "#0d1820",
+    "added": "0.10.0",
+    "cutouts": []
+  },
+  {
+    "slug": "nerv-entry-plug",
+    "label": "Entry Plug",
+    "franchise": "Evangelion",
+    "tags": [
+      "anime",
+      "mecha",
+      "liquid",
+      "amber",
+      "hud"
+    ],
+    "fallbackColor": "#1a0a0a",
+    "added": "0.10.0",
+    "cutouts": []
+  },
+  {
+    "slug": "wasteland",
+    "label": "Wasteland",
+    "franchise": "Mad Max: Fury Road",
+    "tags": [
+      "post-apocalyptic",
+      "desert",
+      "ochre",
+      "cars",
+      "dust"
+    ],
+    "fallbackColor": "#3a1a08",
+    "added": "0.10.0",
+    "cutouts": []
+  },
+  {
+    "slug": "attract-mode",
+    "label": "Attract Mode",
+    "franchise": "Arcade",
+    "tags": [
+      "retro",
+      "arcade",
+      "vector",
+      "crt",
+      "pellets"
+    ],
+    "fallbackColor": "#000010",
+    "added": "0.10.0",
+    "cutouts": []
+  },
+  {
+    "slug": "outrun",
+    "label": "Outrun",
+    "franchise": "Kavinsky",
+    "tags": [
+      "synthwave",
+      "retro",
+      "neon",
+      "sunset",
+      "grid"
+    ],
+    "fallbackColor": "#1a0932",
+    "added": "0.10.0",
+    "cutouts": []
   }
 ]

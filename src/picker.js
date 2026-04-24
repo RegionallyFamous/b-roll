@@ -119,6 +119,32 @@
 			'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);',
 		'}',
 
+		// Toolbar buttons — mic + shuffle sit next to Close.
+		'[data-b-roll-tool]{',
+			'appearance:none;cursor:pointer;',
+			'border:1px solid rgba(255,255,255,.14);',
+			'background:rgba(18,18,26,.55);',
+			'color:inherit;font:inherit;',
+			'padding:10px 12px;border-radius:10px;',
+			'display:flex;align-items:center;gap:6px;min-height:40px;',
+			'transition:background .15s ease,border-color .15s ease,transform .12s ease,color .15s ease;',
+		'}',
+		'[data-b-roll-tool]:hover{background:rgba(36,36,48,.75);border-color:rgba(255,255,255,.22)}',
+		'[data-b-roll-tool]:active{transform:scale(.97)}',
+		'[data-b-roll-tool][aria-pressed=true]{',
+			'background:#fff;color:#0b0b10;border-color:transparent;font-weight:600;',
+		'}',
+		'[data-b-roll-tool] svg{width:16px;height:16px}',
+		'[data-b-roll-tool][data-state=denied]{',
+			'background:rgba(180,60,60,.35);border-color:rgba(240,120,120,.45);',
+		'}',
+		'[data-b-roll-tool] .dot{',
+			'width:8px;height:8px;border-radius:50%;background:#ff2d6f;',
+			'box-shadow:0 0 0 3px rgba(255,45,111,.25);',
+			'animation:brAudioDot 1.2s ease-in-out infinite;',
+		'}',
+		'@keyframes brAudioDot{0%,100%{opacity:.85}50%{opacity:.4}}',
+
 		// Chips row.
 		'[data-b-roll-chips]{',
 			'display:flex;gap:8px;flex-wrap:wrap;',
@@ -324,19 +350,25 @@
 			var map = ( cfg.sceneMap || {} )[ slug ];
 			var defs = map && Array.isArray( map.cutouts ) ? map.cutouts : [];
 			if ( ! defs.length ) return;
-			var base = ( cfg.pluginUrl || '' ) + '/assets/cutouts/' + slug + '/';
 			var ver  = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 			var PIXI = window.PIXI;
-			defs.forEach( function ( def ) {
-				var url = base + def.file + ver;
-				if ( PIXI && PIXI.Assets && typeof PIXI.Assets.load === 'function' ) {
-					PIXI.Assets.load( url ).catch( function () { /* ignore */ } );
-				} else {
-					var img = new window.Image();
-					img.decoding = 'async';
-					img.src = url;
-				}
-			} );
+			// Prefer the single-request atlas. If Pixi is around it
+			// parses + caches the spritesheet so mountCutouts() later
+			// is a pure lookup; if it isn't, the browser still wins
+			// by warming the HTTP cache. Individual cut-outs remain
+			// as the fallback for atlas-less scenes.
+			var atlasUrl = ( cfg.pluginUrl || '' ) + '/assets/atlases/' + slug + '.json' + ver;
+			if ( PIXI && PIXI.Assets && typeof PIXI.Assets.load === 'function' ) {
+				PIXI.Assets.load( atlasUrl ).catch( function () {
+					var base = ( cfg.pluginUrl || '' ) + '/assets/cutouts/' + slug + '/';
+					defs.forEach( function ( def ) {
+						PIXI.Assets.load( base + def.file + ver ).catch( function () { /* ignore */ } );
+					} );
+				} );
+			} else {
+				var probe = new window.XMLHttpRequest();
+				try { probe.open( 'GET', atlasUrl, true ); probe.send(); } catch ( e ) { /* ignore */ }
+			}
 		} catch ( e ) { /* ignore */ }
 	}
 
@@ -407,6 +439,88 @@
 		search.setAttribute( 'aria-label', 'Search scenes' );
 		searchWrap.appendChild( search );
 		head.appendChild( searchWrap );
+
+		// Audio-reactive toggle. Lazy-loads src/audio.js the first
+		// time it's pressed so mic permission is only ever requested
+		// on an explicit user gesture.
+		var audioBtn = document.createElement( 'button' );
+		audioBtn.type = 'button';
+		audioBtn.setAttribute( 'data-b-roll-tool', '' );
+		audioBtn.setAttribute( 'data-kind', 'audio' );
+		audioBtn.setAttribute( 'aria-label', 'Toggle audio-reactive mode' );
+		audioBtn.title = 'Audio-reactive mode (mic)';
+		function renderAudioBtn() {
+			var st = ( window.__bRoll.audio && window.__bRoll.audio.state )
+				? window.__bRoll.audio.state()
+				: { enabled: false, permission: 'unknown' };
+			audioBtn.setAttribute( 'aria-pressed', st.enabled ? 'true' : 'false' );
+			audioBtn.setAttribute( 'data-state', st.permission || '' );
+			var label = st.enabled ? 'Audio on' : ( st.permission === 'denied' ? 'Mic denied' : 'Audio' );
+			var icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+				' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+				'<rect x="9" y="3" width="6" height="12" rx="3"/>' +
+				'<path d="M5 11v1a7 7 0 0 0 14 0v-1"/>' +
+				'<line x1="12" y1="19" x2="12" y2="22"/>' +
+				'</svg>';
+			audioBtn.innerHTML = icon + '<span>' + escAttr( label ) + '</span>' +
+				( st.enabled ? '<span class="dot" aria-hidden="true"></span>' : '' );
+		}
+		renderAudioBtn();
+		function refreshAudioBtn() { renderAudioBtn(); }
+		window.addEventListener( 'b-roll:audio-change', refreshAudioBtn );
+		audioBtn.addEventListener( 'click', function () {
+			if ( typeof opts.onAudioToggle === 'function' ) {
+				opts.onAudioToggle( renderAudioBtn );
+			}
+		} );
+		head.appendChild( audioBtn );
+
+		// Shuffle toggle + interval picker. Shuffle cycles the
+		// wallpaper through favorites (or all scenes if no favs)
+		// every N minutes. Off by default.
+		var shuffleBtn = document.createElement( 'button' );
+		shuffleBtn.type = 'button';
+		shuffleBtn.setAttribute( 'data-b-roll-tool', '' );
+		shuffleBtn.setAttribute( 'data-kind', 'shuffle' );
+		shuffleBtn.setAttribute( 'aria-label', 'Toggle shuffle mode' );
+		shuffleBtn.title = 'Cycle scenes automatically';
+		function renderShuffleBtn() {
+			var on = !! ( opts.shuffle && opts.shuffle.enabled );
+			var minutes = ( opts.shuffle && opts.shuffle.minutes ) || 15;
+			shuffleBtn.setAttribute( 'aria-pressed', on ? 'true' : 'false' );
+			var icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+				' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+				'<polyline points="16 3 21 3 21 8"/>' +
+				'<line x1="4" y1="20" x2="21" y2="3"/>' +
+				'<polyline points="21 16 21 21 16 21"/>' +
+				'<line x1="15" y1="15" x2="21" y2="21"/>' +
+				'<line x1="4" y1="4" x2="9" y2="9"/>' +
+				'</svg>';
+			var label = on ? ( 'Shuffle ' + minutes + 'm' ) : 'Shuffle';
+			shuffleBtn.innerHTML = icon + '<span>' + escAttr( label ) + '</span>';
+		}
+		renderShuffleBtn();
+		shuffleBtn.addEventListener( 'click', function ( ev ) {
+			// Plain click toggles on/off. Alt/Option-click cycles
+			// through interval presets so the feature stays one-button
+			// without overwhelming the toolbar.
+			var presets = [ 5, 10, 15, 30, 60 ];
+			var current = ( opts.shuffle && opts.shuffle.minutes ) || 15;
+			var enabled = !! ( opts.shuffle && opts.shuffle.enabled );
+			if ( ev.altKey ) {
+				var idx = presets.indexOf( current );
+				var next = presets[ ( idx + 1 + presets.length ) % presets.length ];
+				if ( typeof opts.onShuffleChange === 'function' ) {
+					opts.onShuffleChange( { enabled: true, minutes: next } );
+				}
+			} else {
+				if ( typeof opts.onShuffleChange === 'function' ) {
+					opts.onShuffleChange( { enabled: ! enabled, minutes: current } );
+				}
+			}
+			renderShuffleBtn();
+		} );
+		head.appendChild( shuffleBtn );
 
 		var closeBtn = document.createElement( 'button' );
 		closeBtn.type = 'button';
@@ -684,6 +798,7 @@
 		function close() {
 			if ( ! overlay.parentNode ) return;
 			cancelPreview();
+			window.removeEventListener( 'b-roll:audio-change', refreshAudioBtn );
 			overlay.parentNode.removeChild( overlay );
 			if ( active === instance ) active = null;
 			try { if ( previouslyFocused && previouslyFocused.focus ) previouslyFocused.focus(); } catch ( e ) { /* ignore */ }

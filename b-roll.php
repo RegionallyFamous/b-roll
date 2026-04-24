@@ -3,7 +3,7 @@
  * Plugin Name:       B-Roll for WP Desktop Mode
  * Plugin URI:        https://github.com/RegionallyFamous/b-roll
  * Description:       A pack of pop-culture-themed PixiJS wallpapers for WP Desktop Mode, served as a single 'B-Roll' wallpaper whose scene is chosen from an in-canvas picker. Architected to scale to hundreds of scenes.
- * Version:           0.9.0
+ * Version:           0.10.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            regionallyfamous
@@ -93,6 +93,38 @@ function b_roll_get_user_slug_list( $uid, $key ) {
 	return $out;
 }
 
+/**
+ * Normalize an incoming shuffle preference into {enabled, minutes}.
+ * Accepts booleans (legacy) or an object from the picker toolbar.
+ * Minutes are clamped to a sane 1..240 range.
+ */
+function b_roll_sanitize_shuffle( $raw ) {
+	if ( is_bool( $raw ) ) {
+		return array( 'enabled' => $raw, 'minutes' => 15 );
+	}
+	if ( ! is_array( $raw ) ) {
+		return array( 'enabled' => false, 'minutes' => 15 );
+	}
+	$enabled = ! empty( $raw['enabled'] );
+	$minutes = isset( $raw['minutes'] ) ? (int) $raw['minutes'] : 15;
+	if ( $minutes < 1 ) {
+		$minutes = 1;
+	}
+	if ( $minutes > 240 ) {
+		$minutes = 240;
+	}
+	return array( 'enabled' => $enabled, 'minutes' => $minutes );
+}
+
+function b_roll_get_user_shuffle( $uid ) {
+	$raw = get_user_meta( $uid, 'b_roll_shuffle', true );
+	return b_roll_sanitize_shuffle( $raw );
+}
+
+function b_roll_get_user_audio_reactive( $uid ) {
+	return (bool) get_user_meta( $uid, 'b_roll_audio_reactive', true );
+}
+
 add_action(
 	'admin_enqueue_scripts',
 	function () {
@@ -104,7 +136,7 @@ add_action(
 			'b-roll',
 			plugins_url( 'src/index.js', __FILE__ ),
 			array( 'wp-desktop', 'wp-hooks' ),
-			'0.9.0',
+			'0.10.0',
 			true
 		);
 
@@ -114,14 +146,16 @@ add_action(
 			'b-roll',
 			'bRoll',
 			array(
-				'pluginUrl' => untrailingslashit( plugins_url( '', __FILE__ ) ),
-				'version'   => '0.9.0',
-				'scenes'    => b_roll_scenes(),
-				'scene'     => b_roll_get_user_scene( $uid ),
-				'favorites' => b_roll_get_user_slug_list( $uid, 'b_roll_favorites' ),
-				'recents'   => b_roll_get_user_slug_list( $uid, 'b_roll_recents' ),
-				'restUrl'   => esc_url_raw( rest_url( 'b-roll/v1/prefs' ) ),
-				'restNonce' => wp_create_nonce( 'wp_rest' ),
+				'pluginUrl'     => untrailingslashit( plugins_url( '', __FILE__ ) ),
+				'version'       => '0.10.0',
+				'scenes'        => b_roll_scenes(),
+				'scene'         => b_roll_get_user_scene( $uid ),
+				'favorites'     => b_roll_get_user_slug_list( $uid, 'b_roll_favorites' ),
+				'recents'       => b_roll_get_user_slug_list( $uid, 'b_roll_recents' ),
+				'shuffle'       => b_roll_get_user_shuffle( $uid ),
+				'audioReactive' => b_roll_get_user_audio_reactive( $uid ),
+				'restUrl'       => esc_url_raw( rest_url( 'b-roll/v1/prefs' ) ),
+				'restNonce'     => wp_create_nonce( 'wp_rest' ),
 			)
 		);
 	}
@@ -173,6 +207,18 @@ add_action(
 						$recs = b_roll_sanitize_slug_list( $params['recents'], 12 );
 						update_user_meta( $uid, 'b_roll_recents', $recs );
 						$out['recents'] = $recs;
+					}
+
+					if ( array_key_exists( 'shuffle', $params ) ) {
+						$sh = b_roll_sanitize_shuffle( $params['shuffle'] );
+						update_user_meta( $uid, 'b_roll_shuffle', $sh );
+						$out['shuffle'] = $sh;
+					}
+
+					if ( array_key_exists( 'audioReactive', $params ) ) {
+						$on = ! empty( $params['audioReactive'] );
+						update_user_meta( $uid, 'b_roll_audio_reactive', $on ? 1 : 0 );
+						$out['audioReactive'] = $on;
 					}
 
 					return rest_ensure_response( $out );

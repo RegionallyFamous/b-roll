@@ -1,0 +1,95 @@
+{
+  "frames": {
+    "tie.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 1020,
+        "h": 768
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1020,
+        "h": 768
+      },
+      "sourceSize": {
+        "w": 1020,
+        "h": 768
+      }
+    },
+    "asteroid.webp": {
+      "frame": {
+        "x": 1022,
+        "y": 0,
+        "w": 851,
+        "h": 676
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 851,
+        "h": 676
+      },
+      "sourceSize": {
+        "w": 851,
+        "h": 676
+      }
+    },
+    "xwing.webp": {
+      "frame": {
+        "x": 0,
+        "y": 770,
+        "w": 1024,
+        "h": 604
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 604
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 604
+      }
+    },
+    "stardestroyer.webp": {
+      "frame": {
+        "x": 0,
+        "y": 1376,
+        "w": 1024,
+        "h": 541
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 541
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 541
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "hyperspace.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1875,
+      "h": 1917
+    },
+    "scale": "1"
+  }
+}

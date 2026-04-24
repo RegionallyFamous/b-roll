@@ -1,0 +1,85 @@
+{
+  "__comment": "Shared drifter library — cutouts any scene can opt into via h.mountSharedDrifters(app, PIXI, [names...], fg). Files live under assets/drifters/. Def shape mirrors per-scene cutouts in scenes.json (motion, period, scale, z, etc). Names should stay stable; scenes reference them by name.",
+  "leaf": {
+    "file": "leaf.webp",
+    "motion": "tumble",
+    "period": 45,
+    "scale": 0.18,
+    "z": "mid",
+    "alpha": 0.75,
+    "spin": 0.03,
+    "sway": 60,
+    "xMin": 0.05,
+    "xMax": 0.95
+  },
+  "comet": {
+    "file": "comet.webp",
+    "motion": "cross",
+    "period": 95,
+    "scale": 0.3,
+    "z": "far",
+    "alpha": 0.55,
+    "y": 0.18,
+    "dir": "ltr",
+    "bob": 4
+  },
+  "lantern": {
+    "file": "lantern.webp",
+    "motion": "bob",
+    "period": 60,
+    "scale": 0.22,
+    "z": "mid",
+    "alpha": 0.85,
+    "x": 0.75,
+    "y": 0.35,
+    "bob": 22,
+    "wobble": 0.06
+  },
+  "crow": {
+    "file": "crow.webp",
+    "motion": "cross",
+    "period": 50,
+    "scale": 0.22,
+    "z": "mid",
+    "alpha": 0.8,
+    "y": 0.28,
+    "dir": "rtl",
+    "bob": 18
+  },
+  "firefly-swarm": {
+    "file": "firefly-swarm.webp",
+    "motion": "drift",
+    "period": 70,
+    "scale": 0.35,
+    "z": "far",
+    "alpha": 0.7,
+    "x": 0.5,
+    "y": 0.6,
+    "ax": 0.2,
+    "ay": 0.1
+  },
+  "snowflake": {
+    "file": "snowflake.webp",
+    "motion": "tumble",
+    "period": 70,
+    "scale": 0.12,
+    "z": "near",
+    "alpha": 0.9,
+    "spin": 0.01,
+    "sway": 25,
+    "xMin": 0.05,
+    "xMax": 0.95
+  },
+  "firework": {
+    "file": "firework.webp",
+    "motion": "bob",
+    "period": 40,
+    "scale": 0.45,
+    "z": "far",
+    "alpha": 0.55,
+    "x": 0.5,
+    "y": 0.35,
+    "bob": 6,
+    "wobble": 0.02
+  }
+}

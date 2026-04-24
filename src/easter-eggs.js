@@ -42,15 +42,20 @@
 	];
 
 	var SCENE_KEYWORDS = {
-		'code-rain':   [ 'matrix', 'wakeup', 'neo' ],
-		'hyperspace':  [ 'wars', 'jedi', 'warp' ],
-		'neon-rain':   [ 'blade', 'runner', 'deckard' ],
-		'tron-grid':   [ 'tron', 'flynn', 'endofline' ],
-		'rainbow-road':[ 'kart', 'bowser', 'yoshi' ],
-		'soot-sprites':[ 'ghibli', 'totoro', 'candy' ],
-		'upside-down': [ 'upside', 'hawkins', 'eleven' ],
-		'refinery':    [ 'lumon', 'kier', 'praise' ],
-		'shimmer':     [ 'piltover', 'jinx', 'hexcore' ],
+		'code-rain':       [ 'matrix', 'wakeup', 'neo' ],
+		'hyperspace':      [ 'wars', 'jedi', 'warp' ],
+		'neon-rain':       [ 'blade', 'runner', 'deckard' ],
+		'tron-grid':       [ 'tron', 'flynn', 'endofline' ],
+		'rainbow-road':    [ 'kart', 'bowser', 'yoshi' ],
+		'soot-sprites':    [ 'ghibli', 'totoro', 'candy' ],
+		'upside-down':     [ 'upside', 'hawkins', 'eleven' ],
+		'refinery':        [ 'lumon', 'kier', 'praise' ],
+		'shimmer':         [ 'piltover', 'jinx', 'hexcore' ],
+		'beacon-hills':    [ 'gondor', 'hobbits', 'mordor' ],
+		'nerv-entry-plug': [ 'shinji', 'nerv', 'mustnt' ],
+		'wasteland':       [ 'witness', 'furiosa', 'valhalla' ],
+		'attract-mode':    [ 'konami', 'coin', 'highscore' ],
+		'outrun':          [ 'kavinsky', 'miami', 'nightcall' ],
 	};
 
 	var state = {

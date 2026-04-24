@@ -1,0 +1,95 @@
+{
+  "frames": {
+    "dancer.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 422,
+        "h": 764
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 422,
+        "h": 764
+      },
+      "sourceSize": {
+        "w": 422,
+        "h": 764
+      }
+    },
+    "umbrella.webp": {
+      "frame": {
+        "x": 424,
+        "y": 0,
+        "w": 1024,
+        "h": 656
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 656
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 656
+      }
+    },
+    "unicorn.webp": {
+      "frame": {
+        "x": 0,
+        "y": 766,
+        "w": 722,
+        "h": 626
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 722,
+        "h": 626
+      },
+      "sourceSize": {
+        "w": 722,
+        "h": 626
+      }
+    },
+    "spinner.webp": {
+      "frame": {
+        "x": 724,
+        "y": 766,
+        "w": 1024,
+        "h": 580
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 580
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 580
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "neon-rain.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1750,
+      "h": 1392
+    },
+    "scale": "1"
+  }
+}

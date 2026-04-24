@@ -1,0 +1,95 @@
+{
+  "frames": {
+    "phone.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 210,
+        "h": 731
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 210,
+        "h": 731
+      },
+      "sourceSize": {
+        "w": 210,
+        "h": 731
+      }
+    },
+    "mirror-shard.webp": {
+      "frame": {
+        "x": 212,
+        "y": 0,
+        "w": 696,
+        "h": 624
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 696,
+        "h": 624
+      },
+      "sourceSize": {
+        "w": 696,
+        "h": 624
+      }
+    },
+    "agent.webp": {
+      "frame": {
+        "x": 910,
+        "y": 0,
+        "w": 1024,
+        "h": 572
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 572
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 572
+      }
+    },
+    "pills.webp": {
+      "frame": {
+        "x": 0,
+        "y": 733,
+        "w": 1024,
+        "h": 540
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 540
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 540
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "code-rain.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1936,
+      "h": 1273
+    },
+    "scale": "1"
+  }
+}

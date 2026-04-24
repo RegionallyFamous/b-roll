@@ -1,0 +1,95 @@
+{
+  "frames": {
+    "bike.webp": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 677
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 677
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 677
+      }
+    },
+    "lights.webp": {
+      "frame": {
+        "x": 0,
+        "y": 679,
+        "w": 1024,
+        "h": 572
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 572
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 572
+      }
+    },
+    "demogorgon.webp": {
+      "frame": {
+        "x": 0,
+        "y": 1253,
+        "w": 1024,
+        "h": 563
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 563
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 563
+      }
+    },
+    "clock.webp": {
+      "frame": {
+        "x": 0,
+        "y": 1818,
+        "w": 1024,
+        "h": 553
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1024,
+        "h": 553
+      },
+      "sourceSize": {
+        "w": 1024,
+        "h": 553
+      }
+    }
+  },
+  "meta": {
+    "app": "b-roll atlas packer",
+    "version": "1",
+    "image": "upside-down.webp",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1026,
+      "h": 2371
+    },
+    "scale": "1"
+  }
+}

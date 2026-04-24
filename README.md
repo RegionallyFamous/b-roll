@@ -20,6 +20,13 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 Pick **B-Roll** from **OS Settings → Wallpapers**, then click the gear in the bottom-right of the live wallpaper to switch scenes. Your pick is remembered per-user.
 
+## v0.10.0 — Sprite atlases + take-a-frame
+
+v0.10 is mostly a polish release for the wallpaper mount path:
+
+- **Sprite atlases for cut-outs.** The 4-ish cut-outs each scene used to pull with 4 separate requests are now packed into a single `assets/atlases/<slug>.{webp,json}` via a new `_tools/pack-atlases.py` shelf packer. `mountCutouts()` loads the atlas once and slices per-cut-out textures by frame name; the prior per-file path is kept as an automatic fallback for any scene that hasn't generated one yet. Round-trips per scene: **4 → 1** (36 → 9 across the full set), texture uploads: **1 per scene instead of 4**. Format is Pixi v8's native spritesheet JSON (`frames`, `meta.image`, `meta.size`).
+- **Take-a-frame (the `S` key).** A new camera button sits to the left of the gear (and `s` from anywhere that isn't an input triggers it too). Composites the painted backdrop WebP + the Pixi cut-out / FX canvas at DPR-native resolution via `renderer.extract.canvas(stage)`, writes `b-roll-<scene>-<timestamp>.png`, flashes the screen briefly, and toasts the saved filename. Same-origin so no CORS taints; reduced-motion users skip the flash but still get the save.
+
 ## v0.9.0 — Color-aware OS, cinematic depth, smaller zip
 
 v0.9 is the "plugin disappears into the OS" release. The wallpaper now drives the Dock and Admin Bar color, the cut-outs feel like real cinematography, and the whole plugin shed another third of its payload.
