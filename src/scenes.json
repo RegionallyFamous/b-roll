@@ -5,7 +5,13 @@
         "franchise": "The Matrix",
         "tags": ["sci-fi", "green", "text", "rain", "retro"],
         "fallbackColor": "#021b0f",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "agent.png",        "motion": "drift",  "period": 70, "scale": 0.55, "z": "far",  "alpha": 0.35, "x": 0.75, "y": 0.52, "ax": 0.12, "ay": 0.02 },
+            { "file": "phone.png",        "motion": "bob",    "period": 40, "scale": 0.22, "z": "mid",  "alpha": 0.65, "x": 0.12, "y": 0.78, "bob": 10, "wobble": 0.12 },
+            { "file": "mirror-shard.png", "motion": "tumble", "period": 55, "scale": 0.30, "z": "near", "alpha": 0.55, "spin": 0.015, "sway": 50, "xMin": 0.15, "xMax": 0.85 },
+            { "file": "pills.png",        "motion": "bob",    "period": 20, "scale": 0.45, "z": "near", "alpha": 0.95, "x": 0.5,  "y": 0.5,  "bob": 14, "wobble": 0.05, "egg": true }
+        ]
     },
     {
         "slug": "hyperspace",
@@ -13,7 +19,13 @@
         "franchise": "Star Wars",
         "tags": ["sci-fi", "space", "stars", "blue"],
         "fallbackColor": "#000010",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "xwing.png",         "motion": "cross",  "period": 35, "scale": 0.32, "z": "near", "alpha": 0.90, "y": 0.40, "dir": "ltr", "bob": 22 },
+            { "file": "tie.png",           "motion": "cross",  "period": 45, "scale": 0.25, "z": "mid",  "alpha": 0.80, "y": 0.62, "dir": "rtl", "bob": 14 },
+            { "file": "asteroid.png",      "motion": "drift",  "period": 90, "scale": 0.38, "z": "far",  "alpha": 0.55, "x": 0.5, "y": 0.35, "ax": 0.30, "ay": 0.08 },
+            { "file": "stardestroyer.png", "motion": "cross",  "period": 28, "scale": 0.85, "z": "far",  "alpha": 0.80, "y": 0.22, "dir": "ltr", "bob": 6,  "egg": true }
+        ]
     },
     {
         "slug": "neon-rain",
@@ -21,7 +33,13 @@
         "franchise": "Blade Runner",
         "tags": ["sci-fi", "cyberpunk", "neon", "rain", "night", "purple"],
         "fallbackColor": "#0d0412",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "spinner.png",  "motion": "cross", "period": 55, "scale": 0.30, "z": "mid",  "alpha": 0.80, "y": 0.30, "dir": "rtl", "bob": 10 },
+            { "file": "umbrella.png", "motion": "bob",   "period": 32, "scale": 0.28, "z": "near", "alpha": 0.85, "x": 0.82, "y": 0.80, "bob": 16, "wobble": 0.10 },
+            { "file": "dancer.png",   "motion": "drift", "period": 80, "scale": 0.55, "z": "far",  "alpha": 0.35, "x": 0.20, "y": 0.45, "ax": 0.05, "ay": 0.02 },
+            { "file": "unicorn.png",  "motion": "bob",   "period": 18, "scale": 0.35, "z": "near", "alpha": 1.00, "x": 0.5,  "y": 0.55, "bob": 8,  "wobble": 0.04, "egg": true }
+        ]
     },
     {
         "slug": "tron-grid",
@@ -29,7 +47,13 @@
         "franchise": "Tron",
         "tags": ["sci-fi", "neon", "grid", "blue", "retro"],
         "fallbackColor": "#000814",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "lightcycle.png", "motion": "cross", "period": 22, "scale": 0.28, "z": "near", "alpha": 0.90, "y": 0.68, "dir": "ltr", "bob": 4 },
+            { "file": "recognizer.png", "motion": "drift", "period": 95, "scale": 0.45, "z": "far",  "alpha": 0.55, "x": 0.5, "y": 0.25, "ax": 0.30, "ay": 0.03 },
+            { "file": "disc.png",       "motion": "bob",   "period": 25, "scale": 0.22, "z": "mid",  "alpha": 0.85, "x": 0.14, "y": 0.42, "bob": 12, "wobble": 0.25 },
+            { "file": "mcp.png",        "motion": "bob",   "period": 50, "scale": 0.90, "z": "far",  "alpha": 0.85, "x": 0.5,  "y": 0.60, "bob": 6,  "wobble": 0.02, "egg": true }
+        ]
     },
     {
         "slug": "rainbow-road",
@@ -37,7 +61,13 @@
         "franchise": "Mario Kart",
         "tags": ["space", "neon", "racing", "retro"],
         "fallbackColor": "#0a001e",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "bullet-bill.png", "motion": "cross",  "period": 40, "scale": 0.35, "z": "mid",  "alpha": 0.95, "y": 0.32, "dir": "ltr", "bob": 6 },
+            { "file": "chain-chomp.png", "motion": "bob",    "period": 28, "scale": 0.28, "z": "near", "alpha": 0.90, "x": 0.85, "y": 0.65, "bob": 18, "wobble": 0.18 },
+            { "file": "airship.png",     "motion": "drift",  "period": 95, "scale": 0.55, "z": "far",  "alpha": 0.70, "x": 0.5, "y": 0.22, "ax": 0.30, "ay": 0.04 },
+            { "file": "banana.png",      "motion": "tumble", "period": 35, "scale": 0.18, "z": "near", "alpha": 0.95, "spin": 0.05, "sway": 30, "xMin": 0.2, "xMax": 0.8 }
+        ]
     },
     {
         "slug": "soot-sprites",
@@ -45,7 +75,13 @@
         "franchise": "Studio Ghibli",
         "tags": ["cozy", "anime", "cute", "pastel"],
         "fallbackColor": "#e0deed",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "totoro.png",    "motion": "cross",  "period": 85, "scale": 0.55, "z": "far",  "alpha": 0.75, "y": 0.70, "dir": "ltr", "bob": 6 },
+            { "file": "jiji.png",      "motion": "bob",    "period": 36, "scale": 0.22, "z": "mid",  "alpha": 0.85, "x": 0.85, "y": 0.40, "bob": 14, "wobble": 0.14 },
+            { "file": "kodama.png",    "motion": "drift",  "period": 60, "scale": 0.18, "z": "mid",  "alpha": 0.75, "x": 0.22, "y": 0.55, "ax": 0.14, "ay": 0.06 },
+            { "file": "konpeito.png",  "motion": "tumble", "period": 28, "scale": 0.14, "z": "near", "alpha": 0.95, "spin": 0.04, "sway": 40, "xMin": 0.1, "xMax": 0.9 }
+        ]
     },
     {
         "slug": "upside-down",
@@ -53,7 +89,13 @@
         "franchise": "Stranger Things",
         "tags": ["horror", "red", "glitch", "smoke"],
         "fallbackColor": "#1a0410",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "bike.png",            "motion": "cross", "period": 65, "scale": 0.30, "z": "far",  "alpha": 0.60, "y": 0.72, "dir": "ltr", "bob": 6 },
+            { "file": "lights.png",          "motion": "drift", "period": 45, "scale": 0.70, "z": "mid",  "alpha": 0.80, "x": 0.5,  "y": 0.12, "ax": 0.10, "ay": 0.02 },
+            { "file": "clock.png",           "motion": "bob",   "period": 40, "scale": 0.25, "z": "mid",  "alpha": 0.75, "x": 0.18, "y": 0.55, "bob": 16, "wobble": 0.18 },
+            { "file": "demogorgon.png",      "motion": "bob",   "period": 14, "scale": 0.85, "z": "near", "alpha": 0.92, "x": 0.5,  "y": 0.52, "bob": 6,  "wobble": 0.03, "egg": true }
+        ]
     },
     {
         "slug": "refinery",
@@ -61,7 +103,13 @@
         "franchise": "Severance",
         "tags": ["retro", "green", "text", "corporate"],
         "fallbackColor": "#d4ded9",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "mug.png",      "motion": "bob",   "period": 34, "scale": 0.20, "z": "mid",  "alpha": 0.85, "x": 0.12, "y": 0.82, "bob": 8,  "wobble": 0.08 },
+            { "file": "goat.png",     "motion": "cross", "period": 75, "scale": 0.22, "z": "far",  "alpha": 0.55, "y": 0.86, "dir": "ltr", "bob": 4 },
+            { "file": "waffle.png",   "motion": "drift", "period": 55, "scale": 0.18, "z": "mid",  "alpha": 0.70, "x": 0.82, "y": 0.30, "ax": 0.08, "ay": 0.05 },
+            { "file": "elevator.png", "motion": "bob",   "period": 20, "scale": 0.75, "z": "near", "alpha": 0.95, "x": 0.5,  "y": 0.52, "bob": 4,  "wobble": 0.01, "egg": true }
+        ]
     },
     {
         "slug": "shimmer",
@@ -69,6 +117,12 @@
         "franchise": "Arcane",
         "tags": ["cyberpunk", "magenta", "particles", "animated"],
         "fallbackColor": "#22071a",
-        "added": "0.1.0"
+        "added": "0.1.0",
+        "cutouts": [
+            { "file": "vial.png",        "motion": "bob",   "period": 32, "scale": 0.24, "z": "mid",  "alpha": 0.90, "x": 0.22, "y": 0.60, "bob": 14, "wobble": 0.08 },
+            { "file": "hex-crystal.png", "motion": "orbit", "period": 50, "scale": 0.20, "z": "mid",  "alpha": 0.80, "cx": 0.80, "cy": 0.48, "radius": 0.14, "squash": 0.55 },
+            { "file": "moth.png",        "motion": "drift", "period": 45, "scale": 0.25, "z": "far",  "alpha": 0.50, "x": 0.55, "y": 0.30, "ax": 0.28, "ay": 0.10 },
+            { "file": "monkey-bomb.png", "motion": "cross", "period": 16, "scale": 0.25, "z": "near", "alpha": 1.00, "y": 0.55, "dir": "rtl", "bob": 30, "egg": true }
+        ]
     }
 ]

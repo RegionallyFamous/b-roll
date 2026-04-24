@@ -20,6 +20,20 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 Pick **B-Roll** from **OS Settings → Wallpapers**, then click the gear in the bottom-right of the live wallpaper to switch scenes. Your pick is remembered per-user.
 
+## v0.7.0 — Painted foreground cut-outs + interactive easter eggs
+
+Every scene now layers a third tier on top of the painted backdrop and the Pixi motion stack: a **foreground container of painted PNG cut-outs** that drift across the frame on per-cutout motion profiles. Four cut-outs per scene (36 in total) — agents, X-wings, light cycles, Bullet Bills, soot huddles, Demogorgons, MDR mugs, Shimmer vials — each with its own depth slot (`far` / `mid` / `near`), opacity, and motion type (`cross`, `drift`, `bob`, `tumble`, `orbit`).
+
+Cut-outs are declared in [src/scenes.json](src/scenes.json) and ship from `assets/cutouts/<slug>/*.png`. The painting still does the static heavy lifting; the Pixi motion still carries rain/glyphs/grids; the cut-outs add the read-it-from-across-the-room franchise punch.
+
+This release also adds **interactive easter eggs**, dispatched globally and routed to the active scene's `onEgg(name, state, env)` handler:
+
+- **Konami code** (`↑↑↓↓←→←→ba`) → `festival` — a per-scene celebratory blowout (slow-mo bullet time in Code Rain, fleet hyperspace burst in Hyperspace, Demogorgon stomp + lightning in The Upside Down, candy storm in Soot Sprites, etc.).
+- **Scene keywords** (e.g. `matrix`, `wars`, `blade`, `tron`, `mario`, `ghibli`, `hawkins`, `praise kier`, `jinx`) → `reveal` — a hidden flourish themed to the scene.
+- **Triple-click** in the bottom-left 60×60 corner → `peek` — a quick foreground reveal/zoom of one egg cut-out.
+
+The shared helpers (`window.__bRoll.helpers.mountCutouts`, `tickDrifters`, `showEggDrifter`, `hideEggDrifter`) handle the heavy lifting so each scene only adds ~3 lines to `setup()` / `tick()` and an `onEgg` handler. Lazy-loaded once at boot ([src/easter-eggs.js](src/easter-eggs.js)) and reduced-motion-aware. Plugin payload grows by ~3.5 MB of compressed transparent PNGs.
+
 ## v0.6.0 — One card, one picker, built for hundreds
 
 B-Roll used to register one shell wallpaper per scene. At nine scenes that was fine; at fifty it would have swamped the WP Desktop picker. v0.6 collapses the plugin into a **single "B-Roll" wallpaper card**. Scene selection moved into an in-canvas picker you open by hovering the wallpaper and clicking the gear in the bottom-right corner. Your choice is saved per-user via a new `POST /b-roll/v1/prefs` REST route (with a `localStorage` fallback on network failure), so your desktop remembers it across sessions.
@@ -149,6 +163,13 @@ window.__bRoll.scenes[ 'my-thing' ] = {
 ```
 
 The shared mount runner (in `index.js`) handles Pixi app creation, canvas styling, reduced-motion still-frame, the shell's visibility action, and full GL teardown. Scene files only write the creative code.
+
+## CI + releases
+
+The repo is wired up with two GitHub Actions workflows:
+
+- **`.github/workflows/ci.yml`** runs on every PR and push to `main`: scene manifest validation (`bin/validate-scenes`), `b-roll.php` version-string consistency (`bin/check-version`), blueprint validation (`bin/check-blueprint`), `php -l` + PHPCS (WordPress-Extra) on PHP 7.4 and 8.3, `node --check` + ESLint on every scene file, JSON parse checks on all config files, a zip build with a 7 MB size budget, and a Playground activation smoke test via `@wp-playground/cli`. Every step has a `bin/` script that runs locally with the same exit semantics.
+- **`.github/workflows/release.yml`** triggers on `v*` tag push. It reruns the full CI suite, asserts the tag matches the committed `b-roll.php` version, builds `dist/b-roll.zip`, creates a GitHub release with auto-generated notes, and uploads the zip as the release asset. Cutting a release is just: bump the three version strings in `b-roll.php`, commit, `git tag v0.X.0 && git push origin v0.X.0`.
 
 ## License
 

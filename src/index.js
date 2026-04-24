@@ -58,9 +58,198 @@
 		return c;
 	}
 
+	// ============================================================ //
+	// Cut-out drifters — v0.7 foreground layer.
+	//
+	// Each scene ships a few transparent-PNG cut-outs at
+	// assets/cutouts/<slug>/*.png. Scenes declare them in
+	// scenes.json with a motion profile; mountCutouts() loads
+	// textures and returns a drifters[] array, and tickDrifters()
+	// advances them every frame.
+	// ============================================================ //
+
+	function cutoutUrl( slug, file ) {
+		var base = window.__bRoll.config ? window.__bRoll.config.pluginUrl : '';
+		var ver  = window.__bRoll.config ? window.__bRoll.config.version   : '';
+		var qs = ver ? '?v=' + encodeURIComponent( ver ) : '';
+		return base + '/assets/cutouts/' + slug + '/' + file + qs;
+	}
+
+	function resolveCutoutDefs( slug ) {
+		var map = ( window.__bRoll.config && window.__bRoll.config.sceneMap ) || {};
+		var s = map[ slug ];
+		return ( s && Array.isArray( s.cutouts ) ) ? s.cutouts : [];
+	}
+
+	function mountCutouts( app, PIXI, slug, fg ) {
+		var defs = resolveCutoutDefs( slug );
+		if ( ! defs.length ) return Promise.resolve( [] );
+
+		var far  = new PIXI.Container(); fg.addChild( far );
+		var mid  = new PIXI.Container(); fg.addChild( mid );
+		var near = new PIXI.Container(); fg.addChild( near );
+		var bins = { far: far, mid: mid, near: near };
+
+		var drifters = [];
+		var jobs = defs.map( function ( def ) {
+			var url = cutoutUrl( slug, def.file );
+			return PIXI.Assets.load( url ).then( function ( tex ) {
+				var sprite = new PIXI.Sprite( tex );
+				sprite.anchor.set( 0.5 );
+				( bins[ def.z || 'mid' ] || mid ).addChild( sprite );
+
+				var zAlpha = def.z === 'far' ? 0.55 : def.z === 'near' ? 0.95 : 0.80;
+				var baseAlpha = def.alpha != null ? def.alpha : zAlpha;
+
+				var d = {
+					sprite: sprite,
+					def: def,
+					texWidth: tex.width,
+					texHeight: tex.height,
+					t: Math.random() * ( def.period || 30 ) * 60,
+					prevPh: 0,
+					lane: Math.random(),
+					baseAlpha: baseAlpha,
+					alphaMul: 1,
+					scaleMul: 1,
+					hidden: !! def.egg,
+					egg: !! def.egg,
+				};
+				sprite.visible = ! d.hidden;
+				drifters.push( d );
+				return d;
+			} ).catch( function ( err ) {
+				if ( window.console ) window.console.warn( 'B-Roll: cutout failed', url, err );
+				return null;
+			} );
+		} );
+
+		return Promise.all( jobs ).then( function () { return drifters; } );
+	}
+
+	function motionUpdate( d, env ) {
+		var app = env.app;
+		var w = app.renderer.width, hh = app.renderer.height;
+		var s = d.sprite;
+		var def = d.def;
+		d.t += env.dt;
+		var T = ( def.period || 30 ) * 60;
+		var ph = ( ( d.t % T ) + T ) % T / T;
+		var baseScale = ( def.scale || 0.5 ) * d.scaleMul;
+
+		switch ( def.motion ) {
+			case 'cross': {
+				var dir = def.dir || 'ltr';
+				var yN = def.y != null ? def.y : 0.45;
+				var fade = Math.sin( Math.min( 1, ph ) * Math.PI );
+				if ( dir === 'rtl' ) {
+					s.x = w + d.texWidth * baseScale * 0.6 - ph * ( w + d.texWidth * baseScale * 1.2 );
+				} else {
+					s.x = -d.texWidth * baseScale * 0.6 + ph * ( w + d.texWidth * baseScale * 1.2 );
+				}
+				s.y = yN * hh + Math.sin( ph * tau ) * ( def.bob || 18 );
+				s.rotation = ( def.tilt || 0 ) + Math.sin( ph * tau ) * 0.04;
+				s.scale.set( baseScale );
+				s.alpha = fade * d.baseAlpha * d.alphaMul;
+				break;
+			}
+			case 'drift': {
+				var xN = def.x != null ? def.x : 0.5;
+				var yN2 = def.y != null ? def.y : 0.4;
+				var ax  = ( def.ax  != null ? def.ax  : 0.35 );
+				var ay  = ( def.ay  != null ? def.ay  : 0.05 );
+				s.x = w  * xN + Math.cos( ph * tau ) * w * ax;
+				s.y = hh * yN2 + Math.sin( ph * tau * 0.7 ) * hh * ay;
+				s.rotation = ( def.tilt || 0 ) + Math.sin( d.t * 0.004 ) * 0.03;
+				s.scale.set( baseScale );
+				s.alpha = d.baseAlpha * d.alphaMul;
+				break;
+			}
+			case 'bob': {
+				var bx = def.x != null ? def.x : 0.5;
+				var by = def.y != null ? def.y : 0.55;
+				s.x = w  * bx + Math.sin( ph * tau * 0.5 ) * ( def.sway || 6 );
+				s.y = hh * by + Math.sin( ph * tau ) * ( def.bob || 20 );
+				s.rotation = ( def.tilt || 0 ) + Math.sin( ph * tau ) * ( def.wobble || 0.07 );
+				s.scale.set( baseScale );
+				s.alpha = d.baseAlpha * d.alphaMul;
+				break;
+			}
+			case 'tumble': {
+				if ( ph < d.prevPh ) { d.lane = Math.random(); }
+				d.prevPh = ph;
+				var laneX = ( def.xMin != null ? def.xMin : 0.1 )
+				          + d.lane * ( ( def.xMax != null ? def.xMax : 0.9 ) - ( def.xMin != null ? def.xMin : 0.1 ) );
+				s.x = w * laneX + Math.sin( ph * tau * 0.9 ) * ( def.sway || 40 );
+				s.y = -d.texHeight * baseScale + ph * ( hh + d.texHeight * baseScale * 2 );
+				s.rotation = d.t * ( def.spin || 0.03 );
+				s.scale.set( baseScale );
+				s.alpha = d.baseAlpha * d.alphaMul;
+				break;
+			}
+			case 'orbit': {
+				var cx = w  * ( def.cx != null ? def.cx : 0.5 );
+				var cy = hh * ( def.cy != null ? def.cy : 0.5 );
+				var rr = ( def.radius || 0.3 ) * Math.min( w, hh );
+				var sq = def.squash != null ? def.squash : 0.45;
+				s.x = cx + Math.cos( ph * tau ) * rr;
+				s.y = cy + Math.sin( ph * tau ) * rr * sq;
+				s.rotation = ph * tau * ( def.rotDir || 1 );
+				s.scale.set( baseScale );
+				s.alpha = d.baseAlpha * d.alphaMul;
+				break;
+			}
+			default: {
+				s.x = w * 0.5; s.y = hh * 0.5;
+				s.scale.set( baseScale );
+				s.alpha = d.baseAlpha * d.alphaMul;
+			}
+		}
+	}
+
+	function tickDrifters( drifters, env ) {
+		if ( ! drifters || ! drifters.length ) return;
+		for ( var i = 0; i < drifters.length; i++ ) {
+			var d = drifters[ i ];
+			if ( d.hidden ) { d.sprite.visible = false; continue; }
+			d.sprite.visible = true;
+			motionUpdate( d, env );
+		}
+	}
+
+	function showEggDrifter( drifters, file, opts ) {
+		opts = opts || {};
+		for ( var i = 0; i < drifters.length; i++ ) {
+			var d = drifters[ i ];
+			if ( d.def.file === file ) {
+				d.hidden = false;
+				d.alphaMul = opts.alphaMul != null ? opts.alphaMul : 1;
+				d.scaleMul = opts.scaleMul != null ? opts.scaleMul : 1;
+				d.t = opts.resetT ? 0 : d.t;
+				return d;
+			}
+		}
+		return null;
+	}
+
+	function hideEggDrifter( drifters, file ) {
+		for ( var i = 0; i < drifters.length; i++ ) {
+			var d = drifters[ i ];
+			if ( d.def.file === file ) {
+				d.hidden = true;
+				d.alphaMul = 1;
+				d.scaleMul = 1;
+				d.sprite.visible = false;
+				return;
+			}
+		}
+	}
+
 	window.__bRoll.helpers = {
 		rand: rand, irand: irand, choose: choose, clamp: clamp, tau: tau,
 		lerpColor: lerpColor, paintVGradient: paintVGradient, makeBloomLayer: makeBloomLayer,
+		mountCutouts: mountCutouts, tickDrifters: tickDrifters,
+		showEggDrifter: showEggDrifter, hideEggDrifter: hideEggDrifter,
 	};
 
 	// ============================================================ //
@@ -129,6 +318,15 @@
 				throw new Error( 'Picker did not self-register' );
 			}
 			return window.__bRoll.picker;
+		} );
+	}
+
+	function loadEasterEggs() {
+		if ( window.__bRoll.eggs && window.__bRoll.eggs._installed ) {
+			return Promise.resolve( window.__bRoll.eggs );
+		}
+		return loadScript( assetUrl( 'src/easter-eggs.js' ) ).then( function () {
+			return window.__bRoll.eggs;
 		} );
 	}
 
@@ -292,6 +490,9 @@
 						app.ticker.add( tick );
 						app.ticker.start();
 					}
+					if ( window.__bRoll.eggs && window.__bRoll.eggs.setActive ) {
+						window.__bRoll.eggs.setActive( nextSlug, state, env, container );
+					}
 					swapping = false;
 					return { ok: true };
 				} catch ( err ) {
@@ -378,6 +579,10 @@
 			if ( window.wp && window.wp.hooks ) {
 				window.wp.hooks.addAction( 'wp-desktop.wallpaper.visibility', visHook, onVis );
 			}
+
+			loadEasterEggs().catch( function ( e ) {
+				if ( window.console ) window.console.warn( 'B-Roll: eggs failed to load', e );
+			} );
 
 			var initial = prefsState.scene || defaultScene();
 			var first = await swap( initial );

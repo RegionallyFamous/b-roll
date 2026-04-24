@@ -76,13 +76,38 @@
 			}
 			var splashes = [];
 
+			// Foreground cut-out layer (v0.7).
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var drifters = await h.mountCutouts( app, PIXI, 'neon-rain', fg );
+
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				lightning: lightning, lightT: h.rand( 60 * 8, 60 * 30 ),
 				rain: rain, drops: drops, splashes: splashes,
 				spinner: spinner, spinnerT: h.rand( 60 * 12, 60 * 35 ),
 				time: 0,
+				fg: fg, drifters: drifters,
+				eggRainBoost: 0,
 			};
+		},
+
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				// All cut-outs visible at once + force lightning + rain boost.
+				h.showEggDrifter( state.drifters, 'unicorn.png', { resetT: true } );
+				state.lightT = 0;
+				state.eggRainBoost = 600;
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'unicorn.png' ); }, 9000 );
+			} else if ( name === 'reveal' ) {
+				// Type 'blade' → unicorn appears center, glowing.
+				h.showEggDrifter( state.drifters, 'unicorn.png', { scaleMul: 1.4, resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'unicorn.png' ); }, 7000 );
+			} else if ( name === 'peek' ) {
+				// Quick lightning + spinner pass.
+				state.lightT = 0;
+				state.spinnerT = 0;
+			}
 		},
 
 		onResize: function ( state ) {
@@ -93,6 +118,12 @@
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
+			h.tickDrifters( state.drifters, env );
+
+			if ( state.eggRainBoost > 0 ) {
+				state.eggRainBoost = Math.max( 0, state.eggRainBoost - dt );
+				dt = dt * 1.6;
+			}
 
 			// --- Lightning (back layer) ------------------------------ //
 			state.lightT -= dt;

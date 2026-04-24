@@ -65,6 +65,10 @@
 
 			var flash = new PIXI.Graphics(); flash.alpha = 0; app.stage.addChild( flash );
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var drifters = await h.mountCutouts( app, PIXI, 'tron-grid', fg );
+
 			function makeCycle( color, gx, gy, dir ) {
 				return {
 					gx: gx != null ? gx : h.irand( 2, 18 ),
@@ -92,6 +96,7 @@
 				makeCycle: makeCycle,
 				phase: 0,
 				packetCD: h.rand( 90, 240 ),
+				fg: fg, drifters: drifters,
 			};
 		},
 
@@ -99,11 +104,32 @@
 			state.fitBackdrop();
 		},
 
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				h.showEggDrifter( state.drifters, 'mcp.png', { resetT: true } );
+				state.flash.clear().rect( 0, 0, env.app.renderer.width, env.app.renderer.height )
+					.fill( { color: 0xff6d1f, alpha: 0.6 } );
+				state.flash.alpha = 1;
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'mcp.png' ); }, 10000 );
+			} else if ( name === 'reveal' ) {
+				// Type 'tron' → both cycles speed up + force packet bursts.
+				for ( var i = 0; i < state.cycles.length; i++ ) state.cycles[ i ].interval = 3;
+				setTimeout( function () {
+					for ( var j = 0; j < state.cycles.length; j++ ) state.cycles[ j ].interval = 8;
+				}, 6000 );
+				state.packetCD = 0;
+			} else if ( name === 'peek' ) {
+				h.showEggDrifter( state.drifters, 'disc.png', { scaleMul: 2.0, resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'disc.png' ); }, 4000 );
+			}
+		},
+
 		tick: function ( state, env ) {
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var hy = hh * 0.52;
 			var floorH = hh - hy;
+			h.tickDrifters( state.drifters, env );
 
 			// Convert (gx, gy) grid space to (sx, sy) screen space.
 			// gx: 0..20 across, gy: 0..16 deep.

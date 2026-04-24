@@ -83,6 +83,10 @@
 			item.alpha = 0;
 			app.stage.addChild( item );
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var drifters = await h.mountCutouts( app, PIXI, 'rainbow-road', fg );
+
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				stars: stars,
@@ -96,6 +100,8 @@
 				kartList: [], kartCD: h.rand( 60 * 3, 60 * 10 ),
 				offset: 0,
 				time: 0,
+				fg: fg, drifters: drifters,
+				eggCountdown: null,
 			};
 		},
 
@@ -103,10 +109,51 @@
 			state.fitBackdrop();
 		},
 
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				// All ambient drifters animate; force the airship to bottom-pass.
+				state.itemT = 0;
+				state.kartCD = 0;
+			} else if ( name === 'reveal' ) {
+				// Type 'kart' → 3-2-1-GO countdown overlay.
+				if ( state.eggCountdown ) state.eggCountdown.destroy();
+				var txt = new env.PIXI.Text( {
+					text: '3',
+					style: {
+						fontFamily: 'Impact, sans-serif', fontSize: 220, fill: 0xffffff,
+						stroke: { color: 0xff2d5a, width: 8 },
+					},
+				} );
+				txt.anchor.set( 0.5 );
+				txt.x = env.app.renderer.width / 2;
+				txt.y = env.app.renderer.height / 2;
+				env.app.stage.addChild( txt );
+				state.eggCountdown = txt;
+				var seq = [ '3', '2', '1', 'GO!' ];
+				var idx = 0;
+				var step = function () {
+					idx++;
+					if ( idx >= seq.length ) {
+						txt.destroy();
+						state.eggCountdown = null;
+						return;
+					}
+					txt.text = seq[ idx ];
+					setTimeout( step, 800 );
+				};
+				setTimeout( step, 800 );
+			} else if ( name === 'peek' ) {
+				// Force the ?-box big.
+				state.itemT = 0;
+				state.itemPhase = 'idle';
+			}
+		},
+
 		tick: function ( state, env ) {
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
+			h.tickDrifters( state.drifters, env );
 
 			// --- Shooting stars (rendered into the stars layer) ----- //
 			state.stars.clear();

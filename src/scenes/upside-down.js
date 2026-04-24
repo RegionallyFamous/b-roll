@@ -151,6 +151,10 @@
 			card.x = w / 2; card.y = hh * 0.45;
 			app.stage.addChild( card );
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var drifters = await h.mountCutouts( app, PIXI, 'upside-down', fg );
+
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				veil: veil, flash: flash, tendrils: tendrils,
@@ -164,7 +168,29 @@
 				lightT: h.rand( 60 * 10, 60 * 25 ), lightLife: 0,
 				flashLife: 0,
 				time: 0,
+				fg: fg, drifters: drifters,
 			};
+		},
+
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				// Konami → Demogorgon stomps in for a moment.
+				h.showEggDrifter( state.drifters, 'demogorgon.png', { resetT: true, scaleMul: 1.2 } );
+				state.lightLife = 1;
+				state.flashLife = 1;
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'demogorgon.png' ); }, 6000 );
+			} else if ( name === 'reveal' ) {
+				// Type 'hawkins' → fire title card immediately.
+				state.cardPhase = 'in';
+				state.tR.text = 'RUN'; state.tG.text = 'RUN'; state.tB.text = 'RUN';
+				state.card.alpha = 0;
+				state.lightLife = 1;
+				state.flashLife = 1;
+			} else if ( name === 'peek' ) {
+				// Triple-click → quick lightning sweep.
+				state.sweepY = 0;
+				state.lightLife = 1;
+			}
 		},
 
 		onResize: function ( state, env ) {
@@ -178,6 +204,7 @@
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
+			h.tickDrifters( state.drifters, env );
 
 			// --- Spores with parallax --------------------------- //
 			state.sporeLayer.clear();

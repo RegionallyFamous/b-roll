@@ -90,6 +90,10 @@
 			var glintLayer = new PIXI.Graphics();
 			app.stage.addChild( glintLayer );
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var drifters = await h.mountCutouts( app, PIXI, 'shimmer', fg );
+
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				colorWave: colorWave, waveY: -999, waveT: h.rand( 60 * 8, 60 * 22 ),
@@ -102,6 +106,7 @@
 				hex: hex, hexAlpha: 0, hexOrigin: { x: w / 2, y: hh * 0.88 },
 				particles: particles, bloomParticles: bloomParticles, pts: pts,
 				glintLayer: glintLayer, hexT: h.rand( 60 * 6, 60 * 18 ),
+				fg: fg, drifters: drifters,
 			};
 		},
 
@@ -110,10 +115,38 @@
 			state.hexOrigin = { x: env.app.renderer.width / 2, y: env.app.renderer.height * 0.88 };
 		},
 
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				// Konami → big hex pulse + lightning + flood of bubbles.
+				state.hexAlpha = 1;
+				state.hexOrigin = { x: env.app.renderer.width / 2, y: env.app.renderer.height * 0.6 };
+				state.lightningLife = 1;
+				state.lightningFlash = 1;
+				for ( var i = 0; i < 30; i++ ) {
+					state.bubbles.push( {
+						x: h.rand( 0, env.app.renderer.width ), y: env.app.renderer.height + h.rand( 0, 80 ),
+						vy: -h.rand( 0.5, 1.5 ), r: h.rand( 1.2, 4 ),
+						phase: Math.random() * h.tau, wobble: h.rand( 0.5, 1.8 ),
+						life: 1, color: h.lerpColor( 0xff4ab8, 0xffe08a, Math.random() ),
+					} );
+				}
+			} else if ( name === 'reveal' ) {
+				// Type 'jinx' → monkey-bomb appears + lightning.
+				h.showEggDrifter( state.drifters, 'monkey-bomb.png', { resetT: true, scaleMul: 1.2 } );
+				state.lightningLife = 1; state.lightningFlash = 1;
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'monkey-bomb.png' ); }, 5000 );
+			} else if ( name === 'peek' ) {
+				// Triple-click → focused hex pulse near the click region.
+				state.hexAlpha = 1;
+				state.hexOrigin = { x: 80, y: env.app.renderer.height - 80 };
+			}
+		},
+
 		tick: function ( state, env ) {
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var t = env.app.ticker.lastTime;
+			h.tickDrifters( state.drifters, env );
 
 			// --- Chem-tank pulse (base glow) ------------------- //
 			state.tank.clear();

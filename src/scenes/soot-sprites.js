@@ -111,6 +111,10 @@
 				return { node: g, vy: 0.3, spin: h.rand( -0.02, 0.02 ), life: 1 };
 			}
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var drifters = await h.mountCutouts( app, PIXI, 'soot-sprites', fg );
+
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				dustLayer: dustLayer, sprites: sprites,
@@ -118,6 +122,7 @@
 				dust: [],
 				candyT: h.rand( 60 * 15, 60 * 40 ),
 				time: 0, windPhase: 0,
+				fg: fg, drifters: drifters,
 			};
 		},
 
@@ -125,11 +130,35 @@
 			state.fitBackdrop();
 		},
 
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				// Totoro emphasized + extra candy storm.
+				for ( var i = 0; i < 5; i++ ) {
+					state.candies.push( state.makeCandy(
+						h.rand( 60, env.app.renderer.width - 60 ), h.rand( -200, -10 )
+					) );
+				}
+			} else if ( name === 'reveal' ) {
+				// Type 'ghibli' → 20+ konpeito candy rain.
+				for ( var k = 0; k < 24; k++ ) {
+					state.candies.push( state.makeCandy(
+						h.rand( 30, env.app.renderer.width - 30 ),
+						h.rand( -400, -10 )
+					) );
+				}
+			} else if ( name === 'peek' ) {
+				// Bring jiji in close for a few seconds.
+				h.showEggDrifter( state.drifters, 'jiji.png', { scaleMul: 1.8, resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'jiji.png' ); }, 4500 );
+			}
+		},
+
 		tick: function ( state, env ) {
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.time += dt;
 			state.windPhase += 0.01 * dt;
+			h.tickDrifters( state.drifters, env );
 			var windOffset = Math.sin( state.windPhase ) * 2.2;
 
 			// --- Candy spawn/fall --------------------------------- //

@@ -96,6 +96,11 @@
 			}
 			drawScan();
 
+			// Foreground cut-out layer (v0.7) — drifts above motion,
+			// below scanline + grain so post-fx still cover everything.
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+
 			var grain = new PIXI.Graphics();
 			grain.alpha = 0.13;
 			app.stage.addChild( grain );
@@ -186,7 +191,13 @@
 				grainTick: 0,
 				cascadeCooldown: h.irand( 300, 1200 ), // frames (5–20s at 60fps)
 				cascade: null,
+				fg: fg,
+				drifters: [],
+				eggBulletTime: 0,
+				eggForcePhrase: null,
+				eggPhraseTick: 0,
 			};
+			state.drifters = await h.mountCutouts( app, PIXI, 'code-rain', fg );
 			layout();
 			return state;
 		},
@@ -197,11 +208,55 @@
 			state.layout();
 		},
 
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				// Bullet-time + flash every column white briefly.
+				state.eggBulletTime = 600; // ~10s @ 60fps
+				for ( var i = 0; i < state.cols.length; i++ ) state.cols[ i ].flash = 1;
+				h.showEggDrifter( state.drifters, 'pills.png', { resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'pills.png' ); }, 5000 );
+			} else if ( name === 'reveal' ) {
+				// Type 'matrix' → spell WAKE UP NEO across mid columns.
+				var phrase = 'WAKE UP NEO';
+				var w = Math.min( phrase.length, state.cols.length - 2 );
+				var start = Math.max( 0, ( ( state.cols.length - w ) / 2 ) | 0 );
+				for ( var pj = 0; pj < w; pj++ ) {
+					var pc = state.cols[ start + pj ];
+					if ( pc ) pc.forcedHead = phrase.charAt( pj );
+				}
+				state.eggForcePhrase = phrase;
+				state.eggPhraseTick = 360; // ~6s
+			} else if ( name === 'peek' ) {
+				// Center the pills cut-out big for ~4s.
+				var d = h.showEggDrifter( state.drifters, 'pills.png', { scaleMul: 1.6, resetT: true } );
+				if ( d ) setTimeout( function () { h.hideEggDrifter( state.drifters, 'pills.png' ); }, 4000 );
+			}
+		},
+
 		tick: function ( state, env ) {
 			var dt = env.dt;
 			var hh = env.app.renderer.height;
 			state.time += dt;
 			state.grainTick += dt;
+
+			// --- Egg: bullet-time slows the rain for ~10s ----------- //
+			if ( state.eggBulletTime > 0 ) {
+				state.eggBulletTime = Math.max( 0, state.eggBulletTime - dt );
+				dt = dt * 0.25;
+			}
+
+			// --- Egg: matrix keyword forces 'WAKE UP NEO' phrase ---- //
+			if ( state.eggForcePhrase ) {
+				state.eggPhraseTick -= dt;
+				if ( state.eggPhraseTick <= 0 ) {
+					state.eggForcePhrase = null;
+					for ( var fp = 0; fp < state.cols.length; fp++ ) {
+						state.cols[ fp ].forcedHead = null;
+					}
+				}
+			}
+
+			h.tickDrifters( state.drifters, env );
 
 			// --- Phrase cascade controller --------------------------- //
 			if ( state.cascade ) {

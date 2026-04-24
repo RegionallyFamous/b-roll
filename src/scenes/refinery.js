@@ -125,6 +125,10 @@
 			cursor.x = 24; cursor.y = 20;
 			app.stage.addChild( cursor );
 
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+			var drifters = await h.mountCutouts( app, PIXI, 'refinery', fg );
+
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				particles: particles, selector: selector,
@@ -137,7 +141,29 @@
 				selDwell: 60,
 				selCellW: CELL_W, selCellH: CELL_H,
 				time: 0,
+				fg: fg, drifters: drifters,
 			};
+		},
+
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				// Konami → goat parade across screen + force scary cluster.
+				state.phase = 'gather';
+				state.clusterCenter = { x: env.app.renderer.width / 2, y: env.app.renderer.height / 2 };
+				state.clusterShape = h.choose( [ 'ring', 'spiral' ] );
+				state.clusterT = 60 * 5;
+			} else if ( name === 'reveal' ) {
+				// Type 'praise kier' → elevator slams in big.
+				h.showEggDrifter( state.drifters, 'elevator.png', { resetT: true, scaleMul: 1.4 } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'elevator.png' ); }, 4500 );
+			} else if ( name === 'peek' ) {
+				// Triple-click → scary cluster cycle now.
+				if ( state.phase === 'idle' ) {
+					state.phase = 'scary';
+					state.clusterCenter = state.clusterCenter || { x: env.app.renderer.width / 2, y: env.app.renderer.height / 2 };
+					state.clusterT = 60 * 2;
+				}
+			}
 		},
 
 		onResize: function ( state, env ) {
@@ -152,6 +178,7 @@
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var t = env.app.ticker.lastTime;
 			state.time += dt;
+			h.tickDrifters( state.drifters, env );
 
 			// --- MDR selector snap through grid cells ---------- //
 			state.selDwell -= dt;

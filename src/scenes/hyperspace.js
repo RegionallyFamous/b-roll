@@ -59,6 +59,10 @@
 			var bloomGlow = new PIXI.Graphics(); bloom.addChild( bloomGlow );
 			var flare     = new PIXI.Graphics(); bloom.addChild( flare );
 
+			// Foreground cut-out layer (v0.7) — ships drift in front of streaks.
+			var fg = new PIXI.Container();
+			app.stage.addChild( fg );
+
 			// Chromatic ghosts sit below the main flash so the R/G/B split shows
 			// as colored halos around the white blast as it decays.
 			var flashCyan    = new PIXI.Graphics(); flashCyan.alpha = 0;    app.stage.addChild( flashCyan );
@@ -116,6 +120,8 @@
 
 			drawVignette();
 
+			var drifters = await h.mountCutouts( app, PIXI, 'hyperspace', fg );
+
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				drawVignette: drawVignette,
@@ -127,6 +133,8 @@
 				spawnStreak: spawnStreak,
 				tFlash: 60 * h.rand( 8, 18 ),
 				time: 0,
+				fg: fg, drifters: drifters,
+				eggDestroyerHide: 0,
 			};
 		},
 
@@ -135,12 +143,32 @@
 			state.drawVignette();
 		},
 
+		onEgg: function ( name, state, env ) {
+			if ( name === 'festival' ) {
+				h.showEggDrifter( state.drifters, 'stardestroyer.png', { resetT: true } );
+				state.eggDestroyerHide = setTimeout( function () {
+					h.hideEggDrifter( state.drifters, 'stardestroyer.png' );
+				}, 12000 );
+			} else if ( name === 'reveal' ) {
+				// Force a warp flash + jolt all streaks.
+				state.tFlash = 0;
+				for ( var i = 0; i < state.streaks.length; i++ ) {
+					state.streaks[ i ].r += h.rand( 100, 300 );
+				}
+			} else if ( name === 'peek' ) {
+				// Quick big star destroyer flyby.
+				h.showEggDrifter( state.drifters, 'stardestroyer.png', { scaleMul: 1.4, resetT: true } );
+				setTimeout( function () { h.hideEggDrifter( state.drifters, 'stardestroyer.png' ); }, 6000 );
+			}
+		},
+
 		tick: function ( state, env ) {
 			var dt = env.dt;
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			var cx = w / 2, cy = hh / 2;
 			var maxR = Math.sqrt( cx * cx + cy * cy );
 			state.time += dt;
+			h.tickDrifters( state.drifters, env );
 
 			// --- Twinkle (deep background) --------------------------- //
 			state.twinkle.clear();
