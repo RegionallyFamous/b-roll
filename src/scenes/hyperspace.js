@@ -191,8 +191,8 @@
 			var spokeLen = maxR * ( 0.42 + pulse * 0.18 );
 			var spokeA = 0.55 * pulse;
 			for ( var sp = 0; sp < 8; sp++ ) {
-				var a = ( sp / 8 ) * h.tau;
-				var ex = cx + Math.cos( a ) * spokeLen, ey = cy + Math.sin( a ) * spokeLen;
+				var ang = ( sp / 8 ) * h.tau;
+				var ex = cx + Math.cos( ang ) * spokeLen, ey = cy + Math.sin( ang ) * spokeLen;
 				var w0 = sp % 2 === 0 ? 4 : 2.2;
 				state.flare.moveTo( cx, cy ).lineTo( ex, ey ).stroke( {
 					color: 0xb4d0ff, alpha: spokeA, width: w0,

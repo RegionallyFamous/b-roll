@@ -37,9 +37,9 @@
 	function lerpColor( a, b, t ) {
 		var ar = ( a >> 16 ) & 0xff, ag = ( a >> 8 ) & 0xff, ab = a & 0xff;
 		var br = ( b >> 16 ) & 0xff, bg = ( b >> 8 ) & 0xff, bb = b & 0xff;
-		return ( ( ar + ( br - ar ) * t ) | 0 ) << 16
-		     | ( ( ag + ( bg - ag ) * t ) | 0 ) << 8
-		     | ( ( ab + ( bb - ab ) * t ) | 0 );
+		return ( ( ( ar + ( br - ar ) * t ) | 0 ) << 16 )
+			| ( ( ( ag + ( bg - ag ) * t ) | 0 ) << 8 )
+			| ( ( ab + ( bb - ab ) * t ) | 0 );
 	}
 
 	function paintVGradient( g, w, h, c0, c1, steps ) {
@@ -178,8 +178,9 @@
 			case 'tumble': {
 				if ( ph < d.prevPh ) { d.lane = Math.random(); }
 				d.prevPh = ph;
-				var laneX = ( def.xMin != null ? def.xMin : 0.1 )
-				          + d.lane * ( ( def.xMax != null ? def.xMax : 0.9 ) - ( def.xMin != null ? def.xMin : 0.1 ) );
+				var xLo = def.xMin != null ? def.xMin : 0.1;
+				var xHi = def.xMax != null ? def.xMax : 0.9;
+				var laneX = xLo + d.lane * ( xHi - xLo );
 				s.x = w * laneX + Math.sin( ph * tau * 0.9 ) * ( def.sway || 40 );
 				s.y = -d.texHeight * baseScale + ph * ( hh + d.texHeight * baseScale * 2 );
 				s.rotation = d.t * ( def.spin || 0.03 );
