@@ -81,5 +81,81 @@
     "y": 0.35,
     "bob": 6,
     "wobble": 0.02
+  },
+  "rubber-chicken": {
+    "file": "rubber-chicken.webp",
+    "motion": "tumble",
+    "period": 22,
+    "scale": 0.16,
+    "z": "near",
+    "alpha": 0.92,
+    "spin": 0.11,
+    "sway": 80,
+    "xMin": 0.08,
+    "xMax": 0.92,
+    "weird": true
+  },
+  "thumbs-eye": {
+    "file": "thumbs-eye.webp",
+    "motion": "drift",
+    "period": 38,
+    "scale": 0.18,
+    "z": "mid",
+    "alpha": 0.88,
+    "x": 0.7,
+    "y": 0.3,
+    "ax": 0.32,
+    "ay": 0.18,
+    "weird": true
+  },
+  "flying-toaster": {
+    "file": "flying-toaster.webp",
+    "motion": "cross",
+    "period": 26,
+    "scale": 0.22,
+    "z": "mid",
+    "alpha": 0.95,
+    "y": 0.45,
+    "dir": "ltr",
+    "bob": 28,
+    "weird": true
+  },
+  "tuxedo-banana": {
+    "file": "tuxedo-banana.webp",
+    "motion": "bob",
+    "period": 18,
+    "scale": 0.2,
+    "z": "near",
+    "alpha": 0.95,
+    "x": 0.18,
+    "y": 0.7,
+    "bob": 24,
+    "wobble": 0.18,
+    "weird": true
+  },
+  "cow-abduction": {
+    "file": "cow-abduction.webp",
+    "motion": "drift",
+    "period": 70,
+    "scale": 0.24,
+    "z": "far",
+    "alpha": 0.78,
+    "x": 0.25,
+    "y": 0.25,
+    "ax": 0.18,
+    "ay": 0.06,
+    "weird": true
+  },
+  "saxophone-pickle": {
+    "file": "saxophone-pickle.webp",
+    "motion": "cross",
+    "period": 34,
+    "scale": 0.22,
+    "z": "near",
+    "alpha": 0.95,
+    "y": 0.78,
+    "dir": "rtl",
+    "bob": 12,
+    "weird": true
   }
 }

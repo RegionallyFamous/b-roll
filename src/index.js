@@ -354,6 +354,27 @@
 		var qs   = ver ? '?v=' + encodeURIComponent( ver ) : '';
 		return base + '/assets/drifters/' + file + qs;
 	}
+	// Pick N drifters from the shared library that are tagged
+	// `weird: true`. Returns an array of NAMES suitable for
+	// mountSharedDrifters(). If you exclude(['x','y']) those names,
+	// they'll be skipped — useful for scenes that have a thematic
+	// reason to opt out.
+	function pickWeird( count, exclude ) {
+		return loadSharedDrifters().then( function ( lib ) {
+			var skip = {};
+			( exclude || [] ).forEach( function ( n ) { skip[ n ] = true; } );
+			var pool = Object.keys( lib ).filter( function ( name ) {
+				return lib[ name ] && lib[ name ].weird && ! skip[ name ];
+			} );
+			// Fisher-Yates partial shuffle, take first `count`.
+			for ( var i = pool.length - 1; i > 0; i-- ) {
+				var j = ( Math.random() * ( i + 1 ) ) | 0;
+				var tmp = pool[ i ]; pool[ i ] = pool[ j ]; pool[ j ] = tmp;
+			}
+			return pool.slice( 0, Math.max( 0, count | 0 ) );
+		} );
+	}
+
 	function mountSharedDrifters( app, PIXI, names, fg ) {
 		return loadSharedDrifters().then( function ( lib ) {
 			var defs = ( names || [] )
@@ -444,6 +465,7 @@
 		mountCutouts: mountCutouts, tickDrifters: tickDrifters,
 		showEggDrifter: showEggDrifter, hideEggDrifter: hideEggDrifter,
 		mountSharedDrifters: mountSharedDrifters,
+		pickWeird: pickWeird,
 		computeTod: computeTod, computeSeason: computeSeason,
 	};
 
@@ -733,6 +755,15 @@
 			var currentState = null;
 			var currentTick = null;
 			var swapping = false;
+			// Chaos cast — a small handful of weird transparent drifters
+			// (rubber chicken, flying toaster, cow abduction, etc.)
+			// painted ABOVE the active scene's content. Sources from
+			// the shared drifter library at src/drifters.json (entries
+			// tagged `weird: true`). Two per swap by default; tweak
+			// live with `__bRoll.setChaos(n)` from devtools.
+			var chaosFg = null;
+			var chaosDrifters = [];
+			var chaosCount = 2;
 			// If hover previews fire faster than scenes can load,
 			// we keep the LATEST requested slug here and drain it
 			// right after the current swap finishes. Only the last
@@ -800,6 +831,14 @@
 					}
 
 					if ( impl.tick ) impl.tick( state, env );
+
+					// Chaos drifters live above the scene and animate
+					// off the same env.dt the scene already used, so
+					// they share the smoothed parallax / reducedMotion
+					// state without any extra plumbing.
+					if ( chaosDrifters.length ) {
+						tickDrifters( chaosDrifters, env );
+					}
 				};
 			}
 			function onResize() {
@@ -999,6 +1038,12 @@
 						}
 					}
 					app.stage.removeChildren();
+					// removeChildren already disposed chaosFg; clear
+					// the drifter list so the existing tick stops
+					// poking destroyed sprites until a new cast is
+					// asynchronously mounted below.
+					chaosFg = null;
+					chaosDrifters = [];
 					// Reset the perf window so the new scene gets a
 					// fair couple of seconds before we potentially
 					// mark it low-perf from prior jank.
@@ -1011,6 +1056,36 @@
 					currentState = state;
 					currentTick = tick;
 					currentSlug = nextSlug;
+
+					// ---- Chaos cast (weird drifters above scene) ----
+					// Mount AFTER setup so the new container sits on
+					// top of every layer the scene added. Async — we
+					// don't block the swap on it; the chaos just pops
+					// in a frame later, which is fine.
+					var skipChaos = (
+						chaosCount <= 0 ||
+						env.reducedMotion ||
+						( impl && impl.skipChaos === true ) ||
+						( state && state.skipChaos === true )
+					);
+					if ( ! skipChaos ) {
+						var fg = new PIXI.Container();
+						app.stage.addChild( fg );
+						chaosFg = fg;
+						( function ( forFg, forSlug ) {
+							pickWeird( chaosCount ).then( function ( names ) {
+								return mountSharedDrifters( app, PIXI, names, forFg );
+							} ).then( function ( drifters ) {
+								// Stale-mount guard: another swap may have
+								// fired before the async mount resolved.
+								if ( forFg !== chaosFg || forSlug !== currentSlug ) {
+									if ( forFg && forFg.parent ) forFg.parent.removeChild( forFg );
+									return;
+								}
+								chaosDrifters = ( drifters || [] ).filter( Boolean );
+							} ).catch( function () { /* non-fatal */ } );
+						} )( fg, nextSlug );
+					}
 
 					// Let the new scene play a signature intro.
 					// Transitions are fire-and-forget; we don't
@@ -1338,6 +1413,35 @@
 			}
 
 			window.__bRoll.openPicker = function () { openPicker(); };
+			window.__bRoll.setChaos = function ( n ) {
+				var v = parseInt( n, 10 );
+				chaosCount = isFinite( v ) && v >= 0 ? Math.min( 5, v ) : chaosCount;
+				if ( chaosCount === 0 ) {
+					if ( chaosFg && chaosFg.parent ) chaosFg.parent.removeChild( chaosFg );
+					chaosFg = null;
+					chaosDrifters = [];
+				} else if ( currentSlug ) {
+					// Reroll immediately so the new count takes effect
+					// without waiting for the next scene swap.
+					if ( chaosFg && chaosFg.parent ) chaosFg.parent.removeChild( chaosFg );
+					chaosDrifters = [];
+					var fg = new PIXI.Container();
+					app.stage.addChild( fg );
+					chaosFg = fg;
+					( function ( forFg, forSlug ) {
+						pickWeird( chaosCount ).then( function ( names ) {
+							return mountSharedDrifters( app, PIXI, names, forFg );
+						} ).then( function ( drifters ) {
+							if ( forFg !== chaosFg || forSlug !== currentSlug ) {
+								if ( forFg && forFg.parent ) forFg.parent.removeChild( forFg );
+								return;
+							}
+							chaosDrifters = ( drifters || [] ).filter( Boolean );
+						} ).catch( function () { /* non-fatal */ } );
+					} )( fg, currentSlug );
+				}
+				return chaosCount;
+			};
 			function onKeydown( e ) {
 				var t = e.target;
 				if ( t && ( t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable ) ) return;

@@ -218,6 +218,17 @@ var shared = await h.mountSharedDrifters( app, PIXI, [ 'crow', 'lantern' ], fg )
 
 Drifter defs use the same `motion` / `period` / `scale` / `z` shape as scene cutouts — `motionUpdate` in `src/index.js` is the single path. The shared library is also what seasonal overlays (winter snowflakes, autumn leaves, NYE fireworks) pull from so scenes don't each ship redundant assets.
 
+### Chaos cast (v0.11+)
+
+Drifter defs in `src/drifters.json` may carry an extra `weird: true` flag. The mount runner picks `chaosCount` (default 2) of these at random per scene swap and mounts them on a top-of-stage container ABOVE the scene's own cut-outs — every wallpaper gets a small dose of absurdism without touching `scenes.json`. Helpers exposed:
+
+- `h.pickWeird( count, exclude? )` — returns a Promise resolving to `count` weird-tagged names, randomly shuffled, optionally excluding any.
+- `__bRoll.setChaos( n )` — devtools knob, clamped to 0–5; rerolls immediately on the active scene.
+- Per-impl opt-out: set `impl.skipChaos = true` (static) or `state.skipChaos = true` (dynamic) inside `setup()` for scenes whose visual identity would clash with the weird overlay.
+- `prefersReducedMotion` skips chaos entirely.
+
+Adding a new weird drifter is `_tools/cutout.py path/to/raw.png assets/drifters/foo.webp` then a JSON entry with `weird: true`. No scene edits needed.
+
 ## PixiJS v8 API conventions used throughout
 
 - `new PIXI.Application()` + `await app.init({ ... })` — v7 constructor-options style doesn't work

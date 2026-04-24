@@ -20,6 +20,13 @@ A pack of pop-culture-themed PixiJS wallpapers for [WP Desktop Mode](https://git
 
 Pick **B-Roll** from **OS Settings → Wallpapers**, then click the gear in the bottom-right of the live wallpaper to switch scenes. Your pick is remembered per-user.
 
+## v0.11.0 — Auto-close picker + chaos cast
+
+Two small but high-impact additions:
+
+- **Picker auto-dismisses on select.** Clicking a wallpaper card now commits and closes the panel in one motion (with a 180 ms opacity/scale fade-out, skipped under `prefers-reduced-motion`). The "Now playing" badge / live-preview revert dance is no longer needed because the panel is gone the moment your choice is made — same instant-feel snap as picking a wallpaper in OS Settings.
+- **Chaos cast — weird transparent drifters in every scene.** Six new painted, background-removed cut-outs ship with the plugin (rubber chicken in shades, googly-eye thumbs-up, winged toaster, tuxedo-banana, UFO abducting a cow, saxophone-playing pickle), all in `assets/drifters/*.webp` and tagged `weird: true` in `src/drifters.json`. Two are randomly drawn per scene swap and mounted on a top-of-stage container that sits above the scene's own cut-outs, so every wallpaper now gets a small dose of absurdism without the per-scene scenes.json having to know about them. Respects `prefers-reduced-motion` (skips the cast entirely) and per-impl opt-out (`impl.skipChaos = true` or `state.skipChaos = true`). Live tunable from devtools via `__bRoll.setChaos(n)` (0–5, 0 disables).
+
 ## v0.10.0 — Sprite atlases + take-a-frame
 
 v0.10 is mostly a polish release for the wallpaper mount path:

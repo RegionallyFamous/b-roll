@@ -609,22 +609,13 @@
 			committedSlug = slug;
 			previewingSlug = null;
 			if ( typeof opts.onSelect === 'function' ) opts.onSelect( slug );
-			var cards = panel.querySelectorAll( '[data-b-roll-card]' );
-			for ( var i = 0; i < cards.length; i++ ) {
-				var el = cards[ i ];
-				var pressed = el.getAttribute( 'data-slug' ) === slug;
-				el.setAttribute( 'aria-pressed', pressed ? 'true' : 'false' );
-				var existingBadge = el.querySelector( '[data-b-roll-now]' );
-				if ( pressed && ! existingBadge ) {
-					var badge = document.createElement( 'span' );
-					badge.setAttribute( 'data-b-roll-now', '' );
-					badge.textContent = 'Now playing';
-					el.appendChild( badge );
-				} else if ( ! pressed && existingBadge ) {
-					existingBadge.parentNode.removeChild( existingBadge );
-				}
-			}
 			opts.currentSlug = slug;
+			// Auto-dismiss the panel — the user picked one. They get
+			// the same instant-feel snap that selecting a wallpaper
+			// in the OS settings does. The crossfade snapshot in the
+			// mount runner covers the swap underneath while the
+			// overlay fades out.
+			close();
 		}
 
 		// Live-preview on hover. After PREVIEW_DELAY_MS of dwelling on
@@ -795,14 +786,26 @@
 		} );
 		closeBtn.addEventListener( 'click', close );
 
+		var closing = false;
 		function close() {
-			if ( ! overlay.parentNode ) return;
+			if ( closing || ! overlay.parentNode ) return;
+			closing = true;
 			cancelPreview();
 			window.removeEventListener( 'b-roll:audio-change', refreshAudioBtn );
-			overlay.parentNode.removeChild( overlay );
 			if ( active === instance ) active = null;
-			try { if ( previouslyFocused && previouslyFocused.focus ) previouslyFocused.focus(); } catch ( e ) { /* ignore */ }
-			if ( typeof opts.onClose === 'function' ) opts.onClose();
+			var done = function () {
+				if ( overlay.parentNode ) overlay.parentNode.removeChild( overlay );
+				try { if ( previouslyFocused && previouslyFocused.focus ) previouslyFocused.focus(); } catch ( e ) { /* ignore */ }
+				if ( typeof opts.onClose === 'function' ) opts.onClose();
+			};
+			if ( opts.prefersReducedMotion ) {
+				done();
+				return;
+			}
+			overlay.style.transition = 'opacity .18s ease, transform .18s ease';
+			overlay.style.opacity = '0';
+			overlay.style.transform = 'scale(.985)';
+			setTimeout( done, 200 );
 		}
 
 		var instance = { close: close, overlay: overlay };
