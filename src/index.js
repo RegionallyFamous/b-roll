@@ -494,10 +494,6 @@
 					if ( window.__bRoll.eggs && window.__bRoll.eggs.setActive ) {
 						window.__bRoll.eggs.setActive( nextSlug, state, env, container );
 					}
-					// Pixi-drawn gear overlay sits on top of every scene and
-					// survives swaps. Re-mount after each swap because the
-					// scene tear-down wipes app.stage.removeChildren() above.
-					mountPixiGear();
 					swapping = false;
 					return { ok: true };
 				} catch ( err ) {
@@ -509,91 +505,93 @@
 				}
 			}
 
-			// ---------- Pixi-rendered gear overlay ---------- //
+			// ---------- Scene-picker trigger (DOM, not Pixi) ---------- //
+			//
+			// WP Desktop Mode applies `pointer-events: none` to the wallpaper
+			// container (see assets/css/desktop.css, .wp-desktop-wallpaper),
+			// so anything rendered *inside* the Pixi canvas can never receive
+			// clicks. The trigger therefore lives as a DOM element appended
+			// to document.body with a max z-index, where it's guaranteed to
+			// be above the OS chrome and to receive pointer events regardless
+			// of what the wallpaper layer sets.
+			//
+			// Visibility modes:
+			//   - "hero":   big centered pill the first time you ever mount
+			//               this wallpaper, until dismissed or clicked once.
+			//   - "corner": small pill anchored bottom-right for every load
+			//               afterwards.
+			//
+			// Keyboard shortcut: `?` toggles the picker from anywhere.
+			// Escape hatch:     `window.__bRoll.openPicker()` from devtools.
 
-			// The DOM gear (further down) is the nice-looking one, but in some
-			// hosts (WP Desktop Mode iframes, transformed ancestors, etc.) the
-			// DOM layer is clipped or covered. The Pixi gear is drawn into the
-			// same canvas the wallpaper renders to, so if you can see the
-			// wallpaper, you will see this button. It also doubles as the
-			// scene picker affordance on touch.
-			var pixiGear = null;
-			var pixiGearPulse = 0;
-			function buildPixiGear() {
-				var g = new PIXI.Container();
-				g.eventMode = 'static';
-				g.cursor = 'pointer';
-				g.zIndex = 1000;
-				var bg = new PIXI.Graphics();
-				var label = new PIXI.Text( {
-					text: '\u2699  CHANGE SCENE',
-					style: {
-						fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-						fontSize: 36, fontWeight: '700', fill: 0xffffff,
-						letterSpacing: 1.2,
-					},
-				} );
-				label.anchor.set( 0.5 );
-				var ringPulse = new PIXI.Graphics();
-				ringPulse.alpha = 0;
-				g.addChild( ringPulse );
-				g.addChild( bg );
-				g.addChild( label );
-				function redraw( pulse ) {
-					var w = label.width + 80;
-					var hh = 96;
-					bg.clear();
-					bg.roundRect( -w / 2, -hh / 2, w, hh, hh / 2 )
-						.fill( { color: 0xff2d6f, alpha: 0.96 } )
-						.stroke( { color: 0xffffff, width: 4, alpha: 0.95 } );
-					ringPulse.clear();
-					if ( pulse > 0 ) {
-						var pr = ( w / 2 ) + pulse * 60;
-						ringPulse.roundRect( -pr, -hh / 2 - pulse * 30, pr * 2, hh + pulse * 60, ( hh + pulse * 60 ) / 2 )
-							.stroke( { color: 0xffffff, width: 4, alpha: ( 1 - pulse ) * 0.7 } );
-						ringPulse.alpha = 1;
-					} else {
-						ringPulse.alpha = 0;
-					}
-				}
-				redraw( 0 );
-				g.on( 'pointertap', function () {
-					dismissHint();
-					openPicker();
-				} );
-				g.on( 'pointerover', function () { bg.alpha = 1.15; } );
-				g.on( 'pointerout',  function () { bg.alpha = 1.0; } );
-				return { node: g, redraw: redraw, getWidth: function () { return label.width + 80; } };
-			}
-			function placePixiGear() {
-				if ( ! pixiGear ) return;
-				var w = app.renderer.width / app.renderer.resolution;
-				var hh = app.renderer.height / app.renderer.resolution;
-				pixiGear.node.x = w / 2;
-				pixiGear.node.y = hh / 2;
-			}
-			function mountPixiGear() {
-				if ( ! pixiGear ) pixiGear = buildPixiGear();
-				app.stage.sortableChildren = true;
-				if ( ! pixiGear.node.parent ) app.stage.addChild( pixiGear.node );
-				else app.stage.setChildIndex( pixiGear.node, app.stage.children.length - 1 );
-				placePixiGear();
-				pixiGearPulse = 1;
-			}
-			// Animate the pulse + keep the gear pinned on resize via the ticker.
-			app.ticker.add( function () {
-				if ( ! pixiGear ) return;
-				if ( pixiGearPulse > 0 ) {
-					pixiGearPulse = Math.max( 0, pixiGearPulse - 0.008 );
-					pixiGear.redraw( pixiGearPulse );
-				}
-				placePixiGear();
-			} );
+			var HERO_SEEN_KEY = 'bRollGearHeroSeen';
+			var heroSeen = false;
+			try { heroSeen = window.localStorage.getItem( HERO_SEEN_KEY ) === '1'; } catch ( e ) { /* ignore */ }
+			var mode = heroSeen ? 'corner' : 'hero';
 
-			// Console escape hatch + keyboard shortcut. Press `?` from anywhere
-			// (no input field focused) to open the picker. Also exposed as
-			// window.__bRoll.openPicker() so power users can open it from the
-			// browser devtools.
+			if ( ! document.getElementById( 'b-roll-gear-style' ) ) {
+				var gearStyle = document.createElement( 'style' );
+				gearStyle.id = 'b-roll-gear-style';
+				gearStyle.textContent =
+					'@keyframes bRollGearPulse{' +
+						'0%,100%{transform:translate(-50%,-50%) scale(1)}' +
+						'50%{transform:translate(-50%,-50%) scale(1.04)}' +
+					'}' +
+					'[data-b-roll-gear]{' +
+						'position:fixed;z-index:2147483647;' +
+						'border:0;outline:0;cursor:pointer;' +
+						'font:600 16px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+						'color:#fff;letter-spacing:.3px;' +
+						'padding:14px 22px;border-radius:999px;' +
+						'background:rgba(16,16,20,.88);' +
+						'border:1.5px solid rgba(255,255,255,.6);' +
+						'box-shadow:0 10px 30px rgba(0,0,0,.55);' +
+						'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
+						'transition:transform .2s ease,background .2s ease,box-shadow .2s ease;' +
+					'}' +
+					'[data-b-roll-gear][data-mode="hero"]{' +
+						'left:50%;top:50%;transform:translate(-50%,-50%);' +
+						'font-size:22px;padding:20px 32px;' +
+						'background:#ff2d6f;border-color:rgba(255,255,255,.95);' +
+						'box-shadow:0 18px 48px rgba(255,45,111,.55),0 0 0 4px rgba(255,255,255,.08);' +
+						'animation:bRollGearPulse 1.6s ease-in-out infinite;' +
+					'}' +
+					'[data-b-roll-gear][data-mode="hero"]:hover{' +
+						'background:#ff4f84;' +
+					'}' +
+					'[data-b-roll-gear][data-mode="corner"]{' +
+						'right:24px;bottom:24px;' +
+					'}' +
+					'[data-b-roll-gear][data-mode="corner"]:hover{' +
+						'transform:translateY(-2px);' +
+						'background:rgba(28,28,34,.92);' +
+					'}' +
+					'[data-b-roll-gear]:active{transform:translate(-50%,-50%) scale(.98)}' +
+					'[data-b-roll-gear][data-mode="corner"]:active{transform:scale(.96)}';
+				document.head.appendChild( gearStyle );
+			}
+
+			// Singleton — remove any previous trigger before mounting.
+			var prevGear = document.querySelector( '[data-b-roll-gear]' );
+			if ( prevGear && prevGear.parentNode ) prevGear.parentNode.removeChild( prevGear );
+
+			var gear = document.createElement( 'button' );
+			gear.type = 'button';
+			gear.setAttribute( 'data-b-roll-gear', '' );
+			gear.setAttribute( 'data-mode', mode );
+			gear.setAttribute( 'aria-label', 'Change B-Roll scene' );
+			gear.setAttribute( 'title', 'Change scene  (?)' );
+			gear.textContent = mode === 'hero' ? '\u2699  Change wallpaper' : '\u2699  Change scene';
+			document.body.appendChild( gear );
+
+			function markHeroSeen() {
+				if ( heroSeen ) return;
+				heroSeen = true;
+				try { window.localStorage.setItem( HERO_SEEN_KEY, '1' ); } catch ( e ) { /* ignore */ }
+				gear.setAttribute( 'data-mode', 'corner' );
+				gear.textContent = '\u2699  Change scene';
+			}
+
 			window.__bRoll.openPicker = function () { openPicker(); };
 			window.addEventListener( 'keydown', function ( e ) {
 				if ( e.key !== '?' ) return;
@@ -602,112 +600,6 @@
 				e.preventDefault();
 				openPicker();
 			} );
-
-			// ---------- DOM gear button (belt + suspenders) ---------- //
-
-			// Inject a one-time stylesheet for the gear's pulse + hover.
-			if ( ! document.getElementById( 'b-roll-gear-style' ) ) {
-				var gearStyle = document.createElement( 'style' );
-				gearStyle.id = 'b-roll-gear-style';
-				gearStyle.textContent =
-					'@keyframes bRollGearPulse{' +
-						'0%{box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,.55)}' +
-						'70%{box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 18px rgba(255,255,255,0)}' +
-						'100%{box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 0 rgba(255,255,255,0)}' +
-					'}' +
-					'[data-b-roll-gear]{' +
-						'transition:transform .18s ease,background .18s ease,box-shadow .18s ease;' +
-					'}' +
-					'[data-b-roll-gear]:hover{' +
-						'transform:scale(1.06);' +
-						'background:rgba(28,28,34,.85)!important;' +
-					'}' +
-					'[data-b-roll-gear]:active{transform:scale(.96)}' +
-					'[data-b-roll-gear].is-pulsing{animation:bRollGearPulse 1.6s ease-out 3}' +
-					'[data-b-roll-gear] svg{transition:transform 1.2s ease}' +
-					'[data-b-roll-gear]:hover svg{transform:rotate(60deg)}' +
-					'[data-b-roll-hint]{' +
-						'transition:opacity .35s ease,transform .35s ease;' +
-					'}';
-				document.head.appendChild( gearStyle );
-			}
-
-			var gear = document.createElement( 'button' );
-			gear.type = 'button';
-			gear.setAttribute( 'aria-label', 'Change B-Roll scene' );
-			gear.setAttribute( 'title', 'Change scene' );
-			gear.setAttribute( 'data-b-roll-gear', '' );
-			gear.innerHTML =
-				'<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
-			var gearStyles = {
-				position: 'fixed', right: '24px', bottom: '24px',
-				width: '56px', height: '56px', borderRadius: '50%',
-				border: '1.5px solid rgba(255,255,255,.55)',
-				background: 'rgba(18,18,22,.82)', color: '#fff',
-				backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-				display: 'flex', alignItems: 'center', justifyContent: 'center',
-				cursor: 'pointer', zIndex: '2147483647', padding: '0', outline: 'none',
-				opacity: '1',
-				boxShadow: '0 8px 24px rgba(0,0,0,.5)',
-			};
-			Object.keys( gearStyles ).forEach( function ( k ) { gear.style[ k ] = gearStyles[ k ]; } );
-			// Mount on document.body, NOT the wallpaper container, so OS chrome
-			// (dock, menubar, taskbar) can't cover or clip it. Singleton — if
-			// the wallpaper remounts, replace the previous gear.
-			var prevGear = document.querySelector( '[data-b-roll-gear]' );
-			if ( prevGear && prevGear.parentNode ) prevGear.parentNode.removeChild( prevGear );
-			document.body.appendChild( gear );
-
-			// First-load hint pill that points at the gear. Auto-hides after
-			// ~7s, or immediately on first click. Dismissed forever once seen.
-			var HINT_KEY = 'bRollGearHintSeen';
-			var hint = null;
-			var hintTimer = null;
-			function dismissHint() {
-				if ( ! hint ) return;
-				hint.style.opacity = '0';
-				hint.style.transform = 'translateY(6px)';
-				if ( hintTimer ) { clearTimeout( hintTimer ); hintTimer = null; }
-				setTimeout( function () {
-					if ( hint && hint.parentNode ) hint.parentNode.removeChild( hint );
-					hint = null;
-				}, 400 );
-				try { window.localStorage.setItem( HINT_KEY, '1' ); } catch ( e ) { /* ignore */ }
-			}
-			var hintAlreadySeen = false;
-			try { hintAlreadySeen = window.localStorage.getItem( HINT_KEY ) === '1'; } catch ( e ) { /* ignore */ }
-			if ( ! hintAlreadySeen ) {
-				hint = document.createElement( 'div' );
-				hint.setAttribute( 'data-b-roll-hint', '' );
-				hint.textContent = 'Click to change scene';
-				var hintStyles = {
-					position: 'fixed', right: '92px', bottom: '36px',
-					padding: '8px 12px', borderRadius: '8px',
-					background: 'rgba(18,18,22,.88)', color: '#fff',
-					font: '500 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-					letterSpacing: '.2px', whiteSpace: 'nowrap',
-					border: '1px solid rgba(255,255,255,.18)',
-					boxShadow: '0 6px 18px rgba(0,0,0,.35)',
-					zIndex: '2147483647', pointerEvents: 'none',
-					opacity: '0', transform: 'translateY(6px)',
-				};
-				Object.keys( hintStyles ).forEach( function ( k ) { hint.style[ k ] = hintStyles[ k ]; } );
-				var prevHint = document.querySelector( '[data-b-roll-hint]' );
-				if ( prevHint && prevHint.parentNode ) prevHint.parentNode.removeChild( prevHint );
-				document.body.appendChild( hint );
-				// Fade in after a beat so it reads as deliberate, not flashed.
-				setTimeout( function () {
-					if ( ! hint ) return;
-					hint.style.opacity = '1';
-					hint.style.transform = 'translateY(0)';
-				}, 600 );
-				hintTimer = setTimeout( dismissHint, 7000 );
-			}
-			// Pulse the gear on first load too (CSS animation runs 3 times).
-			if ( ! ctx.prefersReducedMotion ) {
-				gear.classList.add( 'is-pulsing' );
-				setTimeout( function () { gear.classList.remove( 'is-pulsing' ); }, 5200 );
-			}
 
 			var pickerOpen = false;
 			async function openPicker() {
@@ -734,8 +626,7 @@
 				}
 			}
 			gear.addEventListener( 'click', function () {
-				dismissHint();
-				gear.classList.remove( 'is-pulsing' );
+				markHeroSeen();
 				openPicker();
 			} );
 
@@ -770,8 +661,6 @@
 				if ( pickerOpen && window.__bRoll.picker && window.__bRoll.picker.close ) {
 					try { window.__bRoll.picker.close(); } catch ( e ) { /* ignore */ }
 				}
-				if ( hintTimer ) clearTimeout( hintTimer );
-				if ( hint && hint.parentNode ) hint.parentNode.removeChild( hint );
 				if ( gear.parentNode ) gear.parentNode.removeChild( gear );
 				app.renderer.off( 'resize', onResize );
 				if ( currentTick ) app.ticker.remove( currentTick );
