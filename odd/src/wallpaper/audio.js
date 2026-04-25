@@ -1,8 +1,8 @@
 /**
  * ODD audio analyser — v0.10
  * ---------------------------------------------------------------
- * Opt-in Web Audio pipeline. Loaded lazily from src/index.js the
- * first time the user toggles the mic button in the picker.
+ * Opt-in Web Audio pipeline. Loaded lazily by the wallpaper runtime
+ * the first time a user turns on audio-reactivity from the ODD panel.
  *
  * Contract:
  *   window.__odd.audio.enable()  → Promise<boolean>
@@ -22,7 +22,7 @@
  *
  *   window.__odd.audio.state()
  *       Returns `{ enabled, permission, error }` — used by the
- *       picker toggle to paint the right icon state.
+ *       panel toggle to paint the right icon state.
  *
  * Frequency buckets (at 44.1 kHz, FFT 1024):
  *   bass: 20 Hz – 250 Hz

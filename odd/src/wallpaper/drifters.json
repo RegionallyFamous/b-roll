@@ -1,3 +1,0 @@
-{
-  "__comment": "Shared drifter library — cutouts any scene can opt into via h.mountSharedDrifters(app, PIXI, [names...], fg). The reboot ships no drifters; the runner's chaos-cast picker silently no-ops when this is empty. Add entries here later as new motifs are introduced."
-}

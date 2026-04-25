@@ -28,6 +28,44 @@ defined( 'ABSPATH' ) || exit;
  * page can't reach inside. Baking the accent into the SVG payload is the
  * only way to make one `accent` manifest value actually drive the paint.
  */
+/**
+ * Resolve a manifest-declared relative path against a set directory, refusing
+ * anything that escapes it. Returns the absolute path on success, or '' if
+ * the entry is missing, unreadable, contains `..` / absolute components, or
+ * resolves outside the set root. Paths are also required to be flat — sets
+ * ship SVGs next to the manifest, no subdirectories, no symlinks to elsewhere.
+ */
+function odd_icons_resolve_set_path( $set_dir, $rel ) {
+	$rel = (string) $rel;
+	if ( '' === $rel ) {
+		return '';
+	}
+	if ( false !== strpos( $rel, "\0" ) ) {
+		return '';
+	}
+	if ( false !== strpos( $rel, '..' ) ) {
+		return '';
+	}
+	if ( false !== strpos( $rel, '\\' ) ) {
+		return '';
+	}
+	$rel = ltrim( $rel, '/' );
+	if ( '' === $rel || basename( $rel ) !== $rel ) {
+		return '';
+	}
+
+	$abs      = $set_dir . '/' . $rel;
+	$abs_real = realpath( $abs );
+	$dir_real = realpath( $set_dir );
+	if ( false === $abs_real || false === $dir_real ) {
+		return '';
+	}
+	if ( 0 !== strpos( $abs_real, $dir_real . DIRECTORY_SEPARATOR ) ) {
+		return '';
+	}
+	return $abs_real;
+}
+
 function odd_icons_tint_svg_data_uri( $abs_path, $accent ) {
 	if ( ! is_readable( $abs_path ) ) {
 		return '';
@@ -86,30 +124,27 @@ function odd_icons_get_sets() {
 		$icons = array();
 		if ( isset( $data['icons'] ) && is_array( $data['icons'] ) ) {
 			foreach ( $data['icons'] as $key => $rel ) {
-				$rel = (string) $rel;
-				if ( '' === $rel ) {
+				$abs = odd_icons_resolve_set_path( $dir, $rel );
+				if ( '' === $abs || ! is_readable( $abs ) ) {
 					continue;
 				}
-				$abs = $dir . '/' . ltrim( $rel, '/' );
-				if ( ! is_readable( $abs ) ) {
-					continue;
-				}
-				$tinted = odd_icons_tint_svg_data_uri( $abs, $accent );
+				$basename = basename( $abs );
+				$tinted   = odd_icons_tint_svg_data_uri( $abs, $accent );
 				$icons[ sanitize_key( (string) $key ) ] = ( '' !== $tinted )
 					? $tinted
-					: ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( ltrim( $rel, '/' ) );
+					: ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $basename );
 			}
 		}
 
 		$preview = '';
 		if ( ! empty( $data['preview'] ) ) {
-			$preview_rel = ltrim( (string) $data['preview'], '/' );
-			$preview_abs = $dir . '/' . $preview_rel;
-			if ( is_readable( $preview_abs ) ) {
-				$preview_tinted = odd_icons_tint_svg_data_uri( $preview_abs, $accent );
-				$preview        = ( '' !== $preview_tinted )
+			$preview_abs = odd_icons_resolve_set_path( $dir, $data['preview'] );
+			if ( '' !== $preview_abs && is_readable( $preview_abs ) ) {
+				$preview_basename = basename( $preview_abs );
+				$preview_tinted   = odd_icons_tint_svg_data_uri( $preview_abs, $accent );
+				$preview          = ( '' !== $preview_tinted )
 					? $preview_tinted
-					: ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $preview_rel );
+					: ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $preview_basename );
 			}
 		}
 

@@ -34,8 +34,8 @@ function odd_wallpaper_scene_slugs() {
 
 function odd_wallpaper_default_scene() {
 	$slugs = odd_wallpaper_scene_slugs();
-	if ( in_array( 'rainbow-road', $slugs, true ) ) {
-		return 'rainbow-road';
+	if ( in_array( 'flux', $slugs, true ) ) {
+		return 'flux';
 	}
 	return $slugs ? $slugs[0] : '';
 }
