@@ -1146,10 +1146,11 @@
 				gearStyle.id = 'odd-gear-style';
 				gearStyle.textContent =
 					// In-canvas scene gear is hidden — the ODD Control
-					// Panel (native window opened by the floating gear
-					// pill in odd/src/gear.js) is the canonical scene
-					// picker surface now. Phase 4 removes this mount
-					// entirely once the panel owns the picker UI.
+					// Panel (native window opened by the desktop icon,
+					// the /odd-panel slash command, or any widget's
+					// "Open ODD" button) is the canonical scene picker
+					// surface now. Phase 4 removes this mount entirely
+					// once the panel owns the picker UI.
 					'[data-odd-scene-gear]{display:none!important}' +
 					'[data-odd-scene-gear],[data-odd-cam]{' +
 						'position:fixed;bottom:24px;z-index:2147483647;' +

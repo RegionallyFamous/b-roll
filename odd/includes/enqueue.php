@@ -11,8 +11,6 @@
  *                     Registers the `odd` wallpaper with WP Desktop Mode.
  *   - `odd-panel`     ODD Control Panel native-window render callback,
  *                     declared on `window.wpDesktopNativeWindows.odd`.
- *   - `odd-gear`      floating gear pill that opens the native window
- *                     via `wp.desktop.registerWindow()`.
  *   - `odd-widgets`   registers four desktop widgets (Now Playing,
  *                     Picker, Postcard, Clock) via registerWidget().
  *   - `odd-commands`  registers slash commands (/odd, /odd-icons,
@@ -48,13 +46,6 @@ add_action(
 			'odd-panel',
 			ODD_URL . '/src/panel/index.js',
 			array( 'wp-desktop', 'odd-api' ),
-			ODD_VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'odd-gear',
-			ODD_URL . '/src/gear.js',
-			array( 'wp-desktop', 'odd-panel' ),
 			ODD_VERSION,
 			true
 		);

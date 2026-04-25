@@ -10,7 +10,7 @@ ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top 
 1. **A canvas wallpaper** — generative PixiJS scenes rendered on top of painted 1920×1080 WebP backdrops, switched from inside the plugin's own control panel.
 2. **Icon sets** — themed SVG packs that re-skin the WP Desktop dock and desktop-shortcut icons via the `wp_desktop_dock_item` + `wp_desktop_icons` filters.
 
-Both are managed from a single native WP Desktop Mode window (the **ODD Control Panel**) opened from a floating gear pill or a desktop shortcut icon.
+Both are managed from a single native WP Desktop Mode window (the **ODD Control Panel**) opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`.
 
 - **Repo:** `RegionallyFamous/odd`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
@@ -24,7 +24,7 @@ The reboot ships three scenes (Flux / Aurora / Origami) and three icon sets (Fil
 odd/
 ├── odd.php                        bootstrap: ODD_VERSION + require_once list
 ├── includes/
-│   ├── enqueue.php                odd, odd-panel, odd-gear script handles
+│   ├── enqueue.php                odd-api, odd, odd-panel, odd-widgets, odd-commands script handles
 │   ├── rest.php                   /odd/v1/prefs (GET+POST)
 │   ├── native-window.php          wp_register_desktop_window('odd', …)
 │   ├── wallpaper/
@@ -34,7 +34,13 @@ odd/
 │       ├── registry.php           scans assets/icons/*/manifest.json
 │       └── dock-filter.php        wp_desktop_dock_item + wp_desktop_icons @ priority 20
 ├── src/
-│   ├── gear.js                    floating gear pill → opens 'odd' window
+│   ├── shared/
+│   │   └── api.js                 window.__odd.api — setScene / setIconSet / shuffle / openPanel / toast
+│   ├── widgets/
+│   │   ├── index.js               registerWidget × 4 (Now Playing, Picker, Postcard, Clock)
+│   │   └── style.css              scoped widget styles + per-icon-set clock skins
+│   ├── commands/
+│   │   └── index.js               registerCommand × 4 (/odd, /odd-icons, /shuffle, /odd-panel)
 │   ├── panel/
 │   │   └── index.js               native-window render callback (sidebar + sections)
 │   └── wallpaper/
@@ -61,7 +67,7 @@ odd/
 
 ### Single-window contract
 
-Both the floating gear (`src/gear.js`) and the registered desktop icon (`includes/native-window.php`) ultimately call `wp.desktop.registerWindow({ id: 'odd', … })`. WP Desktop Mode's window manager reuses any window with a matching `baseId`, so there's always at most one Control Panel instance on screen.
+The desktop icon registered in `includes/native-window.php`, the `/odd-panel` slash command, and every widget "Open ODD" affordance ultimately call `wp.desktop.registerWindow({ id: 'odd', … })` (via `window.__odd.api.openPanel()`). WP Desktop Mode's window manager reuses any window with a matching `baseId`, so there's always at most one Control Panel instance on screen.
 
 The panel body is rendered by `window.wpDesktopNativeWindows.odd = body => { … }` in `src/panel/index.js`. Layout is a fixed-width sidebar (Wallpaper / Icons / About) plus a scrollable content pane. All state flows through REST.
 
@@ -88,7 +94,7 @@ Panel clicks fire `wp.hooks.doAction( 'odd/pickScene', slug )` in parallel with 
 Icon-set changes trigger a 180 ms fade + `window.location.reload()` after the POST succeeds. Re-render happens server-side through the two filters in `includes/icons/dock-filter.php`:
 
 - `wp_desktop_dock_item` priority 20, two-arg: per-tile swap keyed by `odd_icons_slug_to_key( $menu_slug )` (e.g. `edit.php` → `posts`). Falls back to the set's `fallback` icon when a set ships no specific match.
-- `wp_desktop_icons` priority 20: re-skins desktop shortcuts by the same key logic, but **skips** the ODD Control Panel icon itself so its gear stays recognizable regardless of the active set.
+- `wp_desktop_icons` priority 20: re-skins desktop shortcuts by the same key logic, but **skips** the ODD Control Panel icon itself so it stays recognizable regardless of the active set.
 
 Server-side mapping is canonical; client-side live-swap via JS DOM surgery proved unreliable in earlier iterations and shouldn't be revisited.
 

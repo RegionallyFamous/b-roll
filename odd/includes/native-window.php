@@ -7,10 +7,11 @@
  * /wp-desktop-mode/docs/native-windows-proposal.md) and pairs it with
  * a clickable desktop-wallpaper shortcut tile.
  *
- * The floating gear pill in src/gear.js calls
- *   wp.desktop.registerWindow( { id: 'odd', ... } )
- * which focuses any existing instance or opens a new one — so the
- * gear and the desktop icon both reach the same single window.
+ * Double-clicking the desktop icon registered below is the canonical
+ * entry point. Slash commands (`/odd-panel`) and widgets (Now Playing
+ * "Open ODD" button, Postcard click) also call
+ *   wp.desktop.registerWindow( { id: 'odd' } )
+ * so every surface lands on the same single-instance window.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -67,7 +68,7 @@ function odd_render_panel_template() {
 }
 
 /**
- * Gear / settings-dial SVG used as the window icon and desktop icon.
+ * Settings-dial SVG used as the window icon and desktop icon.
  * Returned as a data-URI so the shell can drop it straight into
  * `<img src>` without an extra HTTP fetch. Rendered at 32×32 in most
  * surfaces; we keep it monochrome so WP Desktop Mode's tint controls
