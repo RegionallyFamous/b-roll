@@ -2,6 +2,10 @@
 
 One decorator plugin for [WP Desktop Mode](https://github.com/WordPress/desktop-mode): generative PixiJS wallpapers and themed icon sets, all switched from a single native desktop window.
 
+### [▶ Try it live in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json)
+
+No install required — boots ODD + WP Desktop Mode in your browser in ~20–30 seconds.
+
 **Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode (active)
 
 ## What's in the box
@@ -22,9 +26,15 @@ Every scene is rendered live with Pixi v8 primitives — particles, polygons, gr
 
 ### Playground (one-click demo)
 
-https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
+[**Launch ODD in WordPress Playground →**](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json)
 
-(First load takes ~20–30 seconds while Playground boots and the plugin installs.)
+Raw URL (for bookmarking or sharing):
+
+```
+https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
+```
+
+First load takes ~20–30 seconds while Playground boots and the plugin installs.
 
 ### A real WordPress install
 
