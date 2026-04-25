@@ -61,7 +61,12 @@ def validate_set(set_dir: Path) -> list[str]:
     except Exception as e:
         return [f"{slug}: manifest.json invalid JSON: {e}"]
 
-    for key in ("slug", "label", "franchise", "accent", "icons"):
+    # `accent` is opt-in as of v0.14.1. Sets that ship full-color tiles
+    # (gradients, multiple fills) don't have a single accent color and
+    # should omit the key rather than pick an arbitrary one. Monoline
+    # sets that rely on `currentColor` + a themed hover still benefit
+    # from setting it, so the format check stays — but only if present.
+    for key in ("slug", "label", "franchise", "icons"):
         if key not in manifest:
             errs.append(f"{slug}: manifest.json missing required key '{key}'")
     if manifest.get("slug") != slug:
