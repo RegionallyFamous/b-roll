@@ -54,5 +54,61 @@
     ],
     "fallbackColor": "#12051f",
     "added": "0.15.1"
+  },
+  {
+    "slug": "abyssal-aquarium",
+    "label": "Abyssal Aquarium",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "aquarium",
+      "deep-sea",
+      "bioluminescent",
+      "parallax"
+    ],
+    "fallbackColor": "#031a2b",
+    "added": "1.0.8"
+  },
+  {
+    "slug": "circuit-garden",
+    "label": "Circuit Garden",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "circuit",
+      "garden",
+      "fireflies",
+      "seasonal"
+    ],
+    "fallbackColor": "#0b1a10",
+    "added": "1.0.8"
+  },
+  {
+    "slug": "pocket-dimension",
+    "label": "Pocket Dimension",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "surreal",
+      "portal",
+      "floating",
+      "lensing"
+    ],
+    "fallbackColor": "#1a0a2e",
+    "added": "1.0.8"
+  },
+  {
+    "slug": "weather-factory",
+    "label": "Weather Factory",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "whimsical",
+      "weather",
+      "machine",
+      "seasonal"
+    ],
+    "fallbackColor": "#1a2530",
+    "added": "1.0.8"
   }
 ]

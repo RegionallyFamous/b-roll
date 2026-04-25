@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,12 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 
 == Changelog ==
 
+= 1.0.8 =
+* Adds four GPT Image 2 wallpaper scenes: Abyssal Aquarium, Circuit Garden, Pocket Dimension, and Weather Factory.
+* Playground now opens the ODD Control Panel automatically on first launch while keeping normal installs untouched.
+* Removes the glass tile behind active ODD custom dock icons while keeping it for default/fallback icons.
+* Documents the Apps manifest, REST API, and app authoring flow.
+
 = 1.0.7 =
 * Enlarges the WP Desktop dock treatment so icons read more like an operating-system launcher, with wider glass tiles and larger rendered artwork.
 
@@ -80,6 +86,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.0.8 =
+Adds four new wallpapers and improves the Playground first-run experience.
 
 = 1.0.7 =
 Makes dock icons larger and gives the dock a more OS-like launcher feel.

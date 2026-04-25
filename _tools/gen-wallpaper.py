@@ -55,11 +55,11 @@ except ImportError:
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-WALLPAPER_DIR = REPO_ROOT / "assets" / "wallpapers"
-PREVIEW_DIR = REPO_ROOT / "assets" / "previews"
+WALLPAPER_DIR = REPO_ROOT / "odd" / "assets" / "wallpapers"
+PREVIEW_DIR = REPO_ROOT / "odd" / "assets" / "previews"
 WALLPAPER_W, WALLPAPER_H = 1920, 1080
 PREVIEW_W, PREVIEW_H = 640, 360
-GEN_W, GEN_H = 1536, 1024  # gpt-image-2 landscape native
+GEN_W, GEN_H = 1536, 864  # gpt-image-2 16:9 landscape
 MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
 
 
@@ -88,6 +88,7 @@ def call_gpt_image_2(prompt: str, quality: str, key: str) -> bytes:
         "prompt": prompt,
         "size": f"{GEN_W}x{GEN_H}",
         "quality": quality,
+        "output_format": "png",
         "n": 1,
     }).encode("utf-8")
     req = urllib.request.Request(
@@ -100,12 +101,22 @@ def call_gpt_image_2(prompt: str, quality: str, key: str) -> bytes:
         method="POST",
     )
     t0 = time.time()
-    try:
-        with urllib.request.urlopen(req, timeout=300) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        msg = e.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"openai HTTPError {e.code}: {msg[:1200]}")
+    last_err: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(req, timeout=600) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+            last_err = None
+            break
+        except urllib.error.HTTPError as e:
+            msg = e.read().decode("utf-8", errors="replace")
+            raise SystemExit(f"openai HTTPError {e.code}: {msg[:1200]}")
+        except Exception as e:
+            last_err = e
+            print(f"  attempt {attempt} failed: {e!r}; retrying...", file=sys.stderr)
+            time.sleep(3 * attempt)
+    if last_err is not None:
+        raise SystemExit(f"openai request failed after retries: {last_err!r}")
     dt = time.time() - t0
     item = payload["data"][0]
     if "b64_json" in item and item["b64_json"]:

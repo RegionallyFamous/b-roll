@@ -11,6 +11,7 @@
 body.wp-desktop-active {
 	--odd-dock-tile-size: 60px;
 	--odd-dock-icon-size: 48px;
+	--odd-dock-custom-icon-size: 56px;
 	--odd-dock-gap: 8px;
 }
 
@@ -50,6 +51,19 @@ body.wp-desktop-active .wp-desktop-dock__item-primary:focus-visible {
 	background: rgba( 8, 14, 28, 0.68 );
 }
 
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ),
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ) {
+	background: transparent;
+	box-shadow: none;
+}
+
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):hover,
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):hover,
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):focus-visible,
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):focus-visible {
+	background: rgba( 255, 255, 255, 0.08 );
+}
+
 body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img,
 body.wp-desktop-active .wp-desktop-dock__item-svg,
 body.wp-desktop-active .wp-desktop-dock__item .dashicons {
@@ -67,6 +81,14 @@ body.wp-desktop-active .wp-desktop-dock__item .dashicons {
 body.wp-desktop-active .wp-desktop-dock__item .dashicons {
 	font-size: 38px;
 	line-height: var( --odd-dock-icon-size );
+}
+
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"],
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"] {
+	width: var( --odd-dock-custom-icon-size );
+	height: var( --odd-dock-custom-icon-size );
+	max-width: var( --odd-dock-custom-icon-size );
+	max-height: var( --odd-dock-custom-icon-size );
 }
 
 body.wp-desktop-active .wp-desktop-icon {

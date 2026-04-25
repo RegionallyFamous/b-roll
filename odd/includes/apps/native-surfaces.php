@@ -112,7 +112,19 @@ function odd_apps_register_surfaces( $row ) {
  * load leaves a visible placeholder rather than a silent window.
  */
 function odd_apps_render_window_template( $slug, $manifest ) {
-	$serve_url = esc_url( rest_url( 'odd/v1/apps/serve/' . $slug . '/' ) );
+	// A fresh rest nonce is appended to the iframe src so apps can
+	// make authenticated REST calls — read it once in the app with
+	// `new URLSearchParams( window.location.search ).get( '_wpnonce' )`
+	// and include it as the `X-WP-Nonce` header on outgoing fetches.
+	// Same convention Bazaar used; nonces are user-scoped and expire
+	// after 12h, so leaking the iframe URL is low-risk.
+	$serve_url = add_query_arg(
+		array(
+			'_wpnonce' => wp_create_nonce( 'wp_rest' ),
+		),
+		rest_url( 'odd/v1/apps/serve/' . $slug . '/' )
+	);
+	$serve_url = esc_url( $serve_url );
 	$name      = isset( $manifest['name'] ) ? (string) $manifest['name'] : $slug;
 	?>
 	<div
