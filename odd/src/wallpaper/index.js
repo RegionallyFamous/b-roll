@@ -1152,8 +1152,8 @@
 					// surface now. Phase 4 removes this mount entirely
 					// once the panel owns the picker UI.
 					'[data-odd-scene-gear]{display:none!important}' +
-					'[data-odd-scene-gear],[data-odd-cam]{' +
-						'position:fixed;bottom:24px;z-index:2147483647;' +
+					'[data-odd-scene-gear]{' +
+						'position:fixed;right:24px;bottom:24px;z-index:2147483647;' +
 						'width:44px;height:44px;padding:0;border-radius:50%;' +
 						'display:flex;align-items:center;justify-content:center;' +
 						'cursor:pointer;outline:none;' +
@@ -1165,36 +1165,13 @@
 						'opacity:.85;' +
 						'transition:opacity .18s ease,transform .18s ease,background .18s ease;' +
 					'}' +
-					'[data-odd-scene-gear]{right:24px}' +
-					'[data-odd-cam]{right:78px}' +
-					'[data-odd-scene-gear]:hover,[data-odd-cam]:hover{' +
+					'[data-odd-scene-gear]:hover{' +
 						'opacity:1;transform:translateY(-1px) scale(1.04);' +
 						'background:rgba(28,28,34,.9);' +
 					'}' +
-					'[data-odd-scene-gear]:active,[data-odd-cam]:active{transform:scale(.96)}' +
+					'[data-odd-scene-gear]:active{transform:scale(.96)}' +
 					'[data-odd-scene-gear] svg{transition:transform 1.2s ease}' +
 					'[data-odd-scene-gear]:hover svg{transform:rotate(60deg)}' +
-					'[data-odd-cam] svg{transition:transform .3s ease}' +
-					'[data-odd-cam]:active svg{transform:scale(.86)}' +
-					'[data-odd-flash]{' +
-						'position:fixed;inset:0;z-index:2147483646;' +
-						'background:#fff;opacity:0;pointer-events:none;' +
-						'transition:opacity .18s ease-out;' +
-					'}' +
-					'[data-odd-flash][data-on="1"]{opacity:.85;transition:opacity .04s ease-in}' +
-					'[data-odd-toast]{' +
-						'position:fixed;left:50%;bottom:96px;' +
-						'transform:translate(-50%,8px);z-index:2147483647;' +
-						'padding:10px 16px;border-radius:12px;' +
-						'font:500 13px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;' +
-						'color:#fff;background:rgba(18,18,22,.92);' +
-						'border:1px solid rgba(255,255,255,.18);' +
-						'box-shadow:0 10px 30px rgba(0,0,0,.45);' +
-						'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
-						'pointer-events:none;opacity:0;white-space:nowrap;' +
-						'transition:opacity .2s ease,transform .2s ease;' +
-					'}' +
-					'[data-odd-toast][data-show="1"]{opacity:1;transform:translate(-50%,0)}' +
 					'[data-odd-tooltip]{' +
 						'position:fixed;right:132px;bottom:32px;z-index:2147483647;' +
 						'padding:8px 12px;border-radius:10px;' +
@@ -1218,14 +1195,14 @@
 			}
 
 			// Singleton — remove any previous trigger before mounting.
-			var prevGear = document.querySelector( '[data-odd-scene-gear]' );
-			if ( prevGear && prevGear.parentNode ) prevGear.parentNode.removeChild( prevGear );
-			var prevCam = document.querySelector( '[data-odd-cam]' );
-			if ( prevCam && prevCam.parentNode ) prevCam.parentNode.removeChild( prevCam );
-			var prevToastEl = document.querySelector( '[data-odd-toast]' );
-			if ( prevToastEl && prevToastEl.parentNode ) prevToastEl.parentNode.removeChild( prevToastEl );
-			var prevFlashEl = document.querySelector( '[data-odd-flash]' );
-			if ( prevFlashEl && prevFlashEl.parentNode ) prevFlashEl.parentNode.removeChild( prevFlashEl );
+			// Also sweep legacy `[data-odd-cam]` / `[data-odd-flash]` /
+			// `[data-odd-toast]` nodes left behind by older ODD builds
+			// so upgrading users don't see a stale save-frame pill.
+			var legacyKill = [ '[data-odd-scene-gear]', '[data-odd-cam]', '[data-odd-flash]', '[data-odd-toast]' ];
+			for ( var li = 0; li < legacyKill.length; li++ ) {
+				var prev = document.querySelector( legacyKill[ li ] );
+				if ( prev && prev.parentNode ) prev.parentNode.removeChild( prev );
+			}
 
 			var gear = document.createElement( 'button' );
 			gear.type = 'button';
@@ -1244,147 +1221,6 @@
 				'a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1' +
 				'a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 			document.body.appendChild( gear );
-
-			// ---------- Take-a-frame (camera) button ------------- //
-			//
-			// A second floating pill, left of the gear, that saves
-			// the user's current view as a PNG. Composites the
-			// painted backdrop JPG + the Pixi cut-out / FX canvas at
-			// their native (DPR-scaled) resolution, so the download
-			// is a crisp full-fidelity screenshot even on retina.
-			//
-			// Shortcut: `s` (or `S`) from anywhere that isn't an
-			// input. Dispatches the same saveFrame() path.
-			var cam = document.createElement( 'button' );
-			cam.type = 'button';
-			cam.setAttribute( 'data-odd-cam', '' );
-			cam.setAttribute( 'aria-label', 'Save current frame as PNG' );
-			cam.setAttribute( 'title', 'Save frame  (S)' );
-			cam.innerHTML =
-				'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none"' +
-				' stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
-				'<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h2.1l1.2-1.6A2 2 0 0 1 11.4 3.7h3.2c.62 0 1.2.28 1.6.77L17.4 6h2.1A2.5 2.5 0 0 1 22 8.5V17a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V10.5"/>' +
-				'<circle cx="13" cy="13" r="4"/></svg>';
-			document.body.appendChild( cam );
-
-			// Toast + flash overlays (singletons, reused per save).
-			var flash = document.createElement( 'div' );
-			flash.setAttribute( 'data-odd-flash', '' );
-			document.body.appendChild( flash );
-			var toast = document.createElement( 'div' );
-			toast.setAttribute( 'data-odd-toast', '' );
-			toast.setAttribute( 'role', 'status' );
-			toast.setAttribute( 'aria-live', 'polite' );
-			document.body.appendChild( toast );
-			var toastTimer = null;
-			function showToast( msg, ms ) {
-				toast.textContent = msg;
-				toast.setAttribute( 'data-show', '1' );
-				if ( toastTimer ) clearTimeout( toastTimer );
-				toastTimer = setTimeout( function () {
-					toast.setAttribute( 'data-show', '0' );
-				}, ms || 1600 );
-			}
-			function doFlash() {
-				if ( env.reducedMotion ) return;
-				flash.setAttribute( 'data-on', '1' );
-				setTimeout( function () { flash.setAttribute( 'data-on', '0' ); }, 40 );
-			}
-
-			var saving = false;
-			function slugify( s ) {
-				return String( s || '' ).toLowerCase()
-					.replace( /[^a-z0-9]+/g, '-' )
-					.replace( /(^-|-$)/g, '' ) || 'scene';
-			}
-			function saveFrame() {
-				if ( saving ) return;
-				if ( ! currentSlug ) { showToast( 'Nothing to save yet' ); return; }
-				saving = true;
-				doFlash();
-				try {
-					// extract.canvas(stage) sidesteps preserveDrawingBuffer=false;
-					// it renders the stage into a fresh canvas we can read back.
-					var pixiCanvas = null;
-					try {
-						if ( app.renderer && app.renderer.extract && app.renderer.extract.canvas ) {
-							pixiCanvas = app.renderer.extract.canvas( app.stage );
-						}
-					} catch ( e ) { /* fall through */ }
-					if ( ! pixiCanvas ) pixiCanvas = app.canvas;
-					var W = pixiCanvas.width  || app.canvas.width;
-					var H = pixiCanvas.height || app.canvas.height;
-					if ( ! W || ! H ) { saving = false; showToast( 'Save failed' ); return; }
-
-					var out = document.createElement( 'canvas' );
-					out.width = W;
-					out.height = H;
-					var g = out.getContext( '2d' );
-					if ( ! g ) { saving = false; showToast( 'Save failed' ); return; }
-
-					function compositeAndSave( bgImg ) {
-						try {
-							if ( bgImg ) {
-								// Cover-fit the backdrop into the canvas so
-								// the crop matches what the user sees on a
-								// widescreen monitor (background-size: cover).
-								var ir = bgImg.width / bgImg.height;
-								var or = W / H;
-								var sx = 0, sy = 0, sw = bgImg.width, sh = bgImg.height;
-								if ( ir > or ) {
-									sw = bgImg.height * or;
-									sx = ( bgImg.width - sw ) / 2;
-								} else {
-									sh = bgImg.width / or;
-									sy = ( bgImg.height - sh ) / 2;
-								}
-								g.drawImage( bgImg, sx, sy, sw, sh, 0, 0, W, H );
-							} else {
-								// No backdrop — paint the scene's fallback
-								// color so the PNG isn't transparent.
-								var sm = SCENE_MAP[ currentSlug ] || {};
-								g.fillStyle = sm.fallbackColor || '#000';
-								g.fillRect( 0, 0, W, H );
-							}
-							g.drawImage( pixiCanvas, 0, 0, W, H );
-							out.toBlob( function ( blob ) {
-								saving = false;
-								if ( ! blob ) { showToast( 'Save failed' ); return; }
-								var url = URL.createObjectURL( blob );
-								var a = document.createElement( 'a' );
-								a.href = url;
-								var sm2 = SCENE_MAP[ currentSlug ] || {};
-								var stamp = new Date().toISOString().replace( /[-:T]/g, '' ).slice( 0, 14 );
-								a.download = 'odd-' + slugify( sm2.label || currentSlug ) + '-' + stamp + '.png';
-								document.body.appendChild( a );
-								a.click();
-								if ( a.parentNode ) a.parentNode.removeChild( a );
-								setTimeout( function () { URL.revokeObjectURL( url ); }, 1500 );
-								showToast( 'Saved ' + a.download );
-							}, 'image/png' );
-						} catch ( err ) {
-							saving = false;
-							if ( window.console ) window.console.warn( 'ODD: saveFrame failed', err );
-							showToast( 'Save failed' );
-						}
-					}
-
-					var bg = new window.Image();
-					bg.decoding = 'async';
-					bg.onload = function () { compositeAndSave( bg ); };
-					bg.onerror = function () { compositeAndSave( null ); };
-					bg.src = assetUrl( 'assets/wallpapers/' + currentSlug + '.webp' );
-				} catch ( err ) {
-					saving = false;
-					if ( window.console ) window.console.warn( 'ODD: saveFrame failed', err );
-					showToast( 'Save failed' );
-				}
-			}
-			cam.addEventListener( 'click', function () {
-				dismissTooltip();
-				saveFrame();
-			} );
-			window.__odd.saveFrame = saveFrame;
 
 			// First-run onboarding tooltip: tells the user what the
 			// gear does so they don't have to guess. Dismisses on
@@ -1454,9 +1290,6 @@
 				if ( e.key === '?' ) {
 					e.preventDefault();
 					openPicker();
-				} else if ( e.key === 's' || e.key === 'S' ) {
-					e.preventDefault();
-					saveFrame();
 				}
 			}
 			window.addEventListener( 'keydown', onKeydown );
@@ -1662,13 +1495,9 @@
 					try { window.__odd.picker.close(); } catch ( e ) { /* ignore */ }
 				}
 				if ( gear.parentNode ) gear.parentNode.removeChild( gear );
-				if ( cam.parentNode ) cam.parentNode.removeChild( cam );
-				if ( flash.parentNode ) flash.parentNode.removeChild( flash );
-				if ( toast.parentNode ) toast.parentNode.removeChild( toast );
 				if ( tooltip && tooltip.parentNode ) tooltip.parentNode.removeChild( tooltip );
 				if ( live.parentNode ) live.parentNode.removeChild( live );
 				if ( firstPaint.parentNode ) firstPaint.parentNode.removeChild( firstPaint );
-				try { delete window.__odd.saveFrame; } catch ( e ) { window.__odd.saveFrame = undefined; }
 				// Restore the original WP accent so switching away
 				// from ODD doesn't leave our tint behind.
 				if ( originalAccent ) {
