@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,10 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 
 == Changelog ==
 
+= 1.0.4 =
+* Icon sets now actually apply. Tinted SVGs are served through a new public `/odd/v1/icons/{set}/{key}` REST route as `image/svg+xml`, replacing the `data:image/svg+xml;utf8,` URIs that WP Desktop Mode silently rejected — icons used to fall back to letter badges on the dock and to broken shortcuts on the desktop.
+* Selecting an icon set now swaps the dock + desktop icons in place without a full page reload, so the ODD Control Panel stays open.
+
 = 1.0.3 =
 * Retired the first-run "Hello. I decorate. Pick one of three." onboarding card. The ODD Control Panel now opens directly on the Wallpaper section.
 
@@ -63,6 +67,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.0.4 =
+Fixes dock + desktop icon sets that were silently rendering as letter badges. Recommended.
 
 = 1.0.3 =
 Retires the first-run greeting card so the Control Panel opens straight to Wallpaper.

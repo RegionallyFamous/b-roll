@@ -584,7 +584,7 @@
 
 		function renderIcons() {
 			var wrap = el( 'div' );
-			wrap.appendChild( sectionHeader( 'Icons', 'Themed icon sets for the dock and desktop shortcuts. Applying a set reloads the admin once so the server can re-render.' ) );
+			wrap.appendChild( sectionHeader( 'Icons', 'Themed icon sets for the dock and desktop shortcuts. Applying a set swaps the dock icons in place — no reload.' ) );
 
 			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets.slice() : [];
 			// Synthetic "None" pseudo-set so the user can opt out.
@@ -668,15 +668,124 @@
 				if ( data && typeof data.iconSet === 'string' ) {
 					state.cfg.iconSet = data.iconSet;
 				}
-				// Icon swap is server-canonical: reload so the dock +
-				// desktop icons rebuild through the `wp_desktop_dock_item`
-				// + `wp_desktop_icons` filters. Live-swap via JS DOM
-				// surgery is unreliable — the server-side filters at
-				// priority 20 are the source of truth.
-				setTimeout( function () {
-					try { window.location.reload(); } catch ( e ) {}
-				}, 180 );
+				// Live-swap instead of reloading: the panel stays
+				// open, no flicker. The server filters at priority
+				// 20 remain the source of truth for any full page
+				// render, so subsequent admin loads pick up the
+				// same choice from user meta.
+				//
+				// Switching **to** "none" needs a reload because we
+				// don't have the pre-ODD icon URLs cached JS-side;
+				// only the user's next load will rebuild them.
+				if ( slug === 'none' || slug === '' ) {
+					setTimeout( function () {
+						try { window.location.reload(); } catch ( e ) {}
+					}, 180 );
+					return;
+				}
+				liveSwapIcons( slug );
 			} );
+		}
+
+		/**
+		 * Rewrite every dock tile and desktop-shortcut icon in the
+		 * current document to the selected set's icon URLs. Works
+		 * because v1.0.4 switched ODD icons over to real HTTP URLs
+		 * (`/odd/v1/icons/{set}/{key}`), which WP Desktop Mode's
+		 * `resolveIcon()` renders as `<img>` tags — so we can just
+		 * update `.src` in place instead of rebuilding DOM nodes.
+		 */
+		function liveSwapIcons( slug ) {
+			var set = null;
+			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets : [];
+			for ( var i = 0; i < sets.length; i++ ) {
+				if ( sets[ i ] && sets[ i ].slug === slug ) { set = sets[ i ]; break; }
+			}
+			var icons = ( set && set.icons && typeof set.icons === 'object' ) ? set.icons : null;
+			var fallback = icons && icons.fallback ? icons.fallback : '';
+
+			function keyFromMenuSlug( dock ) {
+				if ( ! dock ) return '';
+				// WPDM sets data-menu-slug to the sanitized html id of
+				// the admin menu, typically "menu-posts", "menu-dashboard"…
+				var m = /^menu-(.+)$/.exec( dock );
+				if ( m && m[ 1 ] ) {
+					var k = m[ 1 ];
+					if ( k === 'comments' || k === 'appearance'
+						|| k === 'plugins'  || k === 'users'
+						|| k === 'tools'    || k === 'settings'
+						|| k === 'links'    || k === 'profile'
+						|| k === 'dashboard'|| k === 'media'
+						|| k === 'posts'    || k === 'pages' ) {
+						return k;
+					}
+				}
+				return '';
+			}
+
+			function resolve( key ) {
+				if ( icons && key && icons[ key ] ) return icons[ key ];
+				return fallback;
+			}
+
+			// Dock tiles (left rail + taskbar).
+			var tiles = document.querySelectorAll( '.wp-desktop-dock__item[data-menu-slug]' );
+			for ( var t = 0; t < tiles.length; t++ ) {
+				var tile = tiles[ t ];
+				var url = resolve( keyFromMenuSlug( tile.getAttribute( 'data-menu-slug' ) ) );
+				if ( ! url ) continue;
+				replaceTileIcon( tile, url );
+			}
+
+			// Desktop shortcut icons (buttons inside .wp-desktop-icons).
+			var shortcuts = document.querySelectorAll( '.wp-desktop-icon[data-icon-id]' );
+			for ( var s = 0; s < shortcuts.length; s++ ) {
+				var sc = shortcuts[ s ];
+				var id = sc.getAttribute( 'data-icon-id' );
+				// Skip the ODD Control Panel's own icon — keep the
+				// eye recognizable regardless of the active set.
+				if ( id === 'odd' ) continue;
+				var sUrl = resolve( id ) || fallback;
+				if ( ! sUrl ) continue;
+				replaceShortcutIcon( sc, sUrl );
+			}
+		}
+
+		function replaceTileIcon( tile, url ) {
+			var primary = tile.querySelector( '.wp-desktop-dock__item-primary' );
+			if ( ! primary ) return;
+			var img = primary.querySelector( '.wp-desktop-dock__item-img' );
+			if ( img ) { img.src = url; return; }
+			var span = primary.querySelector( '.wp-desktop-dock__item-svg' );
+			if ( span ) { span.style.backgroundImage = 'url("' + url + '")'; return; }
+			// First paint landed on a letter badge or dashicon —
+			// replace it with a fresh <img>.
+			var existing = primary.querySelector(
+				'.wp-desktop-dock__item-letter, .dashicons'
+			);
+			if ( existing ) existing.remove();
+			var fresh = document.createElement( 'img' );
+			fresh.className = 'wp-desktop-dock__item-img';
+			fresh.src = url;
+			fresh.alt = '';
+			fresh.setAttribute( 'aria-hidden', 'true' );
+			// Badges and other primary children (badge <span>) come
+			// after the icon, so prepend keeps DOM order sane.
+			primary.insertBefore( fresh, primary.firstChild );
+		}
+
+		function replaceShortcutIcon( sc, url ) {
+			var host = sc.querySelector( '.wp-desktop-icon__image' );
+			if ( ! host ) return;
+			host.className = 'wp-desktop-icon__image';
+			host.style.background = '';
+			var img = host.querySelector( 'img' );
+			if ( img ) { img.src = url; return; }
+			while ( host.firstChild ) host.removeChild( host.firstChild );
+			var fresh = document.createElement( 'img' );
+			fresh.src = url;
+			fresh.alt = '';
+			host.appendChild( fresh );
 		}
 
 		/* --- About section --- */

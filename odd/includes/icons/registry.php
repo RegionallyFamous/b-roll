@@ -17,16 +17,15 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Build a data URI for an SVG on disk, substituting `currentColor` with
- * the set's accent hex so the rendered color actually matches what the
- * manifest declares. Returns '' if the SVG doesn't opt in to currentColor
- * or the file can't be read — callers should fall back to a plain URL.
- *
- * Why data URIs: icons are rendered by WP Desktop Mode inside <img src="">
- * tags (and the panel's thumb grid does the same). Browsers sandbox
- * <img>-loaded SVGs, so CSS `color` / CSS variables on the surrounding
- * page can't reach inside. Baking the accent into the SVG payload is the
- * only way to make one `accent` manifest value actually drive the paint.
+ * Why not data URIs any more: in v1.0.4 we stopped emitting
+ * `data:image/svg+xml;utf8,...` icons because WP Desktop Mode's
+ * client-side `resolveIcon()` only accepts `data:image/svg+xml;base64,`
+ * for dock tiles and HTTP(S) URLs for desktop shortcuts — URL-encoded
+ * data URIs (and base64 data URIs for desktop icons) silently fall
+ * through to letter-badge rendering. Serving tinted icons through a
+ * real REST URL (`/odd/v1/icons/<set>/<key>`) gives us a single
+ * representation that works across both surfaces, benefits from HTTP
+ * caching, and stays under 8 KB per request.
  */
 /**
  * Resolve a manifest-declared relative path against a set directory, refusing
@@ -66,23 +65,29 @@ function odd_icons_resolve_set_path( $set_dir, $rel ) {
 	return $abs_real;
 }
 
-function odd_icons_tint_svg_data_uri( $abs_path, $accent ) {
+/**
+ * Does the SVG at the given absolute path opt in to currentColor
+ * tinting? Used by the registry to decide whether to route an icon
+ * through the tinted-SVG REST endpoint or serve the static file
+ * directly via plugins_url().
+ */
+function odd_icons_svg_uses_current_color( $abs_path ) {
 	if ( ! is_readable( $abs_path ) ) {
-		return '';
+		return false;
 	}
 	$svg = file_get_contents( $abs_path );
 	if ( false === $svg || '' === $svg ) {
-		return '';
+		return false;
 	}
-	if ( false === strpos( $svg, 'currentColor' ) ) {
-		return '';
-	}
-	$accent = is_string( $accent ) ? trim( $accent ) : '';
-	if ( ! preg_match( '/^#[0-9A-Fa-f]{3,8}$/', $accent ) ) {
-		return '';
-	}
-	$svg = str_replace( 'currentColor', $accent, $svg );
-	return 'data:image/svg+xml;utf8,' . rawurlencode( $svg );
+	return false !== strpos( $svg, 'currentColor' );
+}
+
+/**
+ * Build the public REST URL for a tinted icon. Set and key are
+ * sanitized inputs; the endpoint itself still re-validates both.
+ */
+function odd_icons_tinted_svg_url( $set_slug, $key ) {
+	return rest_url( 'odd/v1/icons/' . $set_slug . '/' . $key );
 }
 
 function odd_icons_get_sets() {
@@ -128,11 +133,13 @@ function odd_icons_get_sets() {
 				if ( '' === $abs || ! is_readable( $abs ) ) {
 					continue;
 				}
-				$basename = basename( $abs );
-				$tinted   = odd_icons_tint_svg_data_uri( $abs, $accent );
-				$icons[ sanitize_key( (string) $key ) ] = ( '' !== $tinted )
-					? $tinted
-					: ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $basename );
+				$basename  = basename( $abs );
+				$clean_key = sanitize_key( (string) $key );
+				if ( odd_icons_svg_uses_current_color( $abs ) ) {
+					$icons[ $clean_key ] = odd_icons_tinted_svg_url( $slug, $clean_key );
+				} else {
+					$icons[ $clean_key ] = ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $basename );
+				}
 			}
 		}
 
@@ -141,10 +148,23 @@ function odd_icons_get_sets() {
 			$preview_abs = odd_icons_resolve_set_path( $dir, $data['preview'] );
 			if ( '' !== $preview_abs && is_readable( $preview_abs ) ) {
 				$preview_basename = basename( $preview_abs );
-				$preview_tinted   = odd_icons_tint_svg_data_uri( $preview_abs, $accent );
-				$preview          = ( '' !== $preview_tinted )
-					? $preview_tinted
-					: ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $preview_basename );
+				// The preview is one of the set's existing icon keys
+				// most of the time (e.g. `dashboard.svg` or
+				// `fallback.svg`). Fall back to the static file URL
+				// when it doesn't use currentColor — same logic as
+				// individual icons.
+				if ( odd_icons_svg_uses_current_color( $preview_abs ) ) {
+					$preview_key = '__preview__';
+					foreach ( (array) $data['icons'] as $k => $rel ) {
+						if ( basename( (string) $rel ) === $preview_basename ) {
+							$preview_key = sanitize_key( (string) $k );
+							break;
+						}
+					}
+					$preview = odd_icons_tinted_svg_url( $slug, $preview_key );
+				} else {
+					$preview = ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $preview_basename );
+				}
 			}
 		}
 
@@ -222,4 +242,102 @@ function odd_icons_set_active_slug( $slug, $user_id = 0 ) {
 		return false;
 	}
 	return (bool) update_user_meta( $user_id, 'odd_icon_set', $slug );
+}
+
+/**
+ * Public REST route that serves a single tinted SVG from a set.
+ *
+ *   GET /wp-json/odd/v1/icons/{set}/{key}
+ *
+ * This endpoint is intentionally public: dock and desktop-shortcut
+ * icons are painted via `<img src>` which cannot send a nonce, and
+ * icon SVGs are branding-level content already on disk under
+ * `odd/assets/icons/<set>/`. The only things we vary by request are
+ * which key the caller asked for and the set's accent color
+ * substituted for `currentColor`.
+ *
+ * Inputs are route-validated by regex (`[a-z0-9-]+`) and then
+ * re-checked against the scanned registry so unknown sets/keys 404.
+ * The SVG is always served from the realpath inside the set
+ * directory (see odd_icons_resolve_set_path()), no arbitrary file
+ * traversal is possible.
+ */
+add_action(
+	'rest_api_init',
+	function () {
+		register_rest_route(
+			'odd/v1',
+			'/icons/(?P<set>[a-z0-9-]+)/(?P<key>[a-z0-9-_]+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => 'odd_icons_rest_serve_tinted',
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'set' => array( 'type' => 'string' ),
+					'key' => array( 'type' => 'string' ),
+				),
+			)
+		);
+	}
+);
+
+function odd_icons_rest_serve_tinted( WP_REST_Request $request ) {
+	$set_slug = sanitize_key( (string) $request->get_param( 'set' ) );
+	$key      = sanitize_key( (string) $request->get_param( 'key' ) );
+
+	if ( '' === $set_slug || '' === $key ) {
+		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$root = ODD_DIR . 'assets/icons/' . $set_slug;
+	if ( ! is_dir( $root ) ) {
+		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon set.', 'odd' ), array( 'status' => 404 ) );
+	}
+	$manifest_path = $root . '/manifest.json';
+	if ( ! is_readable( $manifest_path ) ) {
+		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon set.', 'odd' ), array( 'status' => 404 ) );
+	}
+	$raw  = file_get_contents( $manifest_path );
+	$data = is_string( $raw ) ? json_decode( $raw, true ) : null;
+	if ( ! is_array( $data ) || empty( $data['icons'] ) || ! is_array( $data['icons'] ) ) {
+		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon set.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$rel = null;
+	foreach ( $data['icons'] as $k => $v ) {
+		if ( sanitize_key( (string) $k ) === $key ) {
+			$rel = (string) $v;
+			break;
+		}
+	}
+	if ( null === $rel ) {
+		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$abs = odd_icons_resolve_set_path( $root, $rel );
+	if ( '' === $abs || ! is_readable( $abs ) ) {
+		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$svg = file_get_contents( $abs );
+	if ( false === $svg || '' === $svg ) {
+		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$accent = isset( $data['accent'] ) ? (string) $data['accent'] : '';
+	$accent = trim( $accent );
+	if ( preg_match( '/^#[0-9A-Fa-f]{3,8}$/', $accent ) ) {
+		$svg = str_replace( 'currentColor', $accent, $svg );
+	}
+
+	while ( ob_get_level() > 0 ) {
+		@ob_end_clean();
+	}
+
+	nocache_headers();
+	header( 'Content-Type: image/svg+xml' );
+	header( 'Cache-Control: public, max-age=3600, immutable' );
+	header( 'X-Content-Type-Options: nosniff' );
+	echo $svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- raw SVG body, not HTML
+	exit;
 }
