@@ -32,12 +32,22 @@ REPO_ROOT = PLUGIN_DIR.parent
 BLUEPRINT = REPO_ROOT / "blueprint.json"
 
 
-def blueprint_cachebuster() -> str | None:
-    """Pull the `?v=<x.y.z>` value off the ODD ZIP URL in blueprint.json.
+SENTINEL_GIT_DIRECTORY = "__git_directory__"
 
-    Returns None if blueprint.json is missing, doesn't reference odd.zip,
-    or the URL doesn't carry a `v=` query param (all treated as an error
-    at the call site).
+
+def blueprint_cachebuster() -> str | None:
+    """Inspect how blueprint.json installs the ODD plugin.
+
+    Returns one of:
+      - a `?v=<x.y.z>` value if the blueprint pins ODD to a release ZIP
+        with a cache-buster (legacy strategy)
+      - SENTINEL_GIT_DIRECTORY if the blueprint pulls ODD via a
+        `git:directory` resource against `RegionallyFamous/odd`. Git
+        resources are version-checked by branch/tag, not URL string,
+        so we don't need to keep a cache-buster in sync with odd.php.
+      - "" if the URL form is present but missing its `v=` query
+        param (treated as an error at the call site).
+      - None if no recognizable ODD install step is present.
     """
     if not BLUEPRINT.exists():
         return None
@@ -49,6 +59,12 @@ def blueprint_cachebuster() -> str | None:
         if not isinstance(step, dict) or step.get("step") != "installPlugin":
             continue
         plugin_data = step.get("pluginData") or {}
+        resource = plugin_data.get("resource")
+        if resource == "git:directory":
+            repo = plugin_data.get("url", "")
+            if "RegionallyFamous/odd" in repo:
+                return SENTINEL_GIT_DIRECTORY
+            continue
         url = plugin_data.get("url", "")
         if "odd.zip" not in url or "RegionallyFamous/odd" not in url:
             continue
@@ -96,7 +112,9 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    found["blueprint ?v="] = cachebuster
+
+    if cachebuster != SENTINEL_GIT_DIRECTORY:
+        found["blueprint ?v="] = cachebuster
 
     missing = [k for k, v in found.items() if v is None]
     if missing:
@@ -120,7 +138,12 @@ def main() -> int:
         )
         return 1
 
-    print(f"OK: odd.php + blueprint.json version {version}")
+    if cachebuster == SENTINEL_GIT_DIRECTORY:
+        print(
+            f"OK: odd.php version {version} (blueprint installs ODD via git:directory@main)"
+        )
+    else:
+        print(f"OK: odd.php + blueprint.json version {version}")
     return 0
 
 

@@ -64,8 +64,12 @@ function odd_apps_ensure_storage() {
 	}
 	$htaccess = ODD_APPS_DIR . '.htaccess';
 	if ( ! file_exists( $htaccess ) && wp_is_writable( ODD_APPS_DIR ) ) {
+		// Cover both Apache 2.4 (`Require all denied`) and 2.2
+		// (`Order allow,deny` + `Deny from all`). The `<IfModule>`
+		// gates keep each block silent on the wrong server version.
 		$contents = "# Managed by ODD. App bundles are served only via /wp-json/odd/v1/apps/serve/.\n" .
-					"Order allow,deny\nDeny from all\n";
+					"<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n" .
+					"<IfModule !mod_authz_core.c>\n\tOrder allow,deny\n\tDeny from all\n</IfModule>\n";
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents,WordPress.WP.AlternativeFunctions.file_put_contents_file_put_contents
 		@file_put_contents( $htaccess, $contents );
 	}

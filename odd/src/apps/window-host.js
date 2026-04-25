@@ -99,9 +99,10 @@
 	/**
 	 * WPDM can fire window-opened before our template is painted.
 	 * A single rAF is usually enough, but some theme transitions
-	 * (fade-in animations) defer the body render for several frames.
-	 * We retry up to six animation frames (~100ms) and then give up
-	 * silently — the loading placeholder stays visible.
+	 * (fade-in animations, lazy-rendered windows) defer the body
+	 * render for several frames. We retry up to ~30 animation
+	 * frames (~500ms at 60fps) and then give up silently — the
+	 * loading placeholder stays visible if the mount never arrives.
 	 */
 	function waitForMount( slug, attemptsLeft, cb ) {
 		var mount = findMount( slug );
@@ -116,7 +117,7 @@
 		if ( ! payload || typeof payload !== 'object' ) return;
 		var slug = slugFromWindowId( payload.id );
 		if ( ! slug ) return;
-		waitForMount( slug, 6, function ( mount ) {
+		waitForMount( slug, 30, function ( mount ) {
 			installFrame( mount );
 			events.emit( events.NAMES.APP_OPENED, { slug: slug, windowId: payload.id } );
 		} );

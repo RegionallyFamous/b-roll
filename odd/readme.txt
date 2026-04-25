@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,14 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 
 == Changelog ==
 
+= 1.0.2 =
+* Public app icon route: `/wp-json/odd/v1/apps/icon/{slug}` serves the manifest-declared icon without a nonce so dock and panel `<img>` tags no longer 401.
+* Bundled icon consumers updated to use the new public route.
+* Playground blueprint switched to a `git:directory` resource for ODD so fresh launches pick up the latest `main` without GitHub release ZIP CORS noise.
+* `.htaccess` for the apps storage directory now ships both Apache 2.4 (`Require all denied`) and Apache 2.2 (`Order allow,deny`) syntax wrapped in `<IfModule>` guards for shared-host compatibility.
+* Window host: app frame mount waits up to ~30 animation frames so slow theme transitions no longer drop the iframe.
+* Internal: `error_log` calls in the apps engine and migrations gated behind `WP_DEBUG`, atomic renames keep `phpcs:ignore` annotations with a documented rationale.
+
 = 1.0.1 =
 * Catalog REST route: fix route precedence so `/apps/catalog` is not shadowed by the `/apps/{slug}` regex — catalog apps now appear in the Apps panel.
 * Desktop icons: the ODD eye now ships as a real SVG asset instead of a `data:` URI, so WP Desktop Mode's dock sanitizer no longer silently swaps it for a generic cog.
@@ -52,6 +60,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.0.2 =
+Fixes app icons 401-ing on the dock/desktop and Apps panel. Recommended.
 
 = 1.0.1 =
 Fixes missing desktop icons and an empty Apps catalog caused by a REST route collision.

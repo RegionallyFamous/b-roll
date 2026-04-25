@@ -137,11 +137,20 @@ function odd_apps_icon_url( $slug, $manifest ) {
 	if ( '' === $icon ) {
 		return '';
 	}
-	// Data URI straight through.
-	if ( 0 === strpos( $icon, 'data:' ) ) {
+	// Absolute URL (http / https) — the manifest author is hosting
+	// the icon themselves; pass through.
+	if ( 0 === stripos( $icon, 'http://' ) || 0 === stripos( $icon, 'https://' ) ) {
 		return $icon;
 	}
-	// Relative path inside the app bundle → route through REST serve
-	// so capability checks apply.
-	return rest_url( 'odd/v1/apps/serve/' . $slug . '/' . ltrim( $icon, '/' ) );
+	// data: URIs would be ideal but WP Desktop Mode's dock sanitizer
+	// only accepts dashicon classes or http(s) URLs (see
+	// wpdm_sanitize_dock_icon). Anything else falls back to a generic
+	// cog — so we always return a real URL.
+	//
+	// Relative path inside the app bundle → route through the public
+	// icon endpoint. `<img>` tags don't send X-WP-Nonce, so the
+	// standard capability-gated /apps/serve route would 401 when the
+	// dock renders the tile. The /apps/icon route serves only the
+	// manifest's declared icon with no auth.
+	return rest_url( 'odd/v1/apps/icon/' . $slug );
 }

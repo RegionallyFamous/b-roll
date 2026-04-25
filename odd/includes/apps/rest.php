@@ -10,12 +10,16 @@
  *   POST /apps/{slug}/toggle                Enable / disable
  *   DELETE /apps/{slug}                     Uninstall
  *   GET  /apps/serve/{slug}/{path...}       Serve a file from the app bundle
+ *   GET  /apps/icon/{slug}                  Public icon for the app (no auth)
  *
  * Authorization:
  *
  *   - Management endpoints require manage_options.
  *   - serve/* requires the per-app `capability` (default manage_options)
  *     and confines the file read to realpath( odd_apps_dir_for($slug) ).
+ *   - icon/* is intentionally public: &lt;img src&gt; cannot send an
+ *     X-WP-Nonce header, and dock/desktop icons are public branding
+ *     anyway. Only the manifest's declared icon path is served.
  *
  * The serve endpoint is the only way app files reach the browser;
  * direct URLs to wp-content/odd-apps are blocked by the .htaccess
@@ -91,6 +95,23 @@ add_action(
 				'methods'             => 'GET',
 				'callback'            => 'odd_apps_rest_serve',
 				'permission_callback' => 'odd_apps_rest_serve_permission',
+			)
+		);
+
+		// Public icon endpoint. REST cookie auth requires an
+		// X-WP-Nonce header and an <img src> tag can't send one, so
+		// the desktop dock (and every panel card) would 401 otherwise.
+		// Icons are already public branding — any enabled app shows
+		// its icon on the desktop — so we serve just the manifest's
+		// declared icon path with no auth. Path escape is impossible
+		// because we never read client-supplied path segments here.
+		register_rest_route(
+			'odd/v1',
+			'/apps/icon/(?P<slug>[a-z0-9-]+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => 'odd_apps_rest_icon',
+				'permission_callback' => '__return_true',
 			)
 		);
 	}
@@ -251,6 +272,73 @@ function odd_apps_rest_serve( WP_REST_Request $req ) {
 	// readfile() is used intentionally: the serve endpoint streams
 	// potentially multi-megabyte static assets to a sandboxed iframe
 	// and must not buffer the whole payload into memory.
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+	readfile( $full );
+	exit;
+}
+
+/**
+ * Public icon endpoint.
+ *
+ * Resolves the app's manifest.icon path (defaults to icon.svg) and
+ * streams it with a long cache header. No client-supplied path is
+ * honoured, so there's no traversal surface — the slug is the only
+ * variable input and the regex constrains it.
+ *
+ * Returns 404 for missing / disabled / iconless apps so enumerating
+ * slugs reveals nothing extra beyond "an app with this slug either
+ * exists or doesn't".
+ */
+function odd_apps_rest_icon( WP_REST_Request $req ) {
+	$slug  = sanitize_key( $req['slug'] );
+	$index = odd_apps_index_load();
+	if ( ! isset( $index[ $slug ] ) || empty( $index[ $slug ]['enabled'] ) ) {
+		return new WP_Error( 'not_found', __( 'App not found.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$manifest = odd_apps_manifest_load( $slug );
+	$icon     = isset( $manifest['icon'] ) && $manifest['icon']
+		? (string) $manifest['icon']
+		: 'icon.svg';
+
+	// Restrict to a safe character set and forbid path escape.
+	if (
+		false !== strpos( $icon, '..' ) ||
+		( strlen( $icon ) > 0 && '/' === $icon[0] ) ||
+		false !== strpos( $icon, "\0" ) ||
+		! preg_match( '#^[a-zA-Z0-9._/-]+$#', $icon )
+	) {
+		return new WP_Error( 'not_found', __( 'App not found.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$ext = strtolower( pathinfo( $icon, PATHINFO_EXTENSION ) );
+	if ( ! in_array( $ext, array( 'svg', 'png', 'webp', 'jpg', 'jpeg', 'gif', 'ico' ), true ) ) {
+		return new WP_Error( 'not_found', __( 'App not found.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$base      = odd_apps_dir_for( $slug );
+	$real_base = realpath( $base );
+	$full      = realpath( $base . $icon );
+	if ( ! $real_base || ! $full || 0 !== strpos( $full, $real_base ) ) {
+		return new WP_Error( 'not_found', __( 'App not found.', 'odd' ), array( 'status' => 404 ) );
+	}
+	if ( ! is_file( $full ) || ! is_readable( $full ) ) {
+		return new WP_Error( 'not_found', __( 'App not found.', 'odd' ), array( 'status' => 404 ) );
+	}
+
+	$mime = odd_apps_mime_for( $full );
+	$size = filesize( $full );
+
+	while ( ob_get_level() > 0 ) {
+		@ob_end_clean();
+	}
+
+	header( 'Content-Type: ' . $mime );
+	header( 'X-Content-Type-Options: nosniff' );
+	header( 'Cache-Control: public, max-age=86400' );
+	if ( $size && ! ini_get( 'zlib.output_compression' ) ) {
+		header( 'Content-Length: ' . (int) $size );
+	}
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
 	readfile( $full );
 	exit;

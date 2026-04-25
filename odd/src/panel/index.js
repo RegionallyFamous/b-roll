@@ -313,9 +313,12 @@
 
 			var thumb = el( 'div', { class: 'odd-card__thumb' } );
 			if ( app.icon ) {
+				// The /apps/icon/{slug} route is public (no X-WP-Nonce)
+				// so <img> can fetch it; /apps/serve/... would 401
+				// because img tags can't send custom headers.
 				var src = ( app.icon.indexOf( 'data:' ) === 0 || app.icon.indexOf( 'http' ) === 0 )
 					? app.icon
-					: ( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/apps/serve/' + app.slug + '/' + app.icon );
+					: ( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/apps/icon/' + app.slug );
 				var img = el( 'img', { src: src, alt: app.name, loading: 'lazy' } );
 				thumb.appendChild( img );
 			} else {

@@ -21,10 +21,13 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "url",
-        "url": "https://github.com/RegionallyFamous/odd/releases/latest/download/odd.zip?v=1.0.1"
+        "resource": "git:directory",
+        "url": "https://github.com/RegionallyFamous/odd",
+        "ref": "main",
+        "refType": "branch",
+        "path": "odd"
       },
-      "options": { "activate": true }
+      "options": { "activate": true, "targetFolderName": "odd" }
     },
     {
       "step": "updateUserMeta",
