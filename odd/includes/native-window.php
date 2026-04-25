@@ -52,6 +52,37 @@ add_action(
 	}
 );
 
+add_filter(
+	'wp_desktop_shell_config',
+	function ( $config ) {
+		if ( empty( $config['session']['windows'] ) || ! is_array( $config['session']['windows'] ) ) {
+			return $config;
+		}
+
+		foreach ( $config['session']['windows'] as $i => $window ) {
+			if ( ! is_array( $window ) ) {
+				continue;
+			}
+			$id      = isset( $window['id'] ) ? (string) $window['id'] : '';
+			$base_id = isset( $window['baseId'] ) ? (string) $window['baseId'] : '';
+			$url     = isset( $window['url'] ) ? (string) $window['url'] : '';
+
+			if ( 'odd' !== $id && 'odd' !== $base_id && '#odd' !== $url ) {
+				continue;
+			}
+
+			// The Control Panel should always come back as a compact
+			// utility window. WP Desktop Mode persists window state, so
+			// a single accidental maximize would otherwise stick forever.
+			$config['session']['windows'][ $i ]['state']  = 'normal';
+			$config['session']['windows'][ $i ]['width']  = 820;
+			$config['session']['windows'][ $i ]['height'] = 560;
+		}
+
+		return $config;
+	}
+);
+
 /**
  * Panel template — the shell clones this into the native window body
  * when the JS render callback hasn't finished hydrating yet, and keeps

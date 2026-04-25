@@ -1,20 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <radialGradient id="i" cx="50%" cy="50%" r="60%">
-      <stop offset="0" stop-color="#ffb84d"/>
-      <stop offset="0.55" stop-color="#d946ef"/>
-      <stop offset="1" stop-color="#2b3dff"/>
-    </radialGradient>
-  </defs>
-  <path d="M 10 32 Q 10 14 32 12 Q 54 14 54 32 Q 54 50 34 52 Q 32 46 26 46 Q 22 46 22 42 Q 22 36 16 36 Q 12 36 10 32 Z" fill="#fdfaf2" stroke="#130826" stroke-width="1.6" stroke-linejoin="round"/>
-  <g stroke="#130826" stroke-width="1.2">
-    <circle cx="22" cy="22" r="4" fill="#ff4d6d"/>
-    <circle cx="22" cy="22" r="1.4" fill="#0a0416" stroke="none"/>
-    <circle cx="36" cy="20" r="4" fill="#ffdd4d"/>
-    <circle cx="36" cy="20" r="1.4" fill="#0a0416" stroke="none"/>
-    <circle cx="46" cy="30" r="4" fill="#00f7c8"/>
-    <circle cx="46" cy="30" r="1.4" fill="#0a0416" stroke="none"/>
-    <circle cx="38" cy="40" r="4" fill="url(#i)"/>
-    <circle cx="38" cy="40" r="1.4" fill="#0a0416" stroke="none"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Eyeball Avenue Appearance">
+<title>Eyeball Avenue Appearance</title>
+<defs>
+  <linearGradient id="bg-eyeball-avenue-appearance" x1="10" y1="8" x2="58" y2="60" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ff80bf"/><stop offset="0.46" stop-color="#6637d6"/><stop offset="1" stop-color="#16051f"/></linearGradient>
+  <radialGradient id="glow-eyeball-avenue-appearance" cx="22" cy="16" r="44" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff7f2" stop-opacity="0.85"/><stop offset="0.52" stop-color="#b35cff" stop-opacity="0.35"/><stop offset="1" stop-color="#16051f" stop-opacity="0"/></radialGradient>
+  <linearGradient id="glyph-eyeball-avenue-appearance" x1="14" y1="14" x2="50" y2="54" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff7f2"/><stop offset="0.48" stop-color="#b35cff"/><stop offset="1" stop-color="#34f5c5"/></linearGradient>
+  <filter id="shadow-eyeball-avenue-appearance" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.45"/></filter>
+</defs>
+<rect x="4" y="4" width="56" height="56" rx="16" fill="url(#bg-eyeball-avenue-appearance)"/>
+<circle cx="20" cy="16" r="30" fill="url(#glow-eyeball-avenue-appearance)"/>
+<path d="M10 50 C20 58 42 58 54 42 L54 56 L10 56 Z" fill="#000" opacity="0.18"/>
+<path d="M12 10 H42 C50 10 54 15 54 23" fill="none" stroke="#fff" stroke-opacity="0.30" stroke-width="1.4" stroke-linecap="round"/>
+<circle cx="51" cy="13" r="3" fill="#34f5c5" opacity="0.95"/>
+<circle cx="13" cy="51" r="2.4" fill="#b35cff" opacity="0.85"/>
+<g filter="url(#shadow-eyeball-avenue-appearance)"><circle cx="28" cy="30" r="16" fill="#fff7f2"/><circle cx="22" cy="25" r="4" fill="#b35cff"/><circle cx="32" cy="22" r="4" fill="#34f5c5"/><circle cx="38" cy="33" r="4" fill="#6637d6"/><path d="M39 40c7 1 11 5 9 9-2 5-13 2-17-2" fill="none" stroke="#09101a" stroke-width="4" stroke-linecap="round"/><path d="M18 47l8-14 7 5-12 10z" fill="#34f5c5"/></g>
+<g filter="url(#shadow-eyeball-avenue-appearance)"><ellipse cx="32" cy="32" rx="18" ry="11" fill="#fff8ef"/><circle cx="32" cy="32" r="8" fill="#b35cff"/><circle cx="32" cy="32" r="4" fill="#070711"/><circle cx="29" cy="29" r="2" fill="#fff"/></g>
 </svg>

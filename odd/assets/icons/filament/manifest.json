@@ -1,9 +1,9 @@
 {
   "slug": "filament",
   "label": "Filament",
-  "franchise": "Generative",
-  "accent": "#9be6ff",
-  "description": "Hair-thin single-stroke icons that read as one unbroken filament of light. Pairs with the Flux wallpaper but looks great on any dark dock.",
+  "franchise": "Lightbox",
+  "accent": "#ffb000",
+  "description": "Glowing full-color neon tubes over dark glass, with warm highlights and layered app symbols instead of hairline monochrome strokes.",
   "preview": "dashboard.svg",
   "icons": {
     "dashboard": "dashboard.svg",

@@ -220,7 +220,17 @@
 	function openPanel() {
 		if ( ! ( window.wp && window.wp.desktop && typeof window.wp.desktop.registerWindow === 'function' ) ) return false;
 		return !! safeCall( function () {
-			window.wp.desktop.registerWindow( { id: 'odd' } );
+			var c = cfg();
+			window.wp.desktop.registerWindow( {
+				id: 'odd',
+				title: 'ODD Control Panel',
+				icon: ( c.pluginUrl || '' ) + '/assets/odd-eye.svg',
+				width: 820,
+				height: 560,
+				minWidth: 640,
+				minHeight: 440,
+				initialState: 'normal',
+			} );
 			return true;
 		}, 'api.openPanel' );
 	}

@@ -3,15 +3,6 @@
   "version": 1,
   "apps": [
     {
-      "slug":         "hello-odd",
-      "name":         "Hello ODD",
-      "description":  "Minimal reference app. Opens a tiny window, greets you, and registers one slash command. Read the source to learn how apps work.",
-      "version":      "1.0.0",
-      "author":       "ODD",
-      "builtin":      true,
-      "icon_url":     "hello-odd/icon.svg"
-    },
-    {
       "slug":         "mosaic",
       "name":         "Mosaic",
       "description":  "Tiny art, big feelings. A pixel editor with drawing tools, fills, undo/redo, and PNG export when you're ready to share your 32x32 masterpiece.",

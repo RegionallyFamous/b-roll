@@ -372,8 +372,8 @@ Every app is defined by a `manifest.json` at the root of its bundle:
 
 `slug`, `name`, and `version` are required. Everything else is
 optional. `capability` is the WordPress capability the user must have
-to install or open the app — defaults to `manage_options`, but a
-public-utility app like "Hello ODD" sets it to `read`.
+to install or open the app — defaults to `manage_options`; public
+utility apps can lower that to `read`.
 
 ### Archive format
 
@@ -400,16 +400,15 @@ Three ways to install an app:
    `POST /wp-json/odd/v1/apps/upload`.
 2. **Catalog** — the Apps panel's *Catalog* section lists curated
    entries (from `odd/apps/catalog/registry.json`) with *Add* or
-   *Download* buttons. Built-ins install from the plugin's own source
-   tree; remote entries download the referenced `.wp` archive and
-   install it through the same pipeline as uploads. Backed by
+   *Download* buttons. Remote entries download the referenced `.wp`
+   archive and install it through the same pipeline as uploads. Backed by
    `GET /odd/v1/apps/catalog` and `POST /odd/v1/apps/install-from-catalog`.
 3. **Programmatic** — call `odd_apps_install( $tmp_path, $filename )`
    from PHP. Returns the parsed manifest on success or a `WP_Error`.
 
-Built-in apps defined in the catalog with `"builtin": true` auto-install
-on plugin activation and when migration #4 runs. The `Hello ODD`
-reference app ships as the canonical built-in.
+ODD no longer ships a built-in demo app. The built-in install pipeline
+is still present for third-party builds that add catalog entries with
+`"builtin": true`, but the stock catalog is remote-app-only.
 
 ### Where app files live
 

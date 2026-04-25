@@ -1,8 +1,8 @@
 {
   "slug": "eyeball-avenue",
   "label": "Eyeball Avenue",
-  "franchise": "ODD Originals",
-  "description": "Thirteen watchful eyes. Every dock tile is a full-color gradient eyeball reshaped for its admin role \u2014 a dashboard of pupils, a plug with an iris, a gear staring back. First-party set that proves the Cut 1 extension API: full-color tiles, no currentColor, registered through the filter API.",
+  "franchise": "ODD Original",
+  "description": "Full-color surreal eyeball tiles: glossy pupils, neon lids, little role props, and enough contrast to stare back from the desktop.",
   "preview": "dashboard.svg",
   "icons": {
     "dashboard": "dashboard.svg",
@@ -18,5 +18,6 @@
     "profile": "profile.svg",
     "links": "links.svg",
     "fallback": "fallback.svg"
-  }
+  },
+  "accent": "#b35cff"
 }

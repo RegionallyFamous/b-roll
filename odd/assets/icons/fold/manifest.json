@@ -1,9 +1,9 @@
 {
   "slug": "fold",
   "label": "Fold",
-  "franchise": "Paper",
-  "accent": "#d6b48a",
-  "description": "Folded-paper icons in cream and warm tan, each with a single visible crease and a soft drop shadow. Pairs with the Origami wallpaper.",
+  "franchise": "Paper Arcade",
+  "accent": "#7c5cff",
+  "description": "Origami-inspired full-color tiles with folded paper facets, inked role glyphs, and playful dimensional shadows.",
   "preview": "dashboard.svg",
   "icons": {
     "dashboard": "dashboard.svg",

@@ -1,9 +1,9 @@
 {
   "slug": "arctic",
   "label": "Arctic",
-  "franchise": "Atmosphere",
-  "accent": "#a3d9ff",
-  "description": "Crisp frost-blue line icons with a tiny magenta accent dot \u2014 the same palette as the Aurora wallpaper. Reads well on light or dark docks.",
+  "franchise": "Crystal OS",
+  "accent": "#7ddcff",
+  "description": "Full-color frosted-glass app tiles with icy gradients, snow highlights, and saturated role glyphs built for high contrast on busy wallpapers.",
   "preview": "dashboard.svg",
   "icons": {
     "dashboard": "dashboard.svg",

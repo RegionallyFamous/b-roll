@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Decorator for WP Desktop Mode: generative PixiJS wallpapers, themed icon sets, a
 ODD (Outlandish Desktop Decorator) layers on top of the [WP Desktop Mode](https://github.com/WordPress/desktop-mode) plugin and turns the desktop into a playground:
 
 * **Wallpapers.** Generative PixiJS scenes painted on custom 1920×1080 backdrops, with more packs shipping through the catalog over time.
-* **Icon sets.** Themed SVG packs that re-skin the WP Desktop dock and desktop shortcut icons.
+* **Icon sets.** Full-color SVG packs that re-skin the WP Desktop dock and desktop shortcut icons.
 * **Apps.** Install small sandboxed web apps (HTML/CSS/JS) as windows and desktop icons, managed from the ODD Control Panel.
 * **Iris.** A lightweight mascot/personality layer that reacts to scene changes, app lifecycle events, and time of day.
 
@@ -44,6 +44,12 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 
 == Changelog ==
 
+= 1.0.5 =
+* Removes the bundled Hello ODD demo app from the catalog and adds a migration to uninstall it from existing sites.
+* Keeps the ODD Control Panel as a compact utility window instead of restoring accidental maximized session state.
+* Reworks all bundled icon sets into richer full-color SVG tiles with gradients, shadows, and role-specific glyphs.
+* Adds the Iris Observatory wallpaper scene and contrast treatment for dock + desktop icons.
+
 = 1.0.4 =
 * Icon sets now actually apply. Tinted SVGs are served through a new public `/odd/v1/icons/{set}/{key}` REST route as `image/svg+xml`, replacing the `data:image/svg+xml;utf8,` URIs that WP Desktop Mode silently rejected — icons used to fall back to letter badges on the dock and to broken shortcuts on the desktop.
 * Selecting an icon set now swaps the dock + desktop icons in place without a full page reload, so the ODD Control Panel stays open.
@@ -67,6 +73,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.0.5 =
+Removes the demo app, keeps the Control Panel compact, and replaces the bundled icon sets with full-color artwork.
 
 = 1.0.4 =
 Fixes dock + desktop icon sets that were silently rendering as letter badges. Recommended.

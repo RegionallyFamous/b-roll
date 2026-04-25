@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'ODD_SCHEMA_VERSION' ) ) {
-	define( 'ODD_SCHEMA_VERSION', 4 );
+	define( 'ODD_SCHEMA_VERSION', 5 );
 }
 
 function odd_migrations_all() {

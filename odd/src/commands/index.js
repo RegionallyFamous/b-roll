@@ -182,7 +182,7 @@
 		window.wp.desktop.registerCommand( {
 			slug:        'odd-icons',
 			label:       'ODD: pick an icon set',
-			description: 'Swap the dock + desktop shortcut icon set (soft reload).',
+			description: 'Swap the dock + desktop shortcut icon set.',
 			hint:        '[set] · "none" to reset',
 			icon:        'dashicons-grid-view',
 			owner:       'odd-commands',

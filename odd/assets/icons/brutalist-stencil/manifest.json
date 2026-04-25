@@ -1,23 +1,23 @@
 {
   "slug": "brutalist-stencil",
   "label": "Brutalist Stencil",
-  "franchise": "Stencil",
-  "accent": "#ff7a00",
-  "description": "Filled monolithic glyphs, no outlines. Mass-over-line icons that survive the 20-pixel dock test by being pure shape. currentColor-driven.",
+  "franchise": "Concrete Arcade",
+  "accent": "#ff5f4f",
+  "description": "Chunky full-color stencil badges with concrete shadows, hazard accents, and bold shapes that read clearly at dock size.",
   "preview": "dashboard.svg",
   "icons": {
-    "dashboard":  "dashboard.svg",
-    "posts":      "posts.svg",
-    "pages":      "pages.svg",
-    "media":      "media.svg",
-    "comments":   "comments.svg",
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
     "appearance": "appearance.svg",
-    "plugins":    "plugins.svg",
-    "users":      "users.svg",
-    "tools":      "tools.svg",
-    "settings":   "settings.svg",
-    "profile":    "profile.svg",
-    "links":      "links.svg",
-    "fallback":   "fallback.svg"
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
   }
 }

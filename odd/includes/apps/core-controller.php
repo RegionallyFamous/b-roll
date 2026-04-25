@@ -352,9 +352,9 @@ function odd_apps_rest_install_from_catalog( WP_REST_Request $req ) {
 }
 
 /**
- * Activation + migration hook-up. Seeding on activate gives first-
- * run installs a working "Hello ODD" immediately; migration #4 picks
- * up sites that were already on v0.16 when v0.17 ships.
+ * Activation + migration hook-up. Built-ins used to seed the Hello ODD
+ * demo app; v1.0.5 removes that app, so the seed path stays as an
+ * extension point but is a no-op for ODD's own catalog.
  */
 register_activation_hook(
 	ODD_FILE,
@@ -368,6 +368,7 @@ add_filter(
 	'odd_migrations',
 	function ( $migrations ) {
 		$migrations[4] = 'odd_migration_4_seed_builtins';
+		$migrations[5] = 'odd_migration_5_remove_hello_odd';
 		return $migrations;
 	}
 );
@@ -376,5 +377,12 @@ function odd_migration_4_seed_builtins( $user_id ) {
 	unset( $user_id );
 	if ( function_exists( 'odd_apps_seed_builtins' ) ) {
 		odd_apps_seed_builtins();
+	}
+}
+
+function odd_migration_5_remove_hello_odd( $user_id ) {
+	unset( $user_id );
+	if ( function_exists( 'odd_apps_uninstall' ) ) {
+		odd_apps_uninstall( 'hello-odd' );
 	}
 }
