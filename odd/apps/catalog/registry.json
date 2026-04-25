@@ -9,7 +9,7 @@
       "version":      "1.1.0",
       "author":       "Regionally Famous",
       "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/bazaar/main/wares/mosaic/public/icon.svg",
-      "download_url": "https://github.com/RegionallyFamous/bazaar/releases/latest/download/mosaic.wp",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/mosaic.wp",
       "tags":         ["creative", "art", "editor", "fun"]
     },
     {
@@ -19,7 +19,7 @@
       "version":      "1.1.0",
       "author":       "Regionally Famous",
       "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/bazaar/main/wares/ledger/public/icon.svg",
-      "download_url": "https://github.com/RegionallyFamous/bazaar/releases/latest/download/ledger.wp",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/ledger.wp",
       "tags":         ["business", "invoicing", "billing", "pdf"]
     },
     {
@@ -29,7 +29,7 @@
       "version":      "1.1.0",
       "author":       "Regionally Famous",
       "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/bazaar/main/wares/flow/public/icon.svg",
-      "download_url": "https://github.com/RegionallyFamous/bazaar/releases/latest/download/flow.wp",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/flow.wp",
       "tags":         ["productivity", "timer", "focus", "pomodoro"]
     },
     {
@@ -39,7 +39,7 @@
       "version":      "1.1.0",
       "author":       "Regionally Famous",
       "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/bazaar/main/wares/board/public/icon.svg",
-      "download_url": "https://github.com/RegionallyFamous/bazaar/releases/latest/download/board.wp",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/board.wp",
       "tags":         ["productivity", "tasks", "kanban", "planning"]
     },
     {
@@ -49,7 +49,7 @@
       "version":      "1.1.0",
       "author":       "Regionally Famous",
       "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/bazaar/main/wares/swatch/public/icon.svg",
-      "download_url": "https://github.com/RegionallyFamous/bazaar/releases/latest/download/swatch.wp",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/swatch.wp",
       "tags":         ["creative", "design", "colors", "palette"]
     },
     {
@@ -59,7 +59,7 @@
       "version":      "1.1.0",
       "author":       "Regionally Famous",
       "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/bazaar/main/wares/sine/public/icon.svg",
-      "download_url": "https://github.com/RegionallyFamous/bazaar/releases/latest/download/sine.wp",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/sine.wp",
       "tags":         ["music", "audio", "synth", "fun"]
     },
     {
@@ -69,7 +69,7 @@
       "version":      "1.0.0",
       "author":       "Regionally Famous",
       "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/bazaar/main/wares/tome/public/icon.svg",
-      "download_url": "https://github.com/RegionallyFamous/bazaar/releases/latest/download/tome.wp",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/tome.wp",
       "tags":         ["wiki", "notes", "markdown", "productivity"]
     }
   ]

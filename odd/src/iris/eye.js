@@ -35,6 +35,10 @@
 	var pupil = null;
 	var hideTimer = null;
 	var state = 'hidden';
+	var trackedIcons = [];
+	var pointer = { x: null, y: null };
+	var trackingRaf = 0;
+	var scanTimer = 0;
 
 	function reducedMotion() {
 		var s = window.__odd.store;
@@ -136,6 +140,123 @@
 		step();
 	}
 
+	function makeInlineOddEye( source ) {
+		var svg = document.createElementNS( SVG_NS, 'svg' );
+		svg.setAttribute( 'viewBox', '0 0 64 64' );
+		svg.setAttribute( 'aria-hidden', 'true' );
+		svg.setAttribute( 'focusable', 'false' );
+		svg.setAttribute( 'data-odd-eye-inline', '' );
+		if ( source && source.className ) {
+			svg.setAttribute( 'class', source.className );
+		}
+		svg.style.cssText = [
+			'display:block',
+			'width:' + ( source && source.offsetWidth ? source.offsetWidth + 'px' : '100%' ),
+			'height:' + ( source && source.offsetHeight ? source.offsetHeight + 'px' : '100%' ),
+			'overflow:visible',
+		].join( ';' );
+		svg.innerHTML = [
+			'<defs>',
+				'<linearGradient id="odd-bg-inline" x1="0" y1="0" x2="1" y2="1">',
+					'<stop offset="0" stop-color="#ff4fa8"/>',
+					'<stop offset=".55" stop-color="#b04be1"/>',
+					'<stop offset="1" stop-color="#5a35d6"/>',
+				'</linearGradient>',
+				'<radialGradient id="odd-eyeball-inline" cx=".35" cy=".32" r=".95">',
+					'<stop offset="0" stop-color="#ffffff"/>',
+					'<stop offset=".85" stop-color="#f3f4fa"/>',
+					'<stop offset="1" stop-color="#d4d8ea"/>',
+				'</radialGradient>',
+				'<radialGradient id="odd-iris-inline" cx=".35" cy=".32" r=".9">',
+					'<stop offset="0" stop-color="#7ee3ff"/>',
+					'<stop offset=".6" stop-color="#1e7ac9"/>',
+					'<stop offset="1" stop-color="#0a356b"/>',
+				'</radialGradient>',
+			'</defs>',
+			'<rect x="2" y="2" width="60" height="60" rx="14" fill="url(#odd-bg-inline)"/>',
+			'<ellipse cx="32" cy="45" rx="16" ry="2.4" fill="#2a0b52" opacity=".28"/>',
+			'<circle cx="32" cy="33" r="21" fill="url(#odd-eyeball-inline)"/>',
+			'<g data-odd-eye-pupil style="transition:transform 90ms ease-out">',
+				'<circle cx="27" cy="29" r="9.5" fill="url(#odd-iris-inline)"/>',
+				'<circle cx="27" cy="29" r="4.2" fill="#091425"/>',
+				'<circle cx="24.8" cy="26.8" r="1.9" fill="#ffffff"/>',
+				'<circle cx="29.5" cy="31.2" r=".9" fill="#ffffff" opacity=".8"/>',
+			'</g>',
+			'<path d="M45 14 Q54 8 55 3" fill="none" stroke="#1a0d32" stroke-width="2.4" stroke-linecap="round"/>',
+			'<path d="M49.5 46 l1.2 2.8 l2.8 .8 l-2.8 .8 l-1.2 2.8 l-1.2-2.8 l-2.8-.8 l2.8-.8z" fill="#ffe9a8" opacity=".95"/>',
+		].join( '' );
+		return svg;
+	}
+
+	function trackInlineIcon( svg ) {
+		if ( ! svg || svg.__oddEyeTracked ) return;
+		var p = svg.querySelector( '[data-odd-eye-pupil]' );
+		if ( ! p ) return;
+		svg.__oddEyeTracked = true;
+		trackedIcons.push( { svg: svg, pupil: p } );
+	}
+
+	function replaceOddEyeImages() {
+		var imgs = document.querySelectorAll( 'img[src*="/assets/odd-eye.svg"]' );
+		for ( var i = 0; i < imgs.length; i++ ) {
+			var img = imgs[ i ];
+			if ( img.__oddEyeReplaced || ! img.parentNode ) continue;
+			img.__oddEyeReplaced = true;
+			var inline = makeInlineOddEye( img );
+			img.parentNode.replaceChild( inline, img );
+			trackInlineIcon( inline );
+		}
+
+		var inlineEyes = document.querySelectorAll( 'svg[data-odd-eye-inline]' );
+		for ( var j = 0; j < inlineEyes.length; j++ ) {
+			trackInlineIcon( inlineEyes[ j ] );
+		}
+	}
+
+	function updateTrackedEyes() {
+		trackingRaf = 0;
+		if ( pointer.x == null || pointer.y == null ) return;
+		trackedIcons = trackedIcons.filter( function ( item ) {
+			return item.svg && item.svg.isConnected && item.pupil;
+		} );
+		for ( var i = 0; i < trackedIcons.length; i++ ) {
+			var item = trackedIcons[ i ];
+			var rect = item.svg.getBoundingClientRect();
+			if ( ! rect.width || ! rect.height ) continue;
+			var cx = rect.left + rect.width / 2;
+			var cy = rect.top + rect.height / 2;
+			var nx = Math.max( -1, Math.min( 1, ( pointer.x - cx ) / Math.max( 1, rect.width / 2 ) ) );
+			var ny = Math.max( -1, Math.min( 1, ( pointer.y - cy ) / Math.max( 1, rect.height / 2 ) ) );
+			var dx = ( nx * 5.2 ).toFixed( 2 );
+			var dy = ( ny * 4.2 ).toFixed( 2 );
+			item.pupil.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+		}
+	}
+
+	function scheduleTrackedEyeUpdate() {
+		if ( trackingRaf ) return;
+		trackingRaf = window.requestAnimationFrame( updateTrackedEyes );
+	}
+
+	function initPointerTracking() {
+		replaceOddEyeImages();
+		document.addEventListener( 'pointermove', function ( e ) {
+			pointer.x = e.clientX;
+			pointer.y = e.clientY;
+			scheduleTrackedEyeUpdate();
+		}, { passive: true } );
+
+		if ( typeof MutationObserver === 'function' ) {
+			var mo = new MutationObserver( function () {
+				if ( scanTimer ) clearTimeout( scanTimer );
+				scanTimer = setTimeout( replaceOddEyeImages, 80 );
+			} );
+			mo.observe( document.documentElement, { childList: true, subtree: true } );
+		} else {
+			setInterval( replaceOddEyeImages, 1200 );
+		}
+	}
+
 	var evt = window.__odd.events;
 	if ( evt && typeof evt.on === 'function' ) {
 		evt.on( 'odd.motion.blink', function () {
@@ -195,5 +316,12 @@
 		wink:    function () { state = 'winking';   show(); pulseLid( 1, 200 ); },
 		glance:  function ( x, y ) { state = 'glancing'; show(); glancePupil( x || 0, y || 0 ); },
 		glitch:  function ( ms ) { state = 'glitching'; show(); jitterRoot( ms || 220 ); },
+		rescanIcons: replaceOddEyeImages,
 	};
+
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', initPointerTracking, { once: true } );
+	} else {
+		initPointerTracking();
+	}
 } )();

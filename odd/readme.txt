@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.5
+Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,10 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 
 == Changelog ==
 
+= 1.0.6 =
+* Mirrors WP Desktop Mode and catalog app bundles through raw GitHub URLs so Playground can fetch them without GitHub release-asset CORS failures.
+* Adds pointer tracking to the inline Iris eye so the desktop icon can look toward the cursor when WP Desktop Mode renders it as an image.
+
 = 1.0.5 =
 * Removes the bundled Hello ODD demo app from the catalog and adds a migration to uninstall it from existing sites.
 * Keeps the ODD Control Panel as a compact utility window instead of restoring accidental maximized session state.
@@ -73,6 +77,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.0.6 =
+Fixes Playground CORS blockers for WP Desktop Mode and catalog app installs.
 
 = 1.0.5 =
 Removes the demo app, keeps the Control Panel compact, and replaces the bundled icon sets with full-color artwork.
