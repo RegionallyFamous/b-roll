@@ -126,16 +126,16 @@
 			var wrap = el( 'div', { 'data-odd-apps': '1' } );
 			wrap.appendChild( sectionHeader(
 				'Apps',
-				'Install ODD apps. Each app gets its own desktop icon and runs in a sandboxed window. Upload a .odd or .wp bundle, or install from the catalog.'
+				'Install ODD apps. Each app gets its own desktop icon and runs in a sandboxed window. Upload a .wp bundle, or install from the catalog.'
 			) );
 
 			// Upload row: a labeled file input paired with a drop zone.
 			var upload = el( 'div', { class: 'odd-apps-upload' } );
 			upload.innerHTML =
 				'<strong>Install an app</strong>' +
-				'<div class="odd-apps-upload__sub">Drop a .odd or .wp archive or choose one from disk.</div>';
+				'<div class="odd-apps-upload__sub">Drop a .wp archive or choose one from disk.</div>';
 
-			var input = el( 'input', { type: 'file', accept: '.odd,.wp,application/zip', style: 'display:none' } );
+			var input = el( 'input', { type: 'file', accept: '.wp,application/zip', style: 'display:none' } );
 			var pick  = el( 'button', { type: 'button', class: 'odd-apps-btn' } );
 			pick.textContent = 'Choose file…';
 			pick.addEventListener( 'click', function () { input.click(); } );
@@ -814,29 +814,157 @@
 			host.appendChild( fresh );
 		}
 
-		/* --- About section --- */
+		/* --- About section ---------------------------------------
+		 *
+		 * This is the one place in the panel that breaks the admin-style
+		 * discipline of every other tab. Everything else is a macOS-ish
+		 * two-pane; this is a self-indulgent title card. The big ODD
+		 * wordmark also doubles as a chaos button: clicking it fires
+		 * a random scene swap through the same `applyScene()` path the
+		 * wallpaper grid uses, so it's a "real" affordance and not a
+		 * decorative div.
+		 */
 
 		function renderAbout() {
 			var cfg = state.cfg;
-			var wrap = el( 'div' );
-			wrap.appendChild( sectionHeader( 'ODD — Outlandish Desktop Decorator',
-				'Generative wallpapers and themed icon sets for WP Desktop Mode. One plugin, one window, everything in one place.' ) );
 
-			var meta = el( 'dl', { class: 'odd-about-meta' } );
-			meta.innerHTML =
-				'<dt>Version</dt><dd>' + escape( cfg.version || '—' ) + '</dd>' +
-				'<dt>Scenes</dt><dd>' + ( Array.isArray( cfg.scenes ) ? cfg.scenes.length : 0 ) + '</dd>' +
-				'<dt>Icon sets</dt><dd>' + ( Array.isArray( cfg.iconSets ) ? cfg.iconSets.length : 0 ) + '</dd>';
-			wrap.appendChild( meta );
+			// Pull accent colors from installed icon sets so the About
+			// palette ties into whatever set is currently loaded. Fall
+			// back to a neon rainbow if no manifests are readable.
+			var accents = [];
+			if ( Array.isArray( cfg.iconSets ) ) {
+				cfg.iconSets.forEach( function ( s ) {
+					if ( s && typeof s.accent === 'string' && /^#[0-9a-f]{3,8}$/i.test( s.accent ) ) {
+						accents.push( s.accent );
+					}
+				} );
+			}
+			if ( accents.length < 3 ) {
+				accents = [ '#ff3d9a', '#ffd23f', '#00d1b2', '#6a5cff', '#ff6d00' ];
+			}
 
+			var wrap = el( 'div', { class: 'odd-about', 'data-odd-about': '1' } );
+
+			/* hero */
+			var hero = el( 'div', { class: 'odd-about__hero' } );
+
+			var word = el( 'button', {
+				type:        'button',
+				class:       'odd-about__word',
+				'aria-label':'ODD — tap for chaos',
+				title:       'tap for chaos',
+			} );
+			[ 'O', 'D', 'D' ].forEach( function ( letter, i ) {
+				var a1 = accents[ i % accents.length ];
+				var a2 = accents[ ( i + 1 ) % accents.length ];
+				var sp = el( 'span', {
+					class: 'odd-about__letter',
+					style: '--odd-accent:' + a1 + ';--odd-accent2:' + a2 + ';animation-delay:' + ( i * -0.4 ) + 's',
+				} );
+				sp.textContent = letter;
+				word.appendChild( sp );
+			} );
+			word.addEventListener( 'click', function () {
+				// Random scene swap via the same path as the wallpaper
+				// grid — stays guarded by state.posting so rapid taps
+				// can't queue up overlapping POSTs.
+				var scenes = Array.isArray( cfg.scenes ) ? cfg.scenes : [];
+				var current = cfg.wallpaper || cfg.scene;
+				var choices = scenes.filter( function ( s ) { return s && s.slug && s.slug !== current; } );
+				if ( choices.length ) {
+					var next = choices[ Math.floor( Math.random() * choices.length ) ];
+					applyScene( next.slug, null );
+				}
+				word.classList.remove( 'is-whee' );
+				// Force reflow so the animation restarts even on
+				// back-to-back clicks.
+				void word.offsetWidth;
+				word.classList.add( 'is-whee' );
+			} );
+			hero.appendChild( word );
+
+			var byline = el( 'div', { class: 'odd-about__byline' } );
+			byline.textContent = 'Outlandish Desktop Decorator';
+			hero.appendChild( byline );
+
+			var taglines = [
+				'Generative wallpapers. Unserious icons. Apps in a sandbox.',
+				'A plugin that decorates your WordPress like nothing matters.',
+				'Pixi on the canvas. Personality in the icons. Perils in the apps.',
+				'The only WordPress plugin with a chaos cast and a shuffle timer.',
+				'Server-canonical icons. Client-chaotic everything else.',
+				'Built on WP Desktop Mode. Decorated beyond recognition.',
+				'Every scene is a vibe. Every vibe has a ticker.',
+				'Outlandish by default. Opinionated by necessity.',
+				'Your admin panel called. It wants its dignity back.',
+			];
+			var tag = el( 'p', { class: 'odd-about__tag' } );
+			var tagIdx = Math.floor( Math.random() * taglines.length );
+			tag.textContent = taglines[ tagIdx ];
+			hero.appendChild( tag );
+
+			// Rotate tagline every ~5s with a soft crossfade. Self-clears
+			// the interval as soon as the node leaves the DOM (which
+			// happens on section swap because renderSection clobbers
+			// `content.innerHTML`).
+			var tagTimer = setInterval( function () {
+				if ( ! document.contains( tag ) ) {
+					clearInterval( tagTimer );
+					return;
+				}
+				tagIdx = ( tagIdx + 1 ) % taglines.length;
+				tag.style.opacity = '0';
+				setTimeout( function () {
+					if ( ! document.contains( tag ) ) return;
+					tag.textContent = taglines[ tagIdx ];
+					tag.style.opacity = '1';
+				}, 260 );
+			}, 5200 );
+
+			wrap.appendChild( hero );
+
+			/* stats */
+			var stats = el( 'div', { class: 'odd-about__stats' } );
+			var items = [
+				{ k: 'Version',   v: cfg.version || '—' },
+				{ k: 'Scenes',    v: Array.isArray( cfg.scenes )   ? cfg.scenes.length   : 0 },
+				{ k: 'Icon sets', v: Array.isArray( cfg.iconSets ) ? cfg.iconSets.length : 0 },
+			];
+			if ( cfg.appsEnabled ) {
+				items.push( { k: 'Apps', v: Array.isArray( cfg.apps ) ? cfg.apps.length : 0 } );
+			}
+			items.forEach( function ( it, i ) {
+				var tint = accents[ i % accents.length ];
+				var card = el( 'div', {
+					class: 'odd-about__stat',
+					style: '--odd-tint:' + tint,
+				} );
+				var v = el( 'div', { class: 'odd-about__stat-v' } );
+				v.textContent = String( it.v );
+				var k = el( 'div', { class: 'odd-about__stat-k' } );
+				k.textContent = it.k;
+				card.appendChild( v );
+				card.appendChild( k );
+				stats.appendChild( card );
+			} );
+			wrap.appendChild( stats );
+
+			/* foot */
+			var foot = el( 'div', { class: 'odd-about__foot' } );
 			var link = el( 'a', {
 				href:   'https://github.com/RegionallyFamous/odd',
 				target: '_blank',
 				rel:    'noopener noreferrer',
-				class:  'odd-about-link',
+				class:  'odd-about__link',
 			} );
-			link.textContent = 'github.com/RegionallyFamous/odd';
-			wrap.appendChild( link );
+			link.innerHTML = '<span aria-hidden="true">★</span> github.com/RegionallyFamous/odd';
+			foot.appendChild( link );
+
+			var credit = el( 'p', { class: 'odd-about__credit' } );
+			credit.textContent = 'Painted backdrops, scripted motion, sandboxed apps. Built on WP Desktop Mode. Use responsibly. Or don\'t.';
+			foot.appendChild( credit );
+			wrap.appendChild( foot );
+
 			return wrap;
 		}
 

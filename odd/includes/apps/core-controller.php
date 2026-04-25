@@ -278,6 +278,26 @@ function odd_apps_rest_catalog() {
  * installed through the standard odd_apps_install path.
  */
 function odd_apps_rest_install_from_catalog( WP_REST_Request $req ) {
+	try {
+		return odd_apps_rest_install_from_catalog_impl( $req );
+	} catch ( Throwable $e ) {
+		// Any uncaught throwable here would otherwise surface as a
+		// bare HTTP 500 with no body, making the install button look
+		// silently broken in the panel. Convert to a WP_Error so the
+		// panel's status line can show the real failure cause.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'ODD apps: install-from-catalog threw ' . get_class( $e ) . ': ' . $e->getMessage() );
+		}
+		return new WP_Error(
+			'install_exception',
+			sprintf( /* translators: %s exception message */ __( 'Install crashed: %s', 'odd' ), $e->getMessage() ),
+			array( 'status' => 500 )
+		);
+	}
+}
+
+function odd_apps_rest_install_from_catalog_impl( WP_REST_Request $req ) {
 	$slug = sanitize_key( (string) $req->get_param( 'slug' ) );
 	if ( '' === $slug ) {
 		return new WP_Error( 'invalid_slug', __( 'Missing slug.', 'odd' ), array( 'status' => 400 ) );
@@ -332,10 +352,35 @@ function odd_apps_rest_install_from_catalog( WP_REST_Request $req ) {
 	if ( ! function_exists( 'download_url' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 	}
-	$tmp = download_url( $download_url, 30 );
+	// Bump to 60s: Playground's outbound proxy can be slow on cold
+	// caches and 30s occasionally clips small .wp bundles in transit.
+	$tmp = download_url( $download_url, 60 );
 	if ( is_wp_error( $tmp ) ) {
-		return $tmp;
+		return new WP_Error(
+			'download_failed',
+			sprintf( /* translators: %s error message */ __( 'Could not download bundle: %s', 'odd' ), $tmp->get_error_message() ),
+			array( 'status' => 502 )
+		);
 	}
+
+	// Sanity-check: the outbound proxy might return an HTML error
+	// page (rate limit, captive portal, CORS proxy quirk). Reject
+	// anything that isn't a local ZIP by magic bytes before handing
+	// to the heavier validation path.
+	$fh = @fopen( $tmp, 'rb' );
+	if ( $fh ) {
+		$magic = (string) fread( $fh, 4 );
+		fclose( $fh );
+		if ( 0 !== strncmp( $magic, "PK\x03\x04", 4 ) && 0 !== strncmp( $magic, "PK\x05\x06", 4 ) ) {
+			wp_delete_file( $tmp );
+			return new WP_Error(
+				'not_a_zip',
+				__( 'The downloaded file is not a valid .wp archive (server returned non-ZIP content).', 'odd' ),
+				array( 'status' => 502 )
+			);
+		}
+	}
+
 	$filename = wp_parse_url( $download_url, PHP_URL_PATH );
 	$filename = $filename ? basename( $filename ) : $slug . '.wp';
 	$result   = odd_apps_install( $tmp, $filename );

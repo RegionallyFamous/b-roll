@@ -6,7 +6,7 @@
  *
  *   GET  /apps                              List installed apps
  *   GET  /apps/{slug}                       Full manifest
- *   POST /apps/upload                       Install a .odd / .wp archive
+ *   POST /apps/upload                       Install a .wp archive
  *   POST /apps/{slug}/toggle                Enable / disable
  *   DELETE /apps/{slug}                     Uninstall
  *   GET  /apps/serve/{slug}/{path...}       Serve a file from the app bundle

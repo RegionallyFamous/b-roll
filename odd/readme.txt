@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,13 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.1.2 =
+* Fixes the 500 error when installing a catalog app. `unzip_file()` silently no-ops when the `$wp_filesystem` global isn't initialized, which is the case on REST requests outside wp-admin (Playground hits this every time). ODD now forces `WP_Filesystem()` before extraction.
+* Catalog installs now validate the downloaded bundle's ZIP magic bytes before extraction so captive-portal / rate-limit HTML pages can't reach the archive validator.
+* Raises the catalog download timeout from 30s to 60s for slow proxied networks.
+* Wraps the install-from-catalog REST handler in a try/catch so uncaught throwables surface as a proper JSON error body with a readable message instead of a bare HTTP 500.
+* Drops `.odd` as an accepted archive extension; ODD apps are `.wp` only now. The file-picker, dropzone copy, archive validator, and docstrings are updated to match.
 
 = 1.1.1 =
 * Redesigns the Apps catalog as an App Store-style list with clean square icons, tighter typography, and pill-shaped action buttons. The previous grid cards left awkward empty space around square app icons.
@@ -97,6 +104,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.1.2 =
+Fixes the 500 when installing catalog apps (WP_Filesystem wasn't initialized for REST extractions). Also drops the `.odd` extension; app bundles are `.wp` only now. Strongly recommended.
 
 = 1.1.1 =
 Fixes the look of the Apps catalog (now an App Store-style list) and makes Download failures report the real underlying error. Recommended if catalog installs aren't behaving.

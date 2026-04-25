@@ -2,12 +2,11 @@
 /**
  * ODD Apps — archive loader.
  *
- * Validates and extracts `.odd` or `.wp` archives (both extensions
- * accepted; `.odd` is canonical, `.wp` is kept for Bazaar parity).
+ * Validates and extracts `.wp` archives.
  *
  * The validation pipeline is a trimmed port of Bazaar's WareLoader:
  *
- *   1. Extension allowlist           (.odd | .wp)
+ *   1. Extension allowlist           (.wp)
  *   2. ZIP integrity                 ZipArchive::open RDONLY
  *   3. File count cap                2000 entries max
  *   4. Per-entry checks              path traversal, symlinks, forbidden
@@ -51,8 +50,8 @@ function odd_apps_forbidden_extensions() {
  */
 function odd_apps_validate_archive( $tmp_path, $filename ) {
 	$ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
-	if ( 'odd' !== $ext && 'wp' !== $ext ) {
-		return new WP_Error( 'invalid_extension', __( 'App archives must have a .odd or .wp extension.', 'odd' ) );
+	if ( 'wp' !== $ext ) {
+		return new WP_Error( 'invalid_extension', __( 'App archives must have a .wp extension.', 'odd' ) );
 	}
 
 	if ( ! class_exists( 'ZipArchive' ) ) {
@@ -187,6 +186,16 @@ function odd_apps_extract_archive( $tmp_path, $slug ) {
 
 	if ( ! function_exists( 'unzip_file' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
+	}
+
+	// unzip_file() needs a populated $wp_filesystem global. When the
+	// REST pipeline runs outside wp-admin (which is our common case,
+	// including Playground), that global isn't auto-initialized and
+	// unzip_file returns the infamously-opaque WP_Error "Empty
+	// filesystem", which the panel surfaces as a generic 500.
+	global $wp_filesystem;
+	if ( empty( $wp_filesystem ) ) {
+		WP_Filesystem();
 	}
 
 	$staging = ODD_APPS_DIR . '.tmp-' . $slug . '-' . wp_generate_password( 8, false ) . '/';
