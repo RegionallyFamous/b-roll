@@ -196,6 +196,8 @@
 
 		function renderCatalogGallery( gallery, rows, wrap ) {
 			gallery.innerHTML = '';
+			gallery.classList.remove( 'odd-grid', 'odd-grid--apps' );
+			gallery.classList.add( 'odd-catalog-list' );
 			if ( ! rows || ! rows.length ) {
 				var empty = el( 'div', { class: 'odd-apps-empty' } );
 				empty.textContent = 'Catalog is empty.';
@@ -208,63 +210,79 @@
 		}
 
 		function renderCatalogCard( row, wrap ) {
-			var card = el( 'div', { class: 'odd-card odd-card--catalog', 'data-catalog-slug': row.slug } );
+			var card = el( 'div', { class: 'odd-catalog-row', 'data-catalog-slug': row.slug } );
 			if ( row.installed ) card.classList.add( 'is-installed' );
 
-			var thumb = el( 'div', { class: 'odd-card__thumb' } );
+			var iconWrap = el( 'div', { class: 'odd-catalog-row__icon' } );
 			if ( row.icon_url ) {
-				// Built-in catalog icons are relative to the plugin's
-				// apps/catalog/ folder; remote entries ship absolute URLs.
 				var src = row.icon_url;
 				if ( src.indexOf( 'http' ) !== 0 && src.indexOf( 'data:' ) !== 0 ) {
 					src = ( state.cfg.pluginUrl || '' ) + '/apps/catalog/' + src;
 				}
-				thumb.appendChild( el( 'img', { src: src, alt: row.name, loading: 'lazy' } ) );
+				iconWrap.appendChild( el( 'img', { src: src, alt: '', loading: 'lazy' } ) );
 			} else {
-				thumb.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
-				thumb.classList.add( 'odd-card__thumb--badge' );
+				iconWrap.classList.add( 'odd-catalog-row__icon--badge' );
+				iconWrap.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
 			}
-			card.appendChild( thumb );
+			card.appendChild( iconWrap );
 
-			var meta = el( 'div', { class: 'odd-card__meta' } );
-			var title = el( 'div', { class: 'odd-card__title' } );
-			title.textContent = row.name || row.slug;
+			var body = el( 'div', { class: 'odd-catalog-row__body' } );
+			var titleRow = el( 'div', { class: 'odd-catalog-row__title' } );
+			var titleText = el( 'span', { class: 'odd-catalog-row__name' } );
+			titleText.textContent = row.name || row.slug;
+			titleRow.appendChild( titleText );
 			if ( row.builtin ) {
 				var pill = el( 'span', { class: 'odd-pill odd-pill--builtin' } );
 				pill.textContent = 'built-in';
-				title.appendChild( document.createTextNode( ' ' ) );
-				title.appendChild( pill );
+				titleRow.appendChild( pill );
 			}
-			var sub = el( 'div', { class: 'odd-card__sub' } );
-			sub.textContent = ( row.version ? 'v' + row.version + ' · ' : '' ) + ( row.description || '' );
-			meta.appendChild( title );
-			meta.appendChild( sub );
-			card.appendChild( meta );
+			if ( row.version ) {
+				var ver = el( 'span', { class: 'odd-catalog-row__version' } );
+				ver.textContent = 'v' + row.version;
+				titleRow.appendChild( ver );
+			}
+			body.appendChild( titleRow );
 
-			var actions = el( 'div', { class: 'odd-card__actions' } );
+			if ( row.description ) {
+				var desc = el( 'div', { class: 'odd-catalog-row__desc' } );
+				desc.textContent = row.description;
+				body.appendChild( desc );
+			}
+			card.appendChild( body );
+
+			var actions = el( 'div', { class: 'odd-catalog-row__actions' } );
 			if ( row.installed ) {
-				var openBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary' } );
+				var installed = el( 'span', { class: 'odd-catalog-row__installed' } );
+				installed.textContent = 'Installed';
+				actions.appendChild( installed );
+				var openBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
 				openBtn.textContent = 'Open';
 				openBtn.addEventListener( 'click', function () { openAppWindow( row.slug ); } );
 				actions.appendChild( openBtn );
 			} else {
-				var installBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary' } );
-				installBtn.textContent = row.builtin ? 'Add' : 'Download';
+				var installBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
+				installBtn.textContent = row.builtin ? 'Add' : 'Get';
 				installBtn.addEventListener( 'click', function () {
+					var originalLabel = installBtn.textContent;
 					installBtn.disabled = true;
+					installBtn.textContent = row.builtin ? 'Adding…' : 'Getting…';
 					var label = row.builtin ? 'Adding ' : 'Downloading ';
 					setAppsStatus( wrap, label + ( row.name || row.slug ) + '…', 'busy' );
-					installFromCatalog( row.slug ).then( function ( data ) {
-						installBtn.disabled = false;
-						if ( data && data.installed ) {
-							setAppsStatus( wrap, 'Installed ' + ( data.manifest && data.manifest.name || row.name ) + '. Reloading…', 'ok' );
+					installFromCatalog( row.slug ).then( function ( res ) {
+						if ( res && res.ok && res.data && res.data.installed ) {
+							var m = res.data.manifest;
+							setAppsStatus( wrap, 'Installed ' + ( ( m && m.name ) || row.name ) + '. Reloading…', 'ok' );
 							var ev = window.__odd && window.__odd.events;
-							if ( ev ) ev.emit( 'odd.app-installed', { slug: row.slug, manifest: data.manifest } );
+							if ( ev ) ev.emit( 'odd.app-installed', { slug: row.slug, manifest: m } );
 							setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 600 );
-						} else {
-							var msg = ( data && data.message ) || ( data && data.code ) || 'Install failed.';
-							setAppsStatus( wrap, msg, 'error' );
+							return;
 						}
+						installBtn.disabled = false;
+						installBtn.textContent = originalLabel;
+						var msg = ( res && res.message ) ||
+							( res && res.data && ( res.data.message || res.data.code ) ) ||
+							'Install failed.';
+						setAppsStatus( wrap, msg, 'error' );
 					} );
 				} );
 				actions.appendChild( installBtn );
@@ -290,8 +308,16 @@
 					'X-WP-Nonce':   state.cfg.restNonce || '',
 				},
 				body: JSON.stringify( { slug: slug } ),
-			} ).then( function ( r ) { return r.json(); } )
-			  .catch( function () { return null; } );
+			} ).then( function ( r ) {
+				return r.json().then( function ( data ) {
+					return { ok: r.ok, status: r.status, data: data };
+				} ).catch( function () {
+					return { ok: false, status: r.status, message: 'HTTP ' + r.status };
+				} );
+			} ).catch( function ( err ) {
+				reportError( 'apps.install-from-catalog', err );
+				return { ok: false, message: ( err && err.message ) || 'Network error while installing.' };
+			} );
 		}
 
 		function renderAppsGallery( gallery, apps, wrap ) {
@@ -951,9 +977,21 @@
 			'.odd-panel .odd-apps-subhead{margin:24px 0 10px;font-size:13px;font-weight:600;color:#1d2327;text-transform:uppercase;letter-spacing:.06em}',
 			'.odd-panel .odd-apps-subhead--catalog{margin-top:32px}',
 			'.odd-panel .odd-apps-note{margin:0 0 12px;font-size:12px;color:#646970;max-width:58ch;line-height:1.5}',
-			'.odd-panel .odd-card--catalog{cursor:default}',
-			'.odd-panel .odd-card--catalog:hover{transform:none}',
-			'.odd-panel .odd-card--catalog.is-installed{opacity:.72}',
+			'.odd-panel .odd-catalog-list{display:flex;flex-direction:column;gap:8px;margin:0 0 16px}',
+			'.odd-panel .odd-catalog-row{display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:14px;padding:12px 14px;background:#fff;border:1px solid #e0e0e3;border-radius:12px;transition:border-color .12s ease,box-shadow .12s ease}',
+			'.odd-panel .odd-catalog-row:hover{border-color:#cdd1d5;box-shadow:0 1px 2px rgba(0,0,0,.04)}',
+			'.odd-panel .odd-catalog-row.is-installed{background:#fafbfc}',
+			'.odd-panel .odd-catalog-row__icon{width:56px;height:56px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f0f0f1;flex-shrink:0}',
+			'.odd-panel .odd-catalog-row__icon img{width:100%;height:100%;object-fit:cover;display:block}',
+			'.odd-panel .odd-catalog-row__icon--badge{font-size:20px;font-weight:700;color:#2271b1;background:linear-gradient(135deg,#e9f2fb,#fff)}',
+			'.odd-panel .odd-catalog-row__body{min-width:0;display:flex;flex-direction:column;gap:3px}',
+			'.odd-panel .odd-catalog-row__title{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}',
+			'.odd-panel .odd-catalog-row__name{font-size:14px;font-weight:600;color:#1d2327;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}',
+			'.odd-panel .odd-catalog-row__version{font-size:11px;color:#8c8f94;font-variant-numeric:tabular-nums}',
+			'.odd-panel .odd-catalog-row__desc{font-size:12px;color:#50575e;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+			'.odd-panel .odd-catalog-row__actions{display:flex;align-items:center;gap:10px;flex-shrink:0}',
+			'.odd-panel .odd-catalog-row__installed{font-size:11px;color:#8c8f94;text-transform:uppercase;letter-spacing:.04em}',
+			'.odd-panel .odd-apps-btn--pill{border-radius:999px;padding:6px 18px;font-weight:600}',
 			'.odd-panel .odd-pill{display:inline-block;padding:1px 6px;border-radius:999px;background:#eaf2ff;color:#135e96;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}',
 			'.odd-panel .odd-pill--builtin{background:#f0e6ff;color:#5e1b8c}',
 		].join( '\n' );

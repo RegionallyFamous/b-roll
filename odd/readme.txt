@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,10 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.1.1 =
+* Redesigns the Apps catalog as an App Store-style list with clean square icons, tighter typography, and pill-shaped action buttons. The previous grid cards left awkward empty space around square app icons.
+* Surfaces the real REST error message on catalog install failures instead of the generic "Install failed." so users can see exactly why a Download didn't complete (network, timeout, archive validation, etc.).
 
 = 1.1.0 =
 * Launches the odd.regionallyfamous.com landing site and `/playground/` short link as the canonical Playground demo URL, replacing the long `playground.wordpress.net/?blueprint-url=…` link in the README and plugin docs.
@@ -93,6 +97,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.1.1 =
+Fixes the look of the Apps catalog (now an App Store-style list) and makes Download failures report the real underlying error. Recommended if catalog installs aren't behaving.
 
 = 1.1.0 =
 Catalog apps now load from first-party ODD URLs and the Playground demo has a stable short link at odd.regionallyfamous.com/playground/. Recommended for anyone relying on the catalog.
