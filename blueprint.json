@@ -22,15 +22,7 @@
       "step": "installPlugin",
       "pluginData": {
         "resource": "url",
-        "url": "https://github.com/RegionallyFamous/odd/releases/latest/download/b-roll.zip"
-      },
-      "options": { "activate": true }
-    },
-    {
-      "step": "installPlugin",
-      "pluginData": {
-        "resource": "url",
-        "url": "https://github.com/RegionallyFamous/odd/releases/download/b-roll-icons-v0.1.4/b-roll-icons.zip"
+        "url": "https://github.com/RegionallyFamous/odd/releases/latest/download/odd.zip"
       },
       "options": { "activate": true }
     },
@@ -41,12 +33,12 @@
     },
     {
       "step": "writeFile",
-      "path": "/wordpress/wp-content/mu-plugins/b-roll-playground-defaults.php",
-      "data": "<?php\n/**\n * B-Roll Playground demo: pre-select the B-Roll wallpaper.\n *\n * WP Desktop Mode fires `wp_desktop_default_wallpaper` when a user has\n * no saved OS settings yet. Returning `b-roll` here makes the shell\n * boot straight into the animated wallpaper instead of the default\n * dark slab.\n */\nadd_filter( 'wp_desktop_default_wallpaper', static function () {\n\treturn 'b-roll';\n} );\n"
+      "path": "/wordpress/wp-content/mu-plugins/odd-playground-defaults.php",
+      "data": "<?php\n/**\n * ODD Playground demo: pre-select the ODD wallpaper.\n *\n * WP Desktop Mode fires `wp_desktop_default_wallpaper` when a user has\n * no saved OS settings yet. Returning `odd` here makes the shell boot\n * straight into the animated wallpaper instead of the default dark\n * slab.\n */\nadd_filter( 'wp_desktop_default_wallpaper', static function () {\n\treturn 'odd';\n} );\n"
     },
     {
       "step": "runPHP",
-      "code": "<?php require_once '/wordpress/wp-load.php'; if ( function_exists( 'wpdm_save_os_settings' ) ) { wpdm_save_os_settings( 1, array( 'wallpaper' => 'b-roll' ) ); }"
+      "code": "<?php require_once '/wordpress/wp-load.php'; if ( function_exists( 'wpdm_save_os_settings' ) ) { wpdm_save_os_settings( 1, array( 'wallpaper' => 'odd' ) ); }"
     }
   ]
 }

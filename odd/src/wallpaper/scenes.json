@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "flux",
+    "label": "Flux",
+    "franchise": "Generative",
+    "tags": [
+      "abstract",
+      "particles",
+      "flow",
+      "ink",
+      "dark"
+    ],
+    "fallbackColor": "#0a0a1f",
+    "added": "0.2.0"
+  },
+  {
+    "slug": "aurora",
+    "label": "Aurora",
+    "franchise": "Atmosphere",
+    "tags": [
+      "sky",
+      "stars",
+      "aurora",
+      "cold",
+      "blue"
+    ],
+    "fallbackColor": "#020616",
+    "added": "0.2.0"
+  },
+  {
+    "slug": "origami",
+    "label": "Origami",
+    "franchise": "Paper",
+    "tags": [
+      "soft",
+      "pastel",
+      "paper",
+      "calm",
+      "warm"
+    ],
+    "fallbackColor": "#fbeacc",
+    "added": "0.2.0"
+  }
+]

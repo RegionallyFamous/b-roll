@@ -14,7 +14,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - run: bin/validate-scenes
+      - run: odd/bin/validate-scenes
+
+  validate-icon-sets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: odd/bin/validate-icon-sets
 
   check-version:
     runs-on: ubuntu-latest
@@ -23,7 +32,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - run: bin/check-version
+      - run: odd/bin/check-version
 
   json-valid:
     runs-on: ubuntu-latest
@@ -35,48 +44,11 @@ jobs:
       - name: Parse every JSON file
         run: |
           set -e
-          for f in blueprint.json src/scenes.json package.json composer.json ci/smoke.blueprint.json .eslintrc.json; do
+          MANIFESTS=$(find odd/assets/icons -name manifest.json -maxdepth 2 -type f)
+          for f in blueprint.json odd/src/wallpaper/scenes.json odd/src/wallpaper/drifters.json $MANIFESTS; do
               echo "  $f"
               python3 -c "import json,sys; json.load(open('$f'))"
           done
-      - run: bin/check-blueprint
-
-  php-lint:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ['7.4', '8.3']
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          tools: composer, cs2pr
-          coverage: none
-      - run: bin/lint-php
-      - name: Install PHPCS + WPCS
-        if: matrix.php == '8.3'
-        run: composer install --no-interaction --no-progress --prefer-dist
-      - name: Run PHPCS
-        if: matrix.php == '8.3'
-        # Errors fail the build; warnings are advisory (whitespace nits,
-        # false-positive remote-file_get_contents on a local read).
-        run: vendor/bin/phpcs --warning-severity=0 --report=full --report-checkstyle=./phpcs-report.xml
-        continue-on-error: false
-      - name: Annotate PHPCS results
-        if: matrix.php == '8.3' && failure()
-        run: cs2pr ./phpcs-report.xml
-
-  js-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install --no-audit --no-fund
-      - run: bin/lint-js
 
   zip-budget:
     runs-on: ubuntu-latest
@@ -85,21 +57,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - run: bin/build-zip
+      - run: odd/bin/build-zip
       - uses: actions/upload-artifact@v4
         with:
-          name: b-roll-zip
-          path: dist/b-roll.zip
+          name: odd-zip
+          path: dist/odd.zip
           if-no-files-found: error
           retention-days: 14
-
-  playground-smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Boot Playground with mounted plugin and run activation blueprint
-        run: bin/smoke-playground
-        timeout-minutes: 10

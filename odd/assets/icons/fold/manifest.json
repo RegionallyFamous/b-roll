@@ -1,0 +1,23 @@
+{
+  "slug": "fold",
+  "label": "Fold",
+  "franchise": "Paper",
+  "accent": "#d6b48a",
+  "description": "Folded-paper icons in cream and warm tan, each with a single visible crease and a soft drop shadow. Pairs with the Origami wallpaper.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

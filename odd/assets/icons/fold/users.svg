@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="25.4" cy="25.8" r="7" fill="rgba(0,0,0,0.12)" />
+  <circle cx="41.4" cy="25.8" r="7" fill="rgba(0,0,0,0.12)" />
+  <polygon points="15.4 53.8 19.4 37.8 31.4 37.8 35.4 53.8" fill="rgba(0,0,0,0.12)" />
+  <polygon points="31.4 53.8 35.4 37.8 47.4 37.8 51.4 53.8" fill="rgba(0,0,0,0.12)" />
+  <circle cx="24.0" cy="24" r="7" fill="#fffaf0" />
+  <path d="M 24.0 17 A 7 7 0 0 1 24.0 31 Z" fill="#d6b48a" opacity="0.45" />
+  <circle cx="40.0" cy="24" r="7" fill="#fffaf0" />
+  <path d="M 40.0 17 A 7 7 0 0 1 40.0 31 Z" fill="#d6b48a" opacity="0.45" />
+  <polygon points="14.0 52 18.0 36 30.0 36 34.0 52" fill="#fffaf0" />
+  <polygon points="14.0 52 30.0 36 24.0 44.0" fill="#d6b48a" opacity="0.45" />
+  <polygon points="30.0 52 34.0 36 46.0 36 50.0 52" fill="#fffaf0" />
+  <polygon points="30.0 52 46.0 36 40.0 44.0" fill="#d6b48a" opacity="0.45" />
+</svg>

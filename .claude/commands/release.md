@@ -1,48 +1,47 @@
 ---
 description: Bump the version, commit, and push a release tag. CI builds the zip and cuts the GitHub release.
-argument-hint: <version>  e.g. 0.7.0
+argument-hint: <version>  e.g. 0.2.0
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
-# Cut a B-Roll release
+# Cut an ODD release
 
 Parse `$ARGUMENTS` as `<version>` (bare, no leading `v`). If missing, read
-the current `Version:` from `b-roll.php` and ask the user what the next
+the current `Version:` from `odd/odd.php` and ask the user what the next
 version should be before continuing.
 
 The release zip and GitHub release are produced by
-[.github/workflows/release.yml](../../.github/workflows/release.yml) when
-a `v*` tag is pushed. This command's job is just to bump the version
+[.github/workflows/release-odd.yml](../../.github/workflows/release-odd.yml)
+when a `v*` tag is pushed. This command's job is to bump the version
 strings, commit, push `main`, and push the tag.
 
 ## 1. Verify preconditions
 
 ```bash
-git status --porcelain         # warn if uncommitted changes; ask user
-git rev-parse --abbrev-ref HEAD  # must be main
-git log --oneline -5           # sanity check last commits
+git status --porcelain          # warn if uncommitted changes; ask user
+git rev-parse --abbrev-ref HEAD # must be main
+git log --oneline -5            # sanity check last commits
 ```
 
 If on a different branch, stop and ask.
 
-## 2. Bump the version string in three places
+## 2. Bump the version string in two places
 
-In `b-roll.php`:
+In `odd/odd.php`:
 
 - The `* Version:` header
-- The 4th arg of `wp_enqueue_script()` (`'0.X.0'`)
-- The `'version'` entry in the `wp_localize_script()` array
+- The `ODD_VERSION` constant
 
-Then confirm they all agree:
+Then confirm they agree:
 
 ```bash
-bin/check-version --expect <version>
+odd/bin/check-version --expect <version>
 ```
 
 Commit:
 
 ```bash
-git add b-roll.php
+git add odd/odd.php
 git commit -m "chore: bump version to v<version>"
 ```
 
@@ -55,17 +54,15 @@ git push origin "v<version>"
 ```
 
 Pushing the tag triggers
-[.github/workflows/release.yml](../../.github/workflows/release.yml),
+[.github/workflows/release-odd.yml](../../.github/workflows/release-odd.yml),
 which:
 
-1. Reruns the full `ci.yml` suite (scene validator, version check, PHP
-   lint + PHPCS, JS lint, JSON validation, zip budget, Playground smoke
-   test).
-2. Asserts the tag matches `b-roll.php`'s committed version.
-3. Runs `bin/build-zip` to produce `dist/b-roll.zip`.
-4. Calls `gh release create "v<version>" dist/b-roll.zip --generate-notes`
+1. Asserts the tag matches `odd/odd.php`'s committed version.
+2. Runs `odd/bin/validate-scenes` + `odd/bin/validate-icon-sets`.
+3. Runs `odd/bin/build-zip` to produce `dist/odd.zip`.
+4. Calls `gh release create "v<version>" dist/odd.zip --latest=true --generate-notes`
    (auto-generates release notes from commits since the previous tag).
-5. Verifies `releases/latest/download/b-roll.zip` resolves via curl.
+5. Verifies `releases/latest/download/odd.zip` resolves via curl.
 
 ## 4. Watch the release
 
@@ -80,9 +77,9 @@ Or browse to the Actions tab in the repo.
 Give the user:
 
 - The release URL: `https://github.com/RegionallyFamous/odd/releases/tag/v<version>`
-- The Playground demo URL (unchanged - it's release-agnostic)
+- The Playground demo URL (unchanged — it's release-agnostic)
 - A one-line summary of what shipped
 
-If the release notes auto-generated from commits need editing, open the
-release in GitHub and revise the body after it's been published. The
-zip is already attached.
+If the auto-generated release notes need editing, open the release in
+GitHub and revise the body after it's been published. The zip is already
+attached.

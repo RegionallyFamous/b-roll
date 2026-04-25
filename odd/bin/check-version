@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Assert the Version header and ODD_VERSION constant in odd.php agree.
+
+With --expect <x.y.z>, also assert both match that value (used by the
+release workflow to assert the pushed tag matches the committed version).
+
+Usage:
+    odd/bin/check-version
+    odd/bin/check-version --expect 0.1.0
+"""
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+
+HERE = Path(__file__).resolve().parent
+PLUGIN_DIR = HERE.parent
+PLUGIN = PLUGIN_DIR / "odd.php"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Check that odd.php versions are in sync.")
+    parser.add_argument("--expect", help="also assert both match this value", default=None)
+    args = parser.parse_args()
+
+    if not PLUGIN.exists():
+        print(f"error: missing {PLUGIN}", file=sys.stderr)
+        return 1
+
+    text = PLUGIN.read_text()
+
+    header = re.search(r"^\s*\*\s*Version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$", text, re.MULTILINE)
+    constant = re.search(
+        r"define\(\s*['\"]ODD_VERSION['\"]\s*,\s*['\"]([0-9]+\.[0-9]+\.[0-9]+)['\"]\s*\)",
+        text,
+    )
+
+    found = {
+        "Version: header": header.group(1) if header else None,
+        "ODD_VERSION": constant.group(1) if constant else None,
+    }
+
+    missing = [k for k, v in found.items() if v is None]
+    if missing:
+        for k in missing:
+            print(f"error: could not find {k} in odd.php", file=sys.stderr)
+        return 1
+
+    unique = set(found.values())
+    if len(unique) != 1:
+        print("error: version strings disagree:", file=sys.stderr)
+        for k, v in found.items():
+            print(f"  {k}: {v}", file=sys.stderr)
+        return 1
+
+    version = next(iter(unique))
+
+    if args.expect is not None and version != args.expect:
+        print(
+            f"error: committed version is {version} but expected {args.expect}",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(f"OK: odd.php version {version}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

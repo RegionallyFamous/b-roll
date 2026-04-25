@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="21.4" y="13.8" width="24" height="18" rx="2" fill="rgba(0,0,0,0.12)" />
+  <line x1="27.2" y1="9.6" x2="27.2" y2="15.6" stroke="rgba(0,0,0,0.10)" stroke-width="2" stroke-linecap="round" />
+  <line x1="39.2" y1="9.6" x2="39.2" y2="15.6" stroke="rgba(0,0,0,0.10)" stroke-width="2" stroke-linecap="round" />
+  <rect x="25.4" y="31.8" width="16" height="10" rx="2" fill="rgba(0,0,0,0.12)" />
+  <line x1="33.2" y1="41.6" x2="33.2" y2="53.6" stroke="rgba(0,0,0,0.10)" stroke-width="2" stroke-linecap="round" />
+  <rect x="20.0" y="12" width="24" height="18" rx="2" fill="#fffaf0" />
+  <polygon points="33.2 12 44.0 12 44.0 21.9" fill="#d6b48a" opacity="0.55" />
+  <line x1="26.0" y1="8" x2="26.0" y2="14" stroke="#d6b48a" stroke-width="2" stroke-linecap="round" />
+  <line x1="38.0" y1="8" x2="38.0" y2="14" stroke="#d6b48a" stroke-width="2" stroke-linecap="round" />
+  <rect x="24.0" y="30" width="16" height="10" rx="2" fill="#fffaf0" />
+  <polygon points="32.8 30 40.0 30 40.0 35.5" fill="#d6b48a" opacity="0.55" />
+  <line x1="32.0" y1="40" x2="32.0" y2="52" stroke="#d6b48a" stroke-width="2" stroke-linecap="round" />
+</svg>

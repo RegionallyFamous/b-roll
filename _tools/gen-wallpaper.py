@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-B-Roll wallpaper generator (gpt-image-2)
+ODD wallpaper generator (gpt-image-2)
 ========================================
 
-Generate a painted B-Roll wallpaper + matching picker preview from a prompt
+Generate a painted ODD wallpaper + matching picker preview from a prompt
 using OpenAI's gpt-image-2 model. Reads OPENAI_API_KEY from one of (in order):
 
   1. process env
@@ -11,8 +11,8 @@ using OpenAI's gpt-image-2 model. Reads OPENAI_API_KEY from one of (in order):
   3. ~/.env.local
 
 Outputs:
-  assets/wallpapers/<slug>.webp  (1920x1080, q82, cover-fit)
-  assets/previews/<slug>.webp    (640x360,  q80)
+  odd/assets/wallpapers/<slug>.webp  (1920x1080, q82, cover-fit)
+  odd/assets/previews/<slug>.webp    (640x360,  q80)
 
 Usage:
   python3 _tools/gen-wallpaper.py <slug> "<prompt>" [--quality high|medium|low]
@@ -25,7 +25,7 @@ Notes:
   - gpt-image-2 supports landscape size 1536x1024; we cover-crop to 1920x1080.
   - quality=high costs noticeably more per image; default is high because
     these go in the repo for the long haul.
-  - Subjects are deliberately empty/atmospheric — every B-Roll scene paints
+  - Subjects are deliberately empty/atmospheric — every ODD scene paints
     its hero motion in Pixi on top of the backdrop. Prompts should say so.
 """
 
@@ -147,12 +147,12 @@ def gen_one(slug: str, prompt: str, quality: str, key: str) -> None:
     print(f"  prompt: {prompt[:160]}{'...' if len(prompt) > 160 else ''}")
     png = call_gpt_image_2(prompt, quality, key)
     wp_size, pv_size = write_pair(slug, png)
-    print(f"  wrote assets/wallpapers/{slug}.webp ({wp_size:,} B)")
-    print(f"  wrote assets/previews/{slug}.webp ({pv_size:,} B)")
+    print(f"  wrote odd/assets/wallpapers/{slug}.webp ({wp_size:,} B)")
+    print(f"  wrote odd/assets/previews/{slug}.webp ({pv_size:,} B)")
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Generate B-Roll wallpapers via gpt-image-2.")
+    ap = argparse.ArgumentParser(description="Generate ODD wallpapers via gpt-image-2.")
     ap.add_argument("slug", nargs="?", help="scene slug (e.g. wasteland)")
     ap.add_argument("prompt", nargs="?", help="prompt text")
     ap.add_argument("--quality", default="high", choices=["low", "medium", "high"])

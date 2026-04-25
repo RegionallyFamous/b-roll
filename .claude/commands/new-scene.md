@@ -1,48 +1,57 @@
 ---
-description: Scaffold a new B-Roll wallpaper scene (file + manifest entry + preview placeholder)
+description: Scaffold a new ODD wallpaper scene (file + manifest entry)
 argument-hint: <slug> <label> [franchise]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
-# Scaffold a new B-Roll scene
+# Scaffold a new ODD scene
 
-Parse `$ARGUMENTS` as `<slug> <label> [franchise]`. The slug is kebab-case and matches the filename + the key under `window.__bRoll.scenes`. If the user didn't supply both a slug and a label, ask for them before proceeding.
+Parse `$ARGUMENTS` as `<slug> <label> [franchise]`. The slug is kebab-case and matches the filename + the key under `window.__odd.scenes`. If the user didn't supply both a slug and a label, ask for them before proceeding.
 
 Then do all of the following:
 
-## 1. Create `src/scenes/<slug>.js`
+## 1. Create `odd/src/wallpaper/scenes/<slug>.js`
 
-Use this skeleton. Fill in a 1–3 line header comment describing the visual (franchise + what the scene depicts). Set `fromColor` / `toColor` to a palette that fits the theme — dark dramatic for cyberpunk, pastel for cute, etc.
+Use this skeleton. Fill in a 1–3 line header comment describing the visual (franchise + what the scene depicts). Match the scene's palette to the theme — dark dramatic for cyberpunk, pastel for cute, etc.
 
 ```javascript
 /**
- * B-Roll scene: <Label> (<Franchise>)
+ * ODD scene: <Label> (<Franchise>)
  * ---------------------------------------------------------------
  * <One-line description of the visual motif.>
  */
 ( function () {
     'use strict';
-    window.__bRoll = window.__bRoll || {};
-    window.__bRoll.scenes = window.__bRoll.scenes || {};
-    var h = window.__bRoll.helpers;
+    window.__odd = window.__odd || {};
+    window.__odd.scenes = window.__odd.scenes || {};
+    var h = window.__odd.helpers;
 
-    window.__bRoll.scenes[ '<slug>' ] = {
-        setup: function ( env ) {
+    window.__odd.scenes[ '<slug>' ] = {
+        setup: async function ( env ) {
             var PIXI = env.PIXI, app = env.app;
 
-            var bg = new PIXI.Graphics();
-            app.stage.addChild( bg );
-            h.paintVGradient( bg, app.renderer.width, app.renderer.height, 0x111111, 0x000000, 12 );
+            // Painted backdrop — cover-fit, re-run on resize.
+            var url = window.odd.pluginUrl + '/assets/wallpapers/<slug>.webp?v=' + window.odd.version;
+            var tex = await PIXI.Assets.load( url );
+            var backdrop = new PIXI.Sprite( tex );
+            app.stage.addChild( backdrop );
+            function fitBackdrop() {
+                var s = Math.max( app.renderer.width / tex.width, app.renderer.height / tex.height );
+                backdrop.scale.set( s );
+                backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
+                backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
+            }
+            fitBackdrop();
 
-            // TODO: build your scene's containers, sprites, graphics.
+            // TODO: build your Pixi motion layers on top of the backdrop.
 
             return {
-                bg: bg,
+                fitBackdrop: fitBackdrop,
                 // ... your mutable state here
             };
         },
         onResize: function ( state, env ) {
-            h.paintVGradient( state.bg, env.app.renderer.width, env.app.renderer.height, 0x111111, 0x000000, 12 );
+            state.fitBackdrop();
         },
         tick: function ( state, env ) {
             // TODO: animate. env.dt is frames @60fps clamped to 2.5.
@@ -51,38 +60,30 @@ Use this skeleton. Fill in a 1–3 line header comment describing the visual (fr
 } )();
 ```
 
-## 2. Add the manifest entry in `src/index.js`
+## 2. Append an entry to `odd/src/wallpaper/scenes.json`
 
-Find the `SCENES` array and append:
-
-```javascript
-{ id: '<slug>', label: '<Label>' },
+```json
+{
+  "slug": "<slug>",
+  "label": "<Label>",
+  "franchise": "<Franchise>",
+  "tags": ["tag1", "tag2"],
+  "fallbackColor": "#111111",
+  "added": "0.X.Y"
+}
 ```
 
-Keep the order consistent with how you want scenes to appear in the picker.
+## 3. Drop the assets
 
-## 3. Add a preview swatch in `src/index.js`
+- `odd/assets/previews/<slug>.webp` — 1.6:1, ~640 px wide, WebP q82, ~50–100 KB.
+- `odd/assets/wallpapers/<slug>.webp` — 1920×1080, WebP q82, ~300–500 KB.
 
-Find the `// --- Preview swatches ---` region and add a new block before the `SCENES` array:
+Run `odd/bin/validate-scenes` — it fails if the manifest doesn't have matching JS + preview + wallpaper files on disk.
 
-```javascript
-// --- <Label> ------------------------------------------------- //
-PREVIEWS[ '<slug>' ] = preview( [
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='xMidYMid slice'>",
-        // TODO: compose a recognizable mini-illustration. Use <defs> for
-        // gradients and filters. See neon-rain or shimmer for rich examples.
-        "<rect width='160' height='100' fill='#111'/>",
-        "<text x='80' y='54' fill='#fff' text-anchor='middle' font-family='sans-serif' font-size='14'><Label></text>",
-    "</svg>",
-].join( '' ), '#111' );
-```
+## 4. Bump the plugin version in `odd/odd.php`
 
-Draft a better placeholder if you can think of an obvious motif right away.
-
-## 4. Bump the plugin version in `b-roll.php`
-
-There are three string literals to update (the plugin header `Version:`, the `wp_enqueue_script` version arg, and the `version` entry in `wp_localize_script`). Pick the next patch version unless the user specified otherwise.
+Two places stay in sync: the `Version:` header and `ODD_VERSION`. Pick the next patch version unless the user specified otherwise, then run `odd/bin/check-version`.
 
 ## 5. Report back
 
-Tell the user what was created, what's still placeholder, and suggest next steps — typically: flesh out `tick()`, design the preview SVG, and run `/release <next-version>` when ready.
+Tell the user what was created, what's still placeholder, and suggest next steps — typically: flesh out `tick()`, regenerate the painted assets via `_tools/gen-wallpaper.py`, and run `/release <next-version>` when ready.

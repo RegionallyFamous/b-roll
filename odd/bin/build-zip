@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""Build dist/odd.zip from odd/ at the repo root.
+
+Excludes development-only files (CI configs, dev tooling, dotfiles,
+build output). Fails if the resulting zip exceeds MAX_ZIP_BYTES so a
+silent payload-doubling regression can't ship unnoticed.
+
+The archive's inner directory is `odd/` so it unpacks directly into
+`wp-content/plugins/odd/`.
+
+Usage:
+    odd/bin/build-zip [--max-bytes N]
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+import zipfile
+from pathlib import Path
+
+
+HERE = Path(__file__).resolve().parent
+PLUGIN_DIR = HERE.parent
+REPO_ROOT = PLUGIN_DIR.parent
+DIST = REPO_ROOT / "dist"
+ZIP_NAME = "odd.zip"
+
+# 35 MB budget. The reboot ships under 1 MB total (3 painted backdrops +
+# previews + tiny SVG icon sets), but the cap stays generous so adding
+# a few new scenes / cut-outs / drifters doesn't trip the gate. Trips
+# hard if anything balloons the payload.
+DEFAULT_MAX_BYTES = 35 * 1024 * 1024
+
+EXCLUDE_DIRS = {
+    "bin",
+    "node_modules",
+    "vendor",
+    "dist",
+}
+EXCLUDE_SUFFIXES = { ".pyc" }
+EXCLUDE_NAMES = {
+    ".DS_Store",
+    ".gitignore",
+}
+
+
+def should_include(rel: Path) -> bool:
+    if not rel.parts:
+        return False
+    if rel.parts[0] in EXCLUDE_DIRS:
+        return False
+    if rel.name in EXCLUDE_NAMES:
+        return False
+    if rel.suffix in EXCLUDE_SUFFIXES:
+        return False
+    return True
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Build the ODD release zip.")
+    parser.add_argument(
+        "--max-bytes",
+        type=int,
+        default=DEFAULT_MAX_BYTES,
+        help=f"fail if the zip exceeds this many bytes (default {DEFAULT_MAX_BYTES})",
+    )
+    args = parser.parse_args()
+
+    DIST.mkdir(parents=True, exist_ok=True)
+    out = DIST / ZIP_NAME
+    if out.exists():
+        out.unlink()
+
+    count = 0
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in sorted(PLUGIN_DIR.rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(PLUGIN_DIR)
+            if not should_include(rel):
+                continue
+            arcname = Path("odd") / rel
+            zf.write(path, arcname=str(arcname))
+            count += 1
+
+    size = out.stat().st_size
+    pct = (size / args.max_bytes) * 100
+    print(f"  wrote {out.relative_to(REPO_ROOT)}  ({count} files, {size:,} bytes, {pct:.1f}% of budget)")
+
+    if size > args.max_bytes:
+        print(
+            f"error: zip size {size:,} exceeds budget {args.max_bytes:,} bytes",
+            file=sys.stderr,
+        )
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

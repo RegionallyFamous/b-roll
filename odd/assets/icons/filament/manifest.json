@@ -1,0 +1,23 @@
+{
+  "slug": "filament",
+  "label": "Filament",
+  "franchise": "Generative",
+  "accent": "#9be6ff",
+  "description": "Hair-thin single-stroke icons that read as one unbroken filament of light. Pairs with the Flux wallpaper but looks great on any dark dock.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

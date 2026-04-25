@@ -1,0 +1,23 @@
+{
+  "slug": "arctic",
+  "label": "Arctic",
+  "franchise": "Atmosphere",
+  "accent": "#a3d9ff",
+  "description": "Crisp frost-blue line icons with a tiny magenta accent dot \u2014 the same palette as the Aurora wallpaper. Reads well on light or dark docks.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}
