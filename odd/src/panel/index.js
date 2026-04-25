@@ -623,11 +623,11 @@
 				icons:       {},
 			} );
 
-			var grid = el( 'div', { class: 'odd-grid odd-grid--icons' } );
+			var list = el( 'div', { class: 'odd-catalog-list' } );
 			sets.forEach( function ( set ) {
-				grid.appendChild( renderIconSetCard( set ) );
+				list.appendChild( renderIconSetCard( set ) );
 			} );
-			wrap.appendChild( grid );
+			wrap.appendChild( list );
 
 			return wrap;
 		}
@@ -637,46 +637,61 @@
 			var isDefault = ! currentSlug;
 			var active = ( set.slug === 'none' && isDefault ) || ( set.slug !== 'none' && set.slug === currentSlug );
 
-			var card = el( 'button', {
-				type: 'button',
-				class: 'odd-card' + ( active ? ' is-active' : '' ),
+			var card = el( 'div', {
+				class: 'odd-catalog-row odd-catalog-row--iconset' + ( active ? ' is-active' : '' ),
 				'data-slug': set.slug,
 			} );
 
-			var thumb = el( 'div', { class: 'odd-card__thumb' } );
+			var iconWrap = el( 'div', { class: 'odd-catalog-row__icon' } );
 			if ( set.preview ) {
-				var img = el( 'img', { src: set.preview, alt: set.label, loading: 'lazy' } );
-				thumb.appendChild( img );
+				iconWrap.appendChild( el( 'img', { src: set.preview, alt: '', loading: 'lazy' } ) );
 			} else if ( set.icons && Object.keys( set.icons ).length ) {
-				// Mini-grid of up to 4 icon SVGs as a generated preview.
 				var keys = [ 'dashboard', 'posts', 'pages', 'media' ].filter( function ( k ) { return set.icons[ k ]; } );
 				if ( ! keys.length ) keys = Object.keys( set.icons ).slice( 0, 4 );
-				thumb.style.background = ( set.accent || '#f0f0f1' );
-				var inner = el( 'div', { class: 'odd-thumb-grid' } );
+				if ( set.accent ) iconWrap.style.background = set.accent;
+				var inner = el( 'div', { class: 'odd-iconset-mini' } );
 				keys.slice( 0, 4 ).forEach( function ( k ) {
-					var i = el( 'img', { src: set.icons[ k ], alt: k, loading: 'lazy' } );
-					inner.appendChild( i );
+					inner.appendChild( el( 'img', { src: set.icons[ k ], alt: '', loading: 'lazy' } ) );
 				} );
-				thumb.appendChild( inner );
+				iconWrap.appendChild( inner );
 			} else {
-				thumb.textContent = 'No preview';
-				thumb.classList.add( 'odd-card__thumb--empty' );
+				iconWrap.classList.add( 'odd-catalog-row__icon--badge' );
+				iconWrap.textContent = ( set.label || set.slug ).slice( 0, 2 ).toUpperCase();
 			}
-			card.appendChild( thumb );
+			card.appendChild( iconWrap );
 
-			var meta = el( 'div', { class: 'odd-card__meta' } );
-			var title = el( 'div', { class: 'odd-card__title' } );
-			title.textContent = set.label || set.slug;
-			var sub = el( 'div', { class: 'odd-card__sub' } );
-			sub.textContent = set.franchise || set.description || '';
-			meta.appendChild( title );
-			meta.appendChild( sub );
-			card.appendChild( meta );
+			var body = el( 'div', { class: 'odd-catalog-row__body' } );
+			var titleRow = el( 'div', { class: 'odd-catalog-row__title' } );
+			var titleText = el( 'span', { class: 'odd-catalog-row__name' } );
+			titleText.textContent = set.label || set.slug;
+			titleRow.appendChild( titleText );
+			if ( set.franchise ) {
+				var franchise = el( 'span', { class: 'odd-catalog-row__version' } );
+				franchise.textContent = set.franchise;
+				titleRow.appendChild( franchise );
+			}
+			body.appendChild( titleRow );
+			if ( set.description ) {
+				var desc = el( 'div', { class: 'odd-catalog-row__desc' } );
+				desc.textContent = set.description;
+				body.appendChild( desc );
+			}
+			card.appendChild( body );
 
-			card.addEventListener( 'click', function () {
+			var actions = el( 'div', { class: 'odd-catalog-row__actions' } );
+			var btn = el( 'button', {
+				type: 'button',
+				class: 'odd-apps-btn odd-apps-btn--pill' + ( active ? '' : ' odd-apps-btn--primary' ),
+			} );
+			btn.textContent = active ? 'Active' : 'Apply';
+			if ( active ) btn.disabled = true;
+			btn.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
 				if ( active ) return;
 				applyIconSet( set.slug, card );
 			} );
+			actions.appendChild( btn );
+			card.appendChild( actions );
 
 			return card;
 		}
@@ -685,9 +700,25 @@
 			if ( state.posting ) return;
 			state.posting = true;
 
-			var all = content.querySelectorAll( '.odd-card' );
-			for ( var i = 0; i < all.length; i++ ) all[ i ].classList.remove( 'is-active' );
-			if ( cardEl ) cardEl.classList.add( 'is-active' );
+			var rows = content.querySelectorAll( '.odd-catalog-row--iconset' );
+			for ( var i = 0; i < rows.length; i++ ) {
+				rows[ i ].classList.remove( 'is-active' );
+				var rb = rows[ i ].querySelector( '.odd-apps-btn' );
+				if ( rb ) {
+					rb.textContent = 'Apply';
+					rb.disabled = false;
+					rb.classList.add( 'odd-apps-btn--primary' );
+				}
+			}
+			if ( cardEl ) {
+				cardEl.classList.add( 'is-active' );
+				var cb = cardEl.querySelector( '.odd-apps-btn' );
+				if ( cb ) {
+					cb.textContent = 'Active';
+					cb.disabled = true;
+					cb.classList.remove( 'odd-apps-btn--primary' );
+				}
+			}
 
 			savePrefs( { iconSet: slug }, function ( data ) {
 				state.posting = false;
@@ -1148,6 +1179,11 @@
 			'.odd-panel .odd-catalog-row__actions{display:flex;align-items:center;gap:10px;flex-shrink:0}',
 			'.odd-panel .odd-catalog-row__installed{font-size:11px;color:#8c8f94;text-transform:uppercase;letter-spacing:.04em}',
 			'.odd-panel .odd-apps-btn--pill{border-radius:999px;padding:6px 18px;font-weight:600}',
+			'.odd-panel .odd-apps-btn:disabled{opacity:1;cursor:default}',
+			'.odd-panel .odd-catalog-row--iconset.is-active{border-color:#2271b1;box-shadow:0 0 0 1px #2271b1 inset}',
+			'.odd-panel .odd-catalog-row--iconset.is-active .odd-catalog-row__icon{box-shadow:0 0 0 2px #2271b1}',
+			'.odd-panel .odd-iconset-mini{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;width:100%;height:100%;padding:6px;box-sizing:border-box}',
+			'.odd-panel .odd-iconset-mini img{width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,.85);border-radius:4px;padding:2px;box-sizing:border-box}',
 			'.odd-panel .odd-pill{display:inline-block;padding:1px 6px;border-radius:999px;background:#eaf2ff;color:#135e96;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}',
 			'.odd-panel .odd-pill--builtin{background:#f0e6ff;color:#5e1b8c}',
 		].join( '\n' );

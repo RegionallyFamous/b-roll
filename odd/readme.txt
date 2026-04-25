@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.1.3 =
+* Icons section now uses the same App Store-style list design as the Apps catalog: a 56px square preview, title + franchise + description, and an Apply / Active pill on the right. The previous grid of big thumbs didn't match the rest of the panel.
 
 = 1.1.2 =
 * Fixes the 500 error when installing a catalog app. `unzip_file()` silently no-ops when the `$wp_filesystem` global isn't initialized, which is the case on REST requests outside wp-admin (Playground hits this every time). ODD now forces `WP_Filesystem()` before extraction.
@@ -104,6 +107,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.1.3 =
+Re-skins the Icons section to match the App Store-style list used by the Apps catalog, for a consistent panel look.
 
 = 1.1.2 =
 Fixes the 500 when installing catalog apps (WP_Filesystem wasn't initialized for REST extractions). Also drops the `.odd` extension; app bundles are `.wp` only now. Strongly recommended.
