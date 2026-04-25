@@ -311,96 +311,22 @@
 			return;
 		}
 		state.active = next;
-		var handledLive = applyLive( next );
+		closePicker();
+		// We intentionally do NOT attempt a client-side DOM swap here.
+		// The dock tiles expose `data-menu-slug="<sanitized-css-id>"`
+		// (menu-posts / menu-dashboard / toplevel_page_xxx) — NOT the
+		// raw admin menu file — so mapping tile → set icon on the
+		// client-side is lossy. The server-side `wp_desktop_dock_item`
+		// filter has the canonical slug (`edit.php`, `upload.php`…)
+		// and always renders the right icon per tile. So we persist
+		// the pick, then soft-reload so the shell rebuilds from the
+		// filtered server payload.
 		persist( slug, function ( ok ) {
 			if ( ! ok ) return;
-			// Live DOM swap handles the Dock tiles inline; the Taskbar
-			// (bottom pill for plugin menus) and any desktop icons
-			// render from a different code path we don't walk, so
-			// trigger a soft reload when the set changes so the shell
-			// rebuilds from the filtered server payload. Reload is
-			// behind a 160ms delay so the pill's close animation has
-			// time to play — feels like a deliberate "applying" beat.
-			if ( ! handledLive ) {
-				setTimeout( function () {
-					try { window.location.reload(); } catch ( e ) { /* ignore */ }
-				}, 160 );
-			}
+			setTimeout( function () {
+				try { window.location.reload(); } catch ( e ) { /* ignore */ }
+			}, 200 );
 		} );
-		closePicker();
-	}
-
-	function applyLive( slug ) {
-		// Walks the shell's rendered dock tiles (built by WP Desktop
-		// Mode's dock.ts — each tile is `.wp-desktop-dock__item` with
-		// `data-menu-slug="edit.php"` etc.) and replaces the inner
-		// icon element with an <img src> pointing at the active set's
-		// SVG. Returns true if every tile was handled inline — false
-		// means the caller should trigger a hard reload to let the
-		// server-side filter rebuild the payload from scratch.
-		var set = null;
-		for ( var i = 0; i < state.sets.length; i++ ) {
-			if ( state.sets[ i ].slug === slug ) { set = state.sets[ i ]; break; }
-		}
-		if ( slug !== '' && ! set ) return false;
-
-		var tiles = document.querySelectorAll( '.wp-desktop-dock__item[data-menu-slug]' );
-		if ( ! tiles.length ) return false;
-
-		var handledAll = true;
-		tiles.forEach( function ( tile ) {
-			var slugAttr = tile.getAttribute( 'data-menu-slug' ) || '';
-			var key = menuSlugToKey( slugAttr );
-			var url = '';
-			if ( set ) {
-				url = ( key && set.icons[ key ] ) || set.icons.fallback || '';
-			}
-			var primary = tile.querySelector( '.wp-desktop-dock__item-primary' );
-			if ( ! primary ) { handledAll = false; return; }
-
-			if ( url ) {
-				var existing = primary.querySelector( '.wp-desktop-dock__item-img, .dashicons, .wp-desktop-dock__item-svg, .wp-desktop-dock__item-letter' );
-				var img = primary.querySelector( 'img.wp-desktop-dock__item-img' );
-				if ( ! img ) {
-					img = document.createElement( 'img' );
-					img.className = 'wp-desktop-dock__item-img';
-					img.setAttribute( 'aria-hidden', 'true' );
-					img.alt = '';
-					if ( existing ) {
-						primary.replaceChild( img, existing );
-					} else {
-						primary.insertBefore( img, primary.firstChild );
-					}
-				}
-				img.src = url;
-			} else {
-				// Pass-through mode: we can't perfectly reconstruct the
-				// shell's original icon (which might be a dashicon span,
-				// a plugin SVG, or a letter fallback) from client-side
-				// state. Signal a reload so the server rebuilds cleanly.
-				handledAll = false;
-			}
-		} );
-		return handledAll;
-	}
-
-	function menuSlugToKey( slug ) {
-		switch ( slug ) {
-			case 'index.php':             return 'dashboard';
-			case 'edit.php':              return 'posts';
-			case 'edit.php?post_type=page': return 'pages';
-			case 'upload.php':            return 'media';
-			case 'edit-comments.php':     return 'comments';
-			case 'themes.php':            return 'appearance';
-			case 'plugins.php':           return 'plugins';
-			case 'users.php':             return 'users';
-			case 'tools.php':             return 'tools';
-			case 'options-general.php':   return 'settings';
-			case 'profile.php':           return 'profile';
-			case 'link-manager.php':      return 'links';
-		}
-		if ( slug && slug.indexOf( 'edit.php?post_type=' ) === 0 ) return 'posts';
-		return '';
 	}
 
 	function persist( slug, done ) {
