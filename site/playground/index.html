@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex">
+	<title>Launching ODD Playground…</title>
+	<link rel="canonical" href="https://odd.regionallyfamous.com/playground/">
+	<link rel="stylesheet" href="/styles.css">
+	<script>
+		( function () {
+			'use strict';
+			var blueprint = 'https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json';
+			var target = 'https://playground.wordpress.net/?blueprint-url=' + encodeURIComponent( blueprint );
+			window.location.replace( target );
+		} )();
+	</script>
+	<noscript>
+		<meta http-equiv="refresh" content="0; url=https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fraw.githubusercontent.com%2FRegionallyFamous%2Fodd%2Fmain%2Fblueprint.json">
+	</noscript>
+</head>
+<body>
+	<main class="shell hero">
+		<div>
+			<div class="kicker">Launching</div>
+			<h1>Opening ODD in WordPress Playground.</h1>
+			<p class="lede">If you are not redirected automatically, use the button below.</p>
+			<div class="actions">
+				<a class="button primary" href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fraw.githubusercontent.com%2FRegionallyFamous%2Fodd%2Fmain%2Fblueprint.json">Open Playground</a>
+				<a class="button" href="/">Back to ODD</a>
+			</div>
+		</div>
+	</main>
+</body>
+</html>

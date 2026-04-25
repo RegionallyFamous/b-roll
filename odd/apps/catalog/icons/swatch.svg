@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Swatch app icon</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff4fa8"/>
+      <stop offset="0.55" stop-color="#b04be1"/>
+      <stop offset="1" stop-color="#5a35d6"/>
+    </linearGradient>
+    <radialGradient id="iris" cx="38%" cy="32%" r="78%">
+      <stop offset="0" stop-color="#8cffd0"/>
+      <stop offset="0.58" stop-color="#ff6f61"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bg)"/>
+  <ellipse cx="32" cy="50" rx="18" ry="3" fill="#2a0b52" opacity="0.28"/>
+  <g filter="drop-shadow(0 3px 5px rgba(9,4,22,.35))">
+    <path d="M32 13c11 0 20 8 20 18 0 8-6 15-14 15h-3c-2 0-3 1-3 3 0 2-2 3-4 2-9-2-16-9-16-18 0-11 9-20 20-20z" fill="#fdfaf2" opacity="0.96"/><circle cx="24" cy="27" r="4" fill="#ff6f61"/><circle cx="34" cy="23" r="4" fill="#8cffd0"/><circle cx="42" cy="33" r="4" fill="#ffe08a"/><circle cx="31" cy="38" r="5" fill="url(#iris)"/><circle cx="31" cy="38" r="1.8" fill="#091425"/>
+  </g>
+  <path d="M50 9q5-4 8-8" fill="none" stroke="#1a0d32" stroke-width="2.4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M50 48l1.2 2.8 2.8.8-2.8.8L50 55.2l-1.2-2.8-2.8-.8 2.8-.8z" fill="#ffe9a8" opacity="0.95"/>
+</svg>

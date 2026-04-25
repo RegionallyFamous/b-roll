@@ -4,7 +4,7 @@
 
 ODD is a decorator plugin for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). It ships generative PixiJS wallpapers and matching icon packs, all controlled from a single native desktop window. Install it, pick a vibe, get back to work — but happier.
 
-### [▶ Try it live in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json)
+### [▶ Try it live in WordPress Playground](https://odd.regionallyfamous.com/playground/)
 
 No install, no signup, nothing to uninstall. Boots ODD + WP Desktop Mode in your browser in ~20–30 seconds.
 
@@ -44,12 +44,12 @@ Install small, sandboxed apps that each get their own desktop icon and open in t
 
 ### Playground (one-click demo)
 
-[**Launch ODD in WordPress Playground →**](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json)
+[**Launch ODD in WordPress Playground →**](https://odd.regionallyfamous.com/playground/)
 
-Raw blueprint URL (handy for bookmarking or sharing):
+Short demo URL:
 
 ```
-https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
+https://odd.regionallyfamous.com/playground/
 ```
 
 First load takes ~20–30 seconds while Playground boots and the plugin installs.

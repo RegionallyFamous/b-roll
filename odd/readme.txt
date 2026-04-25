@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.8
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,13 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.1.0 =
+* Launches the odd.regionallyfamous.com landing site and `/playground/` short link as the canonical Playground demo URL, replacing the long `playground.wordpress.net/?blueprint-url=…` link in the README and plugin docs.
+* Moves catalog app icons and bundles from the retired Bazaar repository to first-party URLs under the ODD repo, eliminating the last cross-repo dependency for the Apps catalog.
+* Refreshes all seven catalog app bundles (Board, Flow, Ledger, Mosaic, Sine, Swatch, Tome) so fresh installs pull the latest builds.
+* Adds a dedicated Architecture page covering the Apps subsystem.
+* Ships a GitHub Pages workflow so the site is rebuilt automatically from `site/` on every push to main.
 
 = 1.0.8 =
 * Adds four GPT Image 2 wallpaper scenes: Abyssal Aquarium, Circuit Garden, Pocket Dimension, and Weather Factory.
@@ -86,6 +93,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Catalog apps now load from first-party ODD URLs and the Playground demo has a stable short link at odd.regionallyfamous.com/playground/. Recommended for anyone relying on the catalog.
 
 = 1.0.8 =
 Adds four new wallpapers and improves the Playground first-run experience.
