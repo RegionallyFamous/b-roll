@@ -50,39 +50,39 @@ function b_roll_icons_slug_to_key( $slug ) {
 }
 
 /**
- * Dock filter — receives the full items array, returns a copy with
- * icons swapped.
+ * Per-item dock filter — fires once per tile inside
+ * `wpdm_build_dock_items()` with the real admin menu slug
+ * (`edit.php`, `upload.php`, `options-general.php`…) as the 2nd
+ * argument. We prefer this over the plural `wp_desktop_dock_items`
+ * filter because the items array itself only carries a normalized
+ * CSS-ish `id` (`menu-posts`, `menu-dashboard`…), which isn't what
+ * sets' manifests key off.
  */
-add_filter( 'wp_desktop_dock_items', function ( $items ) {
-	if ( ! is_array( $items ) || empty( $items ) ) {
-		return $items;
+add_filter( 'wp_desktop_dock_item', function ( $item, $menu_slug ) {
+	if ( ! is_array( $item ) ) {
+		return $item;
 	}
 	$slug = b_roll_icons_get_active_slug();
 	if ( '' === $slug ) {
-		return $items;
+		return $item;
 	}
 	$set = b_roll_icons_get_set( $slug );
 	if ( ! $set || empty( $set['icons'] ) ) {
-		return $items;
+		return $item;
 	}
 
-	foreach ( $items as $i => $item ) {
-		if ( empty( $item['id'] ) ) {
-			continue;
-		}
-		$key = b_roll_icons_slug_to_key( (string) $item['id'] );
-		if ( '' !== $key && ! empty( $set['icons'][ $key ] ) ) {
-			$items[ $i ]['icon'] = (string) $set['icons'][ $key ];
-			continue;
-		}
-		// Always-on fallback so every dock tile feels themed even when
-		// a set ships no match for e.g. a third-party admin page.
-		if ( ! empty( $set['icons']['fallback'] ) ) {
-			$items[ $i ]['icon'] = (string) $set['icons']['fallback'];
-		}
+	$key = b_roll_icons_slug_to_key( (string) $menu_slug );
+	if ( '' !== $key && ! empty( $set['icons'][ $key ] ) ) {
+		$item['icon'] = (string) $set['icons'][ $key ];
+		return $item;
 	}
-	return $items;
-}, 20 );
+	// Always-on fallback so every dock tile feels themed even when
+	// a set ships no match for e.g. a third-party admin page.
+	if ( ! empty( $set['icons']['fallback'] ) ) {
+		$item['icon'] = (string) $set['icons']['fallback'];
+	}
+	return $item;
+}, 20, 2 );
 
 /**
  * Desktop-icons filter — shell surface tiles registered via
