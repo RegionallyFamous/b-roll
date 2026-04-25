@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,11 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.1.4 =
+* Redesigned all seven catalog app icons (Mosaic, Ledger, Flow, Board, Sine, Swatch, Tome) as flat, bold glyphs with no gradient background boxes, sparkles, or drop shadows. Replaces the previous purple-gradient-chrome style that clashed with the dock and the desktop.
+* Rebuilt each app bundle so the icon served on the desktop shortcut is the same clean flat glyph, not the old chromed version embedded in the archive.
+* Installed app windows now mount their iframe defensively. A `MutationObserver` watches for the server-rendered `.odd-app-host` mount points and injects the sandboxed iframe the moment they appear — previously, windows whose `wp-desktop.window.opened` hook didn't fire (e.g. session-restored windows) could stay stuck on the "Loading…" placeholder.
 
 = 1.1.3 =
 * Icons section now uses the same App Store-style list design as the Apps catalog: a 56px square preview, title + franchise + description, and an Apply / Active pill on the right. The previous grid of big thumbs didn't match the rest of the panel.
@@ -107,6 +112,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.1.4 =
+Cleans up the look of installed app icons (flat, no gradient boxes) and hardens window mounting so installed apps always open. Recommended.
 
 = 1.1.3 =
 Re-skins the Icons section to match the App Store-style list used by the Apps catalog, for a consistent panel look.

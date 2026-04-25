@@ -137,4 +137,57 @@
 		if ( ! slug ) return;
 		events.emit( events.NAMES.APP_FOCUSED, { slug: slug, windowId: payload.id } );
 	} );
+
+	/**
+	 * Defensive fallback. Not every WPDM build fires
+	 * `wp-desktop.window.opened` for server-templated windows — e.g.
+	 * a window that was restored from a persisted session at page
+	 * load may just be dropped into the DOM with no hook call. To
+	 * keep installed apps from appearing "dead", we also watch the
+	 * DOM for any `.odd-app-host[data-odd-app]` node that lacks an
+	 * iframe and install one as soon as it appears.
+	 *
+	 * This mirrors the event-driven path and dedupes on the
+	 * iframe-already-present check inside installFrame, so a window
+	 * that does fire the event won't end up with two frames.
+	 */
+	function scanAndMount( root ) {
+		var scope = root && root.querySelectorAll ? root : document;
+		var hosts = scope.querySelectorAll( '.odd-app-host[data-odd-app]' );
+		for ( var i = 0; i < hosts.length; i++ ) {
+			var host = hosts[ i ];
+			if ( host.querySelector( 'iframe.odd-app-frame' ) ) continue;
+			var slug = host.getAttribute( 'data-odd-app-slug' );
+			if ( ! slug ) continue;
+			installFrame( host );
+			events.emit( events.NAMES.APP_OPENED, { slug: slug, windowId: APP_ID_PREFIX + slug } );
+		}
+	}
+
+	function startObserver() {
+		if ( ! window.MutationObserver || ! document.body ) return;
+		scanAndMount( document );
+		var mo = new MutationObserver( function ( mutations ) {
+			for ( var i = 0; i < mutations.length; i++ ) {
+				var m = mutations[ i ];
+				if ( ! m.addedNodes || ! m.addedNodes.length ) continue;
+				for ( var j = 0; j < m.addedNodes.length; j++ ) {
+					var n = m.addedNodes[ j ];
+					if ( n.nodeType !== 1 ) continue;
+					if ( n.matches && n.matches( '.odd-app-host[data-odd-app]' ) ) {
+						scanAndMount( n.parentNode || document );
+					} else if ( n.querySelector && n.querySelector( '.odd-app-host[data-odd-app]' ) ) {
+						scanAndMount( n );
+					}
+				}
+			}
+		} );
+		mo.observe( document.body, { childList: true, subtree: true } );
+	}
+
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', startObserver, { once: true } );
+	} else {
+		startObserver();
+	}
 } )();
