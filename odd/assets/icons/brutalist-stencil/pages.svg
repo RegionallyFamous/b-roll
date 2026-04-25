@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Pages">
+  <title>Pages - Brutalist Stencil</title>
+  <g fill="currentColor">
+    <path d="M3 5h10l3 3v2H3z"/>
+    <path d="M3 12h13v8H3z"/>
+    <path d="M18 4h3v14h-3z" opacity=".65"/>
+  </g>
+</svg>

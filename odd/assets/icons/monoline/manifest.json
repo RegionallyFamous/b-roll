@@ -1,0 +1,23 @@
+{
+  "slug": "monoline",
+  "label": "Monoline",
+  "franchise": "One-Stroke",
+  "accent": "#6c5ce7",
+  "description": "Every icon drawn with a single unbroken stroke. 2-unit stroke, round caps, currentColor so the manifest accent paints every glyph.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard":  "dashboard.svg",
+    "posts":      "posts.svg",
+    "pages":      "pages.svg",
+    "media":      "media.svg",
+    "comments":   "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins":    "plugins.svg",
+    "users":      "users.svg",
+    "tools":      "tools.svg",
+    "settings":   "settings.svg",
+    "profile":    "profile.svg",
+    "links":      "links.svg",
+    "fallback":   "fallback.svg"
+  }
+}

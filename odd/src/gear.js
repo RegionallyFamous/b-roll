@@ -1,8 +1,9 @@
 /**
  * ODD — floating gear pill.
  * ---------------------------------------------------------------
- * Mounts a single circular gear button in the bottom-right corner
- * of the WP Desktop Mode shell. Clicking it opens the ODD Control
+ * Mounts a single circular gear button in the bottom-left corner
+ * of the WP Desktop Mode shell — the bottom-right is reserved for
+ * WP Desktop's widget tray. Clicking it opens the ODD Control
  * Panel native window — one control surface for wallpaper + icons.
  *
  * The click handler routes through `wp.desktop.registerWindow()`
@@ -76,7 +77,7 @@
 		);
 		btn.style.cssText = [
 			'position:fixed',
-			'right:12px',
+			'left:12px',
 			'bottom:12px',
 			'width:40px',
 			'height:40px',

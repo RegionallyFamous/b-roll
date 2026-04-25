@@ -8,7 +8,7 @@
  *                  Registers the `odd` wallpaper with WP Desktop Mode.
  *   - `odd-panel`  ODD Control Panel native-window render callback,
  *                  declared on `window.wpDesktopNativeWindows.odd`.
- *   - `odd-gear`   floating bottom-right gear pill that opens the
+ *   - `odd-gear`   floating bottom-left gear pill that opens the
  *                  native window via `wp.desktop.registerWindow()`.
  *
  * All three load only when WP Desktop Mode is active.

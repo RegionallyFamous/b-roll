@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Users">
+  <title>Users - Brutalist Stencil</title>
+  <g fill="currentColor">
+    <circle cx="9" cy="9" r="4"/>
+    <path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6v1H2z"/>
+    <circle cx="17" cy="8" r="3" opacity=".75"/>
+    <path d="M15 14c3 0 7 2 7 6v1h-5c0-2.5-.8-4.5-2-6z" opacity=".75"/>
+  </g>
+</svg>

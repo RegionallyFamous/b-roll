@@ -32,7 +32,7 @@ https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.co
 2. WP Admin → Plugins → Add New → Upload Plugin → pick the zip → Activate.
 3. Enable desktop mode (admin bar toggle).
 4. OS Settings → Wallpapers → pick **ODD**.
-5. Click the gear pill in the bottom-right of the wallpaper (or the **ODD** desktop icon) to open the Control Panel.
+5. Click the gear pill in the bottom-left of the wallpaper (or the **ODD** desktop icon) to open the Control Panel.
 
 Or clone this repo directly into `wp-content/plugins/odd/`.
 
