@@ -68,11 +68,17 @@ function odd_render_panel_template() {
 }
 
 /**
- * Settings-dial SVG used as the window icon and desktop icon.
+ * The ODD mark — a googly eye with an off-axis gaze.
+ *
+ * Used as the native-window title-bar icon and the desktop shortcut
+ * tile. Full-color SVG (the dock-filter deliberately skips this
+ * icon — see `odd/includes/icons/dock-filter.php` — so the brand
+ * gradient + iris stay intact no matter which icon set is active).
+ *
  * Returned as a data-URI so the shell can drop it straight into
- * `<img src>` without an extra HTTP fetch. Rendered at 32×32 in most
- * surfaces; we keep it monochrome so WP Desktop Mode's tint controls
- * still work.
+ * `<img src>` with no extra HTTP fetch. Reads cleanly from ~16px
+ * (where it resolves to "eye on a purple tile") up to ~128px (where
+ * the iris gradient, glints, eyelash flick, and sparkle all land).
  */
 function odd_control_icon_svg_data_uri() {
 	static $cache = null;
@@ -80,7 +86,7 @@ function odd_control_icon_svg_data_uri() {
 		return $cache;
 	}
 	$svg = <<<'SVG'
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5a9.3 9.3 0 0 0-.2-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.4a.5.5 0 0 0-.6-.2l-2.5 1a7 7 0 0 0-1.7-1L15.8 1a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6a7 7 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.4a.5.5 0 0 0 .1.6L5.2 10a9.3 9.3 0 0 0 0 4L3.1 15.6a.5.5 0 0 0-.1.6l2 3.4a.5.5 0 0 0 .6.2l2.5-1c.5.4 1 .8 1.7 1l.4 2.6a.5.5 0 0 0 .5.4h4a.5.5 0 0 0 .5-.4l.4-2.6a7 7 0 0 0 1.7-1l2.5 1a.5.5 0 0 0 .6-.2l2-3.4a.5.5 0 0 0-.1-.6L20.8 14c.1-.7.2-1.3.2-2z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="odd-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4fa8"/><stop offset=".55" stop-color="#b04be1"/><stop offset="1" stop-color="#5a35d6"/></linearGradient><radialGradient id="odd-eyeball" cx=".35" cy=".32" r=".95"><stop offset="0" stop-color="#ffffff"/><stop offset=".85" stop-color="#f3f4fa"/><stop offset="1" stop-color="#d4d8ea"/></radialGradient><radialGradient id="odd-iris" cx=".35" cy=".32" r=".9"><stop offset="0" stop-color="#7ee3ff"/><stop offset=".6" stop-color="#1e7ac9"/><stop offset="1" stop-color="#0a356b"/></radialGradient></defs><rect x="2" y="2" width="60" height="60" rx="14" fill="url(#odd-bg)"/><ellipse cx="32" cy="45" rx="16" ry="2.4" fill="#2a0b52" opacity=".28"/><circle cx="32" cy="33" r="21" fill="url(#odd-eyeball)"/><circle cx="27" cy="29" r="9.5" fill="url(#odd-iris)"/><circle cx="27" cy="29" r="4.2" fill="#091425"/><circle cx="24.8" cy="26.8" r="1.9" fill="#ffffff"/><circle cx="29.5" cy="31.2" r=".9" fill="#ffffff" opacity=".8"/><path d="M45 14 Q54 8 55 3" fill="none" stroke="#1a0d32" stroke-width="2.4" stroke-linecap="round"/><path d="M49.5 46 l1.2 2.8 l2.8 .8 l-2.8 .8 l-1.2 2.8 l-1.2-2.8 l-2.8-.8 l2.8-.8z" fill="#ffe9a8" opacity=".95"/></svg>
 SVG;
 	$cache = 'data:image/svg+xml;utf8,' . rawurlencode( $svg );
 	return $cache;
