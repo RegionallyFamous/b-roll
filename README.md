@@ -133,13 +133,13 @@ Every scene was reworked for richer atmospherics without adding any external ass
 
 ### Playground (one-click demo)
 
-https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/b-roll/main/blueprint.json
+https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
 
 (First load takes ~20–30 seconds while Playground boots and both plugins install.)
 
 ### A real WordPress install
 
-1. Download the latest `b-roll.zip` from the [Releases](https://github.com/RegionallyFamous/b-roll/releases) page.
+1. Download the latest `b-roll.zip` from the [Releases](https://github.com/RegionallyFamous/odd/releases) page.
 2. WP Admin → Plugins → Add New → Upload Plugin → pick the zip → Activate.
 3. Enable desktop mode (admin bar toggle).
 4. OS Settings → Wallpapers → pick **B-Roll**.

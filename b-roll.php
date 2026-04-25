@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       B-Roll for WP Desktop Mode
- * Plugin URI:        https://github.com/RegionallyFamous/b-roll
+ * Plugin URI:        https://github.com/RegionallyFamous/odd
  * Description:       A pack of pop-culture-themed PixiJS wallpapers for WP Desktop Mode, served as a single 'B-Roll' wallpaper whose scene is chosen from an in-canvas picker. Architected to scale to hundreds of scenes.
  * Version:           0.12.0
  * Requires at least: 6.0

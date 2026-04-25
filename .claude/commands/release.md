@@ -79,7 +79,7 @@ Or browse to the Actions tab in the repo.
 
 Give the user:
 
-- The release URL: `https://github.com/RegionallyFamous/b-roll/releases/tag/v<version>`
+- The release URL: `https://github.com/RegionallyFamous/odd/releases/tag/v<version>`
 - The Playground demo URL (unchanged - it's release-agnostic)
 - A one-line summary of what shipped
 

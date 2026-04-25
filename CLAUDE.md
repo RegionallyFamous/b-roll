@@ -9,8 +9,8 @@ B-Roll is a WordPress plugin that ships canvas wallpapers for [WP Desktop Mode](
 
 Since v0.6.0 the plugin exposes **one** wallpaper card to the WP Desktop shell — "B-Roll" — and scene selection lives in an **in-canvas picker** (a gear button injected over the wallpaper) that the plugin owns. The plugin is architected on three scaling pillars: a data-driven manifest (scenes are rows in JSON, not code), lazy-everything at boot (only `src/index.js` loads eagerly; the picker, per-scene JS, backdrops, and thumbnails load on-demand), and a search-first picker UI that stays usable at hundreds of scenes.
 
-- **Repo:** `RegionallyFamous/b-roll`
-- **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/b-roll/main/blueprint.json
+- **Repo:** `RegionallyFamous/odd`
+- **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
 - **Host plugin (required at runtime):** WP Desktop Mode v0.5.0+
 
 ## The architecture you need to know

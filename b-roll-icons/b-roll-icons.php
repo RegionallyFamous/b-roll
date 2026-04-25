@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       B-Roll Icons for WP Desktop Mode
- * Plugin URI:        https://github.com/RegionallyFamous/b-roll
+ * Plugin URI:        https://github.com/RegionallyFamous/odd
  * Description:       Themed icon sets that re-skin the WP Desktop Mode Dock — pick a set (Code Rain for v0.1, more shipping soon), and Posts / Pages / Media / Users / Settings etc. render in that set's visual language. Sibling to the B-Roll wallpaper plugin; independent pick.
  * Version:           0.1.4
  * Requires at least: 6.0
