@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 
 == Changelog ==
 
+= 1.0.3 =
+* Retired the first-run "Hello. I decorate. Pick one of three." onboarding card. The ODD Control Panel now opens directly on the Wallpaper section.
+
 = 1.0.2 =
 * Public app icon route: `/wp-json/odd/v1/apps/icon/{slug}` serves the manifest-declared icon without a nonce so dock and panel `<img>` tags no longer 401.
 * Bundled icon consumers updated to use the new public route.
@@ -60,6 +63,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.0.3 =
+Retires the first-run greeting card so the Control Panel opens straight to Wallpaper.
 
 = 1.0.2 =
 Fixes app icons 401-ing on the dock/desktop and Apps panel. Recommended.

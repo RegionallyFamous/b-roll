@@ -39,7 +39,6 @@
 		idle:         [ 'The desktop dreams of rectangles.', 'No hands. Just light.', 'Unattended and unbothered.' ],
 		festival:     [ 'Festival.', 'Someone knew the combination.', 'The old code still works.' ],
 		ritual7:      [ 'Seven. You saw me.' ],
-		onboarding:   [ 'Hello. I decorate. Pick one of three.' ],
 		kept:         [ 'Kept.' ],
 		// Apps (v0.16.0). Per-slug overrides go under
 		// `appOpen.<slug>` / `appClose.<slug>` and can be provided

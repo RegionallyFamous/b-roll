@@ -161,17 +161,18 @@ add_action(
 
 		// ---- Iris personality (Cut 3, v0.15.0) ---- //
 		//
-		// Six small modules, each strict IIFE, each registering a
-		// muse / motion / ritual / reactivity / eye / onboarding
-		// layer. Order matters only inasmuch as muse + motion must
-		// install before the reactivity + rituals start emitting.
+		// Five small modules, each strict IIFE, each registering a
+		// muse / motion / ritual / reactivity / eye layer. Order
+		// matters only inasmuch as muse + motion must install
+		// before the reactivity + rituals start emitting. The
+		// first-run onboarding card was retired in v1.0.3 — the
+		// panel now opens directly on the Wallpaper section.
 		$iris_deps = array_merge( $foundation_deps, array( 'odd-api' ) );
 		wp_enqueue_script( 'odd-iris-muse',        ODD_URL . '/src/iris/muse.js',        $iris_deps,                                ODD_VERSION, true );
 		wp_enqueue_script( 'odd-iris-motion',      ODD_URL . '/src/iris/motion.js',      $iris_deps,                                ODD_VERSION, true );
 		wp_enqueue_script( 'odd-iris-rituals',     ODD_URL . '/src/iris/rituals.js',     array_merge( $iris_deps, array( 'odd-iris-muse', 'odd-iris-motion' ) ), ODD_VERSION, true );
 		wp_enqueue_script( 'odd-iris-reactivity',  ODD_URL . '/src/iris/reactivity.js',  array_merge( $iris_deps, array( 'odd-iris-muse', 'odd-iris-motion' ) ), ODD_VERSION, true );
 		wp_enqueue_script( 'odd-iris-eye',         ODD_URL . '/src/iris/eye.js',         array_merge( $iris_deps, array( 'odd-iris-motion' ) ),                  ODD_VERSION, true );
-		wp_enqueue_script( 'odd-iris-onboarding',  ODD_URL . '/src/iris/onboarding.js',  array_merge( $iris_deps, array( 'odd-iris-muse', 'odd-panel' ) ),       ODD_VERSION, true );
 
 		$uid = get_current_user_id();
 
