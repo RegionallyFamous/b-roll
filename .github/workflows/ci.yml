@@ -45,7 +45,7 @@ jobs:
         run: |
           set -e
           MANIFESTS=$(find odd/assets/icons -name manifest.json -maxdepth 2 -type f)
-          for f in blueprint.json odd/src/wallpaper/scenes.json odd/src/wallpaper/drifters.json $MANIFESTS; do
+          for f in blueprint.json odd/src/wallpaper/scenes.json $MANIFESTS; do
               echo "  $f"
               python3 -c "import json,sys; json.load(open('$f'))"
           done
