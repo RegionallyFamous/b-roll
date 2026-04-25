@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""Bump every place ODD's version is pinned, in one command.
+
+Updates all three declared versions in sync:
+  1. `Version:` header in odd/odd.php
+  2. `ODD_VERSION` constant in odd/odd.php
+  3. `?v=<x.y.z>` cache-buster on the ODD ZIP URL in blueprint.json
+
+Why the blueprint cache-buster is non-optional: Playground's service
+worker caches fetched plugin ZIPs keyed on the request URL string.
+`/releases/latest/download/odd.zip` is static, so SW happily serves a
+months-old cached ZIP even after we cut a new release. The ?v= query
+is ignored by GitHub's redirect but forces Playground to miss its SW
+cache and re-fetch on every version bump.
+
+Usage:
+    odd/bin/bump-version 0.14.0            # edits in place
+    odd/bin/bump-version 0.14.0 --dry-run  # prints what would change
+
+Run odd/bin/check-version after bumping to confirm all three agree.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+
+HERE = Path(__file__).resolve().parent
+PLUGIN_DIR = HERE.parent
+PLUGIN = PLUGIN_DIR / "odd.php"
+REPO_ROOT = PLUGIN_DIR.parent
+BLUEPRINT = REPO_ROOT / "blueprint.json"
+
+SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+
+
+def bump_plugin(text: str, new_version: str) -> tuple[str, list[str]]:
+    """Replace the Version: header + ODD_VERSION constant in odd.php.
+
+    Returns (new_text, summary_lines).
+    """
+    lines: list[str] = []
+    new_text, header_subs = re.subn(
+        r"(^\s*\*\s*Version:\s*)[0-9]+\.[0-9]+\.[0-9]+(\s*)$",
+        lambda m: f"{m.group(1)}{new_version}{m.group(2)}",
+        text,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if header_subs != 1:
+        raise SystemExit("error: could not find a `Version:` header in odd.php")
+    lines.append("  odd.php: Version: header -> " + new_version)
+
+    new_text, const_subs = re.subn(
+        r"(define\(\s*['\"]ODD_VERSION['\"]\s*,\s*['\"])[0-9]+\.[0-9]+\.[0-9]+(['\"]\s*\))",
+        lambda m: f"{m.group(1)}{new_version}{m.group(2)}",
+        new_text,
+        count=1,
+    )
+    if const_subs != 1:
+        raise SystemExit("error: could not find the ODD_VERSION constant in odd.php")
+    lines.append("  odd.php: ODD_VERSION constant -> " + new_version)
+
+    return new_text, lines
+
+
+def bump_blueprint(text: str, new_version: str) -> tuple[str, list[str]]:
+    """Replace the ?v=<x.y.z> query on the ODD ZIP URL in blueprint.json.
+
+    Preserves indentation + trailing newline of the original file —
+    rewriting through json.dumps would churn formatting unnecessarily.
+    Returns (new_text, summary_lines).
+    """
+    url_re = re.compile(
+        r'("url"\s*:\s*"https://github\.com/RegionallyFamous/odd/releases/[^"]*?odd\.zip)'
+        r'(\?v=[0-9]+\.[0-9]+\.[0-9]+)?'
+        r'(")'
+    )
+    matches = list(url_re.finditer(text))
+    if not matches:
+        raise SystemExit(
+            "error: could not find the ODD odd.zip installPlugin URL in blueprint.json"
+        )
+    if len(matches) > 1:
+        raise SystemExit(
+            f"error: blueprint.json contains {len(matches)} ODD odd.zip URLs "
+            "(expected exactly 1) — cowardly refusing to guess which to bump"
+        )
+
+    new_text = url_re.sub(
+        lambda m: f'{m.group(1)}?v={new_version}{m.group(3)}',
+        text,
+        count=1,
+    )
+
+    # json-validity sanity check so we never ship a corrupt blueprint.
+    try:
+        json.loads(new_text)
+    except json.JSONDecodeError as e:
+        raise SystemExit(f"error: blueprint.json stopped being valid JSON after edit: {e}")
+
+    return new_text, ["  blueprint.json: odd.zip ?v= -> " + new_version]
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("version", help="new semver, e.g. 0.14.0")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="print what would change, don't write",
+    )
+    args = parser.parse_args()
+
+    if not SEMVER_RE.match(args.version):
+        print(f"error: '{args.version}' is not x.y.z semver", file=sys.stderr)
+        return 2
+
+    if not PLUGIN.exists():
+        print(f"error: missing {PLUGIN}", file=sys.stderr)
+        return 1
+    if not BLUEPRINT.exists():
+        print(f"error: missing {BLUEPRINT}", file=sys.stderr)
+        return 1
+
+    summary: list[str] = []
+
+    plugin_text = PLUGIN.read_text()
+    new_plugin_text, plugin_lines = bump_plugin(plugin_text, args.version)
+    summary.extend(plugin_lines)
+
+    blueprint_text = BLUEPRINT.read_text()
+    new_blueprint_text, blueprint_lines = bump_blueprint(blueprint_text, args.version)
+    summary.extend(blueprint_lines)
+
+    print(f"bumping ODD to {args.version}:")
+    for line in summary:
+        print(line)
+
+    if args.dry_run:
+        print("(dry run — nothing written)")
+        return 0
+
+    if new_plugin_text != plugin_text:
+        PLUGIN.write_text(new_plugin_text)
+    if new_blueprint_text != blueprint_text:
+        BLUEPRINT.write_text(new_blueprint_text)
+
+    print("done. run `odd/bin/check-version` to confirm.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
