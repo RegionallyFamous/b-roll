@@ -220,6 +220,12 @@ function odd_apps_recursive_copy_dir( $src, $dst ) {
  * carries an `installed` flag so the panel can flip a download
  * button straight to "Open".
  */
+// Priority 5 so these literal routes register BEFORE the generic
+// /apps/(?P<slug>…) pattern in includes/apps/rest.php; WP's REST
+// dispatcher walks routes in insertion order and returns the first
+// regex match, so a later-registered literal would be shadowed by
+// the slug wildcard ("catalog" and "install-from-catalog" both
+// satisfy `[a-z0-9-]+`).
 add_action(
 	'rest_api_init',
 	function () {
@@ -245,7 +251,8 @@ add_action(
 				},
 			)
 		);
-	}
+	},
+	5
 );
 
 function odd_apps_rest_catalog() {

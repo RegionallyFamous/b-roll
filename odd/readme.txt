@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,10 +44,17 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 
 == Changelog ==
 
+= 1.0.1 =
+* Catalog REST route: fix route precedence so `/apps/catalog` is not shadowed by the `/apps/{slug}` regex — catalog apps now appear in the Apps panel.
+* Desktop icons: the ODD eye now ships as a real SVG asset instead of a `data:` URI, so WP Desktop Mode's dock sanitizer no longer silently swaps it for a generic cog.
+
 = 1.0.0 =
-* Stable release. Apps engine (absorbed Bazaar), Iris personality system, fourteen scenes, icon sets, stable extension API, migration system.
+* Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Fixes missing desktop icons and an empty Apps catalog caused by a REST route collision.
 
 = 1.0.0 =
 First stable release. If you had the Bazaar plugin installed, ODD will migrate your wares into the Apps tab on first load and deactivate Bazaar.
