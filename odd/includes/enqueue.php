@@ -143,6 +143,20 @@ add_action(
 			true
 		);
 
+		// ---- Iris personality (Cut 3, v0.15.0) ---- //
+		//
+		// Six small modules, each strict IIFE, each registering a
+		// muse / motion / ritual / reactivity / eye / onboarding
+		// layer. Order matters only inasmuch as muse + motion must
+		// install before the reactivity + rituals start emitting.
+		$iris_deps = array_merge( $foundation_deps, array( 'odd-api' ) );
+		wp_enqueue_script( 'odd-iris-muse',        ODD_URL . '/src/iris/muse.js',        $iris_deps,                                ODD_VERSION, true );
+		wp_enqueue_script( 'odd-iris-motion',      ODD_URL . '/src/iris/motion.js',      $iris_deps,                                ODD_VERSION, true );
+		wp_enqueue_script( 'odd-iris-rituals',     ODD_URL . '/src/iris/rituals.js',     array_merge( $iris_deps, array( 'odd-iris-muse', 'odd-iris-motion' ) ), ODD_VERSION, true );
+		wp_enqueue_script( 'odd-iris-reactivity',  ODD_URL . '/src/iris/reactivity.js',  array_merge( $iris_deps, array( 'odd-iris-muse', 'odd-iris-motion' ) ), ODD_VERSION, true );
+		wp_enqueue_script( 'odd-iris-eye',         ODD_URL . '/src/iris/eye.js',         array_merge( $iris_deps, array( 'odd-iris-motion' ) ),                  ODD_VERSION, true );
+		wp_enqueue_script( 'odd-iris-onboarding',  ODD_URL . '/src/iris/onboarding.js',  array_merge( $iris_deps, array( 'odd-iris-muse', 'odd-panel' ) ),       ODD_VERSION, true );
+
 		$uid = get_current_user_id();
 
 		$sets = array();
@@ -173,6 +187,11 @@ add_action(
 			'recents'          => odd_wallpaper_get_user_slug_list( $uid, 'odd_recents' ),
 			'shuffle'          => odd_wallpaper_get_user_shuffle( $uid ),
 			'audioReactive'    => odd_wallpaper_get_user_audio_reactive( $uid ),
+
+			// Iris personality prefs (Cut 3).
+			'initiated'        => (bool) get_user_meta( $uid, 'odd_initiated',     true ),
+			'mascotQuiet'      => (bool) get_user_meta( $uid, 'odd_mascot_quiet',  true ),
+			'winkUnlocked'     => (bool) get_user_meta( $uid, 'odd_wink_unlocked', true ),
 
 			// Icons.
 			'iconSets'         => $sets,

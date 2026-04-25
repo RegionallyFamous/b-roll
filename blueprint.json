@@ -22,7 +22,7 @@
       "step": "installPlugin",
       "pluginData": {
         "resource": "url",
-        "url": "https://github.com/RegionallyFamous/odd/releases/latest/download/odd.zip?v=0.14.1"
+        "url": "https://github.com/RegionallyFamous/odd/releases/latest/download/odd.zip?v=0.15.0"
       },
       "options": { "activate": true }
     },

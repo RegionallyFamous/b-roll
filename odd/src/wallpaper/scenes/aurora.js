@@ -227,6 +227,32 @@
 			}
 		},
 
+		onRipple: function ( opts, state, env ) {
+			// Force-spawn a shooting star biased toward the ripple x.
+			if ( state.activeStreaks.length > 5 ) return;
+			var w = env.app.renderer.width, hh = env.app.renderer.height;
+			var sx = w * 0.5;
+			if ( opts && typeof opts.x === 'number' ) {
+				sx = opts.normalized ? opts.x * w : opts.x;
+			}
+			state.activeStreaks.push( {
+				x: sx + h.rand( -80, 80 ),
+				y: h.rand( 0, hh * 0.35 ),
+				vx: h.rand( -16, -10 ),
+				vy: h.rand( 4, 7 ),
+				life: 0,
+				maxLife: 70,
+			} );
+		},
+
+		onGlitch: function ( opts, state ) {
+			state.time += 120;
+			for ( var i = 0; i < 12; i++ ) {
+				var s = state.starList[ ( Math.random() * state.starList.length ) | 0 ];
+				s.baseAlpha = Math.min( 1, s.baseAlpha + 0.3 );
+			}
+		},
+
 		stillFrame: function ( state, env ) {
 			var saveDt = env.dt;
 			env.dt = 1;

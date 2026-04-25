@@ -267,6 +267,15 @@
 			}
 		},
 
+		onRipple: function ( opts, state ) {
+			var i = ( opts && opts.intensity ) || 0.8;
+			state.sparkBoost = Math.min( 1, state.sparkBoost + i * 0.6 );
+		},
+
+		onGlitch: function ( opts, state ) {
+			state.sparkBoost = Math.min( 1, state.sparkBoost + 0.9 );
+		},
+
 		stillFrame: function ( state, env ) {
 			// Run ~120 settled frames so the still-life shows ribbon
 			// shapes, then stop. Cheap enough at static call cost.

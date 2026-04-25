@@ -63,6 +63,9 @@ function odd_rest_prefs_get() {
 			'shuffle'       => odd_wallpaper_get_user_shuffle( $uid ),
 			'audioReactive' => odd_wallpaper_get_user_audio_reactive( $uid ),
 			'iconSet'       => odd_icons_get_active_slug( $uid ),
+			'initiated'     => (bool) get_user_meta( $uid, 'odd_initiated',     true ),
+			'mascotQuiet'   => (bool) get_user_meta( $uid, 'odd_mascot_quiet',  true ),
+			'winkUnlocked'  => (bool) get_user_meta( $uid, 'odd_wink_unlocked', true ),
 			'scenes'        => odd_wallpaper_scenes(),
 			'sets'          => $sets,
 		)
@@ -117,6 +120,21 @@ function odd_rest_prefs_post( WP_REST_Request $request ) {
 		$on = ! empty( $params['audioReactive'] );
 		update_user_meta( $uid, 'odd_audio_reactive', $on ? 1 : 0 );
 		$out['audioReactive'] = $on;
+	}
+
+	// Iris personality slice (Cut 3). All three are booleans, stored
+	// as 0/1 via the existing audioReactive pattern. Cast once here
+	// so anything downstream (JS store, REST GET) sees a strict bool.
+	foreach ( array(
+		'initiated'    => 'odd_initiated',
+		'mascotQuiet'  => 'odd_mascot_quiet',
+		'winkUnlocked' => 'odd_wink_unlocked',
+	) as $key => $meta ) {
+		if ( array_key_exists( $key, $params ) ) {
+			$on = ! empty( $params[ $key ] );
+			update_user_meta( $uid, $meta, $on ? 1 : 0 );
+			$out[ $key ] = $on;
+		}
 	}
 
 	if ( array_key_exists( 'iconSet', $params ) ) {

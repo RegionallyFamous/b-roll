@@ -1,8 +1,8 @@
 # Building on ODD
 
-> Status: v0.14.0 (foundation). This page is the source of truth for
-> every filter, event, registry, and lifecycle phase ODD exposes. It's
-> meant to be mirrored verbatim into the GitHub wiki.
+> Status: v0.15.0 (foundation + Iris). This page is the source of truth
+> for every filter, event, registry, and lifecycle phase ODD exposes.
+> It's meant to be mirrored verbatim into the GitHub wiki.
 
 ODD is a WordPress plugin layered on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode).
 From v0.14.0 forward the plugin has a stable extension surface so other
@@ -255,6 +255,74 @@ function myplugin_migration_2( $user_id ) {
 
 Migrations must be idempotent — ODD records completion *after* they run,
 so a crashed migration re-runs on next load.
+
+## Iris — the default muse, motion vocabulary, and rituals
+
+> Added in v0.15.0 (Cut 3).
+
+Iris is a personality layer built entirely on the Cut 1 extension
+surface. Nothing about her is special-cased in core; she's six small
+modules that register the default muse, five motion primitives, three
+rituals, a reactivity shim, a floating eye overlay, and the first-run
+onboarding card. A third-party plugin can replace any of them by
+adding a filter with a higher priority, or register an additional muse
+to play alongside her.
+
+### Muses
+
+```javascript
+wp.hooks.addFilter( 'odd.muses', 'my-plugin/anya', function ( muses ) {
+    muses.push( {
+        slug:  'anya',
+        label: 'Anya',
+        voice: {
+            boot: [ 'Boot complete.' ],
+            sceneOpen: { flux: [ 'Ink.' ] },
+        },
+    } );
+    return muses;
+} );
+```
+
+`window.__odd.iris.say( 'bucket' )` routes through the currently-active
+muse (Iris, unless another is installed) and honors the user's
+`mascotQuiet` preference.
+
+### Motion primitives
+
+The registry `odd.motionPrimitives` defines five named motions:
+`blink`, `wink`, `glance`, `glitch`, `ripple`. Each entry has a
+`run(opts)` method. When `run` fires, it:
+
+1. Emits `odd.motion.<slug>` on the event bus.
+2. Calls the matching optional hook on the active scene
+   (`onRipple`, `onGlitch`, `onGlance`) if one is registered.
+
+Scenes opt in by implementing any subset of the hooks. Reduced-motion
+short-circuits everything except `glance` so focus tracking still
+works for keyboard users.
+
+### Rituals
+
+The `odd.rituals` registry lists three built-ins:
+
+| Slug       | Trigger                                                           |
+| ---------- | ----------------------------------------------------------------- |
+| `festival` | Konami code (↑↑↓↓←→←→BA) on the window                            |
+| `dream`    | 120 s of no `pointermove` / `keydown` / `wheel` / `touchstart`    |
+| `seven`    | Seven rapid pointerdown→pointerup pairs on the ODD desktop icon   |
+
+Each ritual fires `odd.ritual.<slug>` on the bus. Third parties add
+their own via the same filter, or hook the built-ins by subscribing.
+
+### Iris prefs slice
+
+Three new booleans live under `store.user`, written via
+`/odd/v1/prefs` and mirrored on the REST GET response:
+
+- `initiated` — onboarding card dismissed
+- `mascotQuiet` — Iris toasts suppressed (motion still plays)
+- `winkUnlocked` — The Seven has been found
 
 ## Testing
 

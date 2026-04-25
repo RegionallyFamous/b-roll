@@ -613,6 +613,15 @@
 					currentTick  = tick;
 					currentSlug  = nextSlug;
 
+					window.__odd = window.__odd || {};
+					window.__odd.runtime = window.__odd.runtime || {};
+					window.__odd.runtime.activeScene = {
+						slug:  nextSlug,
+						scene: impl,
+						state: state,
+						env:   env,
+					};
+
 					if ( ! env.reducedMotion && typeof impl.transitionIn === 'function' ) {
 						safeImpl( impl, 'transitionIn', 'wallpaper.transitionIn:' + nextSlug, [ state, env ] );
 					}
@@ -786,6 +795,9 @@
 				if ( currentTick ) app.ticker.remove( currentTick );
 				if ( currentImpl && currentImpl.cleanup ) {
 					safeImpl( currentImpl, 'cleanup', 'wallpaper.cleanup:' + currentSlug, [ currentState, env ] );
+				}
+				if ( window.__odd && window.__odd.runtime ) {
+					window.__odd.runtime.activeScene = null;
 				}
 				app.destroy( true, { children: true, texture: true } );
 			};

@@ -288,6 +288,14 @@
 			}
 		},
 
+		onRipple: function ( opts, state ) {
+			state.burst = Math.min( 1, state.burst + ( ( opts && opts.intensity ) || 0.6 ) );
+		},
+
+		onGlitch: function ( opts, state ) {
+			state.burst = 1;
+		},
+
 		stillFrame: function ( state, env ) {
 			var saveDt = env.dt;
 			env.dt = 1;

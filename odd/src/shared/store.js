@@ -39,6 +39,9 @@
 			shuffle:       { enabled: false, minutes: 15 },
 			audioReactive: false,
 			iconSet:       '',
+			initiated:     false,
+			mascotQuiet:   false,
+			winkUnlocked:  false,
 			schemaVersion: 0,
 		},
 		registries: {
@@ -186,6 +189,9 @@
 					{ enabled: false, minutes: 15 },
 				audioReactive: !! cfg.audioReactive,
 				iconSet:       typeof cfg.iconSet === 'string' ? cfg.iconSet : '',
+				initiated:     !! cfg.initiated,
+				mascotQuiet:   !! cfg.mascotQuiet,
+				winkUnlocked:  !! cfg.winkUnlocked,
 				schemaVersion: cfg.schemaVersion || 0,
 			},
 			registries: {
@@ -228,6 +234,9 @@
 					userPatch.shuffle = { enabled: !! resp.shuffle.enabled, minutes: resp.shuffle.minutes || 15 };
 				}
 				if ( typeof resp.audioReactive === 'boolean' ) userPatch.audioReactive = resp.audioReactive;
+				if ( typeof resp.initiated === 'boolean' )    userPatch.initiated    = resp.initiated;
+				if ( typeof resp.mascotQuiet === 'boolean' )  userPatch.mascotQuiet  = resp.mascotQuiet;
+				if ( typeof resp.winkUnlocked === 'boolean' ) userPatch.winkUnlocked = resp.winkUnlocked;
 				var keys = Object.keys( userPatch );
 				if ( keys.length ) set( { user: userPatch }, { source: 'rest' } );
 			}
