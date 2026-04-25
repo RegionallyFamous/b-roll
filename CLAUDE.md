@@ -5,12 +5,13 @@
 
 ## What this is
 
-ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). It ships two decorators in one plugin:
+ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). It ships three decorators in one plugin:
 
 1. **A canvas wallpaper** — generative PixiJS scenes rendered on top of painted 1920×1080 WebP backdrops, switched from inside the plugin's own control panel.
 2. **Icon sets** — themed SVG packs that re-skin the WP Desktop dock and desktop-shortcut icons via the `wp_desktop_dock_item` + `wp_desktop_icons` filters.
+3. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that get their own desktop icon and native window. Install via upload, the curated catalog, or `odd_apps_install()`. Replaces the standalone Bazaar plugin — see `odd/includes/apps/` and `docs/building-on-odd.md`.
 
-Both are managed from a single native WP Desktop Mode window (the **ODD Control Panel**) opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`.
+All three are managed from a single native WP Desktop Mode window (the **ODD Control Panel**) opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`.
 
 - **Repo:** `RegionallyFamous/odd`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json

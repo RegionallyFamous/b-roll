@@ -43,6 +43,7 @@
 			mascotQuiet:   false,
 			winkUnlocked:  false,
 			schemaVersion: 0,
+			apps:          { installed: [], pinned: [] },
 		},
 		registries: {
 			scenes:           [],
@@ -52,6 +53,7 @@
 			widgets:          [],
 			rituals:          [],
 			motionPrimitives: [],
+			apps:             [],
 		},
 		runtime: {
 			phase:         'boot',
@@ -193,6 +195,10 @@
 				mascotQuiet:   !! cfg.mascotQuiet,
 				winkUnlocked:  !! cfg.winkUnlocked,
 				schemaVersion: cfg.schemaVersion || 0,
+				apps: ( cfg.userApps && typeof cfg.userApps === 'object' ) ? {
+					installed: Array.isArray( cfg.userApps.installed ) ? cfg.userApps.installed.slice() : [],
+					pinned:    Array.isArray( cfg.userApps.pinned )    ? cfg.userApps.pinned.slice()    : [],
+				} : { installed: [], pinned: [] },
 			},
 			registries: {
 				scenes:   Array.isArray( cfg.scenes ) ? cfg.scenes.slice() : [],
@@ -202,6 +208,7 @@
 				widgets:          Array.isArray( cfg.widgets ) ? cfg.widgets.slice() : [],
 				rituals:          Array.isArray( cfg.rituals ) ? cfg.rituals.slice() : [],
 				motionPrimitives: Array.isArray( cfg.motionPrimitives ) ? cfg.motionPrimitives.slice() : [],
+				apps:             Array.isArray( cfg.apps ) ? cfg.apps.slice() : [],
 			},
 			runtime: {
 				phase:         'boot',

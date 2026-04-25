@@ -41,6 +41,13 @@
 		ritual7:      [ 'Seven. You saw me.' ],
 		onboarding:   [ 'Hello. I decorate. Pick one of three.' ],
 		kept:         [ 'Kept.' ],
+		// Apps (v0.16.0). Per-slug overrides go under
+		// `appOpen.<slug>` / `appClose.<slug>` and can be provided
+		// either by a registered muse or by an installed app via
+		// `manifest.extensions.muses`. These are the catch-alls.
+		appOpen:      [ 'A door opens.', 'A new room.', 'It was always there.' ],
+		appClose:     [ 'Closed.', 'Back to the lobby.', 'A room folds away.' ],
+		appInstalled: [ 'New app. Welcome.', 'Something arrived.', 'One more door.' ],
 	};
 
 	var LABELS = {

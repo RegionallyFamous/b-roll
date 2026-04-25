@@ -143,6 +143,22 @@ add_action(
 			true
 		);
 
+		// ---- Apps (Cut 4, v0.16.0) ---- //
+		//
+		// Single JS handle `odd-apps` hosts the sandboxed iframe for
+		// every installed app. Listens to odd.window-* and re-emits
+		// the canonical odd.app-* events. Feature-flagged server-side
+		// via ODD_APPS_ENABLED; we still enqueue the listener so that
+		// manually-registered apps (via odd_register_app from another
+		// plugin) work even when uploads are off.
+		wp_enqueue_script(
+			'odd-apps',
+			ODD_URL . '/src/apps/window-host.js',
+			array_merge( $foundation_deps, array( 'odd-api' ) ),
+			ODD_VERSION,
+			true
+		);
+
 		// ---- Iris personality (Cut 3, v0.15.0) ---- //
 		//
 		// Six small modules, each strict IIFE, each registering a
@@ -205,6 +221,19 @@ add_action(
 			'widgets'          => function_exists( 'odd_extensions_collect' ) ? odd_extensions_collect( 'widgets' ) : array(),
 			'rituals'          => function_exists( 'odd_extensions_collect' ) ? odd_extensions_collect( 'rituals' ) : array(),
 			'motionPrimitives' => function_exists( 'odd_extensions_collect' ) ? odd_extensions_collect( 'motionPrimitives' ) : array(),
+
+			// Apps (v0.16.0). `apps` is the installed + enabled list
+			// filtered through odd_app_registry. `userApps` is the
+			// current user's personal slice — which apps they chose
+			// to pin, and which they've installed themselves. Both
+			// ship only when the apps feature is flag-enabled so the
+			// JS store stays empty on legacy installs.
+			'appsEnabled'      => defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED,
+			'apps'             => ( defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED && function_exists( 'odd_extensions_collect' ) ) ? odd_extensions_collect( 'apps' ) : array(),
+			'userApps'         => array(
+				'installed' => ( defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED && function_exists( 'odd_apps_list' ) ) ? wp_list_pluck( odd_apps_list(), 'slug' ) : array(),
+				'pinned'    => (array) get_user_meta( $uid, 'odd_apps_pinned', true ),
+			),
 		);
 
 		// The store and the feature surfaces read from the same

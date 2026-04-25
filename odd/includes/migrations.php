@@ -15,12 +15,28 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'ODD_SCHEMA_VERSION' ) ) {
-	define( 'ODD_SCHEMA_VERSION', 1 );
+	define( 'ODD_SCHEMA_VERSION', 4 );
 }
 
 function odd_migrations_all() {
-	return array(
-		1 => 'odd_migration_1_baseline',
+	/**
+	 * Filter the ordered list of migrations to run.
+	 *
+	 * Core ships a numbered list; third-party code can append additional
+	 * callables by adding to this array at a higher version number. The
+	 * runner processes them in ascending numeric order and bumps
+	 * `odd_schema_version` after each successful step.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param array<int, callable> $migrations Version => callable map.
+	 */
+	return (array) apply_filters(
+		'odd_migrations',
+		array(
+			1 => 'odd_migration_1_baseline',
+			2 => 'odd_migration_2_apps_baseline',
+		)
 	);
 }
 
@@ -46,7 +62,8 @@ function odd_run_migrations( $user_id = 0 ) {
 		try {
 			call_user_func( $callable, $user_id );
 		} catch ( \Throwable $e ) {
-			if ( function_exists( 'error_log' ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'error_log' ) ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				error_log( sprintf( '[ODD] migration %d failed for user %d: %s', $version, $user_id, $e->getMessage() ) );
 			}
 			return;
@@ -64,6 +81,19 @@ function odd_run_migrations( $user_id = 0 ) {
 function odd_migration_1_baseline( $user_id ) {
 	unset( $user_id );
 	// Intentionally no-op. The runner updates the version marker.
+}
+
+/**
+ * Apps baseline (v0.16.0). Ensures the apps storage directory and
+ * .htaccess exist for every user that logs in after the apps engine
+ * ships. Idempotent — runs once per user and is cheap if the file
+ * already exists.
+ */
+function odd_migration_2_apps_baseline( $user_id ) {
+	unset( $user_id );
+	if ( function_exists( 'odd_apps_ensure_storage' ) ) {
+		odd_apps_ensure_storage();
+	}
 }
 
 // Run on every admin pageload for the current user. Cheap when the

@@ -15,6 +15,7 @@
  *   - odd_widget_registry           (this file)
  *   - odd_ritual_registry           (this file)
  *   - odd_motion_primitive_registry (this file)
+ *   - odd_app_registry              (odd/includes/apps/registry.php)
  *
  * Helper registration functions:
  *   - odd_register_scene( $scene )
@@ -24,6 +25,7 @@
  *   - odd_register_widget( $widget )
  *   - odd_register_ritual( $ritual )
  *   - odd_register_motion_primitive( $primitive )
+ *   - odd_register_app( $app )
  *
  * Each accepts an associative array with at least a `slug`. The
  * collector function `odd_extensions_collect( 'muses' )` returns the
@@ -79,6 +81,7 @@ function odd_extensions_collect( $name ) {
 		case 'widgets':          $filter = 'odd_widget_registry'; break;
 		case 'rituals':          $filter = 'odd_ritual_registry'; break;
 		case 'motionPrimitives': $filter = 'odd_motion_primitive_registry'; break;
+		case 'apps':             $filter = 'odd_app_registry'; break;
 		default: return array();
 	}
 	/**
@@ -191,6 +194,19 @@ function odd_register_motion_primitive( $primitive ) {
 		'odd_motion_primitive_registry',
 		function ( $registry ) use ( $primitive ) {
 			return odd_extensions_upsert( $registry, $primitive );
+		}
+	);
+	return true;
+}
+
+function odd_register_app( $app ) {
+	if ( ! is_array( $app ) || empty( $app['slug'] ) ) {
+		return false;
+	}
+	add_filter(
+		'odd_app_registry',
+		function ( $registry ) use ( $app ) {
+			return odd_extensions_upsert( $registry, $app );
 		}
 	);
 	return true;

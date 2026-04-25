@@ -32,7 +32,11 @@ Coordinated sets that re-skin your dock and desktop shortcuts. Each set declares
 
 ### The ODD Control Panel
 
-A native WP Desktop Mode window — not a settings page, not a modal. Opens from the **ODD** desktop icon, the `/odd-panel` slash command, or the "Open ODD" button on the Now Playing widget. Tabbed sidebar for Wallpaper, Icons, and About. Everything you'd tweak, in one place.
+A native WP Desktop Mode window — not a settings page, not a modal. Opens from the **ODD** desktop icon, the `/odd-panel` slash command, or the "Open ODD" button on the Now Playing widget. Tabbed sidebar for Wallpaper, Icons, Apps, and About. Everything you'd tweak, in one place.
+
+### Apps — self-contained desktop apps
+
+Install small, sandboxed apps that each get their own desktop icon and open in their own native window. Browse the curated catalog inside the Apps panel, or drop in your own `.odd` / `.wp` archive. Apps can register commands, muses, widgets, rituals, and motion primitives through a manifest — no PHP bootstrap required.
 
 ---
 
@@ -71,6 +75,7 @@ Good starting points:
 - [Architecture](https://github.com/RegionallyFamous/odd/wiki/Architecture) — how the pieces fit together.
 - [Adding a Scene](https://github.com/RegionallyFamous/odd/wiki/Adding-a-Scene) — four files, no build step.
 - [Adding an Icon Set](https://github.com/RegionallyFamous/odd/wiki/Adding-an-Icon-Set) — the manifest + `currentColor` convention.
+- [Building an App](https://github.com/RegionallyFamous/odd/wiki/Building-an-App) — manifest, archive format, REST, sandboxing.
 - [Developing](https://github.com/RegionallyFamous/odd/wiki/Developing) — local iteration, validators, CI.
 
 Bug reports and feature requests: [open an issue](https://github.com/RegionallyFamous/odd/issues).

@@ -108,5 +108,27 @@
 		events.on( 'odd.icon-set-changed', function () {
 			say( 'iconChange' );
 		} );
+
+		// Apps (v0.16.0). Voice buckets are per-slug
+		// (`appOpen.<slug>`) with a generic `appOpen` fallback that
+		// Iris's own voice table defines. Opening an app winks —
+		// the wallpaper doesn't ripple because the window is an ODD
+		// native surface, not a host shell window; the wink
+		// primitive is a lightweight acknowledgment that stays on
+		// the eye layer.
+		events.on( 'odd.app-opened', function ( p ) {
+			var slug = p && p.slug;
+			motion( 'wink' );
+			if ( slug ) say( 'appOpen.' + slug );
+			say( 'appOpen' );
+		} );
+		events.on( 'odd.app-closed', function ( p ) {
+			var slug = p && p.slug;
+			if ( slug ) say( 'appClose.' + slug );
+		} );
+		events.on( 'odd.app-installed', function () {
+			motion( 'glance', { nod: true } );
+			say( 'appInstalled' );
+		} );
 	}
 } )();

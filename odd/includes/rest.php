@@ -55,6 +55,8 @@ function odd_rest_prefs_get() {
 		);
 	}
 
+	$apps_enabled = defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED;
+
 	return rest_ensure_response(
 		array(
 			'wallpaper'     => odd_wallpaper_get_user_scene( $uid ),
@@ -68,6 +70,12 @@ function odd_rest_prefs_get() {
 			'winkUnlocked'  => (bool) get_user_meta( $uid, 'odd_wink_unlocked', true ),
 			'scenes'        => odd_wallpaper_scenes(),
 			'sets'          => $sets,
+			'appsEnabled'   => $apps_enabled,
+			'apps'          => ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? odd_apps_list() : array(),
+			'userApps'      => array(
+				'installed' => ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? wp_list_pluck( odd_apps_list(), 'slug' ) : array(),
+				'pinned'    => (array) get_user_meta( $uid, 'odd_apps_pinned', true ),
+			),
 		)
 	);
 }
@@ -135,6 +143,24 @@ function odd_rest_prefs_post( WP_REST_Request $request ) {
 			update_user_meta( $uid, $meta, $on ? 1 : 0 );
 			$out[ $key ] = $on;
 		}
+	}
+
+	if ( array_key_exists( 'appsPinned', $params ) ) {
+		$pinned_raw = is_array( $params['appsPinned'] ) ? $params['appsPinned'] : array();
+		$pinned     = array();
+		foreach ( $pinned_raw as $slug ) {
+			if ( is_string( $slug ) ) {
+				$clean = sanitize_key( $slug );
+				if ( '' !== $clean && ! in_array( $clean, $pinned, true ) ) {
+					$pinned[] = $clean;
+				}
+			}
+			if ( count( $pinned ) >= 50 ) {
+				break;
+			}
+		}
+		update_user_meta( $uid, 'odd_apps_pinned', $pinned );
+		$out['appsPinned'] = $pinned;
 	}
 
 	if ( array_key_exists( 'iconSet', $params ) ) {

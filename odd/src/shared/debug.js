@@ -26,6 +26,7 @@
 		registries: function () { return {}; },
 		timings:    function () { return {}; },
 		dump:       function () { return {}; },
+		apps:       function () { return { installed: [], pinned: [], windows: [] }; },
 	};
 
 	var store     = window.__odd.store;
@@ -64,6 +65,37 @@
 			widgets:          r.readWidgets(),
 			rituals:          r.readRituals(),
 			motionPrimitives: r.readMotionPrimitives(),
+			apps:             r.readApps ? r.readApps() : [],
+		};
+	}
+
+	/**
+	 * Apps inspector. Returns what's installed, what the user has
+	 * pinned, and which app windows the host currently knows about.
+	 * When used from the console this is the one-stop debug call
+	 * for every apps-related question.
+	 */
+	function apps() {
+		var installed = ( store.get( 'registries.apps' ) ) || [];
+		var userSlice = store.get( 'user.apps' ) || {};
+		var openWindowIds = [];
+		try {
+			var shell = window.wp && window.wp.desktop;
+			if ( shell && typeof shell.getWindows === 'function' ) {
+				var all = shell.getWindows() || [];
+				for ( var i = 0; i < all.length; i++ ) {
+					if ( all[ i ] && typeof all[ i ].id === 'string' && all[ i ].id.indexOf( 'odd-app-' ) === 0 ) {
+						openWindowIds.push( all[ i ].id );
+					}
+				}
+			}
+		} catch ( e ) {}
+		return {
+			installed: installed,
+			pinned:    Array.isArray( userSlice.pinned )    ? userSlice.pinned.slice()    : [],
+			enabled:   Array.isArray( userSlice.installed ) ? userSlice.installed.slice() : [],
+			windows:   openWindowIds,
+			feature:   !! ( window.odd && window.odd.appsEnabled ),
 		};
 	}
 
@@ -90,6 +122,7 @@
 		registries: registries,
 		timings:    timings,
 		dump:       dump,
+		apps:       apps,
 	};
 
 	try { window.console.info( '[ODD] Debug mode active. Inspect via window.__odd.debug.' ); } catch ( e ) {}

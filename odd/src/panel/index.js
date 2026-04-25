@@ -39,6 +39,7 @@
 	var SECTIONS = [
 		{ id: 'wallpaper', label: 'Wallpaper' },
 		{ id: 'icons',     label: 'Icons'     },
+		{ id: 'apps',      label: 'Apps',      gated: 'appsEnabled' },
 		{ id: 'about',     label: 'About'     },
 	];
 
@@ -73,6 +74,11 @@
 		var buttons = {};
 
 		SECTIONS.forEach( function ( section ) {
+			// Skip gated sections (e.g. Apps) until their feature flag
+			// comes in from the localized config.
+			if ( section.gated && ! state.cfg[ section.gated ] ) {
+				return;
+			}
 			var btn = el( 'button', {
 				type: 'button',
 				'data-section': section.id,
@@ -107,8 +113,347 @@
 				content.appendChild( renderWallpaper() );
 			} else if ( id === 'icons' ) {
 				content.appendChild( renderIcons() );
+			} else if ( id === 'apps' ) {
+				content.appendChild( renderApps() );
 			} else {
 				content.appendChild( renderAbout() );
+			}
+		}
+
+		/* --- Apps section --- */
+
+		function renderApps() {
+			var wrap = el( 'div', { 'data-odd-apps': '1' } );
+			wrap.appendChild( sectionHeader(
+				'Apps',
+				'Install ODD apps. Each app gets its own desktop icon and runs in a sandboxed window. Upload a .odd or .wp bundle, or install from the catalog.'
+			) );
+
+			// Upload row: a labeled file input paired with a drop zone.
+			var upload = el( 'div', { class: 'odd-apps-upload' } );
+			upload.innerHTML =
+				'<strong>Install an app</strong>' +
+				'<div class="odd-apps-upload__sub">Drop a .odd or .wp archive or choose one from disk.</div>';
+
+			var input = el( 'input', { type: 'file', accept: '.odd,.wp,application/zip', style: 'display:none' } );
+			var pick  = el( 'button', { type: 'button', class: 'odd-apps-btn' } );
+			pick.textContent = 'Choose file…';
+			pick.addEventListener( 'click', function () { input.click(); } );
+			input.addEventListener( 'change', function () {
+				if ( input.files && input.files[ 0 ] ) installFile( input.files[ 0 ], wrap );
+			} );
+			upload.appendChild( input );
+			upload.appendChild( pick );
+
+			upload.addEventListener( 'dragover', function ( e ) {
+				e.preventDefault();
+				upload.classList.add( 'is-dragover' );
+			} );
+			upload.addEventListener( 'dragleave', function () {
+				upload.classList.remove( 'is-dragover' );
+			} );
+			upload.addEventListener( 'drop', function ( e ) {
+				e.preventDefault();
+				upload.classList.remove( 'is-dragover' );
+				var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[ 0 ];
+				if ( f ) installFile( f, wrap );
+			} );
+			wrap.appendChild( upload );
+
+			// Status rail. Populated by installFile() / deletions.
+			var status = el( 'div', { class: 'odd-apps-status', 'data-odd-apps-status': '1' } );
+			wrap.appendChild( status );
+
+			var installedHead = el( 'h3', { class: 'odd-apps-subhead' } );
+			installedHead.textContent = 'Installed';
+			wrap.appendChild( installedHead );
+
+			// Installed apps gallery.
+			var gallery = el( 'div', { class: 'odd-grid odd-grid--apps', 'data-odd-apps-gallery': '1' } );
+			wrap.appendChild( gallery );
+
+			fetchApps().then( function ( apps ) {
+				renderAppsGallery( gallery, apps, wrap );
+			} );
+
+			// Catalog — everything available, installed or not. The
+			// server marks each row with `installed: true/false` so
+			// the UI can flip a card's primary action.
+			var catalogHead = el( 'h3', { class: 'odd-apps-subhead odd-apps-subhead--catalog' } );
+			catalogHead.textContent = 'Catalog';
+			wrap.appendChild( catalogHead );
+			var catalogNote = el( 'div', { class: 'odd-apps-note' } );
+			catalogNote.textContent = 'Curated ODD apps. Built-ins come with the plugin; remote apps download from the internet on install.';
+			wrap.appendChild( catalogNote );
+			var catalog = el( 'div', { class: 'odd-grid odd-grid--apps', 'data-odd-apps-catalog': '1' } );
+			wrap.appendChild( catalog );
+			fetchCatalog().then( function ( rows ) {
+				renderCatalogGallery( catalog, rows, wrap );
+			} );
+
+			return wrap;
+		}
+
+		function renderCatalogGallery( gallery, rows, wrap ) {
+			gallery.innerHTML = '';
+			if ( ! rows || ! rows.length ) {
+				var empty = el( 'div', { class: 'odd-apps-empty' } );
+				empty.textContent = 'Catalog is empty.';
+				gallery.appendChild( empty );
+				return;
+			}
+			rows.forEach( function ( row ) {
+				gallery.appendChild( renderCatalogCard( row, wrap ) );
+			} );
+		}
+
+		function renderCatalogCard( row, wrap ) {
+			var card = el( 'div', { class: 'odd-card odd-card--catalog', 'data-catalog-slug': row.slug } );
+			if ( row.installed ) card.classList.add( 'is-installed' );
+
+			var thumb = el( 'div', { class: 'odd-card__thumb' } );
+			if ( row.icon_url ) {
+				// Built-in catalog icons are relative to the plugin's
+				// apps/catalog/ folder; remote entries ship absolute URLs.
+				var src = row.icon_url;
+				if ( src.indexOf( 'http' ) !== 0 && src.indexOf( 'data:' ) !== 0 ) {
+					src = ( state.cfg.pluginUrl || '' ) + '/apps/catalog/' + src;
+				}
+				thumb.appendChild( el( 'img', { src: src, alt: row.name, loading: 'lazy' } ) );
+			} else {
+				thumb.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
+				thumb.classList.add( 'odd-card__thumb--badge' );
+			}
+			card.appendChild( thumb );
+
+			var meta = el( 'div', { class: 'odd-card__meta' } );
+			var title = el( 'div', { class: 'odd-card__title' } );
+			title.textContent = row.name || row.slug;
+			if ( row.builtin ) {
+				var pill = el( 'span', { class: 'odd-pill odd-pill--builtin' } );
+				pill.textContent = 'built-in';
+				title.appendChild( document.createTextNode( ' ' ) );
+				title.appendChild( pill );
+			}
+			var sub = el( 'div', { class: 'odd-card__sub' } );
+			sub.textContent = ( row.version ? 'v' + row.version + ' · ' : '' ) + ( row.description || '' );
+			meta.appendChild( title );
+			meta.appendChild( sub );
+			card.appendChild( meta );
+
+			var actions = el( 'div', { class: 'odd-card__actions' } );
+			if ( row.installed ) {
+				var openBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary' } );
+				openBtn.textContent = 'Open';
+				openBtn.addEventListener( 'click', function () { openAppWindow( row.slug ); } );
+				actions.appendChild( openBtn );
+			} else {
+				var installBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary' } );
+				installBtn.textContent = row.builtin ? 'Add' : 'Download';
+				installBtn.addEventListener( 'click', function () {
+					installBtn.disabled = true;
+					var label = row.builtin ? 'Adding ' : 'Downloading ';
+					setAppsStatus( wrap, label + ( row.name || row.slug ) + '…', 'busy' );
+					installFromCatalog( row.slug ).then( function ( data ) {
+						installBtn.disabled = false;
+						if ( data && data.installed ) {
+							setAppsStatus( wrap, 'Installed ' + ( data.manifest && data.manifest.name || row.name ) + '. Reloading…', 'ok' );
+							var ev = window.__odd && window.__odd.events;
+							if ( ev ) ev.emit( 'odd.app-installed', { slug: row.slug, manifest: data.manifest } );
+							setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 600 );
+						} else {
+							var msg = ( data && data.message ) || ( data && data.code ) || 'Install failed.';
+							setAppsStatus( wrap, msg, 'error' );
+						}
+					} );
+				} );
+				actions.appendChild( installBtn );
+			}
+			card.appendChild( actions );
+			return card;
+		}
+
+		function fetchCatalog() {
+			return fetch( appsBaseUrl() + '/catalog', {
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': state.cfg.restNonce || '' },
+			} ).then( function ( r ) { return r.ok ? r.json() : { apps: [] }; } )
+			  .then( function ( d ) { return ( d && Array.isArray( d.apps ) ) ? d.apps : []; } )
+			  .catch( function () { return []; } );
+		}
+		function installFromCatalog( slug ) {
+			return fetch( appsBaseUrl() + '/install-from-catalog', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce':   state.cfg.restNonce || '',
+				},
+				body: JSON.stringify( { slug: slug } ),
+			} ).then( function ( r ) { return r.json(); } )
+			  .catch( function () { return null; } );
+		}
+
+		function renderAppsGallery( gallery, apps, wrap ) {
+			gallery.innerHTML = '';
+			if ( ! apps || ! apps.length ) {
+				var empty = el( 'div', { class: 'odd-apps-empty' } );
+				empty.textContent = 'No apps installed yet. Upload one above.';
+				gallery.appendChild( empty );
+				return;
+			}
+			apps.forEach( function ( app ) {
+				gallery.appendChild( renderAppCard( app, wrap ) );
+			} );
+		}
+
+		function renderAppCard( app, wrap ) {
+			var card = el( 'div', { class: 'odd-card odd-card--app', 'data-app-slug': app.slug } );
+			if ( ! app.enabled ) card.classList.add( 'is-disabled' );
+
+			var thumb = el( 'div', { class: 'odd-card__thumb' } );
+			if ( app.icon ) {
+				var src = ( app.icon.indexOf( 'data:' ) === 0 || app.icon.indexOf( 'http' ) === 0 )
+					? app.icon
+					: ( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/apps/serve/' + app.slug + '/' + app.icon );
+				var img = el( 'img', { src: src, alt: app.name, loading: 'lazy' } );
+				thumb.appendChild( img );
+			} else {
+				thumb.textContent = ( app.name || app.slug ).slice( 0, 2 ).toUpperCase();
+				thumb.classList.add( 'odd-card__thumb--badge' );
+			}
+			card.appendChild( thumb );
+
+			var meta = el( 'div', { class: 'odd-card__meta' } );
+			var title = el( 'div', { class: 'odd-card__title' } );
+			title.textContent = app.name || app.slug;
+			var sub = el( 'div', { class: 'odd-card__sub' } );
+			sub.textContent = ( app.version ? 'v' + app.version : '' ) + ( app.description ? ( app.version ? ' — ' : '' ) + app.description : '' );
+			meta.appendChild( title );
+			meta.appendChild( sub );
+			card.appendChild( meta );
+
+			var actions = el( 'div', { class: 'odd-card__actions' } );
+
+			var open = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary' } );
+			open.textContent = 'Open';
+			open.addEventListener( 'click', function () { openAppWindow( app.slug ); } );
+
+			var toggle = el( 'button', { type: 'button', class: 'odd-apps-btn' } );
+			toggle.textContent = app.enabled ? 'Disable' : 'Enable';
+			toggle.addEventListener( 'click', function () {
+				toggleApp( app.slug, ! app.enabled ).then( function ( ok ) {
+					if ( ok ) refreshAppsGallery( wrap );
+				} );
+			} );
+
+			var del = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--danger' } );
+			del.textContent = 'Delete';
+			del.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Uninstall "' + ( app.name || app.slug ) + '"?' ) ) return;
+				deleteApp( app.slug ).then( function ( ok ) {
+					if ( ok ) {
+						var ev = window.__odd && window.__odd.events;
+						if ( ev ) ev.emit( 'odd.app-uninstalled', { slug: app.slug } );
+						refreshAppsGallery( wrap );
+					}
+				} );
+			} );
+
+			actions.appendChild( open );
+			actions.appendChild( toggle );
+			actions.appendChild( del );
+			card.appendChild( actions );
+
+			return card;
+		}
+
+		function refreshAppsGallery( wrap ) {
+			var gallery = wrap.querySelector( '[data-odd-apps-gallery]' );
+			if ( ! gallery ) return;
+			fetchApps().then( function ( apps ) {
+				renderAppsGallery( gallery, apps, wrap );
+			} );
+		}
+
+		function setAppsStatus( wrap, msg, kind ) {
+			var rail = wrap.querySelector( '[data-odd-apps-status]' );
+			if ( ! rail ) return;
+			rail.textContent = msg || '';
+			rail.className = 'odd-apps-status' + ( kind ? ' is-' + kind : '' );
+		}
+
+		function installFile( file, wrap ) {
+			if ( ! file ) return;
+			setAppsStatus( wrap, 'Installing ' + file.name + '…', 'busy' );
+			uploadApp( file ).then( function ( data ) {
+				if ( data && data.installed && data.manifest ) {
+					setAppsStatus( wrap, 'Installed ' + data.manifest.name + '. Reloading so its icon appears…', 'ok' );
+					var ev = window.__odd && window.__odd.events;
+					if ( ev ) ev.emit( 'odd.app-installed', { slug: data.manifest.slug, manifest: data.manifest } );
+					setTimeout( function () {
+						try { window.location.reload(); } catch ( e ) {}
+					}, 600 );
+				} else {
+					var msg = ( data && data.message ) || ( data && data.code ) || 'Install failed.';
+					setAppsStatus( wrap, msg, 'error' );
+				}
+			} );
+		}
+
+		function appsBaseUrl() {
+			// cfg.restUrl is the /odd/v1/prefs endpoint; swap the tail
+			// for /apps to get the apps namespace.
+			var base = state.cfg.restUrl || '';
+			return base.replace( /\/prefs\/?$/, '/apps' );
+		}
+		function fetchApps() {
+			return fetch( appsBaseUrl(), {
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': state.cfg.restNonce || '' },
+			} ).then( function ( r ) { return r.ok ? r.json() : { apps: [] }; } )
+			  .then( function ( data ) { return ( data && Array.isArray( data.apps ) ) ? data.apps : []; } )
+			  .catch( function () { return []; } );
+		}
+		function toggleApp( slug, enabled ) {
+			return fetch( appsBaseUrl() + '/' + encodeURIComponent( slug ) + '/toggle', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce':   state.cfg.restNonce || '',
+				},
+				body: JSON.stringify( { enabled: !! enabled } ),
+			} ).then( function ( r ) { return r.ok; } ).catch( function () { return false; } );
+		}
+		function deleteApp( slug ) {
+			return fetch( appsBaseUrl() + '/' + encodeURIComponent( slug ), {
+				method: 'DELETE',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': state.cfg.restNonce || '' },
+			} ).then( function ( r ) { return r.ok; } ).catch( function () { return false; } );
+		}
+		function uploadApp( file ) {
+			var fd = new FormData();
+			fd.append( 'file', file, file.name );
+			return fetch( appsBaseUrl() + '/upload', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'X-WP-Nonce': state.cfg.restNonce || '' },
+				body: fd,
+			} ).then( function ( r ) { return r.json(); } )
+			  .catch( function () { return null; } );
+		}
+		function openAppWindow( slug ) {
+			// Single-window contract: open through the host's window
+			// registry so re-clicks raise the existing window instead
+			// of spawning duplicates.
+			var wpd = window.wp && window.wp.desktop;
+			if ( wpd && typeof wpd.openWindow === 'function' ) {
+				try { wpd.openWindow( 'odd-app-' + slug ); return; } catch ( e ) {}
+			}
+			if ( wpd && typeof wpd.registerWindow === 'function' ) {
+				try { wpd.registerWindow( { id: 'odd-app-' + slug } ); return; } catch ( e ) {}
 			}
 		}
 
@@ -470,6 +815,35 @@
 			'.odd-panel .odd-about-meta{display:grid;grid-template-columns:110px 1fr;gap:6px 14px;font-size:13px;color:#50575e;margin:0 0 16px}',
 			'.odd-panel .odd-about-link{font-size:13px;color:#2271b1;text-decoration:none}',
 			'.odd-panel .odd-about-link:hover{text-decoration:underline}',
+			'.odd-panel .odd-apps-upload{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:16px;margin:0 0 16px;background:#fff;border:1px dashed #8c8f94;border-radius:10px;color:#1d2327}',
+			'.odd-panel .odd-apps-upload.is-dragover{border-color:#2271b1;background:#eaf2ff}',
+			'.odd-panel .odd-apps-upload strong{flex:0 0 auto;font-size:14px}',
+			'.odd-panel .odd-apps-upload__sub{flex:1 1 auto;font-size:12px;color:#646970}',
+			'.odd-panel .odd-apps-btn{all:unset;cursor:pointer;padding:6px 12px;border:1px solid #8c8f94;border-radius:6px;font-size:12px;font-weight:500;background:#fff;color:#1d2327;transition:background .12s ease,border-color .12s ease}',
+			'.odd-panel .odd-apps-btn:hover{background:#f0f0f1;border-color:#2271b1}',
+			'.odd-panel .odd-apps-btn--primary{background:#2271b1;color:#fff;border-color:#2271b1}',
+			'.odd-panel .odd-apps-btn--primary:hover{background:#135e96;border-color:#135e96;color:#fff}',
+			'.odd-panel .odd-apps-btn--danger{color:#b32d2e;border-color:#b32d2e}',
+			'.odd-panel .odd-apps-btn--danger:hover{background:#b32d2e;color:#fff}',
+			'.odd-panel .odd-apps-status{min-height:20px;margin:0 0 12px;font-size:12px;color:#646970}',
+			'.odd-panel .odd-apps-status.is-busy{color:#50575e}',
+			'.odd-panel .odd-apps-status.is-ok{color:#008a20}',
+			'.odd-panel .odd-apps-status.is-error{color:#b32d2e}',
+			'.odd-panel .odd-apps-empty{padding:32px 16px;text-align:center;color:#646970;font-size:13px;border:1px dashed #dcdcde;border-radius:10px;background:#fff}',
+			'.odd-panel .odd-grid--apps{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}',
+			'.odd-panel .odd-card--app{cursor:default}',
+			'.odd-panel .odd-card--app:hover{transform:none}',
+			'.odd-panel .odd-card--app.is-disabled{opacity:.55}',
+			'.odd-panel .odd-card__thumb--badge{font-size:24px;font-weight:700;color:#2271b1;background:linear-gradient(135deg,#e9f2fb,#fff)}',
+			'.odd-panel .odd-card__actions{display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap}',
+			'.odd-panel .odd-apps-subhead{margin:24px 0 10px;font-size:13px;font-weight:600;color:#1d2327;text-transform:uppercase;letter-spacing:.06em}',
+			'.odd-panel .odd-apps-subhead--catalog{margin-top:32px}',
+			'.odd-panel .odd-apps-note{margin:0 0 12px;font-size:12px;color:#646970;max-width:58ch;line-height:1.5}',
+			'.odd-panel .odd-card--catalog{cursor:default}',
+			'.odd-panel .odd-card--catalog:hover{transform:none}',
+			'.odd-panel .odd-card--catalog.is-installed{opacity:.72}',
+			'.odd-panel .odd-pill{display:inline-block;padding:1px 6px;border-radius:999px;background:#eaf2ff;color:#135e96;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}',
+			'.odd-panel .odd-pill--builtin{background:#f0e6ff;color:#5e1b8c}',
 		].join( '\n' );
 		document.head.appendChild( s );
 	}

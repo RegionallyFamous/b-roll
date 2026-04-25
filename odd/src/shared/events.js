@@ -37,6 +37,15 @@
  *     odd.iframe-error        { message, err }
  *     odd.visibility-changed  { state: 'hidden' | 'visible' }
  *
+ *   Apps (v0.16.0+):
+ *     odd.app-installed       { slug, manifest }
+ *     odd.app-uninstalled     { slug }
+ *     odd.app-enabled         { slug }
+ *     odd.app-disabled        { slug }
+ *     odd.app-opened          { slug, windowId }
+ *     odd.app-closed          { slug, windowId }
+ *     odd.app-focused         { slug, windowId }
+ *
  *   Errors:
  *     odd.error               { source, err, severity, message, stack }
  *
@@ -73,6 +82,13 @@
 		SHELL_ERROR:          'odd.shell-error',
 		IFRAME_ERROR:         'odd.iframe-error',
 		VISIBILITY_CHANGED:   'odd.visibility-changed',
+		APP_INSTALLED:        'odd.app-installed',
+		APP_UNINSTALLED:      'odd.app-uninstalled',
+		APP_ENABLED:          'odd.app-enabled',
+		APP_DISABLED:         'odd.app-disabled',
+		APP_OPENED:           'odd.app-opened',
+		APP_CLOSED:           'odd.app-closed',
+		APP_FOCUSED:          'odd.app-focused',
 		ERROR:                'odd.error',
 	};
 

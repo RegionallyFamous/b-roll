@@ -57,10 +57,12 @@
 		readWidgets:           function () { return readRegistry( 'widgets',           'odd.widgets' ); },
 		readRituals:           function () { return readRegistry( 'rituals',           'odd.rituals' ); },
 		readMotionPrimitives:  function () { return readRegistry( 'motionPrimitives',  'odd.motionPrimitives' ); },
+		readApps:              function () { return readRegistry( 'apps',              'odd.apps' ); },
 
 		findScene:   function ( slug ) { return find( api.readScenes(), slug ); },
 		findIconSet: function ( slug ) { return find( api.readIconSets(), slug ); },
 		findMuse:    function ( slug ) { return find( api.readMuses(), slug ); },
+		findApp:     function ( slug ) { return find( api.readApps(), slug ); },
 	};
 
 	window.__odd.registries = api;

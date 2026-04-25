@@ -1,6 +1,6 @@
 # Building on ODD
 
-> Status: v0.15.0 (foundation + Iris). This page is the source of truth
+> Status: v0.17.0 (foundation + Iris + Apps). This page is the source of truth
 > for every filter, event, registry, and lifecycle phase ODD exposes.
 > It's meant to be mirrored verbatim into the GitHub wiki.
 
@@ -101,6 +101,13 @@ const off = window.__odd.events.on( 'odd.scene-changed', ( p ) => {
 | `odd.iframe-error`            | `{ message, err }`                         |
 | `odd.visibility-changed`      | `{ state: 'hidden' \| 'visible' }`         |
 | `odd.error`                   | `{ source, err, severity, message, stack }`|
+| `odd.app-installed`           | `{ slug, manifest }`                       |
+| `odd.app-uninstalled`         | `{ slug }`                                 |
+| `odd.app-enabled`             | `{ slug }`                                 |
+| `odd.app-disabled`            | `{ slug }`                                 |
+| `odd.app-opened`              | `{ slug, windowId, bounds }`               |
+| `odd.app-closed`              | `{ slug, windowId }`                       |
+| `odd.app-focused`             | `{ slug, windowId, bounds }`               |
 
 Emitting a custom event is fine — prefix with your plugin's slug
 (`myplugin.*`) rather than `odd.*` to avoid collision.
@@ -120,6 +127,7 @@ callback; ODD never exposes a mutable global to mutate directly.
 | Widgets           | `odd_widget_registry`     | `odd.widgets`        | `odd_register_widget`     |
 | Rituals           | `odd_ritual_registry`     | `odd.rituals`        | `odd_register_ritual`     |
 | Motion primitives | `odd_motion_primitive_registry` | `odd.motionPrimitives` | `odd_register_motion_primitive` |
+| Apps              | `odd_app_registry`        | `odd.apps`           | `odd_register_app`        |
 
 ### PHP example
 
@@ -323,6 +331,180 @@ Three new booleans live under `store.user`, written via
 - `initiated` — onboarding card dismissed
 - `mascotQuiet` — Iris toasts suppressed (motion still plays)
 - `winkUnlocked` — The Seven has been found
+
+## Apps
+
+> Added in v0.16.0 (uploads), expanded in v0.17.0 (built-in catalog).
+> Replaces the standalone Bazaar plugin — a one-shot migration moves
+> existing wares into ODD on first admin login after upgrade.
+
+ODD apps are self-contained static bundles (HTML + CSS + JS + assets)
+that run inside a sandboxed iframe, get their own desktop icon, and
+appear in their own WP Desktop Mode native window. Every app looks
+the same to the host, whether it ships pre-installed, arrives from
+the curated catalog, or is uploaded as a `.odd` / `.wp` archive.
+
+### Manifest shape
+
+Every app is defined by a `manifest.json` at the root of its bundle:
+
+```json
+{
+    "slug":        "my-app",
+    "name":        "My App",
+    "version":     "1.0.0",
+    "author":      "you",
+    "description": "A short sentence for the card and catalog.",
+    "icon":        "icon.svg",
+    "entry":       "index.html",
+    "capability":  "read",
+    "window":      { "width": 720, "height": 520 },
+    "desktopIcon": { "position": 300 },
+    "extensions": {
+        "muses":            [ { "slug": "my-app", "voice": { … } } ],
+        "commands":         [ { "slug": "my-app", "label": "Open My App", "run": "odd.apps.open:my-app" } ],
+        "widgets":          [],
+        "rituals":          [],
+        "motionPrimitives": []
+    }
+}
+```
+
+`slug`, `name`, and `version` are required. Everything else is
+optional. `capability` is the WordPress capability the user must have
+to install or open the app — defaults to `manage_options`, but a
+public-utility app like "Hello ODD" sets it to `read`.
+
+### Archive format
+
+An app archive is a ZIP file with:
+
+- `manifest.json` at the root (required)
+- The `entry` file (defaults to `index.html`)
+- Any additional static assets the app needs
+
+Extension is `.odd` (canonical) or `.wp` (Bazaar parity — both work).
+Archives may contain up to **2000 files** totalling **25 MB
+uncompressed**. Files with server-executable extensions (`.php`,
+`.phtml`, `.phar`, `.cgi`, `.pl`, `.py`, `.rb`, `.sh`, `.bash`) are
+rejected at validation. Symlinks and path-traversal entries are
+rejected. The per-file compression ratio is capped at 100:1 so a zip
+bomb can't sneak through.
+
+### Installation paths
+
+Three ways to install an app:
+
+1. **Upload** — the Apps panel accepts a `.odd` / `.wp` archive via
+   the file picker or drag-and-drop. Uploads go to
+   `POST /wp-json/odd/v1/apps/upload`.
+2. **Catalog** — the Apps panel's *Catalog* section lists curated
+   entries (from `odd/apps/catalog/registry.json`) with *Add* or
+   *Download* buttons. Built-ins install from the plugin's own source
+   tree; remote entries download the referenced `.wp` archive and
+   install it through the same pipeline as uploads. Backed by
+   `GET /odd/v1/apps/catalog` and `POST /odd/v1/apps/install-from-catalog`.
+3. **Programmatic** — call `odd_apps_install( $tmp_path, $filename )`
+   from PHP. Returns the parsed manifest on success or a `WP_Error`.
+
+Built-in apps defined in the catalog with `"builtin": true` auto-install
+on plugin activation and when migration #4 runs. The `Hello ODD`
+reference app ships as the canonical built-in.
+
+### Where app files live
+
+Extracted bundles live in `wp-content/odd-apps/<slug>/`. A
+`.htaccess` in that directory blocks direct HTTP access — every app
+file is served exclusively through the REST endpoint
+`GET /odd/v1/apps/serve/<slug>/<path>`, which enforces the app's
+declared capability and re-runs the forbidden-extension check on
+every request.
+
+The extraction pipeline is atomic: files stage in
+`wp-content/odd-apps/.tmp-<slug>-<nonce>/` and only rename into place
+after the full archive validates. A crashed extraction never leaves a
+partially-installed app visible to the server.
+
+### Option storage (two-tier)
+
+| Option                 | Purpose                                                     |
+|------------------------|-------------------------------------------------------------|
+| `odd_apps_index`       | Flat `{ slug => index_row }` map. Autoloaded.               |
+| `odd_app_<slug>`       | Full manifest + runtime fields for one app. Lazy-loaded.    |
+| `odd_apps_shared_secret` | Optional shared secret for catalog auth (future use).     |
+
+The index is the fast path for listing installed apps; the per-slug
+option carries the full manifest (including `extensions`) and is only
+read when the app is served or its details pane opens.
+
+### REST routes
+
+| Method | Route                                            | Notes                             |
+|--------|--------------------------------------------------|-----------------------------------|
+| `GET`  | `/odd/v1/apps`                                   | List installed apps.              |
+| `GET`  | `/odd/v1/apps/catalog`                           | Curated catalog + `installed` flag.|
+| `POST` | `/odd/v1/apps/install-from-catalog`              | Install by catalog slug.          |
+| `POST` | `/odd/v1/apps/upload`                            | Install from uploaded archive.    |
+| `GET`  | `/odd/v1/apps/{slug}`                            | Full manifest.                    |
+| `POST` | `/odd/v1/apps/{slug}/toggle`                     | Enable / disable.                 |
+| `DELETE`|`/odd/v1/apps/{slug}`                            | Uninstall.                        |
+| `GET`  | `/odd/v1/apps/serve/{slug}/{path...}`            | Serve a file from the bundle.     |
+
+Every `bazaar/v1/*` route is forwarded to its `odd/v1/apps/*`
+equivalent for a release cycle so existing Bazaar clients keep
+working. The shim is gated by `ODD_BAZAAR_COMPAT` (default `true`).
+
+### Lifecycle events
+
+App lifecycle fires on `window.__odd.events`:
+
+| Name                  | Payload                           |
+|-----------------------|-----------------------------------|
+| `odd.app-installed`   | `{ slug, manifest }`              |
+| `odd.app-uninstalled` | `{ slug }`                        |
+| `odd.app-enabled`     | `{ slug }`                        |
+| `odd.app-disabled`    | `{ slug }`                        |
+| `odd.app-opened`      | `{ slug, windowId, bounds }`     |
+| `odd.app-closed`      | `{ slug, windowId }`              |
+| `odd.app-focused`     | `{ slug, windowId, bounds }`     |
+
+The `odd-apps` JS module watches for `odd.window-opened` on windows
+whose id matches `odd-app-<slug>`, injects a sandboxed iframe into
+the server-rendered mount point, and re-emits the `odd.app-*`
+events. Iris listens to `odd.app-opened` and fires a `wink` motion
+primitive plus an `appOpen.<slug>` voice line — per-slug overrides
+live in the app's `manifest.extensions.muses` entry.
+
+### manifest.extensions — apps that extend ODD
+
+Any extension registry shape ODD exposes to PHP/JS can appear in
+`manifest.extensions.<registry>[]`. Entries are re-applied on every
+page load (via the `init` hook at priority 6) so an app's commands,
+muses, widgets, rituals, and motion primitives stay registered
+without a custom PHP bootstrap.
+
+Supported registries today: `muses`, `commands`, `widgets`,
+`rituals`, `motionPrimitives`. Each entry must have a `slug`;
+invalid entries are skipped silently so a malformed manifest never
+crashes the admin. ODD tags each registration with
+`source: "app:<slug>"` so the debug inspector can distinguish
+app-contributed entries from core or plugin ones.
+
+### Sandboxing
+
+Apps run in an `<iframe>` with `sandbox="allow-scripts allow-forms
+allow-popups allow-same-origin allow-downloads"`. The host never
+exposes ODD's store, events, or lifecycle to the iframe directly —
+cross-frame communication is your choice (`postMessage` is the
+recommended pattern). The server adds `X-Content-Type-Options:
+nosniff` and `Referrer-Policy: no-referrer` on every served file.
+
+### debug helpers
+
+```js
+window.__odd.debug.apps();
+// → { installed: [...], pinned: [...], enabled: [...], open: [...] }
+```
 
 ## Testing
 
