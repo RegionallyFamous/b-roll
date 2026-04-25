@@ -266,6 +266,31 @@
 	// Register.
 	// ============================================================ //
 
+	// Wrap each widget's `mount` so a throw inside one mount doesn't
+	// brick the other widgets on the same page. Reports via the ODD
+	// event bus when the foundation is available.
+	function safeMount( fn, source ) {
+		return function ( node, ctx ) {
+			try {
+				return fn( node, ctx );
+			} catch ( err ) {
+				if ( window.__odd && window.__odd.events ) {
+					try {
+						window.__odd.events.emit( 'odd.error', {
+							source:   source,
+							err:      err,
+							severity: 'error',
+							message:  err && err.message,
+							stack:    err && err.stack,
+						} );
+					} catch ( e2 ) {}
+				}
+				if ( window.console ) { try { window.console.error( '[ODD ' + source + ']', err ); } catch ( e3 ) {} }
+				return function () {};
+			}
+		};
+	}
+
 	ready( function () {
 		if ( ! window.wp || ! window.wp.desktop || typeof window.wp.desktop.registerWidget !== 'function' ) return;
 
@@ -280,7 +305,7 @@
 			minHeight:   140,
 			defaultWidth:  260,
 			defaultHeight: 150,
-			mount:       mountNowPlaying,
+			mount:       safeMount( mountNowPlaying, 'widget.now-playing' ),
 		} );
 
 		window.wp.desktop.registerWidget( {
@@ -294,7 +319,7 @@
 			minHeight:   200,
 			defaultWidth:  320,
 			defaultHeight: 260,
-			mount:       mountPicker,
+			mount:       safeMount( mountPicker, 'widget.picker' ),
 		} );
 
 		window.wp.desktop.registerWidget( {
@@ -308,7 +333,7 @@
 			minHeight:   180,
 			defaultWidth:  260,
 			defaultHeight: 200,
-			mount:       mountPostcard,
+			mount:       safeMount( mountPostcard, 'widget.postcard' ),
 		} );
 
 		window.wp.desktop.registerWidget( {
@@ -322,7 +347,7 @@
 			minHeight:   110,
 			defaultWidth:  240,
 			defaultHeight: 130,
-			mount:       mountClock,
+			mount:       safeMount( mountClock, 'widget.clock' ),
 		} );
 	} );
 } )();

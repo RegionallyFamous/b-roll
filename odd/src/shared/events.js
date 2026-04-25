@@ -1,0 +1,131 @@
+/**
+ * ODD event bus (window.__odd.events)
+ * ---------------------------------------------------------------
+ * Thin wrapper over @wordpress/hooks with the canonical set of ODD
+ * event names documented in one place. Every internal subsystem
+ * should use these constants rather than string literals so the
+ * names stay discoverable and refactorable.
+ *
+ * Canonical events (firing contract). All names follow WordPress's
+ * @wordpress/hooks naming rule — ASCII letters / digits / dashes /
+ * periods / underscores, matching the `wp-desktop.*` convention in
+ * the host shell.
+ *
+ *   Lifecycle phases (fired by the lifecycle module):
+ *     odd.boot                — shared modules loaded, store hydrated
+ *     odd.configured          — localized config applied
+ *     odd.registries-ready    — all registries populated
+ *     odd.mounted             — first wallpaper frame painted
+ *     odd.ready               — every enqueued subsystem reported in
+ *     odd.teardown            — plugin is shutting down (page unload)
+ *
+ *   Scene lifecycle (wallpaper runtime):
+ *     odd.scene-changed        { from, to }
+ *     odd.scene-swap-started   { from, to }
+ *     odd.scene-swap-completed { from, to, ms }
+ *     odd.scene-mount-failed   { slug, err }
+ *
+ *   Prefs:
+ *     odd.icon-set-changed    { from, to }
+ *     odd.shuffle-tick        { slug }
+ *
+ *   Shell reactivity (re-emitted from WP Desktop Mode):
+ *     odd.window-opened       { id, bounds }
+ *     odd.window-closed       { id }
+ *     odd.window-focused      { id, bounds }
+ *     odd.shell-error         { message, err }
+ *     odd.iframe-error        { message, err }
+ *     odd.visibility-changed  { state: 'hidden' | 'visible' }
+ *
+ *   Errors:
+ *     odd.error               { source, err, severity, message, stack }
+ *
+ * Legacy pre-0.14.0 actions `odd/pickScene` + `odd/pickIconSet` are
+ * still fired by api.js for backward compatibility, but new code
+ * should subscribe to `odd.scene-changed` / `odd.icon-set-changed`.
+ *
+ * The `log()` accessor exposes the most recent 200 events when debug
+ * mode is on (`wpDesktopConfig.debug === true` or ?odd-debug=1). In
+ * production the log is a no-op so there's no unbounded memory growth.
+ */
+( function () {
+	'use strict';
+	if ( typeof window === 'undefined' ) return;
+	window.__odd = window.__odd || {};
+	if ( window.__odd.events ) return;
+
+	var NAMES = {
+		BOOT:                 'odd.boot',
+		CONFIGURED:           'odd.configured',
+		REGISTRIES_READY:     'odd.registries-ready',
+		MOUNTED:              'odd.mounted',
+		READY:                'odd.ready',
+		TEARDOWN:             'odd.teardown',
+		SCENE_CHANGED:        'odd.scene-changed',
+		SCENE_SWAP_STARTED:   'odd.scene-swap-started',
+		SCENE_SWAP_COMPLETED: 'odd.scene-swap-completed',
+		SCENE_MOUNT_FAILED:   'odd.scene-mount-failed',
+		ICON_SET_CHANGED:     'odd.icon-set-changed',
+		SHUFFLE_TICK:         'odd.shuffle-tick',
+		WINDOW_OPENED:        'odd.window-opened',
+		WINDOW_CLOSED:        'odd.window-closed',
+		WINDOW_FOCUSED:       'odd.window-focused',
+		SHELL_ERROR:          'odd.shell-error',
+		IFRAME_ERROR:         'odd.iframe-error',
+		VISIBILITY_CHANGED:   'odd.visibility-changed',
+		ERROR:                'odd.error',
+	};
+
+	var LOG_SIZE = 200;
+	var log = [];
+	var subCounter = 0;
+
+	function debugOn() {
+		return !! ( window.__odd.store && window.__odd.store.get( 'runtime.debug' ) );
+	}
+
+	function maybeLog( name, payload ) {
+		if ( ! debugOn() ) return;
+		log.push( { t: Date.now(), name: name, payload: payload } );
+		if ( log.length > LOG_SIZE ) log.shift();
+	}
+
+	function hooks() {
+		return ( window.wp && window.wp.hooks ) || null;
+	}
+
+	function emit( name, payload ) {
+		maybeLog( name, payload );
+		var h = hooks();
+		if ( h && typeof h.doAction === 'function' ) {
+			try { h.doAction( name, payload ); } catch ( e ) {}
+		}
+	}
+
+	function on( name, cb ) {
+		var h = hooks();
+		if ( ! h || typeof h.addAction !== 'function' ) return function () {};
+		subCounter++;
+		var ns = 'odd/sub-' + subCounter + '-' + Math.random().toString( 36 ).slice( 2, 8 );
+		try { h.addAction( name, ns, cb ); } catch ( e ) {}
+		return function () {
+			try { h.removeAction( name, ns ); } catch ( e ) {}
+		};
+	}
+
+	function once( name, cb ) {
+		var off = on( name, function () {
+			off();
+			try { cb.apply( null, arguments ); } catch ( e ) {}
+		} );
+		return off;
+	}
+
+	window.__odd.events = {
+		NAMES: NAMES,
+		emit:  emit,
+		on:    on,
+		once:  once,
+		log:   function () { return log.slice(); },
+	};
+} )();

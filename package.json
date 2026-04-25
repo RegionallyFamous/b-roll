@@ -1,0 +1,15 @@
+{
+  "name": "odd-integration-tests",
+  "version": "0.14.0",
+  "private": true,
+  "description": "Vitest harness for the ODD (Outlandish Desktop Decorator) foundation modules.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@wordpress/hooks": "^4.10.0",
+    "jsdom": "^24.1.0",
+    "vitest": "^1.6.0"
+  }
+}

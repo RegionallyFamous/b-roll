@@ -140,6 +140,13 @@ The shared mount runner in `src/wallpaper/index.js` owns Pixi app creation (`awa
 
 `ticker.deltaTime` after a backgrounded tab can be huge. The runner clamps it to 2.5 before `tick` receives it.
 
+## Extending ODD
+
+Since v0.14.0, ODD has a documented extension API (filters, events,
+registries, lifecycle phases, error boundaries, debug inspector). Agents
+adding features should prefer the extension API over monkey-patching
+core files — see [docs/building-on-odd.md](docs/building-on-odd.md).
+
 ## Adding content
 
 ### A new scene

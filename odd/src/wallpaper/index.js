@@ -29,6 +29,38 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 
+	// Foundation module handles. All six install on window.__odd before
+	// this script's <script> tag emits (see odd/includes/enqueue.php for
+	// the dependency chain). Each of them falls back gracefully when a
+	// consumer runs outside the full ODD context (tests, partial boots).
+	var _events    = window.__odd.events    || null;
+	var _lifecycle = window.__odd.lifecycle || null;
+	var _safeCall  = window.__odd.safeCall  || function ( fn ) { try { return fn(); } catch ( e ) {} };
+
+	function emitBus( name, payload ) {
+		if ( _events ) { try { _events.emit( name, payload ); } catch ( e ) {} }
+	}
+
+	// Wrap an impl method in safeCall without losing its `this`. Each
+	// scene's setup/tick/etc. runs as `impl.method(state, env)` so a
+	// throw there would have crashed the entire Pixi app pre-Cut 1.
+	function safeImpl( impl, method, source, args ) {
+		if ( ! impl || typeof impl[ method ] !== 'function' ) return undefined;
+		try {
+			return impl[ method ].apply( impl, args || [] );
+		} catch ( err ) {
+			emitBus( 'odd.error', {
+				source:   source,
+				err:      err,
+				severity: 'error',
+				message:  err && err.message,
+				stack:    err && err.stack,
+			} );
+			if ( window.console ) { try { window.console.error( '[ODD ' + source + ']', err ); } catch ( e2 ) {} }
+			return undefined;
+		}
+	}
+
 	// ============================================================ //
 	// Shared helpers — exposed on env.helpers for scenes.
 	// ============================================================ //
@@ -385,16 +417,16 @@
 						window.__odd.audio.sample( env.audio );
 					}
 					if ( impl.onAudio && env.audio && env.audio.enabled ) {
-						try { impl.onAudio( state, env ); } catch ( e ) { /* ignore */ }
+						safeImpl( impl, 'onAudio', 'wallpaper.onAudio:' + currentSlug, [ state, env ] );
 					}
 
-					if ( impl.tick ) impl.tick( state, env );
+					if ( impl.tick ) safeImpl( impl, 'tick', 'wallpaper.tick:' + currentSlug, [ state, env ] );
 				};
 			}
 
 			function onResize() {
 				if ( currentImpl && currentImpl.onResize ) {
-					currentImpl.onResize( currentState, env );
+					safeImpl( currentImpl, 'onResize', 'wallpaper.onResize:' + currentSlug, [ currentState, env ] );
 				}
 			}
 			app.renderer.on( 'resize', onResize );
@@ -528,9 +560,11 @@
 					return { ok: false, error: new Error( 'unknown scene: ' + nextSlug ) };
 				}
 				swapping = true;
+				var swapStart = ( window.performance && window.performance.now ) ? window.performance.now() : Date.now();
 				var prev = {
 					slug: currentSlug, impl: currentImpl, state: currentState, tick: currentTick,
 				};
+				emitBus( 'odd.scene-swap-started', { from: prev.slug, to: nextSlug } );
 				var crossfadeNode = null;
 				try {
 					await loadScene( nextSlug );
@@ -548,17 +582,31 @@
 
 					if ( prev.impl ) {
 						if ( prev.tick ) app.ticker.remove( prev.tick );
-						try {
-							if ( prev.impl.cleanup ) prev.impl.cleanup( prev.state, env );
-						} catch ( e ) {
-							if ( window.console ) window.console.warn( 'ODD: cleanup threw', e );
+						if ( prev.impl.cleanup ) {
+							safeImpl( prev.impl, 'cleanup', 'wallpaper.cleanup:' + prev.slug, [ prev.state, env ] );
 						}
 					}
 					app.stage.removeChildren();
 					frameTimes = [];
 					slowSince  = 0;
 
-					var state = await impl.setup( env );
+					// Setup can be sync or async (Promise). safeImpl can't
+					// await for us — keep the existing await on the impl
+					// method but guard the throw path manually so one bad
+					// scene can't take the entire Pixi app down.
+					var state;
+					try {
+						state = await impl.setup( env );
+					} catch ( setupErr ) {
+						emitBus( 'odd.error', {
+							source:   'wallpaper.setup:' + nextSlug,
+							err:      setupErr,
+							severity: 'error',
+							message:  setupErr && setupErr.message,
+							stack:    setupErr && setupErr.stack,
+						} );
+						throw setupErr;
+					}
 					var tick  = stepFactory( impl, state );
 					currentImpl  = impl;
 					currentState = state;
@@ -566,15 +614,15 @@
 					currentSlug  = nextSlug;
 
 					if ( ! env.reducedMotion && typeof impl.transitionIn === 'function' ) {
-						try { impl.transitionIn( state, env ); } catch ( e ) { /* ignore */ }
+						safeImpl( impl, 'transitionIn', 'wallpaper.transitionIn:' + nextSlug, [ state, env ] );
 					}
 
 					if ( ctx.prefersReducedMotion ) {
 						env.dt = 0;
 						if ( typeof impl.stillFrame === 'function' ) {
-							try { impl.stillFrame( state, env ); } catch ( e ) { /* ignore */ }
+							safeImpl( impl, 'stillFrame', 'wallpaper.stillFrame:' + nextSlug, [ state, env ] );
 						} else if ( impl.tick ) {
-							impl.tick( state, env );
+							safeImpl( impl, 'tick', 'wallpaper.tick:' + nextSlug, [ state, env ] );
 						}
 						app.ticker.stop();
 					} else {
@@ -585,10 +633,14 @@
 					swapping = false;
 					fadeAndRemove( crossfadeNode );
 					announce( nextSlug );
+					var swapMs = ( ( window.performance && window.performance.now ) ? window.performance.now() : Date.now() ) - swapStart;
+					emitBus( 'odd.scene-swap-completed', { from: prev.slug, to: nextSlug, ms: Math.round( swapMs ) } );
+					emitBus( 'odd.scene-changed', { from: prev.slug, to: nextSlug } );
 					drainPending();
 					return { ok: true };
 				} catch ( err ) {
 					if ( window.console ) window.console.error( 'ODD: swap failed', nextSlug, err );
+					emitBus( 'odd.scene-mount-failed', { slug: nextSlug, err: err, message: err && err.message } );
 					if ( crossfadeNode && crossfadeNode.parentNode ) {
 						crossfadeNode.parentNode.removeChild( crossfadeNode );
 					}
@@ -665,6 +717,7 @@
 				if ( ! detail || detail.id !== ctx.id ) return;
 				if ( detail.state === 'hidden' ) app.ticker.stop();
 				else if ( ! ctx.prefersReducedMotion ) app.ticker.start();
+				emitBus( 'odd.visibility-changed', { state: detail.state } );
 			}
 			if ( window.wp && window.wp.hooks ) {
 				window.wp.hooks.addAction( 'wp-desktop.wallpaper.visibility', visHook, onVis );
@@ -672,7 +725,7 @@
 				// Panel / widgets / slash commands all fire this action
 				// to swap the live scene without waiting on REST. The
 				// caller still persists via POST /odd/v1/prefs.
-				window.wp.hooks.addAction( 'odd/pickScene', 'odd/wallpaper', function ( slug ) {
+				window.wp.hooks.addAction( 'odd.pickScene', 'odd/wallpaper', function ( slug ) {
 					if ( ! slug || slug === currentSlug ) return;
 					swap( slug ).then( function ( res ) {
 						if ( res && res.ok ) recordRecent( slug );
@@ -698,6 +751,18 @@
 				await swap( defaultScene() );
 			}
 
+			// Lifecycle: first scene painted. Advance to `mounted` so
+			// anything awaiting that phase (widgets, commands) can fire
+			// their own init. `ready` follows on the next frame so every
+			// enqueued subsystem has a chance to install before it's
+			// emitted.
+			if ( _lifecycle ) {
+				try { _lifecycle.advance( 'mounted' ); } catch ( e ) {}
+				window.requestAnimationFrame( function () {
+					try { _lifecycle.advance( 'ready' ); } catch ( e ) {}
+				} );
+			}
+
 			return function teardown() {
 				if ( shuffleTimer ) { clearInterval( shuffleTimer ); shuffleTimer = null; }
 				if ( window.__odd.audio && window.__odd.audio.disable ) {
@@ -705,7 +770,7 @@
 				}
 				if ( window.wp && window.wp.hooks ) {
 					window.wp.hooks.removeAction( 'wp-desktop.wallpaper.visibility', visHook );
-					window.wp.hooks.removeAction( 'odd/pickScene', 'odd/wallpaper' );
+					window.wp.hooks.removeAction( 'odd.pickScene', 'odd/wallpaper' );
 				}
 				document.removeEventListener( 'visibilitychange', onDocVis );
 				window.removeEventListener( 'pointermove', onPointerMove );
@@ -720,7 +785,7 @@
 				app.renderer.off( 'resize', onResize );
 				if ( currentTick ) app.ticker.remove( currentTick );
 				if ( currentImpl && currentImpl.cleanup ) {
-					try { currentImpl.cleanup( currentState, env ); } catch ( e ) { /* ignore */ }
+					safeImpl( currentImpl, 'cleanup', 'wallpaper.cleanup:' + currentSlug, [ currentState, env ] );
 				}
 				app.destroy( true, { children: true, texture: true } );
 			};

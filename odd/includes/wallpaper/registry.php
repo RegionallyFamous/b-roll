@@ -11,13 +11,38 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Return the active scene registry.
+ *
+ * The on-disk `src/wallpaper/scenes.json` is the seed; third-party
+ * plugins can append or modify entries by adding a filter on
+ * `odd_scene_registry` (priority 10 is conventional). See
+ * odd/includes/extensions.php for the `odd_register_scene()` helper.
+ *
+ * Result is memoized per request, so filter callbacks should be
+ * idempotent — they run once per process.
+ */
 function odd_wallpaper_scenes() {
 	static $cache = null;
 	if ( null === $cache ) {
-		$path  = ODD_DIR . 'src/wallpaper/scenes.json';
-		$raw   = is_readable( $path ) ? file_get_contents( $path ) : '';
-		$data  = json_decode( $raw, true );
-		$cache = is_array( $data ) ? $data : array();
+		$path      = ODD_DIR . 'src/wallpaper/scenes.json';
+		$raw       = is_readable( $path ) ? file_get_contents( $path ) : '';
+		$data      = json_decode( $raw, true );
+		$from_disk = is_array( $data ) ? $data : array();
+		/**
+		 * Filter the ODD scene registry.
+		 *
+		 * @since 0.14.0
+		 *
+		 * @param array $registry List of scene descriptors. Each descriptor
+		 *                        must have at least a `slug`; ODD also reads
+		 *                        `label`, `franchise`, `tags`, `fallbackColor`,
+		 *                        and `added`.
+		 */
+		$cache     = apply_filters( 'odd_scene_registry', $from_disk );
+		if ( ! is_array( $cache ) ) {
+			$cache = $from_disk;
+		}
 	}
 	return $cache;
 }

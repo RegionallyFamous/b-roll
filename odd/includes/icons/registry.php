@@ -159,6 +159,22 @@ function odd_icons_get_sets() {
 		);
 	}
 
+	/**
+	 * Filter the ODD icon-set registry.
+	 *
+	 * Runs once per request, after on-disk sets are scanned. Third-party
+	 * plugins can register external sets (served as plain URLs, not data
+	 * URIs) by returning a modified array keyed by slug.
+	 *
+	 * @since 0.14.0
+	 *
+	 * @param array $registry Map of slug → set descriptor.
+	 */
+	$filtered = apply_filters( 'odd_icon_set_registry', $cache );
+	if ( is_array( $filtered ) ) {
+		$cache = $filtered;
+	}
+
 	return $cache;
 }
 

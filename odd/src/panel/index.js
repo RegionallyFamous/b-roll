@@ -20,13 +20,29 @@
 
 	window.wpDesktopNativeWindows = window.wpDesktopNativeWindows || {};
 
+	var _safeCall = ( window.__odd && window.__odd.safeCall ) || function ( fn ) { try { return fn(); } catch ( e ) {} };
+	var _events   = window.__odd && window.__odd.events;
+	function reportError( source, err ) {
+		if ( _events ) {
+			try {
+				_events.emit( 'odd.error', {
+					source:   source,
+					err:      err,
+					severity: 'error',
+					message:  err && err.message,
+					stack:    err && err.stack,
+				} );
+			} catch ( e ) {}
+		}
+	}
+
 	var SECTIONS = [
 		{ id: 'wallpaper', label: 'Wallpaper' },
 		{ id: 'icons',     label: 'Icons'     },
 		{ id: 'about',     label: 'About'     },
 	];
 
-	window.wpDesktopNativeWindows.odd = function ( body ) {
+	var renderPanel = function ( body ) {
 		body.innerHTML = '';
 		injectStyles();
 		body.classList.add( 'odd-panel' );
@@ -200,11 +216,11 @@
 			for ( var i = 0; i < all.length; i++ ) all[ i ].classList.remove( 'is-active' );
 			if ( cardEl ) cardEl.classList.add( 'is-active' );
 
-			// The wallpaper engine subscribes to `odd/pickScene` via
+			// The wallpaper engine subscribes to `odd.pickScene` via
 			// @wordpress/hooks — firing this swaps the scene live
 			// without a reload. See odd/src/wallpaper/index.js.
 			if ( window.wp && window.wp.hooks && typeof window.wp.hooks.doAction === 'function' ) {
-				try { window.wp.hooks.doAction( 'odd/pickScene', slug ); } catch ( e ) {}
+				try { window.wp.hooks.doAction( 'odd.pickScene', slug ); } catch ( e ) {}
 			}
 
 			savePrefs( { wallpaper: slug }, function ( data ) {
@@ -375,6 +391,22 @@
 			} ).catch( function () {
 				if ( typeof onDone === 'function' ) onDone( null );
 			} );
+		}
+	};
+
+	window.wpDesktopNativeWindows.odd = function ( body ) {
+		try {
+			return renderPanel( body );
+		} catch ( err ) {
+			reportError( 'panel.render', err );
+			try {
+				body.innerHTML =
+					'<div style="padding:24px;font-family:system-ui;color:#1d2327">' +
+					'<h2 style="margin:0 0 8px">ODD panel didn\'t load</h2>' +
+					'<p style="color:#50575e;margin:0">A scene or widget threw while the panel was rendering. Reload the page or check the browser console.</p>' +
+					'</div>';
+			} catch ( e ) {}
+			return function () {};
 		}
 	};
 

@@ -30,6 +30,50 @@
 	function api() { return window.__odd && window.__odd.api; }
 	function norm( s ) { return String( s || '' ).trim().toLowerCase(); }
 
+	// Wrap a command run handler so a throw in one command doesn't poison
+	// the rest of the palette. Reported as `odd.error` on the bus with the
+	// command slug in the `source` so the debug inspector can show which
+	// command misbehaved.
+	function safeRun( fn, source ) {
+		return function ( args, ctx ) {
+			try {
+				return fn( args, ctx );
+			} catch ( err ) {
+				if ( window.__odd && window.__odd.events ) {
+					try {
+						window.__odd.events.emit( 'odd.error', {
+							source:   source,
+							err:      err,
+							severity: 'error',
+							message:  err && err.message,
+							stack:    err && err.stack,
+						} );
+					} catch ( e ) {}
+				}
+				if ( window.console ) { try { window.console.error( '[ODD ' + source + ']', err ); } catch ( e ) {} }
+				return 'ODD hit a snag running that command. Reload and try again.';
+			}
+		};
+	}
+	function safeSuggest( fn, source ) {
+		return function ( args ) {
+			try { return fn( args ); } catch ( err ) {
+				if ( window.__odd && window.__odd.events ) {
+					try {
+						window.__odd.events.emit( 'odd.error', {
+							source:   source,
+							err:      err,
+							severity: 'warning',
+							message:  err && err.message,
+							stack:    err && err.stack,
+						} );
+					} catch ( e ) {}
+				}
+				return [];
+			}
+		};
+	}
+
 	// Fuzzy-ish substring match on slug + label. Low ceremony; the palette
 	// already narrows by the /slug prefix, so this only filters the args.
 	function matches( needle, candidates ) {
@@ -131,8 +175,8 @@
 			hint:        '[scene] · blank = random',
 			icon:        'dashicons-art',
 			owner:       'odd-commands',
-			suggest:     function ( args ) { return sceneSuggestions( args ); },
-			run:         run_odd,
+			suggest:     safeSuggest( sceneSuggestions, 'command.odd.suggest' ),
+			run:         safeRun( run_odd, 'command.odd' ),
 		} );
 
 		window.wp.desktop.registerCommand( {
@@ -142,8 +186,8 @@
 			hint:        '[set] · "none" to reset',
 			icon:        'dashicons-grid-view',
 			owner:       'odd-commands',
-			suggest:     function ( args ) { return iconSetSuggestions( args ); },
-			run:         run_oddIcons,
+			suggest:     safeSuggest( iconSetSuggestions, 'command.odd-icons.suggest' ),
+			run:         safeRun( run_oddIcons, 'command.odd-icons' ),
 		} );
 
 		window.wp.desktop.registerCommand( {
@@ -152,7 +196,7 @@
 			description: 'Jump to a random scene right now.',
 			icon:        'dashicons-controls-forward',
 			owner:       'odd-commands',
-			run:         run_shuffle,
+			run:         safeRun( run_shuffle, 'command.shuffle' ),
 		} );
 
 		window.wp.desktop.registerCommand( {
@@ -161,7 +205,7 @@
 			description: 'Open (or focus) the ODD Control Panel window.',
 			icon:        'dashicons-admin-generic',
 			owner:       'odd-commands',
-			run:         run_panel,
+			run:         safeRun( run_panel, 'command.odd-panel' ),
 		} );
 	} );
 } )();
