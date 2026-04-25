@@ -142,6 +142,12 @@ add_action(
 			ODD_VERSION,
 			true
 		);
+		wp_enqueue_style(
+			'odd-icon-contrast',
+			ODD_URL . '/src/icons/contrast.css',
+			array( 'wp-desktop' ),
+			ODD_VERSION
+		);
 
 		// ---- Apps (Cut 4, v0.16.0) ---- //
 		//
