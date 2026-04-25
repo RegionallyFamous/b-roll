@@ -1,0 +1,221 @@
+/* ODD widgets — scoped to .odd-widget.* to avoid styling bleed. */
+
+.odd-widget {
+	--odd-accent: #7a8190;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px 16px;
+	color: var( --wp-admin-theme-color-text, #f3f5f8 );
+	font: 400 13px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	height: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.odd-widget__sub {
+	font-size: 10.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	opacity: 0.62;
+}
+.odd-widget__title {
+	font-size: 20px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	line-height: 1.15;
+	color: currentColor;
+}
+.odd-widget__cat {
+	font-size: 11.5px;
+	opacity: 0.66;
+	margin-top: 2px;
+}
+
+.odd-widget__row {
+	display: flex;
+	gap: 8px;
+	margin-top: auto;
+	padding-top: 10px;
+}
+.odd-widget__btn {
+	flex: 1;
+	appearance: none;
+	background: var( --odd-accent, #7a8190 );
+	color: #0a0a0f;
+	border: 0;
+	border-radius: 8px;
+	padding: 7px 12px;
+	font: inherit;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	cursor: pointer;
+	transition: transform 0.12s ease, filter 0.12s ease;
+}
+.odd-widget__btn:hover   { filter: brightness( 1.12 ); transform: translateY( -1px ); }
+.odd-widget__btn:active  { transform: translateY( 0 ); filter: brightness( 0.96 ); }
+.odd-widget__btn--ghost {
+	background: transparent;
+	color: currentColor;
+	box-shadow: inset 0 0 0 1px rgba( 255, 255, 255, 0.2 );
+}
+
+/* --- Picker --- */
+
+.odd-widget--picker .odd-widget__grid {
+	display: grid;
+	grid-template-columns: repeat( 3, 1fr );
+	gap: 6px;
+	overflow-y: auto;
+	padding-right: 2px;
+	min-height: 0;
+	flex: 1;
+}
+.odd-widget__tile {
+	position: relative;
+	appearance: none;
+	background: transparent;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	border-radius: 6px;
+	overflow: hidden;
+	aspect-ratio: 16 / 10;
+	color: inherit;
+	outline: 2px solid transparent;
+	outline-offset: -2px;
+	transition: outline-color 0.12s ease, transform 0.12s ease;
+}
+.odd-widget__tile:hover  { transform: translateY( -1px ); }
+.odd-widget__tile.is-active { outline-color: #fff; }
+.odd-widget__thumb {
+	position: absolute;
+	inset: 0;
+	background-size: cover;
+	background-position: center;
+}
+.odd-widget__tile-label {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	padding: 3px 6px;
+	font-size: 10px;
+	font-weight: 600;
+	color: #fff;
+	text-shadow: 0 1px 2px rgba( 0, 0, 0, 0.6 );
+	background: linear-gradient( to top, rgba( 0, 0, 0, 0.55 ), transparent );
+	text-align: left;
+}
+
+/* --- Postcard --- */
+
+.odd-widget--postcard .odd-widget__frame {
+	position: relative;
+	flex: 1;
+	border-radius: 10px;
+	overflow: hidden;
+	cursor: pointer;
+	min-height: 110px;
+}
+.odd-widget__art {
+	position: absolute;
+	inset: -8px;
+	background-size: cover;
+	background-position: center;
+	transition: transform 0.16s ease-out;
+	will-change: transform;
+}
+.odd-widget__caption {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding-top: 8px;
+}
+
+/* --- Clock --- */
+
+.odd-widget--clock {
+	justify-content: center;
+	align-items: flex-start;
+	padding: 18px 20px;
+}
+.odd-clock__time {
+	font-variant-numeric: tabular-nums;
+	display: inline-flex;
+	align-items: baseline;
+	gap: 2px;
+	line-height: 1;
+}
+.odd-clock__h, .odd-clock__m {
+	font-size: 40px;
+	font-weight: 700;
+	letter-spacing: -0.03em;
+}
+.odd-clock__colon {
+	font-size: 36px;
+	opacity: 0.65;
+	color: var( --odd-accent, currentColor );
+	animation: odd-clock-blink 2s ease-in-out infinite;
+}
+@keyframes odd-clock-blink {
+	0%, 45%, 100% { opacity: 0.75; }
+	50%           { opacity: 0.22; }
+}
+.odd-clock__mer {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding-left: 8px;
+	align-self: center;
+	opacity: 0.75;
+}
+.odd-clock__date {
+	font-size: 12px;
+	opacity: 0.68;
+	margin-top: 6px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+/* Clock skins — one per icon set. */
+
+.odd-clock--neutral .odd-clock__h,
+.odd-clock--neutral .odd-clock__m {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.odd-clock--filament .odd-clock__h,
+.odd-clock--filament .odd-clock__m {
+	font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+	font-weight: 200;
+	text-shadow: 0 0 6px var( --odd-accent, #ffd480 ), 0 0 14px rgba( 255, 212, 128, 0.35 );
+}
+.odd-clock--filament .odd-clock__colon {
+	text-shadow: 0 0 6px var( --odd-accent, #ffd480 );
+}
+
+.odd-clock--arctic .odd-clock__h,
+.odd-clock--arctic .odd-clock__m {
+	font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+	font-weight: 300;
+	letter-spacing: -0.04em;
+}
+.odd-clock--arctic .odd-clock__time {
+	border-bottom: 2px solid var( --odd-accent, #ff3f98 );
+	padding-bottom: 4px;
+}
+
+.odd-clock--fold .odd-clock__h,
+.odd-clock--fold .odd-clock__m {
+	font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+	font-weight: 500;
+}
+.odd-clock--fold .odd-clock__h {
+	color: #fbeacc;
+	text-shadow: 1px 1px 0 var( --odd-accent, #c89a62 );
+}
+.odd-clock--fold .odd-clock__m {
+	color: var( --odd-accent, #c89a62 );
+}

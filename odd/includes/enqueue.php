@@ -2,16 +2,23 @@
 /**
  * ODD — script + style enqueues.
  *
- * Three handles, one shared `window.odd` localized config blob:
+ * All handles share a single localized `window.odd` config blob.
  *
- *   - `odd`        wallpaper engine boot (Pixi + scene registrar).
- *                  Registers the `odd` wallpaper with WP Desktop Mode.
- *   - `odd-panel`  ODD Control Panel native-window render callback,
- *                  declared on `window.wpDesktopNativeWindows.odd`.
- *   - `odd-gear`   floating bottom-left gear pill that opens the
- *                  native window via `wp.desktop.registerWindow()`.
+ *   - `odd-api`       shared client helpers on window.__odd.api
+ *                     (setScene / setIconSet / shuffle / toast /
+ *                     onSceneChange). All other surfaces depend on it.
+ *   - `odd`           wallpaper engine boot (Pixi + scene registrar).
+ *                     Registers the `odd` wallpaper with WP Desktop Mode.
+ *   - `odd-panel`     ODD Control Panel native-window render callback,
+ *                     declared on `window.wpDesktopNativeWindows.odd`.
+ *   - `odd-gear`      floating gear pill that opens the native window
+ *                     via `wp.desktop.registerWindow()`.
+ *   - `odd-widgets`   registers four desktop widgets (Now Playing,
+ *                     Picker, Postcard, Clock) via registerWidget().
+ *   - `odd-commands`  registers slash commands (/odd, /odd-icons,
+ *                     /shuffle, /odd-panel) via registerCommand().
  *
- * All three load only when WP Desktop Mode is active.
+ * All handles load only when WP Desktop Mode is active.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -24,16 +31,23 @@ add_action(
 		}
 
 		wp_enqueue_script(
+			'odd-api',
+			ODD_URL . '/src/shared/api.js',
+			array( 'wp-desktop', 'wp-hooks' ),
+			ODD_VERSION,
+			true
+		);
+		wp_enqueue_script(
 			'odd',
 			ODD_URL . '/src/wallpaper/index.js',
-			array( 'wp-desktop', 'wp-hooks' ),
+			array( 'wp-desktop', 'wp-hooks', 'odd-api' ),
 			ODD_VERSION,
 			true
 		);
 		wp_enqueue_script(
 			'odd-panel',
 			ODD_URL . '/src/panel/index.js',
-			array( 'wp-desktop' ),
+			array( 'wp-desktop', 'odd-api' ),
 			ODD_VERSION,
 			true
 		);
@@ -41,6 +55,26 @@ add_action(
 			'odd-gear',
 			ODD_URL . '/src/gear.js',
 			array( 'wp-desktop', 'odd-panel' ),
+			ODD_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'odd-widgets',
+			ODD_URL . '/src/widgets/index.js',
+			array( 'wp-desktop', 'wp-hooks', 'odd-api' ),
+			ODD_VERSION,
+			true
+		);
+		wp_enqueue_style(
+			'odd-widgets',
+			ODD_URL . '/src/widgets/style.css',
+			array(),
+			ODD_VERSION
+		);
+		wp_enqueue_script(
+			'odd-commands',
+			ODD_URL . '/src/commands/index.js',
+			array( 'wp-desktop', 'wp-hooks', 'odd-api' ),
 			ODD_VERSION,
 			true
 		);
@@ -80,8 +114,10 @@ add_action(
 			'iconSet'       => odd_icons_get_active_slug( $uid ),
 		);
 
-		wp_localize_script( 'odd', 'odd', $config );
-		wp_localize_script( 'odd-panel', 'odd', $config );
-		wp_localize_script( 'odd-gear', 'odd', $config );
+		// `odd-api` is a dependency of every other ODD script, so
+		// localizing once here is enough: the `<script>` tag it emits
+		// lands before any of the dependents, and they all read the
+		// same `window.odd` global.
+		wp_localize_script( 'odd-api', 'odd', $config );
 	}
 );
