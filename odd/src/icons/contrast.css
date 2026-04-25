@@ -8,7 +8,36 @@
  * changing the SVG artwork itself.
  */
 
+body.wp-desktop-active {
+	--odd-dock-tile-size: 60px;
+	--odd-dock-icon-size: 48px;
+	--odd-dock-gap: 8px;
+}
+
+body.wp-desktop-active .wp-desktop-dock {
+	min-height: 82px;
+	padding: 10px 14px;
+	gap: var( --odd-dock-gap );
+	border-radius: 24px;
+}
+
+body.wp-desktop-active .wp-desktop-dock__items,
+body.wp-desktop-active .wp-desktop-dock__list {
+	gap: var( --odd-dock-gap );
+}
+
+body.wp-desktop-active .wp-desktop-dock__item {
+	min-width: var( --odd-dock-tile-size );
+}
+
 body.wp-desktop-active .wp-desktop-dock__item-primary {
+	display: grid;
+	place-items: center;
+	width: var( --odd-dock-tile-size );
+	height: var( --odd-dock-tile-size );
+	min-width: var( --odd-dock-tile-size );
+	min-height: var( --odd-dock-tile-size );
+	border-radius: 18px;
 	background: rgba( 4, 8, 18, 0.42 );
 	box-shadow:
 		inset 0 1px 0 rgba( 255, 255, 255, 0.16 ),
@@ -24,10 +53,20 @@ body.wp-desktop-active .wp-desktop-dock__item-primary:focus-visible {
 body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img,
 body.wp-desktop-active .wp-desktop-dock__item-svg,
 body.wp-desktop-active .wp-desktop-dock__item .dashicons {
+	width: var( --odd-dock-icon-size );
+	height: var( --odd-dock-icon-size );
+	max-width: var( --odd-dock-icon-size );
+	max-height: var( --odd-dock-icon-size );
+	object-fit: contain;
 	opacity: 1;
 	filter:
 		drop-shadow( 0 1px 1px rgba( 0, 0, 0, 0.92 ) )
 		drop-shadow( 0 0 4px rgba( 0, 0, 0, 0.72 ) );
+}
+
+body.wp-desktop-active .wp-desktop-dock__item .dashicons {
+	font-size: 38px;
+	line-height: var( --odd-dock-icon-size );
 }
 
 body.wp-desktop-active .wp-desktop-icon {

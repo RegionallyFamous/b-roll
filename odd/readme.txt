@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 
 == Changelog ==
 
+= 1.0.7 =
+* Enlarges the WP Desktop dock treatment so icons read more like an operating-system launcher, with wider glass tiles and larger rendered artwork.
+
 = 1.0.6 =
 * Mirrors WP Desktop Mode and catalog app bundles through raw GitHub URLs so Playground can fetch them without GitHub release-asset CORS failures.
 * Adds pointer tracking to the inline Iris eye so the desktop icon can look toward the cursor when WP Desktop Mode renders it as an image.
@@ -77,6 +80,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.0.7 =
+Makes dock icons larger and gives the dock a more OS-like launcher feel.
 
 = 1.0.6 =
 Fixes Playground CORS blockers for WP Desktop Mode and catalog app installs.
