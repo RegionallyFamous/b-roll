@@ -65,9 +65,19 @@ jobs:
           set -e
           url="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/odd.zip"
           echo "checking $url"
-          status=$(curl -sI -o /dev/null -w '%{http_code}' -L "$url")
-          echo "final status: $status"
+          # GitHub propagates the /releases/latest/ CDN pointer a few seconds
+          # after `gh release create --latest=true` returns; polling up to 60s
+          # clears the race that took down the v0.13.0 release run.
+          status=000
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+              status=$(curl -sI -o /dev/null -w '%{http_code}' -L "$url")
+              echo "attempt $attempt: status $status"
+              if [[ "$status" == "200" ]]; then
+                  break
+              fi
+              sleep 5
+          done
           if [[ "$status" != "200" ]]; then
-              echo "error: expected 200 after redirects, got $status" >&2
+              echo "error: expected 200 after redirects, got $status after 12 attempts" >&2
               exit 1
           fi
