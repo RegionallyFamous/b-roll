@@ -11,6 +11,25 @@ bodies.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.6.2"></a>
+## [1.6.2] — 2026-04-26
+
+### Changed
+- Apps user-facing copy rewritten. The Apps department is no longer described as "sandbox bundles" / "sandboxed bundles" / "apps in a sandbox" anywhere users actually read. Apps are now framed as **mini apps that run on your WordPress desktop without using or knowing anything about WordPress** — they just open from the dock icon. Applies to: rail tagline, Apps section description, About strapline, About credit, and `readme.txt` plugin description. Technical references to the iframe sandbox (security headers, REST docs, app-developer docs) are unchanged because the iframe IS sandboxed.
+- Icon Sets + Apps departments now ship dedicated editorial hero artwork. Generated `odd/assets/shop/icons-hero.webp` (constellation of pastel app-icon stickers on a deep galactic gradient) and `odd/assets/shop/apps-hero.webp` (still-life of floating 3D mini-app objects on a peach-to-rose backdrop). The Icon Sets hero now uses the icons banner instead of a flat franchise gradient. The Apps department gets a hero where it previously had none.
+- Contrast + spacing pass on the Shop:
+  - Hero scrim is asymmetric (heavy on the left where text lives, transparent on the right where the artwork sits) so headlines stay readable on bright backgrounds like Aurora and Origami without washing out the art. Hero title + subtitle pick up text-shadow as belt-and-braces.
+  - Hero padding 26→32px, min-height 220→248px, title 36→40px, subtitle .82→.94 alpha; eyebrow opacity .16→.22 for legibility on light scrims.
+  - Department title 28→30px, shelf title 17→19px, content pane padding 28/36→32/40px, shelf bottom margins 32→36/48px so franchises breathe.
+  - `--odd-shop-ink-3` darkened from #6e6e73 to #5d5d62 (4.7→5.7 contrast on white) for the tile sub-line and rail tagline; `--odd-shop-ink-2` from #424245 to #3a3a3d.
+  - Quilt count picks up text-shadow + bumps to weight 700 so it survives the Paper (cream→amber) gradient. Quilt scrim now darkens both edges instead of only the bottom.
+  - Tile pill background 10%→12% alpha, hover 12%→18%; previewing pill swapped from amber-on-cream to a higher-contrast warm-brown-on-yellow. Tile title + sub now ellipsis-truncate.
+  - Search pill border thickened, padding bumped, max-width 360→380. Top bar drops the unused right-side gutter column (was reserving 60px for an avatar that never landed).
+
+### Internal
+- `pickFeaturedSet` no longer returns the synthetic "Default" pseudo-set as the hero for new users. It only honors `state.cfg.iconSet` when explicitly set, otherwise falls through to the first real installed set so the hero always shows off something stylable.
+- New `renderAppsHero()` mirrors the wallpaper / icons hero renderers; reads its banner from `assets/shop/apps-hero.webp`.
+
 <a id="v1.6.1"></a>
 ## [1.6.1] — 2026-04-26
 

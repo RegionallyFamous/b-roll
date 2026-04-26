@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,7 +16,7 @@ ODD (Outlandish Desktop Decorator) layers on top of the [WP Desktop Mode](https:
 
 * **Wallpapers.** Generative PixiJS scenes painted on custom 1920×1080 backdrops, with more packs shipping through the catalog over time.
 * **Icon sets.** Full-color SVG packs that re-skin the WP Desktop dock and desktop shortcut icons.
-* **Apps.** Install small sandboxed web apps (HTML/CSS/JS) as windows and desktop icons, browsed and installed from the ODD Shop.
+* **Apps.** Install small standalone web apps (HTML/CSS/JS) as windows and desktop icons. Apps run on your WordPress desktop without using or knowing about WordPress — they just open. Browse and install from the ODD Shop.
 * **Iris.** A lightweight mascot/personality layer that reacts to scene changes, app lifecycle events, and time of day.
 
 All three surfaces — wallpaper, icons, apps — are switched from a single native WP Desktop window: the ODD Shop (Mac App Store-style, with franchise shelves).
@@ -43,6 +43,11 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.6.2 =
+* Apps copy rewrite. Apps are no longer described as "sandbox bundles" or "sandboxed apps" anywhere user-facing — they're "mini apps that just run on your WordPress desktop without using or knowing about WordPress". The Apps department now ships an editorial hero banner and proper mini-apps department description.
+* Icon Sets and Apps departments get dedicated AI-generated hero artwork (a constellation of pastel app-icon stickers, and a still-life of floating mini-app objects). Wallpapers hero keeps the live scene preview.
+* Contrast + spacing pass: stronger hero scrim with text-shadow on the title and subtitle so headlines stay readable on any backdrop; bumped department title from 28→30px and shelf title from 17→19px; airier padding around the content pane and between shelves; ink-3 darkened from #6e6e73 to #5d5d62 for legible secondary text; quilt count gets text-shadow so it survives bright gradients; tile pill contrast tightened. Topbar drops the unused right-side gutter.
 
 = 1.6.1 =
 * ODD Shop redesigned to look and feel like the Mac App Store: department hero card, franchise category quilt, horizontal-scroll shelves, tile-style cards with inline Preview/Active pills, search pill in the top bar, and a floating preview confirmation bar. No data or REST changes.

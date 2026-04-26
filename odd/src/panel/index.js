@@ -44,7 +44,7 @@
 	var SECTIONS = [
 		{ id: 'wallpaper', label: 'Wallpapers', icon: '🖼', tagline: 'Live generative scenes' },
 		{ id: 'icons',     label: 'Icon Sets',  icon: '🧩', tagline: 'Re-skin the dock' },
-		{ id: 'apps',      label: 'Apps',       icon: '📦', tagline: 'Sandbox bundles', gated: 'appsEnabled' },
+		{ id: 'apps',      label: 'Apps',       icon: '📦', tagline: 'Mini apps that just run', gated: 'appsEnabled' },
 		{ id: 'about',     label: 'About',      icon: '👁', tagline: 'Credits & chaos' },
 	];
 
@@ -242,9 +242,14 @@
 			var wrap = el( 'div', { 'data-odd-apps': '1', class: 'odd-shop__dept odd-shop__dept--apps' } );
 			wrap.appendChild( sectionHeader(
 				'Apps',
-				'Each app gets its own desktop icon and runs in a sandboxed window. Upload a .wp bundle, or install from the curated catalog below.',
-				{ eyebrow: 'ODD · Bundles' }
+				'Mini apps that run on your WordPress desktop without using — or knowing — anything about WordPress. Open the dock icon and they just work. Upload a .wp bundle, or install from the curated catalog below.',
+				{ eyebrow: 'ODD · Mini Apps' }
 			) );
+
+			// Editorial banner for the Apps department. Replaces the
+			// previous gradient-only treatment so Apps gets the same
+			// visual weight as Wallpapers + Icon Sets.
+			wrap.appendChild( renderAppsHero() );
 
 			// Upload row: a labeled file input paired with a drop zone.
 			var upload = el( 'div', { class: 'odd-apps-upload' } );
@@ -1303,14 +1308,16 @@
 		}
 
 		function pickFeaturedSet( sets ) {
-			var current = state.cfg.iconSet || 'none';
-			for ( var i = 0; i < sets.length; i++ ) {
-				if ( sets[ i ] && sets[ i ].slug === current ) return sets[ i ];
+			// Only honor a current selection if the user has explicitly
+			// picked something; an empty/missing iconSet pref means
+			// "fresh user", and the hero should show off a real pack
+			// rather than advertise "ship stock WP dock as-is".
+			var current = state.cfg.iconSet;
+			if ( typeof current === 'string' && current !== '' ) {
+				for ( var i = 0; i < sets.length; i++ ) {
+					if ( sets[ i ] && sets[ i ].slug === current ) return sets[ i ];
+				}
 			}
-			// Prefer an installed, styled set over the synthetic
-			// "Default" row when nothing is active yet — the hero
-			// should show off, not advertise "ship the stock WP
-			// dock as-is".
 			for ( var j = 0; j < sets.length; j++ ) {
 				if ( sets[ j ] && sets[ j ].slug !== 'none' ) return sets[ j ];
 			}
@@ -1321,12 +1328,19 @@
 			var currentSlug = state.cfg.iconSet || '';
 			var isActive    = ( set.slug === 'none' && ! currentSlug ) || ( set.slug !== 'none' && set.slug === currentSlug );
 			var accent      = set.accent && /^#[0-9a-f]{3,8}$/i.test( set.accent ) ? set.accent : '#0071e3';
+			var bannerUrl   = ( state.cfg.pluginUrl || '' ) + '/assets/shop/icons-hero.webp';
 
 			var hero = el( 'div', {
 				class: 'odd-shop__hero odd-shop__hero--icons',
 				'data-hero-slug': set.slug,
-				style: 'background:' + ( franchiseGradient( set.franchise || 'Collection' ) ),
+				style: 'background-color:#1d1640',
 			} );
+			// Editorial banner backdrop — a constellation of pastel
+			// app-icon stickers on a deep galactic gradient. Empty
+			// left third is intentional headline real estate.
+			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
+			bg.style.backgroundImage = 'url("' + bannerUrl + '")';
+			hero.appendChild( bg );
 			var scrim = el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } );
 			hero.appendChild( scrim );
 
@@ -1378,6 +1392,41 @@
 					hero.appendChild( thumb );
 				}
 			}
+
+			return hero;
+		}
+
+		/**
+		 * Apps hero — editorial banner for the whole department.
+		 * The Apps tab doesn't have a "currently active" item the way
+		 * Wallpapers + Icon Sets do, so the hero is purely a brand
+		 * masthead: backdrop art + eyebrow + headline + tagline. No
+		 * action buttons on the hero itself; install + manage actions
+		 * live in the rows below.
+		 */
+		function renderAppsHero() {
+			var bannerUrl = ( state.cfg.pluginUrl || '' ) + '/assets/shop/apps-hero.webp';
+			var hero = el( 'div', {
+				class: 'odd-shop__hero odd-shop__hero--apps',
+				'data-hero-slug': 'apps',
+				style: 'background-color:#f4d4c5',
+			} );
+			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
+			bg.style.backgroundImage = 'url("' + bannerUrl + '")';
+			hero.appendChild( bg );
+			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
+
+			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
+			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
+			eyebrow.textContent = 'Mini Apps';
+			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
+			title.textContent = 'Apps that just run.';
+			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
+			sub.textContent = 'Tiny standalone programs that live on your WordPress desktop. They don\'t use WordPress, they don\'t know about WordPress — they just run.';
+			inner.appendChild( eyebrow );
+			inner.appendChild( title );
+			inner.appendChild( sub );
+			hero.appendChild( inner );
 
 			return hero;
 		}
@@ -1769,7 +1818,7 @@
 			hero.appendChild( byline );
 
 			var taglines = [
-				'Generative wallpapers. Unserious icons. Apps in a sandbox.',
+				'Generative wallpapers. Unserious icons. Apps that just run.',
 				'A plugin that decorates your WordPress like nothing matters.',
 				'Pixi on the canvas. Personality in the icons. Perils in the apps.',
 				'The only WordPress plugin with a chaos cast and a shuffle timer.',
@@ -1842,7 +1891,7 @@
 			foot.appendChild( link );
 
 			var credit = el( 'p', { class: 'odd-about__credit' } );
-			credit.textContent = 'Painted backdrops, scripted motion, sandboxed apps. Built on WP Desktop Mode. Use responsibly. Or don\'t.';
+			credit.textContent = 'Painted backdrops, scripted motion, mini apps that mind their business. Built on WP Desktop Mode. Use responsibly. Or don\'t.';
 			foot.appendChild( credit );
 			wrap.appendChild( foot );
 
@@ -2156,15 +2205,20 @@
 			 * shelf grids, preview bar) without touching the semantic
 			 * markup — cards, switches and the About hero all inherit.
 			 * ------------------------------------------------------------ */
-			'.odd-panel.odd-shop{--odd-shop-bg:#f5f5f7;--odd-shop-surface:#fff;--odd-shop-rail-bg:rgba(247,247,249,0.85);--odd-shop-border:rgba(60,60,67,0.14);--odd-shop-border-strong:rgba(60,60,67,0.22);--odd-shop-ink:#1d1d1f;--odd-shop-ink-2:#424245;--odd-shop-ink-3:#6e6e73;--odd-shop-accent:#0071e3;--odd-shop-accent-2:#5856d6;--odd-shop-radius:14px;--odd-shop-radius-lg:20px}',
+			/* Tokens. ink-3 was #6e6e73 (Apple secondary label) but at
+			 * 11px on white the contrast came out 4.7:1 which felt
+			 * washed-out next to the shop\'s saturated cards; bumped
+			 * to #5d5d62 for a comfortable 5.7:1. ink-2 stays close
+			 * to label-secondary for body copy. */
+			'.odd-panel.odd-shop{--odd-shop-bg:#f5f5f7;--odd-shop-surface:#fff;--odd-shop-rail-bg:rgba(247,247,249,0.85);--odd-shop-border:rgba(60,60,67,0.14);--odd-shop-border-strong:rgba(60,60,67,0.22);--odd-shop-ink:#1d1d1f;--odd-shop-ink-2:#3a3a3d;--odd-shop-ink-3:#5d5d62;--odd-shop-accent:#0071e3;--odd-shop-accent-2:#5856d6;--odd-shop-radius:14px;--odd-shop-radius-lg:20px}',
 			'.odd-panel.odd-shop{color:var(--odd-shop-ink)}',
 
 			/* Top bar. Spans columns 1 / -1 so it caps the entire frame. */
-			'.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;display:grid;grid-template-columns:minmax(220px,auto) 1fr minmax(60px,auto);align-items:center;gap:16px;padding:10px 22px;min-height:56px;background:linear-gradient(180deg,#fbfbfd 0%,#f1f1f4 100%);border-bottom:1px solid var(--odd-shop-border);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);position:relative;z-index:2}',
+			'.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;display:grid;grid-template-columns:minmax(220px,auto) 1fr;align-items:center;gap:16px;padding:10px 22px;min-height:56px;background:linear-gradient(180deg,#fbfbfd 0%,#f1f1f4 100%);border-bottom:1px solid var(--odd-shop-border);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);position:relative;z-index:2}',
 
 			/* Search pill — centers the text input with an inline
 			 * glyph; re-renders the active department on input. */
-			'.odd-panel.odd-shop .odd-shop__search{display:flex;align-items:center;gap:8px;justify-self:center;width:100%;max-width:360px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 1px 2px rgba(0,0,0,.03);transition:border-color .14s ease,box-shadow .14s ease}',
+			'.odd-panel.odd-shop .odd-shop__search{display:flex;align-items:center;gap:8px;justify-self:center;width:100%;max-width:380px;padding:7px 14px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border-strong);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 1px 2px rgba(0,0,0,.03);transition:border-color .14s ease,box-shadow .14s ease}',
 			'.odd-panel.odd-shop .odd-shop__search:focus-within{border-color:var(--odd-shop-accent);box-shadow:0 0 0 3px rgba(0,113,227,.16)}',
 			'.odd-panel.odd-shop .odd-shop__search-glyph{color:var(--odd-shop-ink-3);font-size:14px;line-height:1;flex-shrink:0}',
 			'.odd-panel.odd-shop .odd-shop__search-input{flex:1 1 auto;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:13px;color:var(--odd-shop-ink);padding:3px 0}',
@@ -2195,29 +2249,36 @@
 
 			/* Content pane — larger padding + subtle surface so the
 			 * shelves feel like they float on the store background. */
-			'.odd-panel.odd-shop .odd-shop__content{padding:28px 36px 0;overflow:auto;min-width:0;background:var(--odd-shop-bg)}',
+			'.odd-panel.odd-shop .odd-shop__content{padding:32px 40px 0;overflow:auto;min-width:0;background:var(--odd-shop-bg)}',
 
 			/* Department header — eyebrow label above an outsized title,
 			 * matching the App Store department pages ("Apps We Love"). */
 			'.odd-panel.odd-shop .odd-shop__dept{padding-bottom:36px}',
 			'.odd-panel.odd-shop .odd-shop__dept-header{margin:0 0 26px}',
 			'.odd-panel.odd-shop .odd-shop__dept-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--odd-shop-accent);margin-bottom:8px}',
-			'.odd-panel.odd-shop .odd-section-header h2{font-size:28px;font-weight:700;letter-spacing:-.015em;color:var(--odd-shop-ink);margin:0 0 6px}',
-			'.odd-panel.odd-shop .odd-section-header p{color:var(--odd-shop-ink-2);font-size:14px;line-height:1.5;max-width:62ch}',
+			'.odd-panel.odd-shop .odd-section-header h2{font-size:30px;font-weight:700;letter-spacing:-.018em;color:var(--odd-shop-ink);margin:0 0 8px}',
+			'.odd-panel.odd-shop .odd-section-header p{color:var(--odd-shop-ink-2);font-size:14px;line-height:1.5;max-width:64ch}',
 
-			/* Hero — the department's featured item. Full-bleed card
+			/* Hero — the department\'s featured item. Full-bleed card
 			 * with a scene preview as background, a dark left-side
 			 * scrim for text legibility, and a floating thumbnail at
-			 * the bottom-right that echoes the App Store's preview. */
-			'.odd-panel.odd-shop .odd-shop__hero{position:relative;overflow:hidden;margin:0 0 28px;min-height:220px;border-radius:var(--odd-shop-radius-lg);color:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:20px;padding:26px 28px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 52px -28px rgba(20,14,40,.35);isolation:isolate;background-color:#1d1d1f}',
+			 * the bottom-right that echoes the App Store\'s preview. */
+			'.odd-panel.odd-shop .odd-shop__hero{position:relative;overflow:hidden;margin:0 0 32px;min-height:248px;border-radius:var(--odd-shop-radius-lg);color:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:24px;padding:32px 36px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 52px -28px rgba(20,14,40,.35);isolation:isolate;background-color:#1d1d1f}',
 			'.odd-panel.odd-shop .odd-shop__hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:saturate(1.05);z-index:-2}',
-			'.odd-panel.odd-shop .odd-shop__hero-scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.55) 38%,rgba(0,0,0,.08) 100%);z-index:-1}',
-			'.odd-panel.odd-shop .odd-shop__hero--icons .odd-shop__hero-scrim{background:linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.1) 60%,transparent 100%)}',
-			'.odd-panel.odd-shop .odd-shop__hero-body{display:flex;flex-direction:column;gap:8px;max-width:62%;min-width:0}',
-			'.odd-panel.odd-shop .odd-shop__hero-eyebrow{display:inline-block;align-self:flex-start;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff}',
-			'.odd-panel.odd-shop .odd-shop__hero-title{margin:4px 0 0;font-size:36px;font-weight:800;letter-spacing:-.02em;line-height:1.04}',
-			'.odd-panel.odd-shop .odd-shop__hero-sub{margin:0;font-size:14px;line-height:1.45;color:rgba(255,255,255,.82);max-width:46ch}',
-			'.odd-panel.odd-shop .odd-shop__hero-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}',
+			/* Scrim is asymmetric: heavy on the left where text lives,
+			 * fully transparent on the right where the artwork sits.
+			 * Tuned for both bright (Aurora, Origami) and dark scenes;
+			 * the title also carries its own text-shadow as belt + braces. */
+			'.odd-panel.odd-shop .odd-shop__hero-scrim{position:absolute;inset:0;background:linear-gradient(95deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.62) 30%,rgba(0,0,0,.22) 60%,rgba(0,0,0,0) 92%);z-index:-1}',
+			'.odd-panel.odd-shop .odd-shop__hero--icons .odd-shop__hero-scrim,.odd-panel.odd-shop .odd-shop__hero--apps .odd-shop__hero-scrim{background:linear-gradient(95deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,.4) 32%,rgba(0,0,0,.05) 60%,rgba(0,0,0,0) 90%)}',
+			/* Apps banner is a pastel sunrise; soften the white text by
+			 * giving it a warm-dark scrim instead of pure black. */
+			'.odd-panel.odd-shop .odd-shop__hero--apps .odd-shop__hero-scrim{background:linear-gradient(95deg,rgba(40,8,28,.7) 0%,rgba(40,8,28,.42) 32%,rgba(40,8,28,.06) 60%,rgba(40,8,28,0) 90%)}',
+			'.odd-panel.odd-shop .odd-shop__hero-body{display:flex;flex-direction:column;gap:10px;max-width:64%;min-width:0}',
+			'.odd-panel.odd-shop .odd-shop__hero-eyebrow{display:inline-block;align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}',
+			'.odd-panel.odd-shop .odd-shop__hero-title{margin:6px 0 0;font-size:40px;font-weight:800;letter-spacing:-.022em;line-height:1.04;text-shadow:0 2px 18px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.25)}',
+			'.odd-panel.odd-shop .odd-shop__hero-sub{margin:0;font-size:15px;line-height:1.5;color:rgba(255,255,255,.94);max-width:48ch;text-shadow:0 1px 6px rgba(0,0,0,.35)}',
+			'.odd-panel.odd-shop .odd-shop__hero-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}',
 			'.odd-panel.odd-shop .odd-shop__hero-btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.01em;transition:transform .14s ease,box-shadow .14s ease,background .14s ease}',
 			'.odd-panel.odd-shop .odd-shop__hero-btn--primary{background:#fff;color:#1d1d1f}',
 			'.odd-panel.odd-shop .odd-shop__hero-btn--primary:hover{transform:translateY(-1px);box-shadow:0 12px 24px -14px rgba(0,0,0,.45)}',
@@ -2235,18 +2296,18 @@
 			'.odd-panel.odd-shop .odd-shop__quilt{margin:0 0 32px}',
 			'.odd-panel.odd-shop .odd-shop__quilt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}',
 			'.odd-panel.odd-shop .odd-shop__quilt-tile{all:unset;cursor:pointer;position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:120px;padding:18px 20px;border-radius:var(--odd-shop-radius);color:#fff;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04),0 14px 32px -22px rgba(20,14,40,.38);transition:transform .16s ease,box-shadow .16s ease}',
-			'.odd-panel.odd-shop .odd-shop__quilt-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0) 40%,rgba(0,0,0,.22) 100%);pointer-events:none}',
+			'.odd-panel.odd-shop .odd-shop__quilt-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,0) 35%,rgba(0,0,0,.32) 100%);pointer-events:none}',
 			'.odd-panel.odd-shop .odd-shop__quilt-tile:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(0,0,0,.06),0 20px 40px -22px rgba(20,14,40,.45)}',
 			'.odd-panel.odd-shop .odd-shop__quilt-tile:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:3px}',
-			'.odd-panel.odd-shop .odd-shop__quilt-name{position:relative;z-index:1;font-size:22px;font-weight:800;letter-spacing:-.015em;line-height:1.05}',
-			'.odd-panel.odd-shop .odd-shop__quilt-count{position:relative;z-index:1;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.86);font-variant-numeric:tabular-nums}',
+			'.odd-panel.odd-shop .odd-shop__quilt-name{position:relative;z-index:1;font-size:22px;font-weight:800;letter-spacing:-.015em;line-height:1.05;text-shadow:0 2px 8px rgba(0,0,0,.28),0 1px 2px rgba(0,0,0,.18)}',
+			'.odd-panel.odd-shop .odd-shop__quilt-count{position:relative;z-index:1;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 4px rgba(0,0,0,.32),0 1px 1px rgba(0,0,0,.22)}',
 
 			/* Shelves — franchise row with an anchor-style title + count
 			 * pill and a horizontally-scrolling track beneath. */
-			'.odd-panel.odd-shop .odd-shop__shelf{margin:0 0 32px;scroll-margin-top:16px}',
-			'.odd-panel.odd-shop .odd-shop__shelf:last-child{margin-bottom:40px}',
-			'.odd-panel.odd-shop .odd-shop__shelf-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 14px}',
-			'.odd-panel.odd-shop .odd-shop__shelf-title{margin:0;font-size:17px;font-weight:700;letter-spacing:-.005em;color:var(--odd-shop-ink)}',
+			'.odd-panel.odd-shop .odd-shop__shelf{margin:0 0 36px;scroll-margin-top:16px}',
+			'.odd-panel.odd-shop .odd-shop__shelf:last-child{margin-bottom:48px}',
+			'.odd-panel.odd-shop .odd-shop__shelf-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 16px}',
+			'.odd-panel.odd-shop .odd-shop__shelf-title{margin:0;font-size:19px;font-weight:700;letter-spacing:-.012em;color:var(--odd-shop-ink)}',
 			'.odd-panel.odd-shop .odd-shop__shelf-count{font-size:12px;color:var(--odd-shop-ink-3);font-weight:600;letter-spacing:.01em;font-variant-numeric:tabular-nums}',
 
 			/* Shelf tracks — horizontal scroller with snap so drag
@@ -2269,13 +2330,14 @@
 			'.odd-panel.odd-shop .odd-shop__tile-thumb{position:relative;aspect-ratio:16/10;width:100%;background:#1d1d1f;overflow:hidden}',
 			'.odd-panel.odd-shop .odd-shop__tile-thumb img{width:100%;height:100%;object-fit:cover;display:block}',
 			'.odd-panel.odd-shop .odd-shop__tile-badge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.94);color:var(--odd-shop-accent);font-size:10px;font-weight:700;letter-spacing:.04em;box-shadow:0 4px 10px -4px rgba(0,0,0,.4)}',
-			'.odd-panel.odd-shop .odd-shop__tile-meta{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:12px 14px 14px}',
-			'.odd-panel.odd-shop .odd-shop__tile-text{min-width:0;display:flex;flex-direction:column;gap:2px}',
-			'.odd-panel.odd-shop .odd-shop__tile-title{font-size:14px;font-weight:600;color:var(--odd-shop-ink)}',
-			'.odd-panel.odd-shop .odd-shop__tile-sub{font-size:11px;color:var(--odd-shop-ink-3)}',
-			'.odd-panel.odd-shop .odd-shop__tile-pill{flex-shrink:0;padding:5px 14px;border-radius:999px;background:rgba(0,113,227,.1);color:var(--odd-shop-accent);font-size:11px;font-weight:700;letter-spacing:.01em}',
+			'.odd-panel.odd-shop .odd-shop__tile-meta{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:13px 14px 15px}',
+			'.odd-panel.odd-shop .odd-shop__tile-text{min-width:0;display:flex;flex-direction:column;gap:3px;overflow:hidden}',
+			'.odd-panel.odd-shop .odd-shop__tile-title{font-size:14px;font-weight:600;color:var(--odd-shop-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+			'.odd-panel.odd-shop .odd-shop__tile-sub{font-size:11px;color:var(--odd-shop-ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+			'.odd-panel.odd-shop .odd-shop__tile-pill{flex-shrink:0;padding:6px 15px;border-radius:999px;background:rgba(0,113,227,.12);color:var(--odd-shop-accent);font-size:11px;font-weight:700;letter-spacing:.02em}',
+			'.odd-panel.odd-shop .odd-shop__tile:hover .odd-shop__tile-pill{background:rgba(0,113,227,.18)}',
 			'.odd-panel.odd-shop .odd-shop__tile.is-active .odd-shop__tile-pill{background:var(--odd-shop-accent);color:#fff}',
-			'.odd-panel.odd-shop .odd-shop__tile.is-previewing .odd-shop__tile-pill{background:#fef3c7;color:#92400e}',
+			'.odd-panel.odd-shop .odd-shop__tile.is-previewing .odd-shop__tile-pill{background:#fde68a;color:#7c3a00}',
 
 			/* Empty-results state used when search filters every item. */
 			'.odd-panel.odd-shop .odd-shop__empty{padding:64px 16px;text-align:center;color:var(--odd-shop-ink-3);border:1px dashed var(--odd-shop-border-strong);border-radius:var(--odd-shop-radius-lg);background:#fff}',
