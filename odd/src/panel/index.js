@@ -46,6 +46,7 @@
 		{ id: 'icons',     label: 'Icon Sets',  icon: '🧩', tagline: 'Re-skin the dock' },
 		{ id: 'widgets',   label: 'Widgets',    icon: '🧷', tagline: 'Desktop companions' },
 		{ id: 'apps',      label: 'Apps',       icon: '📦', tagline: 'Mini apps that just run', gated: 'appsEnabled' },
+		{ id: 'install',   label: 'Install',    icon: '⇪', tagline: 'Add a .wp bundle',        gated: 'canInstall' },
 		{ id: 'about',     label: 'About',      icon: '👁', tagline: 'Credits & chaos' },
 	];
 
@@ -295,6 +296,8 @@
 				content.appendChild( renderWidgets() );
 			} else if ( id === 'apps' ) {
 				content.appendChild( renderApps() );
+			} else if ( id === 'install' ) {
+				content.appendChild( renderInstall() );
 			} else {
 				content.appendChild( renderAbout() );
 			}
@@ -322,13 +325,6 @@
 			// previous gradient-only treatment so Apps gets the same
 			// visual weight as Wallpapers + Icon Sets.
 			wrap.appendChild( renderAppsHero() );
-
-			// Per-department install link — lives under the hero so
-			// users who landed here from the sidebar can install
-			// without hunting for the topbar pill. The universal
-			// installer routes by manifest.type, so the same .wp
-			// flow works for every department.
-			wrap.appendChild( renderDeptInstallLink( 'app' ) );
 
 			// Status rail. Populated by installBundle() / deletions.
 			var status = el( 'div', { class: 'odd-apps-status', 'data-odd-apps-status': '1' } );
@@ -610,7 +606,7 @@
 		// flash-highlights the new tile for the user.
 		//
 		// DEPT_FOR_TYPE + NOUN_FOR_TYPE are hoisted up top so inner
-		// helpers (renderDeptInstallLink, etc.) resolve them even
+		// helpers (status messaging, routing, etc.) resolve them even
 		// when renderSection runs before this block is evaluated.
 		// ----------------------------------------------------------
 
@@ -917,21 +913,111 @@
 			} );
 		}
 
-		function renderDeptInstallLink( type ) {
-			if ( ! ( window.odd || {} ).canInstall ) {
-				return document.createDocumentFragment();
-			}
-			var wrap = el( 'div', { class: 'odd-shop__get-more' } );
-			var label = el( 'span', { class: 'odd-shop__get-more-label' } );
-			label.textContent = 'Got a ' + ( NOUN_FOR_TYPE[ type ] || 'bundle' ) + ' of your own?';
-			var btn = el( 'button', { type: 'button', class: 'odd-shop__get-more-btn' } );
-			btn.textContent = 'Install from file…';
-			btn.addEventListener( 'click', function () {
+		/**
+		 * Dedicated "Install" department — one canonical surface
+		 * for dropping a .wp archive of any type (app, icon set,
+		 * scene, widget) instead of sprinkling "Install from
+		 * file…" affordances across every shelf. The topbar
+		 * Install pill and the Shop-wide drop overlay still work
+		 * from anywhere; this tab just makes the action a
+		 * first-class destination with room to explain the format.
+		 */
+		function renderInstall() {
+			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--install' } );
+			wrap.appendChild( sectionHeader(
+				'Install a .wp bundle',
+				'Drop a .wp archive to add an app, icon set, scene, or widget. One manifest, one format, one install flow — no companion plugins needed. Authors: see the .wp manifest reference for the schema.',
+				{ eyebrow: 'ODD · Universal Installer' }
+			) );
+
+			// Primary drop zone. Clicking anywhere inside it fires
+			// the hidden topbar <input type="file">, which routes
+			// through installBundle() like every other entry point.
+			var zone = el( 'div', {
+				class: 'odd-shop__dropzone',
+				'data-odd-install-zone': '1',
+				role: 'button',
+				tabindex: '0',
+				'aria-label': 'Install a .wp bundle',
+			} );
+			var zoneGlyph = el( 'div', { class: 'odd-shop__dropzone-glyph', 'aria-hidden': 'true' } );
+			zoneGlyph.textContent = '⇪';
+			var zoneTitle = el( 'div', { class: 'odd-shop__dropzone-title' } );
+			zoneTitle.textContent = 'Drop a .wp file here';
+			var zoneSub = el( 'div', { class: 'odd-shop__dropzone-sub' } );
+			zoneSub.textContent = 'or click to choose one from your computer.';
+			var zoneBtn = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__dropzone-btn',
+				'data-odd-install-choose': '1',
+			} );
+			zoneBtn.textContent = 'Choose .wp file…';
+			zone.appendChild( zoneGlyph );
+			zone.appendChild( zoneTitle );
+			zone.appendChild( zoneSub );
+			zone.appendChild( zoneBtn );
+
+			function triggerPicker() {
 				var input = document.querySelector( '[data-odd-install-input]' );
 				if ( input ) input.click();
+			}
+			zone.addEventListener( 'click', triggerPicker );
+			zone.addEventListener( 'keydown', function ( e ) {
+				if ( e.key === 'Enter' || e.key === ' ' ) {
+					e.preventDefault();
+					triggerPicker();
+				}
 			} );
-			wrap.appendChild( label );
-			wrap.appendChild( btn );
+
+			// Local drag highlight — tighter than the Shop-wide
+			// overlay so the target is unambiguous when the user
+			// is already on this tab.
+			zone.addEventListener( 'dragover', function ( e ) {
+				if ( ! e.dataTransfer || ! e.dataTransfer.types ) return;
+				var types = Array.prototype.slice.call( e.dataTransfer.types );
+				if ( types.indexOf( 'Files' ) === -1 ) return;
+				e.preventDefault();
+				zone.classList.add( 'is-hover' );
+			} );
+			zone.addEventListener( 'dragleave', function () {
+				zone.classList.remove( 'is-hover' );
+			} );
+			zone.addEventListener( 'drop', function ( e ) {
+				zone.classList.remove( 'is-hover' );
+				var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[ 0 ];
+				if ( ! f ) return;
+				if ( ! /\.wp$/i.test( f.name ) ) return;
+				e.preventDefault();
+				installBundle( f );
+			} );
+			wrap.appendChild( zone );
+
+			// "What can I install?" — four cards that describe
+			// each content type. These aren't actions, they're
+			// affordance cues so the user knows the .wp format
+			// carries more than just apps.
+			var types = [
+				{ type: 'app',      label: 'Apps',       icon: '📦', desc: 'Mini apps with their own dock icon and window. Served in a sandboxed frame; never a WordPress admin page.' },
+				{ type: 'scene',    label: 'Scenes',     icon: '🖼', desc: 'Live generative wallpapers that paint on top of the WordPress desktop.' },
+				{ type: 'icon-set', label: 'Icon Sets',  icon: '🧩', desc: 'Themed SVG packs that re-skin the dock and desktop shortcuts.' },
+				{ type: 'widget',   label: 'Widgets',    icon: '🧷', desc: 'Small cards that live on the desktop itself — drag by the title bar to park them.' },
+			];
+			var grid = el( 'div', { class: 'odd-shop__install-types' } );
+			types.forEach( function ( t ) {
+				var card = el( 'div', { class: 'odd-shop__install-type' } );
+				var g = el( 'span', { class: 'odd-shop__install-type-glyph', 'aria-hidden': 'true' } );
+				g.textContent = t.icon;
+				var l = el( 'strong' );
+				l.textContent = t.label;
+				var d = el( 'span', { class: 'odd-shop__install-type-desc' } );
+				d.textContent = t.desc;
+				card.appendChild( g );
+				card.appendChild( l );
+				card.appendChild( d );
+				grid.appendChild( card );
+			} );
+			wrap.appendChild( grid );
+
 			return wrap;
 		}
 
@@ -1000,8 +1086,6 @@
 				'Live generative scenes for your WordPress desktop. Preview before you commit.',
 				{ eyebrow: 'ODD · Living Art' }
 			) );
-
-			wrap.appendChild( renderDeptInstallLink( 'scene' ) );
 
 			var allScenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes.slice() : [];
 			var scenes = filterByQuery( allScenes, state.query );
@@ -1928,8 +2012,6 @@
 				{ eyebrow: 'ODD · Dock Couture' }
 			) );
 
-			wrap.appendChild( renderDeptInstallLink( 'icon-set' ) );
-
 			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets.slice() : [];
 
 			// Quilt + shelves only feature real, themed sets so each
@@ -2567,8 +2649,6 @@
 				'Small, self-contained cards that live on the desktop itself — not inside this window. Add one and it appears in the right-hand column; drag it by its title bar to park it anywhere.',
 				{ eyebrow: 'ODD · Desktop Companions' }
 			) );
-
-			wrap.appendChild( renderDeptInstallLink( 'widget' ) );
 
 			var catalog = widgetCatalog();
 			var enabled = enabledWidgetIds();
@@ -3516,11 +3596,22 @@
 			'.odd-panel.odd-shop .odd-shop__install-glyph{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:linear-gradient(135deg,#ff3d9a 0%,#6a5cff 55%,#00d1b2 100%);color:#fff;font-size:12px;font-weight:700;line-height:1}',
 			'@keyframes odd-shop-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}',
 
-			/* Per-department "Got a scene of your own?" helper link. */
-			'.odd-panel.odd-shop .odd-shop__get-more{display:flex;align-items:center;gap:10px;margin:0 0 20px;padding:12px 16px;border-radius:var(--odd-shop-radius);background:rgba(0,113,227,.06);border:1px dashed rgba(0,113,227,.25);color:var(--odd-shop-ink-2);font-size:12.5px}',
-			'.odd-panel.odd-shop .odd-shop__get-more-label{flex:1 1 auto}',
-			'.odd-panel.odd-shop .odd-shop__get-more-btn{all:unset;padding:4px 10px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border-strong);cursor:pointer;color:var(--odd-shop-accent);font-size:12px;font-weight:600}',
-			'.odd-panel.odd-shop .odd-shop__get-more-btn:hover{border-color:var(--odd-shop-accent);background:rgba(0,113,227,.08)}',
+			/* Dedicated Install department. */
+			'.odd-panel.odd-shop .odd-shop__dept--install{max-width:860px}',
+			'.odd-panel.odd-shop .odd-shop__dropzone{display:flex;flex-direction:column;align-items:center;gap:8px;padding:42px 24px 36px;margin:0 0 28px;border-radius:var(--odd-shop-radius-lg);background:linear-gradient(180deg,rgba(0,113,227,.06),rgba(0,113,227,.02));border:2px dashed rgba(0,113,227,.32);color:var(--odd-shop-ink);cursor:pointer;text-align:center;transition:border-color .14s ease,background .14s ease,transform .14s ease}',
+			'.odd-panel.odd-shop .odd-shop__dropzone:hover,.odd-panel.odd-shop .odd-shop__dropzone.is-hover{border-color:var(--odd-shop-accent);background:linear-gradient(180deg,rgba(0,113,227,.12),rgba(0,113,227,.04));transform:translateY(-1px)}',
+			'.odd-panel.odd-shop .odd-shop__dropzone:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:3px}',
+			'.odd-panel.odd-shop .odd-shop__dropzone-glyph{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:999px;background:linear-gradient(135deg,#ff3d9a 0%,#6a5cff 55%,#00d1b2 100%);color:#fff;font-size:22px;font-weight:700;line-height:1;box-shadow:0 10px 24px -12px rgba(106,92,255,.6)}',
+			'.odd-panel.odd-shop .odd-shop__dropzone-title{font-size:18px;font-weight:700;margin-top:6px}',
+			'.odd-panel.odd-shop .odd-shop__dropzone-sub{font-size:13px;color:var(--odd-shop-ink-2);max-width:420px}',
+			'.odd-panel.odd-shop .odd-shop__dropzone-btn{all:unset;margin-top:10px;padding:8px 18px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border-strong);cursor:pointer;color:var(--odd-shop-accent);font-size:13px;font-weight:600}',
+			'.odd-panel.odd-shop .odd-shop__dropzone-btn:hover{border-color:var(--odd-shop-accent);background:rgba(0,113,227,.08)}',
+
+			'.odd-panel.odd-shop .odd-shop__install-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:0 0 24px}',
+			'.odd-panel.odd-shop .odd-shop__install-type{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:var(--odd-shop-radius);background:#fff;border:1px solid var(--odd-shop-border);color:var(--odd-shop-ink);font-size:12.5px;line-height:1.5}',
+			'.odd-panel.odd-shop .odd-shop__install-type strong{font-size:13.5px;font-weight:700}',
+			'.odd-panel.odd-shop .odd-shop__install-type-glyph{font-size:18px;line-height:1}',
+			'.odd-panel.odd-shop .odd-shop__install-type-desc{color:var(--odd-shop-ink-2)}',
 
 			/* Shop-wide drop overlay — only visible while a file is
 			 * being dragged over the Shop body. */

@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.8.0
+Stable tag: 1.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.8.1 =
+* **Dedicated Install tab.** The per-shelf "Install from file…" helper links are gone. Instead, Wallpapers / Icon Sets / Widgets / Apps now get a sibling **Install** tab in the sidebar that owns the whole flow: a big, clickable drop zone for a `.wp` archive plus a four-card "What can I install?" grid that explains each content type. The topbar **Install** pill and the Shop-wide drag-and-drop overlay still work from anywhere; the new tab just gives the action a first-class destination.
 
 = 1.8.0 =
 * **Universal `.wp` format.** The `.wp` archive now carries any ODD content type — app, icon set, scene, or widget — selected via a new `type` field in `manifest.json`. One manifest, one archive, one install flow for everything. Authors no longer need to ship a companion plugin to add a scene or an icon pack; drop the `.wp` on the ODD Shop and it's live.

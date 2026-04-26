@@ -16,6 +16,12 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.8.1"></a>
+## [1.8.1] — 2026-04-25
+
+### Changed
+- **Dedicated Install tab.** The per-shelf "Install from file…" helper links are gone. Wallpapers / Icon Sets / Widgets / Apps now get a sibling **Install** tab in the sidebar that owns the whole flow: a big, clickable drop zone for a `.wp` archive plus a four-card "What can I install?" grid that explains each content type. The topbar **Install** pill and the Shop-wide drag-and-drop overlay still work from anywhere; the new tab just gives the action a first-class destination.
+
 <a id="v1.8.0"></a>
 ## [1.8.0] — 2026-04-26
 
