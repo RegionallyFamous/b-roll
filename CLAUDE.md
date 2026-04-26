@@ -17,7 +17,7 @@ All three are managed from a single native WP Desktop Mode window (the **ODD Con
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
 - **Host plugin (required at runtime):** WP Desktop Mode v0.5.0+
 
-The reboot ships three scenes (Flux / Aurora / Origami) and three icon sets (Filament / Arctic / Fold). Every visual is original — painted backdrops generated from neutral atmospheric prompts, motion layers built from Pixi primitives, icons rendered programmatically from one shared symbol catalog.
+ODD currently ships ~19 scenes across four franchises (Generative / Atmosphere / Paper / ODD Originals) and 17 icon sets. The reboot shipped three of each (Flux / Aurora / Origami and Filament / Arctic / Fold) — every visual is original: painted backdrops generated from neutral atmospheric prompts (now usually via GPT Image 2 for ODD Originals), motion layers built from Pixi primitives, icons rendered programmatically from one shared symbol catalog. Since v1.3.0 the panel has screensaver, click-to-preview (wallpaper + icons), and Rainfall, a collision-aware scene that uses `wp.desktop.getWallpaperSurfaces()`. Since v1.4.0 ODD ships two desktop widgets: `odd/sticky` and `odd/eight-ball`.
 
 ## Architecture at a glance
 

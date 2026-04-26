@@ -12,27 +12,35 @@ No install, no signup, nothing to uninstall. Boots ODD + WP Desktop Mode in your
 
 ## What you get
 
-### Three generative scenes
+### A growing library of generative scenes
 
 Real-time PixiJS art layered over hand-painted backdrops. Not videos. Not GIFs. Every frame is drawn fresh.
 
-- **Flux** — ribbon particles flowing through a slowly-evolving vector field over deep marbled ink. Rare "koi" particles cross-fade in for emphasis.
-- **Aurora** — twinkling stars and procedural aurora curtains over an arctic mountain plateau, with the occasional shooting star.
-- **Origami** — a flock of folded paper cranes drifting across warm washi paper, with subtle pollen catching the light.
+Close to twenty scenes across four franchises:
 
-Scenes respond to time of day, reduced-motion preferences, and (optionally) your microphone.
+- **Generative** — abstract motion pieces like **Flux**: ribbon particles flowing through a slowly-evolving vector field over deep marbled ink.
+- **Atmosphere** — weather and sky, including **Aurora** (procedural aurora curtains and twinkling stars) and **Rainfall**, a surfaces-aware rain scene whose drops splash on your windows, dock, taskbar, and widgets.
+- **Paper** — **Origami**, a flock of folded paper cranes drifting across warm washi.
+- **ODD Originals** — GPT-Image-2 painted backdrops with live Pixi layers on top: Circuit Garden, Pocket Dimension, Tide Pool, Weather Factory, Mercado, Big Sky, Cloud City, Beach Umbrellas, Wildflower Meadow, Sun Print, Terrazzo, Balcony Noon, Iris Observatory, Abyssal Aquarium, and Tropical Greenhouse.
 
-### Three icon packs
+Every scene responds to time of day and reduced-motion preferences, and can optionally react to your microphone.
 
-Coordinated sets that re-skin your dock and desktop shortcuts. Each set declares an accent color that drives every stroke — retint a set with a single hex edit.
+### A wardrobe of icon packs
 
-- **Filament** — hair-thin single-stroke icons that read as one unbroken line of light.
-- **Arctic** — frost-blue line icons with a small magenta accent dot.
-- **Fold** — flat folded-paper icons with cream faces, warm-tan creases, and soft drop shadows.
+Seventeen coordinated sets that re-skin your dock and desktop shortcuts. Each set declares an accent color that drives every stroke — retint a set with a single hex edit.
+
+A taste of what's in there: **Filament** (hair-thin single-stroke line-of-light), **Arctic** (frost-blue line icons with a magenta accent dot), **Fold** (folded-paper icons with warm creases), **Blueprint**, **Monoline**, **Risograph**, **Claymation**, **Hologram**, **Cross-Stitch**, **Arcade Tokens**, **Tiki**, **Botanical Plate**, **Brutalist Stencil**, **Eyeball Avenue**, **Lemonade Stand**, **Circuit Bend**, and **Stadium**.
 
 ### The ODD Control Panel
 
-A native WP Desktop Mode window — not a settings page, not a modal. Opens from the **ODD** desktop icon, the `/odd-panel` slash command, or the "Open ODD" button on the Now Playing widget. Tabbed sidebar for Wallpaper, Icons, Apps, and About. Everything you'd tweak, in one place.
+A native WP Desktop Mode window — not a settings page, not a modal. Opens from the **ODD** desktop icon or the `/odd-panel` slash command. Tabbed sidebar for Wallpaper, Icons, Apps, and About. Everything you'd tweak, in one place — including wallpaper and icon-set previews you can try-before-you-commit, a screensaver with a big clock, audio-reactivity, and a shuffle scheduler.
+
+### Desk knickknacks
+
+Two little widgets you can drop anywhere on the desktop via the widget shelf:
+
+- **Sticky Note** — a tilted handwritten scrap that auto-saves as you type.
+- **Magic 8-Ball** — ask a question, click to shake, get an opinionated (if occasionally unhelpful) answer.
 
 ### Apps — self-contained desktop apps
 
