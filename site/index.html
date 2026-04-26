@@ -3,10 +3,10 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>ODD — Make WP Desktop Mode Fun</title>
-	<meta name="description" content="WP Desktop Mode turns WordPress into an operating-system-like admin. ODD makes that desktop colorful, animated, weird, and fun.">
-	<meta property="og:title" content="ODD — Outlandish Desktop Decorator">
-	<meta property="og:description" content="A surreal decorator that makes WP Desktop Mode colorful, animated, weird, and fun.">
+	<title>ODD — Turn WordPress Into An App Platform</title>
+	<meta name="description" content="ODD is a runtime for WP Desktop Mode that lets you package any JavaScript app as a .wp bundle and install it into WordPress in one click. Plus animated wallpapers, icon packs, and a control panel with personality.">
+	<meta property="og:title" content="ODD — WordPress as an app platform">
+	<meta property="og:description" content="A runtime for installing your own JS apps into WordPress, plus animated wallpapers, icon packs, and a control panel with personality.">
 	<meta property="og:type" content="website">
 	<meta property="og:url" content="https://odd.regionallyfamous.com/">
 	<link rel="canonical" href="https://odd.regionallyfamous.com/">
@@ -33,9 +33,9 @@
 	<main class="shell">
 		<section class="hero">
 			<div>
-				<div class="kicker wobble-text">WP Desktop Mode is the computer</div>
-				<h1>ODD is the fun weird stuff on top.</h1>
-				<p class="lede">WP Desktop Mode already makes WordPress feel like a tiny operating system: windows, a dock, shortcuts, and apps. ODD decorates that desktop with animated wallpaper worlds, full-color icon sets, a seven-app catalog that installs straight into WordPress, and a control panel with personality.</p>
+				<div class="kicker wobble-text">WP Desktop Mode is the desktop</div>
+				<h1>ODD turns WordPress into an app platform.</h1>
+				<p class="lede">WP Desktop Mode gives WordPress a real desktop &mdash; windows, a dock, shortcuts. ODD goes further: it's a runtime that lets you package any JavaScript web app into a <code>.wp</code> bundle and install it into WordPress in one click. With animated wallpapers, icon packs, and a control panel with personality layered on top.</p>
 				<div class="actions">
 					<a class="button primary" href="/playground/">Launch the live demo</a>
 					<a class="button" href="https://github.com/RegionallyFamous/odd/releases/latest">Download ODD</a>
@@ -91,24 +91,44 @@
 
 		<section class="grid" aria-label="Features">
 			<article class="card wild-card">
-				<h3>WP Desktop Mode gives WordPress a shell</h3>
-				<p>Instead of another admin page, you get a real desktop metaphor: launchers, windows, shortcuts, and a dock that makes WordPress feel like software you can inhabit.</p>
+				<h3>A real app runtime for WordPress</h3>
+				<p>Package any web app &mdash; Vite, Next export, plain HTML/JS &mdash; into a <code>.wp</code> bundle. ODD installs it into WordPress, gives it a dock icon and a desktop window, and runs it in a sandboxed, capability-aware iframe. No PHP. No admin pages. No build pipeline surgery.</p>
 			</article>
 			<article class="card wild-card">
-				<h3>ODD makes the shell feel alive</h3>
-				<p>Animated wallpaper scenes, reactive Iris moments, and wild desktop moods turn the calm WP Desktop foundation into a strange little place with movement and attitude.</p>
+				<h3>An extension API your apps can plug into</h3>
+				<p>Register commands for the &#8984;K palette. Drop widgets onto the desktop. Subscribe to the shared event bus (<code>wp.hooks</code>) and store. Ship your own wallpapers, icon sets, and Iris personalities &mdash; all through the same manifest format ODD itself uses.</p>
 			</article>
 			<article class="card wild-card">
-				<h3>A one-click app drawer, bundled in</h3>
-				<p>ODD ships seven installable apps &mdash; a kanban board, a pixel editor, a pomodoro, a color picker, an invoicing tool, a team wiki, and a real Web Audio synthesizer &mdash; each opening in its own WP Desktop window.</p>
+				<h3>The pretty layer, for free</h3>
+				<p>Animated PixiJS wallpaper scenes, seventeen coordinated icon packs, a control panel with personality, and Iris &mdash; a reactive desktop muse &mdash; all ride along in the same plugin. The stage is set before your app even opens.</p>
 			</article>
+		</section>
+
+		<section class="builder" aria-label="Build your own ODD apps">
+			<header class="apps-head">
+				<div class="kicker wobble-text">Build your own app</div>
+				<h2>WordPress is suddenly a great place to ship software.</h2>
+				<p class="lede">The web already has a browser. WordPress already has auth, users, capabilities, a REST API, and millions of installs. What it didn't have was a way to ship <em>apps</em> on top of all that &mdash; apps that feel like software, not admin pages. ODD is that layer.</p>
+			</header>
+			<div class="builder-grid">
+				<article class="builder-card"><h3>Write it however you want</h3><p>Any framework or none. Vite, Next static export, Svelte, Solid, htmx, vanilla. If it builds to HTML + JS + CSS, it runs.</p></article>
+				<article class="builder-card"><h3>Ship it as a <code>.wp</code> file</h3><p>A zip with a <code>manifest.json</code> + your bundle. Bazaar-compatible &mdash; the same file works in any host that speaks the format.</p></article>
+				<article class="builder-card"><h3>Install with one click</h3><p>Drop the file into the Apps panel, or paste a URL. ODD unpacks it, registers the icon, and wires up the dock + desktop shortcut + command-palette entry.</p></article>
+				<article class="builder-card"><h3>React is already there</h3><p>Bare <code>import React from 'react'</code> works out of the box &mdash; ODD injects an import map and remaps it to WordPress's bundled React. You don't ship a copy, you don't fight module resolution.</p></article>
+				<article class="builder-card"><h3>You get the user's capabilities</h3><p>Apps run in a same-origin iframe with cookie auth. Hit the WordPress REST API as the logged-in user, with their capabilities. No extra plumbing.</p></article>
+				<article class="builder-card"><h3>Host your own catalog</h3><p>Any URL that returns a <code>registry.json</code> is an ODD app store. Point your customers at it; new releases pull in automatically.</p></article>
+			</div>
+			<div class="builder-cta">
+				<a class="button primary" href="https://github.com/RegionallyFamous/odd/wiki/Building-an-App">Read the Building an App guide</a>
+				<a class="button" href="https://github.com/RegionallyFamous/odd/tree/main/odd/apps/catalog">Browse the bundled app source</a>
+			</div>
 		</section>
 
 		<section class="apps" aria-label="ODD app catalog">
 			<header class="apps-head">
-				<div class="kicker wobble-text">The ODD app drawer</div>
-				<h2>Seven apps that ride along with the plugin.</h2>
-				<p class="lede">Every ODD install ships a Bazaar-compatible catalog. One click installs an app into WordPress; it opens in its own desktop window, icon and all. No admin page detours, no extra plugins.</p>
+				<div class="kicker wobble-text">Seven apps, shipped as examples</div>
+				<h2>If the runtime is this capable, what does an app actually look like?</h2>
+				<p class="lede">ODD ships with seven working apps in its catalog. They're real &mdash; install and use them today &mdash; but they're also reference implementations. Every one of them is a recipe for "how do I build an app like this?" Source, manifests, and bundles are all in the repo.</p>
 			</header>
 			<div class="app-grid">
 				<article class="app-card tilt-card" style="--app-a:#ff4fa8;--app-b:#64f4ff;">
@@ -168,7 +188,7 @@
 					<div class="app-tags"><span>wiki</span><span>markdown</span></div>
 				</article>
 			</div>
-			<p class="apps-foot note">Built on the Bazaar format, so the same <code>.wp</code> bundles work anywhere that speaks it. Open the ODD Control Panel &rarr; Apps to install with one click.</p>
+			<p class="apps-foot note">These seven are just what we shipped. The real pitch is what <em>you</em> can ship. <a href="https://github.com/RegionallyFamous/odd/wiki/Building-an-App">Build your own ODD app &rarr;</a></p>
 		</section>
 
 		<section class="scene-strip" aria-label="ODD moods">

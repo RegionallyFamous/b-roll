@@ -567,6 +567,97 @@ footer {
 	to { transform: translateX( -50% ); }
 }
 
+.builder {
+	position: relative;
+	padding: 28px 0 62px;
+}
+
+.builder::before {
+	content: "";
+	position: absolute;
+	inset: 0 -6% -6% -6%;
+	z-index: -1;
+	border-radius: 48px;
+	background:
+		radial-gradient( circle at 20% 20%, rgba( 255, 79, 168, 0.22 ), transparent 50% ),
+		radial-gradient( circle at 80% 30%, rgba( 112, 245, 255, 0.22 ), transparent 50% ),
+		linear-gradient( 135deg, rgba( 157, 107, 255, 0.16 ), rgba( 255, 224, 138, 0.12 ) );
+	filter: blur( 10px ) saturate( 1.15 );
+	opacity: 0.9;
+	transform: rotate( -0.6deg );
+}
+
+.builder-grid {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 240px, 1fr ) );
+	gap: 14px;
+	margin-top: 8px;
+}
+
+.builder-card {
+	padding: 20px 20px 22px;
+	border: 1px dashed rgba( 255, 255, 255, 0.26 );
+	border-radius: 22px;
+	background:
+		linear-gradient( 180deg, rgba( 12, 6, 30, 0.55 ), rgba( 12, 6, 30, 0.38 ) );
+	backdrop-filter: blur( 10px );
+	box-shadow: 0 14px 28px rgba( 0, 0, 0, 0.28 );
+	transform: rotate( var( --rot, 0.4deg ) );
+	transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.builder-card:nth-child( 3n ) { --rot: -0.6deg; }
+.builder-card:nth-child( 3n + 1 ) { --rot: 0.8deg; }
+.builder-card:nth-child( 3n + 2 ) { --rot: -0.3deg; }
+
+.builder-card:hover {
+	transform: rotate( 0deg ) translateY( -3px );
+	border-color: rgba( 255, 148, 206, 0.68 );
+	box-shadow: 0 22px 48px rgba( 255, 79, 168, 0.22 );
+}
+
+.builder-card h3 {
+	margin: 0 0 8px;
+	font-size: 17px;
+	letter-spacing: -0.01em;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.builder-card h3::before {
+	content: "";
+	width: 10px;
+	height: 10px;
+	border-radius: 2px;
+	background: linear-gradient( 135deg, var( --hot ), var( --cyan ) );
+	transform: rotate( 45deg );
+}
+
+.builder-card p {
+	margin: 0;
+	color: var( --muted );
+	line-height: 1.52;
+	font-size: 14px;
+}
+
+.builder-card code,
+.hero code,
+.card code {
+	padding: 2px 6px;
+	border-radius: 6px;
+	background: rgba( 255, 255, 255, 0.12 );
+	font-size: 0.9em;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.builder-cta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 22px;
+}
+
 .apps {
 	padding: 14px 0 58px;
 }

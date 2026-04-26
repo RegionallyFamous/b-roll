@@ -1,8 +1,10 @@
 # ODD — Outlandish Desktop Decorator
 
-**Turn your WordPress admin into a moving, themed, thoroughly-yours desktop.**
+**Turn your WordPress admin into a moving, themed, thoroughly-yours desktop — and an app platform you can build for.**
 
-ODD is a decorator plugin for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). It ships generative PixiJS wallpapers and matching icon packs, all controlled from a single native desktop window. Install it, pick a vibe, get back to work — but happier.
+ODD is a decorator plugin for [WP Desktop Mode](https://github.com/WordPress/desktop-mode). It ships generative PixiJS wallpapers and matching icon packs… and a full **app runtime** that lets anyone package a plain JavaScript web app into a `.wp` file, install it into WordPress in one click, and run it as a real desktop app — its own dock icon, its own resizable window, shared access to a command palette, event bus, widget shelf, and more.
+
+In short: **WP Desktop Mode gives WordPress a desktop. ODD turns that desktop into a place you can build software for.**
 
 ### [▶ Try it live in WordPress Playground](https://odd.regionallyfamous.com/playground/)
 
@@ -42,11 +44,24 @@ Two little widgets you can drop anywhere on the desktop via the widget shelf:
 - **Sticky Note** — a tilted handwritten scrap that auto-saves as you type.
 - **Magic 8-Ball** — ask a question, click to shake, get an opinionated (if occasionally unhelpful) answer.
 
-### Apps — a seven-app drawer, bundled in
+### Apps — build and ship your own JS apps, inside WordPress
 
-ODD ships a curated Bazaar-compatible catalog. One click inside the **Apps** tab installs an app into WordPress; it gets its own desktop icon and opens in its own WP Desktop window — no admin-page detours, no extra plugins.
+**This is the part we're most excited about.** ODD is the first plugin that turns WordPress into a real desktop you can build apps for. Not admin pages. Not Gutenberg blocks. Actual apps — the kind that open in windows, sit in a dock, and have their own icon on the desktop.
 
-The bundled catalog:
+What you get as a developer:
+
+- **A packageable app format.** Drop your built web app (any framework — Vite, Next static export, plain JS, whatever produces HTML + JS + CSS) into a `.wp` archive with a `manifest.json`. That's the whole format. It's Bazaar-compatible, so the same bundle works anywhere else that speaks it.
+- **A one-click installer.** ODD's Apps panel accepts any `.wp` (or `.odd`) archive via drag-drop or URL. Every WordPress user with the right capability can install, toggle, and uninstall apps without SSH, FTP, or even a plugin upload.
+- **Real desktop integration.** Every installed app gets a dock icon (using the manifest's SVG), a desktop shortcut, an entry in the ⌘K command palette, and a real WP Desktop window with chrome, resize, and minimize. No bespoke wiring.
+- **A sandboxed iframe runtime.** Your app runs in a same-origin iframe served by ODD's REST endpoints (`/odd/v1/apps/serve`), with cookie-auth that inherits the user's WordPress capabilities — so you can hit the WP REST API from inside your app as the logged-in user.
+- **A React shim, for free.** Apps can `import React from 'react'` in source; ODD injects an import map at serve time that resolves those bare specifiers to WordPress's bundled React (`wp.element`). You don't ship React, and you don't fight module resolution.
+- **An extension API.** Apps can register commands (for the palette), widgets (for the desktop), icon sets, wallpapers, muses (Iris personalities), rituals, and motion primitives — all through the manifest or a tiny bootstrap script. No PHP required.
+- **An event bus + shared store.** `wp.hooks` (the same one core uses) is the canonical event bus. ODD's `window.__odd.store` exposes typed state. Your app can subscribe, publish, and read state alongside first-party ODD features.
+- **Catalogs.** Host a `registry.json` anywhere (a repo, a gist, your CDN) and other ODD installs can subscribe to it. It's that simple to build and distribute a curated app store.
+
+#### Seven bundled apps, as working examples
+
+To prove the format works, ODD ships seven apps in its catalog. Each one is a small but real thing you can use today, and every one is a reference implementation for "how do I build an app like this?" — their source, manifests, and bundles are in the repo.
 
 - **Mosaic** — pixel editor with drawing tools, fills, undo/redo, and PNG export for your 32×32 masterpieces.
 - **Flow** — Pomodoro with ambient soundscapes, per-session task lists, and a heatmap of the days you actually showed up.
@@ -56,7 +71,7 @@ The bundled catalog:
 - **Sine** — a real Web Audio synthesizer: four waveforms, ADSR envelope, resonant filter, and a step sequencer.
 - **Tome** — a fast markdown wiki for your team — pages, search, no SaaS tab.
 
-Drop your own `.odd` / `.wp` archive into the panel to side-load anything Bazaar-compatible. Apps can register commands, muses, widgets, rituals, and motion primitives through a manifest — no PHP bootstrap required.
+Want to write your own? See [**Building an App**](https://github.com/RegionallyFamous/odd/wiki/Building-an-App) in the wiki.
 
 ---
 
