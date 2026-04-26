@@ -4,11 +4,11 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.7
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Decorator for WP Desktop Mode: generative PixiJS wallpapers, themed icon sets, and a native ODD Control Panel with installable Apps.
+Decorator for WP Desktop Mode: generative PixiJS wallpapers, themed icon sets, and a native ODD Shop window with installable Apps.
 
 == Description ==
 
@@ -16,17 +16,17 @@ ODD (Outlandish Desktop Decorator) layers on top of the [WP Desktop Mode](https:
 
 * **Wallpapers.** Generative PixiJS scenes painted on custom 1920×1080 backdrops, with more packs shipping through the catalog over time.
 * **Icon sets.** Full-color SVG packs that re-skin the WP Desktop dock and desktop shortcut icons.
-* **Apps.** Install small sandboxed web apps (HTML/CSS/JS) as windows and desktop icons, managed from the ODD Control Panel.
+* **Apps.** Install small sandboxed web apps (HTML/CSS/JS) as windows and desktop icons, browsed and installed from the ODD Shop.
 * **Iris.** A lightweight mascot/personality layer that reacts to scene changes, app lifecycle events, and time of day.
 
-All three surfaces — wallpaper, icons, apps — are switched from a single native WP Desktop window: the ODD Control Panel.
+All three surfaces — wallpaper, icons, apps — are switched from a single native WP Desktop window: the ODD Shop (Mac App Store-style, with franchise shelves).
 
 == Installation ==
 
 1. Install and activate the [WP Desktop Mode](https://github.com/WordPress/desktop-mode) plugin (v0.5.0+).
 2. Upload the ODD plugin folder to `/wp-content/plugins/` or install via the plugin admin.
 3. Activate ODD.
-4. Click the floating gear (or the ODD Control Panel desktop icon) to switch wallpapers, icon sets, and install Apps.
+4. Click the floating gear (or the ODD Shop desktop icon) to switch wallpapers, icon sets, and install Apps.
 
 == Frequently Asked Questions ==
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.6.0 =
+* The ODD Control Panel is now the **ODD Shop** — a Mac App Store-style browsing surface for ODD's wallpapers, icon sets, and apps. Adds a dedicated top bar ("ODD Shop" with the Outlandish Desktop Decorator byline), a translucent left-rail with department glyphs and taglines (Wallpapers / Icon Sets / Apps / About), and groups every catalog into franchise "shelves" (Generative, Atmosphere, Paper…) on a softer off-white surface. Default window size grew from 820×560 to 960×620 to match the new chrome. All data, REST endpoints, live-swap hooks, and slash commands (`/odd-panel`) are unchanged — only the chrome + copy moved.
 
 = 1.5.7 =
 * Fixes `Uncaught SyntaxError: The requested module '/odd-app-runtime/react.js' does not provide an export named 'createContext'` in installed apps. React and ReactDOM are CommonJS packages, so `export * from 'react'` through esbuild only exposes a single `default` interop wrapper and loses the named symbols apps import (`createContext`, `useState`, `StrictMode`, etc.). `odd/bin/build-runtime` now enumerates each package's public exports at build time and emits explicit `export { default, A, B, C } from "…"` entry files, so the served bundles expose real named ESM exports backed by the CJS modules' live-bound properties. Affects `react.js`, `react-dom.js`, `react-dom-client.js`, and `react-jsx-runtime.js`.

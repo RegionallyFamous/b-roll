@@ -1,18 +1,20 @@
 /**
- * ODD Control Panel — native-window render callback.
+ * ODD Shop — native-window render callback.
  * ---------------------------------------------------------------
  * Registered on `window.wpDesktopNativeWindows.odd`; the shell
  * invokes this when the window opens and re-invokes it every
  * time the user re-opens a previously-closed instance. The
  * returned function is the teardown, called on close.
  *
- * Layout: macOS System Preferences-style two-pane. Left nav
- * lists sections (Wallpaper / Icons / About); right pane is
- * the live content area. All state flows through REST so the
- * wallpaper engine + dock filter pick up the change on its own
- * side — wallpaper via WP Desktop Mode's per-user settings,
- * icons via a soft reload (the server-side dock filter is the
- * canonical renderer).
+ * Layout: Mac App Store–style shop with a top bar, a left
+ * department rail (Wallpapers / Icon Sets / Apps / About), and
+ * a right content pane that groups items into franchise
+ * "shelves". All state still flows through the same REST
+ * endpoint used by the legacy control panel — wallpaper via
+ * WP Desktop Mode's per-user settings, icons via a soft reload
+ * (the server-side dock filter is the canonical renderer). Only
+ * the chrome + copy changed; the data model and live-swap hook
+ * wiring are untouched.
  */
 ( function () {
 	'use strict';
@@ -36,34 +38,60 @@
 		}
 	}
 
+	// Mac App Store–style "departments". The ids are unchanged so
+	// localized config (`appsEnabled`), slash commands, and tests
+	// keep working; only the user-facing labels + icons moved.
 	var SECTIONS = [
-		{ id: 'wallpaper', label: 'Wallpaper' },
-		{ id: 'icons',     label: 'Icons'     },
-		{ id: 'apps',      label: 'Apps',      gated: 'appsEnabled' },
-		{ id: 'about',     label: 'About'     },
+		{ id: 'wallpaper', label: 'Wallpapers', icon: '🖼', tagline: 'Live generative scenes' },
+		{ id: 'icons',     label: 'Icon Sets',  icon: '🧩', tagline: 'Re-skin the dock' },
+		{ id: 'apps',      label: 'Apps',       icon: '📦', tagline: 'Sandbox bundles', gated: 'appsEnabled' },
+		{ id: 'about',     label: 'About',      icon: '👁', tagline: 'Credits & chaos' },
 	];
 
 	var renderPanel = function ( body ) {
 		body.innerHTML = '';
 		injectStyles();
-		body.classList.add( 'odd-panel' );
+		body.classList.add( 'odd-panel', 'odd-shop' );
 		body.style.cssText = [
 			'display:grid',
-			'grid-template-columns:200px 1fr',
+			'grid-template-rows:auto 1fr',
+			'grid-template-columns:236px 1fr',
 			'height:100%',
 			'min-height:0',
 			'font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
-			'color:#1d2327',
-			'background:#f6f7f7',
+			'color:#1d1d1f',
+			'background:#f5f5f7',
 		].join( ';' );
+
+		// Top bar — window-wide chrome band that frames the whole
+		// store. Spans both columns and gives the sidebar + content
+		// a shared ceiling like the macOS App Store window.
+		var topbar = el( 'header', { 'data-odd-topbar': '1', class: 'odd-shop__topbar' } );
+		var brandWrap = el( 'div', { class: 'odd-shop__brand' } );
+		var brandMark = el( 'span', { class: 'odd-shop__brand-mark', 'aria-hidden': 'true' } );
+		brandMark.textContent = '👁';
+		var brandText = el( 'div', { class: 'odd-shop__brand-text' } );
+		var brandTitle = el( 'strong' );
+		brandTitle.textContent = 'ODD Shop';
+		var brandSub = el( 'span' );
+		brandSub.textContent = 'Outlandish Desktop Decorator';
+		brandText.appendChild( brandTitle );
+		brandText.appendChild( brandSub );
+		brandWrap.appendChild( brandMark );
+		brandWrap.appendChild( brandText );
+		topbar.appendChild( brandWrap );
 
 		var sidebar = el( 'nav', {
 			'data-odd-sidebar': '1',
-			style: 'background:#f0f0f1;border-right:1px solid #dcdcde;padding:14px 8px;display:flex;flex-direction:column;gap:2px;overflow:auto;',
+			class: 'odd-shop__rail',
 		} );
+		var railHeader = el( 'div', { class: 'odd-shop__rail-heading' } );
+		railHeader.textContent = 'Store';
+		sidebar.appendChild( railHeader );
+
 		var content = el( 'section', {
 			'data-odd-content': '1',
-			style: 'padding:24px 28px;overflow:auto;min-width:0;',
+			class: 'odd-shop__content',
 		} );
 
 		var state = {
@@ -95,20 +123,42 @@
 				type: 'button',
 				'data-section': section.id,
 			} );
-			btn.textContent = section.label;
-			btn.className = 'odd-panel__nav';
+			btn.className = 'odd-panel__nav odd-shop__rail-item';
+			var glyph = el( 'span', { class: 'odd-shop__rail-glyph', 'aria-hidden': 'true' } );
+			glyph.textContent = section.icon || '•';
+			var labelWrap = el( 'span', { class: 'odd-shop__rail-label' } );
+			var label = el( 'strong' );
+			label.textContent = section.label;
+			labelWrap.appendChild( label );
+			if ( section.tagline ) {
+				var tag = el( 'span' );
+				tag.textContent = section.tagline;
+				labelWrap.appendChild( tag );
+			}
+			btn.appendChild( glyph );
+			btn.appendChild( labelWrap );
 			btn.addEventListener( 'click', function () { renderSection( section.id ); } );
 			buttons[ section.id ] = btn;
 			sidebar.appendChild( btn );
 		} );
 
+		// Footer caption in the rail — mimics the App Store's small
+		// account/region line. Version bumps at runtime from cfg so
+		// a new release surfaces immediately in the chrome.
+		var railFoot = el( 'div', { class: 'odd-shop__rail-foot' } );
+		railFoot.textContent = state.cfg.version
+			? 'ODD v' + state.cfg.version
+			: 'ODD';
+		sidebar.appendChild( railFoot );
+
+		body.appendChild( topbar );
 		body.appendChild( sidebar );
 		body.appendChild( content );
 
 		renderSection( state.active );
 
 		return function teardown() {
-			body.classList.remove( 'odd-panel' );
+			body.classList.remove( 'odd-panel', 'odd-shop' );
 		};
 
 		/* --- routing --- */
@@ -147,10 +197,11 @@
 		/* --- Apps section --- */
 
 		function renderApps() {
-			var wrap = el( 'div', { 'data-odd-apps': '1' } );
+			var wrap = el( 'div', { 'data-odd-apps': '1', class: 'odd-shop__dept odd-shop__dept--apps' } );
 			wrap.appendChild( sectionHeader(
 				'Apps',
-				'Install ODD apps. Each app gets its own desktop icon and runs in a sandboxed window. Upload a .wp bundle, or install from the catalog.'
+				'Each app gets its own desktop icon and runs in a sandboxed window. Upload a .wp bundle, or install from the curated catalog below.',
+				{ eyebrow: 'ODD · Bundles' }
 			) );
 
 			// Upload row: a labeled file input paired with a drop zone.
@@ -513,8 +564,12 @@
 		/* --- Wallpaper section --- */
 
 		function renderWallpaper() {
-			var wrap = el( 'div' );
-			wrap.appendChild( sectionHeader( 'Wallpaper', 'Pick a scene. Live preview updates the desktop in the background.' ) );
+			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--wallpaper' } );
+			wrap.appendChild( sectionHeader(
+				'Wallpapers',
+				'Scenes render live on your desktop. Tap a tile to preview — commit to save, cancel to revert.',
+				{ eyebrow: 'ODD · Living Art' }
+			) );
 
 			var settings = el( 'div', { class: 'odd-wallpaper-settings' } );
 
@@ -678,13 +733,59 @@
 			wrap.appendChild( ssRow );
 
 			var scenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [];
-			var grid = el( 'div', { class: 'odd-grid' } );
-			scenes.forEach( function ( scene ) {
-				grid.appendChild( renderSceneCard( scene ) );
+			var shelves = groupByFranchise( scenes, 'Generative' );
+			shelves.forEach( function ( shelf ) {
+				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderSceneCard, 'odd-grid' ) );
 			} );
-			wrap.appendChild( grid );
 
 			return wrap;
+		}
+
+		/**
+		 * Group an array of items by their `franchise` field. Items
+		 * without a franchise collapse into `fallback`. Preserves the
+		 * first-seen order of franchises so the shelves stay stable
+		 * across renders — `.sort()` would reshuffle on every tick.
+		 */
+		function groupByFranchise( items, fallback ) {
+			var order = [];
+			var bag = {};
+			items.forEach( function ( item ) {
+				if ( ! item ) return;
+				var f = ( item.franchise && String( item.franchise ) ) || fallback || 'Collection';
+				if ( ! Object.prototype.hasOwnProperty.call( bag, f ) ) {
+					bag[ f ] = [];
+					order.push( f );
+				}
+				bag[ f ].push( item );
+			} );
+			return order.map( function ( f ) {
+				return { franchise: f, items: bag[ f ] };
+			} );
+		}
+
+		/**
+		 * Render a MAS-style shelf: franchise title + count badge
+		 * over a grid of cards built by `cardFn`. `gridClass` picks
+		 * between the wide tile grid used by wallpapers and the
+		 * compact row list used by icon sets.
+		 */
+		function renderShelf( franchise, items, cardFn, gridClass ) {
+			var shelf = el( 'div', { class: 'odd-shop__shelf' } );
+			var head = el( 'div', { class: 'odd-shop__shelf-head' } );
+			var title = el( 'h3', { class: 'odd-shop__shelf-title' } );
+			title.textContent = franchise;
+			var count = el( 'span', { class: 'odd-shop__shelf-count' } );
+			count.textContent = items.length + ( items.length === 1 ? ' title' : ' titles' );
+			head.appendChild( title );
+			head.appendChild( count );
+			shelf.appendChild( head );
+			var grid = el( 'div', { class: gridClass || 'odd-grid' } );
+			items.forEach( function ( item ) {
+				grid.appendChild( cardFn( item ) );
+			} );
+			shelf.appendChild( grid );
+			return shelf;
 		}
 
 		function renderSceneCard( scene ) {
@@ -815,8 +916,12 @@
 		/* --- Icons section --- */
 
 		function renderIcons() {
-			var wrap = el( 'div' );
-			wrap.appendChild( sectionHeader( 'Icons', 'Themed icon sets for the dock and desktop shortcuts. Applying a set swaps the dock icons in place — no reload.' ) );
+			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--icons' } );
+			wrap.appendChild( sectionHeader(
+				'Icon Sets',
+				'Themed packs re-skin the dock and desktop shortcuts. Preview swaps icons in place — only the "Default" set needs a reload.',
+				{ eyebrow: 'ODD · Dock Couture' }
+			) );
 
 			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets.slice() : [];
 			// Synthetic "None" pseudo-set so the user can opt out.
@@ -829,11 +934,10 @@
 				icons:       {},
 			} );
 
-			var list = el( 'div', { class: 'odd-catalog-list' } );
-			sets.forEach( function ( set ) {
-				list.appendChild( renderIconSetCard( set ) );
+			var shelves = groupByFranchise( sets, 'Collection' );
+			shelves.forEach( function ( shelf ) {
+				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderIconSetCard, 'odd-catalog-list' ) );
 			} );
-			wrap.appendChild( list );
 
 			return wrap;
 		}
@@ -1375,8 +1479,14 @@
 			content.appendChild( bar );
 		}
 
-		function sectionHeader( title, sub ) {
-			var h = el( 'header', { class: 'odd-section-header' } );
+		function sectionHeader( title, sub, opts ) {
+			opts = opts || {};
+			var h = el( 'header', { class: 'odd-section-header odd-shop__dept-header' } );
+			if ( opts.eyebrow ) {
+				var eb = el( 'div', { class: 'odd-shop__dept-eyebrow' } );
+				eb.textContent = opts.eyebrow;
+				h.appendChild( eb );
+			}
 			var hh = el( 'h2' );
 			hh.textContent = title;
 			var p = el( 'p' );
@@ -1596,6 +1706,115 @@
 			'.odd-panel .odd-iconset-mini img{width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,.85);border-radius:4px;padding:2px;box-sizing:border-box}',
 			'.odd-panel .odd-pill{display:inline-block;padding:1px 6px;border-radius:999px;background:#eaf2ff;color:#135e96;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}',
 			'.odd-panel .odd-pill--builtin{background:#f0e6ff;color:#5e1b8c}',
+
+			/* ------------------------------------------------------------
+			 * ODD Shop — Mac App Store-style chrome.
+			 *
+			 * Scopes under `.odd-shop` so the redesign never leaks into
+			 * other windows or into callers who style `.odd-panel` alone.
+			 * Overrides a handful of legacy tokens (rail width, spacing,
+			 * shelf grids, preview bar) without touching the semantic
+			 * markup — cards, switches and the About hero all inherit.
+			 * ------------------------------------------------------------ */
+			'.odd-panel.odd-shop{--odd-shop-bg:#f5f5f7;--odd-shop-surface:#fff;--odd-shop-rail-bg:rgba(247,247,249,0.85);--odd-shop-border:rgba(60,60,67,0.14);--odd-shop-border-strong:rgba(60,60,67,0.22);--odd-shop-ink:#1d1d1f;--odd-shop-ink-2:#424245;--odd-shop-ink-3:#6e6e73;--odd-shop-accent:#0071e3;--odd-shop-accent-2:#5856d6;--odd-shop-radius:14px;--odd-shop-radius-lg:20px}',
+			'.odd-panel.odd-shop{color:var(--odd-shop-ink)}',
+
+			/* Top bar. Spans columns 1 / -1 so it caps the entire frame. */
+			'.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:14px 22px;min-height:52px;background:linear-gradient(180deg,#fbfbfd 0%,#f1f1f4 100%);border-bottom:1px solid var(--odd-shop-border);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);position:relative;z-index:2}',
+			'.odd-panel.odd-shop .odd-shop__brand{display:flex;align-items:center;gap:12px}',
+			'.odd-panel.odd-shop .odd-shop__brand-mark{width:32px;height:32px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;background:linear-gradient(135deg,#ff3d9a 0%,#6a5cff 55%,#00d1b2 100%);color:#fff;box-shadow:0 6px 14px -6px rgba(106,92,255,.6),0 1px 0 rgba(255,255,255,.4) inset}',
+			'.odd-panel.odd-shop .odd-shop__brand-text{display:flex;flex-direction:column;line-height:1.1;min-width:0}',
+			'.odd-panel.odd-shop .odd-shop__brand-text strong{font-size:14px;font-weight:700;letter-spacing:-.01em;color:var(--odd-shop-ink)}',
+			'.odd-panel.odd-shop .odd-shop__brand-text span{font-size:11px;color:var(--odd-shop-ink-3);letter-spacing:.02em}',
+
+			/* Rail — translucent panel on the left, similar in feel to
+			 * the App Store sidebar. Buttons keep the `.odd-panel__nav`
+			 * base class so the old click target semantics (data-section)
+			 * still work; we just layer MAS styling on top. */
+			'.odd-panel.odd-shop .odd-shop__rail{background:var(--odd-shop-rail-bg);border-right:1px solid var(--odd-shop-border);padding:18px 12px 14px;display:flex;flex-direction:column;gap:4px;overflow:auto;-webkit-backdrop-filter:saturate(1.4) blur(18px);backdrop-filter:saturate(1.4) blur(18px)}',
+			'.odd-panel.odd-shop .odd-shop__rail-heading{padding:4px 10px 10px;font-size:11px;font-weight:700;color:var(--odd-shop-ink-3);text-transform:uppercase;letter-spacing:.08em}',
+			'.odd-panel.odd-shop .odd-shop__rail-item{all:unset;display:grid;grid-template-columns:28px 1fr;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--odd-shop-ink-2);transition:background .14s ease,color .14s ease,transform .14s ease}',
+			'.odd-panel.odd-shop .odd-shop__rail-item:hover{background:rgba(0,0,0,.045);color:var(--odd-shop-ink)}',
+			'.odd-panel.odd-shop .odd-shop__rail-item.is-active{background:var(--odd-shop-accent);color:#fff;box-shadow:0 6px 14px -8px rgba(0,113,227,.75)}',
+			'.odd-panel.odd-shop .odd-shop__rail-item.is-active .odd-shop__rail-label span{color:rgba(255,255,255,.82)}',
+			'.odd-panel.odd-shop .odd-shop__rail-glyph{width:28px;height:28px;border-radius:9px;background:rgba(0,0,0,.06);display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}',
+			'.odd-panel.odd-shop .odd-shop__rail-item.is-active .odd-shop__rail-glyph{background:rgba(255,255,255,.22);color:#fff}',
+			'.odd-panel.odd-shop .odd-shop__rail-label{display:flex;flex-direction:column;min-width:0;line-height:1.2;gap:1px}',
+			'.odd-panel.odd-shop .odd-shop__rail-label strong{font-weight:600;font-size:13px}',
+			'.odd-panel.odd-shop .odd-shop__rail-label span{font-size:11px;color:var(--odd-shop-ink-3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+			'.odd-panel.odd-shop .odd-shop__rail-foot{margin-top:auto;padding:10px 12px 4px;font-size:11px;color:var(--odd-shop-ink-3);letter-spacing:.02em;font-variant-numeric:tabular-nums}',
+
+			/* Content pane — larger padding + subtle surface so the
+			 * shelves feel like they float on the store background. */
+			'.odd-panel.odd-shop .odd-shop__content{padding:28px 36px 0;overflow:auto;min-width:0;background:var(--odd-shop-bg)}',
+
+			/* Department header — eyebrow label above an outsized title,
+			 * matching the App Store department pages ("Apps We Love"). */
+			'.odd-panel.odd-shop .odd-shop__dept{padding-bottom:36px}',
+			'.odd-panel.odd-shop .odd-shop__dept-header{margin:0 0 26px}',
+			'.odd-panel.odd-shop .odd-shop__dept-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--odd-shop-accent);margin-bottom:8px}',
+			'.odd-panel.odd-shop .odd-section-header h2{font-size:28px;font-weight:700;letter-spacing:-.015em;color:var(--odd-shop-ink);margin:0 0 6px}',
+			'.odd-panel.odd-shop .odd-section-header p{color:var(--odd-shop-ink-2);font-size:14px;line-height:1.5;max-width:62ch}',
+
+			/* Shelves — franchise row with an anchor-style title + count
+			 * pill, a thin divider, then the tile grid beneath. */
+			'.odd-panel.odd-shop .odd-shop__shelf{margin:0 0 32px;padding:20px 22px 22px;background:var(--odd-shop-surface);border:1px solid var(--odd-shop-border);border-radius:var(--odd-shop-radius-lg);box-shadow:0 1px 2px rgba(0,0,0,.03),0 20px 40px -32px rgba(20,14,40,.18)}',
+			'.odd-panel.odd-shop .odd-shop__shelf:last-child{margin-bottom:40px}',
+			'.odd-panel.odd-shop .odd-shop__shelf-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 14px}',
+			'.odd-panel.odd-shop .odd-shop__shelf-title{margin:0;font-size:17px;font-weight:700;letter-spacing:-.005em;color:var(--odd-shop-ink)}',
+			'.odd-panel.odd-shop .odd-shop__shelf-count{font-size:12px;color:var(--odd-shop-ink-3);font-weight:600;letter-spacing:.01em;font-variant-numeric:tabular-nums}',
+
+			/* Cards pick up softer radii + a touch more lift. */
+			'.odd-panel.odd-shop .odd-card{border-radius:var(--odd-shop-radius);border-color:var(--odd-shop-border);background:#fff}',
+			'.odd-panel.odd-shop .odd-card:hover{border-color:var(--odd-shop-accent);box-shadow:0 10px 28px -18px rgba(0,113,227,.45),0 2px 4px rgba(0,0,0,.04)}',
+			'.odd-panel.odd-shop .odd-card.is-active{border-color:var(--odd-shop-accent);box-shadow:0 0 0 2px var(--odd-shop-accent) inset}',
+			'.odd-panel.odd-shop .odd-card.is-active::after{background:var(--odd-shop-accent)}',
+			'.odd-panel.odd-shop .odd-card__title{font-size:14px}',
+			'.odd-panel.odd-shop .odd-card__sub{font-size:11px;color:var(--odd-shop-ink-3)}',
+
+			/* Settings cards keep their shape but pick up the shop palette. */
+			'.odd-panel.odd-shop .odd-wallpaper-settings{margin:0 0 22px}',
+			'.odd-panel.odd-shop .odd-setting-card{border-radius:var(--odd-shop-radius);border-color:var(--odd-shop-border);background:linear-gradient(180deg,#fff 0%,#fafafd 100%)}',
+			'.odd-panel.odd-shop .odd-setting-card--screensaver{background:linear-gradient(135deg,#ffffff 0%,#f4f6fc 50%,#fff6e6 100%)}',
+			'.odd-panel.odd-shop .odd-switch-row input[type="checkbox"]:checked + .odd-switch{background:var(--odd-shop-accent);box-shadow:0 8px 20px -14px rgba(0,113,227,.7)}',
+
+			/* Catalog rows (icon sets + app catalog) feel more "store-shelf". */
+			'.odd-panel.odd-shop .odd-catalog-row{border-radius:var(--odd-shop-radius);border-color:var(--odd-shop-border);background:#fff}',
+			'.odd-panel.odd-shop .odd-catalog-row:hover{border-color:var(--odd-shop-border-strong);box-shadow:0 6px 20px -18px rgba(20,14,40,.3)}',
+			'.odd-panel.odd-shop .odd-catalog-row--iconset.is-active{border-color:var(--odd-shop-accent);box-shadow:0 0 0 1px var(--odd-shop-accent) inset}',
+
+			/* Primary pills use the shop blue. "Preview" stays legacy-styled
+			 * so the amber preview state still reads as "staging", not "live". */
+			'.odd-panel.odd-shop .odd-apps-btn--primary{background:var(--odd-shop-accent);border-color:var(--odd-shop-accent)}',
+			'.odd-panel.odd-shop .odd-apps-btn--primary:hover{background:#0a66cf;border-color:#0a66cf}',
+			'.odd-panel.odd-shop .odd-apps-btn--pill{border-radius:999px;font-weight:600}',
+
+			/* Preview bar — sticks to the content bottom; redraw with a
+			 * store-ish neutral chrome so it reads as a transaction. */
+			'.odd-panel.odd-shop .odd-preview-bar{margin:20px -36px 0;padding:16px 36px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--odd-shop-border);border-bottom:0;box-shadow:0 -14px 30px -18px rgba(20,14,40,.18)}',
+
+			/* About hero gets a bit more breathing room against the new
+			 * content padding. Negative margins stay wired through. */
+			'.odd-panel.odd-shop .odd-about{margin:-28px -36px 0;padding:52px 36px 44px}',
+
+			/* Apps catalog lives inside an implicit shelf — add matching
+			 * surface styling + subheads so it doesn't visually orphan. */
+			'.odd-panel.odd-shop .odd-apps-subhead{font-size:11px;letter-spacing:.08em;color:var(--odd-shop-ink-3);margin:24px 0 10px}',
+			'.odd-panel.odd-shop .odd-apps-upload{border-radius:var(--odd-shop-radius);border-color:var(--odd-shop-border-strong);background:#fff}',
+			'.odd-panel.odd-shop .odd-apps-upload.is-dragover{border-color:var(--odd-shop-accent);background:#eef5ff}',
+
+			/* Rail collapses the tagline on narrow widths so the chrome
+			 * still reads at the WP Desktop Mode minimum of 720×480. */
+			'@media (max-width:820px){',
+			'  .odd-panel.odd-shop{grid-template-columns:64px 1fr}',
+			'  .odd-panel.odd-shop .odd-shop__rail{padding:14px 6px}',
+			'  .odd-panel.odd-shop .odd-shop__rail-heading{display:none}',
+			'  .odd-panel.odd-shop .odd-shop__rail-label{display:none}',
+			'  .odd-panel.odd-shop .odd-shop__rail-item{grid-template-columns:1fr;justify-items:center}',
+			'  .odd-panel.odd-shop .odd-shop__rail-foot{display:none}',
+			'  .odd-panel.odd-shop .odd-shop__content{padding:20px 22px 0}',
+			'  .odd-panel.odd-shop .odd-about{margin:-20px -22px 0;padding:44px 22px 36px}',
+			'}',
 		].join( '\n' );
 		document.head.appendChild( s );
 	}

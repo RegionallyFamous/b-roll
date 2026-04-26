@@ -2,10 +2,12 @@
 /**
  * ODD — native window + desktop icon registration.
  *
- * Registers the ODD Control Panel as a WP Desktop Mode native window
- * (content renders in the parent DOM, not an iframe — see
- * /wp-desktop-mode/docs/native-windows-proposal.md) and pairs it with
- * a clickable desktop-wallpaper shortcut tile.
+ * Registers the ODD Shop (user-facing name; window id stays `odd`
+ * for back-compat with WP Desktop Mode session state, tests, slash
+ * commands, and third-party extensions) as a WP Desktop Mode native
+ * window — content renders in the parent DOM, not an iframe — see
+ * /wp-desktop-mode/docs/native-windows-proposal.md — and pairs it
+ * with a clickable desktop-wallpaper shortcut tile.
  *
  * Double-clicking the desktop icon registered below is the canonical
  * entry point. Slash commands (`/odd-panel`) and widgets (Now Playing
@@ -28,14 +30,14 @@ add_action(
 		wp_register_desktop_window(
 			'odd',
 			array(
-				'title'      => __( 'ODD Control Panel', 'odd' ),
+				'title'      => __( 'ODD Shop', 'odd' ),
 				'icon'       => $icon_url,
 				'script'     => 'odd-panel',
 				'template'   => 'odd_render_panel_template',
-				'width'      => 820,
-				'height'     => 560,
-				'min_width'  => 640,
-				'min_height' => 440,
+				'width'      => 960,
+				'height'     => 620,
+				'min_width'  => 720,
+				'min_height' => 480,
 				'placement'  => 'none',
 			)
 		);
@@ -71,12 +73,13 @@ add_filter(
 				continue;
 			}
 
-			// The Control Panel should always come back as a compact
-			// utility window. WP Desktop Mode persists window state, so
-			// a single accidental maximize would otherwise stick forever.
+			// The ODD Shop should always come back at its current
+			// default footprint. WP Desktop Mode persists window
+			// state per user, so a single accidental maximize (or a
+			// pre-redesign 820×560 save) would otherwise stick forever.
 			$config['session']['windows'][ $i ]['state']  = 'normal';
-			$config['session']['windows'][ $i ]['width']  = 820;
-			$config['session']['windows'][ $i ]['height'] = 560;
+			$config['session']['windows'][ $i ]['width']  = 960;
+			$config['session']['windows'][ $i ]['height'] = 620;
 		}
 
 		return $config;
@@ -92,9 +95,9 @@ add_filter(
  */
 function odd_render_panel_template() {
 	?>
-	<div class="odd-panel" data-odd-panel>
-		<div class="odd-panel__loading" data-odd-panel-loading>
-			<?php esc_html_e( 'Loading ODD…', 'odd' ); ?>
+	<div class="odd-panel odd-shop" data-odd-panel data-odd-shop>
+		<div class="odd-panel__loading odd-shop__loading" data-odd-panel-loading>
+			<?php esc_html_e( 'Loading ODD Shop…', 'odd' ); ?>
 		</div>
 	</div>
 	<?php

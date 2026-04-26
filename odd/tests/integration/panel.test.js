@@ -1,13 +1,13 @@
 /**
- * panel.test.js — smoke-test the ODD Control Panel render pipeline.
+ * panel.test.js — smoke-test the ODD Shop render pipeline.
  *
  * Loads odd/src/panel/index.js, which registers a render callback on
  * `window.wpDesktopNativeWindows.odd`. We invoke the callback against
  * a detached host element with a stubbed `window.odd` config and
  * stubbed global.fetch, then exercise the critical paths:
  *
- *   - Sidebar lists the expected sections (Wallpaper, Icons, About).
- *   - Wallpaper tab renders scene cards.
+ *   - Rail lists the expected departments (Wallpapers, Icon Sets, About).
+ *   - Wallpaper department renders franchise shelves + scene cards.
  *   - Clicking a scene card opens the preview bar.
  *   - Clicking "Keep" POSTs /odd/v1/prefs with { wallpaper: slug }.
  *   - Clicking "Cancel" clears the preview bar.
@@ -79,7 +79,7 @@ function mountPanel() {
 	return { host, cleanup };
 }
 
-describe( 'ODD Control Panel', () => {
+describe( 'ODD Shop', () => {
 	let fetchMock;
 
 	beforeEach( () => {
@@ -107,12 +107,20 @@ describe( 'ODD Control Panel', () => {
 		expect( typeof window.wpDesktopNativeWindows.odd ).toBe( 'function' );
 	} );
 
-	it( 'renders sidebar sections + a scene grid', () => {
+	it( 'renders the department rail + shelf-grouped scene grid', () => {
 		const { host, cleanup } = mountPanel();
 
-		const sidebarButtons = host.querySelectorAll( 'nav button' );
-		const labels = Array.from( sidebarButtons ).map( ( b ) => b.textContent.trim() );
-		expect( labels ).toEqual( expect.arrayContaining( [ 'Wallpaper', 'Icons', 'About' ] ) );
+		// Each rail button carries its store label inside a dedicated
+		// node; scan `.odd-shop__rail-label strong` rather than the whole
+		// button text (which also contains the glyph + tagline).
+		const railLabels = Array.from( host.querySelectorAll( '.odd-shop__rail-label strong' ) )
+			.map( ( n ) => n.textContent.trim() );
+		expect( railLabels ).toEqual( expect.arrayContaining( [ 'Wallpapers', 'Icon Sets', 'About' ] ) );
+
+		// Wallpapers department groups scenes by franchise; with three
+		// unique franchises in seedConfig, we should see three shelves.
+		const shelves = host.querySelectorAll( '.odd-shop__shelf' );
+		expect( shelves.length ).toBe( 3 );
 
 		const cards = host.querySelectorAll( '.odd-card[data-slug]' );
 		expect( cards.length ).toBe( 3 );

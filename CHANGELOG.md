@@ -11,6 +11,21 @@ bodies.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.6.0"></a>
+## [1.6.0] — 2026-04-26
+
+### Changed
+- The ODD Control Panel is now the **ODD Shop** — a Mac App Store-style browsing surface. The native window adds a top bar with an ODD wordmark + tagline, a translucent left rail listing the departments (Wallpapers · Icon Sets · Apps · About) with glyphs and one-line taglines, and groups each catalog into franchise "shelves" (Generative, Atmosphere, Paper…). Default window size grew from 820×560 to 960×620 to match the new chrome; minimum is 720×480.
+- Slash command `/odd-panel` now reads "ODD: open Shop" in the ⌘K palette.
+- Plugin description (`odd/odd.php`) and short description (`odd/readme.txt`) refer to the window as the ODD Shop.
+
+### Internal
+- Window id stays `odd` for back-compat with WP Desktop Mode session state, tests, slash commands, and third-party extensions. All data, REST endpoints, live-swap hooks, and panel state logic are unchanged — only the chrome + copy moved.
+- `panel.test.js` asserts the new department rail labels (`Wallpapers`, `Icon Sets`, `About`) and the franchise shelf grouping (one `.odd-shop__shelf` per franchise in `window.odd.scenes`).
+
+<a id="v1.5.8"></a>
+## [1.5.8] — 2026-04-26
+
 ### Added
 - `install-smoke` workflow that boots WordPress + WP Desktop Mode in CI, installs `odd.zip`, and asserts core entry points (`odd` active, `odd_wallpaper_scene_slugs`, `odd_apps_install`, `wp_desktop_dock_item` filter). Wired into the release pipeline as a gate.
 - Playground / blueprint / release-zip uptime probe (every 30 minutes). Opens or reuses a `uptime-auto`-labelled GitHub issue on failure and closes it on recovery.

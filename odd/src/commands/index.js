@@ -8,7 +8,7 @@
  *   /odd-icons [set]    swap to an icon set (autocomplete; 'none'
  *                       is valid and reverts to WP defaults).
  *   /shuffle            pick a random non-current scene.
- *   /odd-panel          open the ODD Control Panel native window.
+ *   /odd-panel          open the ODD Shop native window.
  *
  * All four route through window.__odd.api so they share the live
  * swap + REST persistence path with the widgets and the panel.
@@ -162,7 +162,7 @@
 			if ( ctx && ctx.close ) ctx.close();
 			return;
 		}
-		return 'ODD Control Panel is unavailable — WP Desktop Mode may not be ready yet.';
+		return 'ODD Shop is unavailable — WP Desktop Mode may not be ready yet.';
 	}
 
 	ready( function () {
@@ -201,9 +201,9 @@
 
 		window.wp.desktop.registerCommand( {
 			slug:        'odd-panel',
-			label:       'ODD: open Control Panel',
-			description: 'Open (or focus) the ODD Control Panel window.',
-			icon:        'dashicons-admin-generic',
+			label:       'ODD: open Shop',
+			description: 'Open (or focus) the ODD Shop window.',
+			icon:        'dashicons-cart',
 			owner:       'odd-commands',
 			run:         safeRun( run_panel, 'command.odd-panel' ),
 		} );

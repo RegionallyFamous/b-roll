@@ -33,9 +33,9 @@ Seventeen coordinated sets that re-skin your dock and desktop shortcuts. Each se
 
 A taste of what's in there: **Filament** (hair-thin single-stroke line-of-light), **Arctic** (frost-blue line icons with a magenta accent dot), **Fold** (folded-paper icons with warm creases), **Blueprint**, **Monoline**, **Risograph**, **Claymation**, **Hologram**, **Cross-Stitch**, **Arcade Tokens**, **Tiki**, **Botanical Plate**, **Brutalist Stencil**, **Eyeball Avenue**, **Lemonade Stand**, **Circuit Bend**, and **Stadium**.
 
-### The ODD Control Panel
+### The ODD Shop
 
-A native WP Desktop Mode window — not a settings page, not a modal. Opens from the **ODD** desktop icon or the `/odd-panel` slash command. Tabbed sidebar for Wallpaper, Icons, Apps, and About. Everything you'd tweak, in one place — including wallpaper and icon-set previews you can try-before-you-commit, a screensaver with a big clock, audio-reactivity, and a shuffle scheduler.
+A native WP Desktop Mode window styled after the Mac App Store — not a settings page, not a modal. Opens from the **ODD** desktop icon or the `/odd-panel` slash command. A translucent left rail lists the departments — Wallpapers, Icon Sets, Apps, About — and every catalog is grouped into franchise "shelves". Everything you'd tweak, in one place — including wallpaper and icon-set previews you can try-before-you-commit, a screensaver with a big clock, audio-reactivity, and a shuffle scheduler.
 
 ### Desk knickknacks
 
@@ -95,7 +95,7 @@ First load takes ~20–30 seconds while Playground boots and the plugin installs
 2. WP Admin → Plugins → Add New → Upload Plugin → pick the zip → Activate.
 3. Make sure [WP Desktop Mode](https://github.com/WordPress/desktop-mode) is installed + active, then enable desktop mode from the admin bar toggle.
 4. OS Settings → Wallpapers → pick **ODD**.
-5. Double-click the **ODD** desktop icon to open the Control Panel (or run `/odd-panel` from the ⌘K palette).
+5. Double-click the **ODD** desktop icon to open the ODD Shop (or run `/odd-panel` from the ⌘K palette).
 
 **Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.5.0+
 
