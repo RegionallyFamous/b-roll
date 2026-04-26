@@ -63,6 +63,7 @@ function odd_rest_prefs_get() {
 			'favorites'     => odd_wallpaper_get_user_slug_list( $uid, 'odd_favorites' ),
 			'recents'       => odd_wallpaper_get_user_slug_list( $uid, 'odd_recents' ),
 			'shuffle'       => odd_wallpaper_get_user_shuffle( $uid ),
+			'screensaver'   => odd_wallpaper_get_user_screensaver( $uid ),
 			'audioReactive' => odd_wallpaper_get_user_audio_reactive( $uid ),
 			'iconSet'       => odd_icons_get_active_slug( $uid ),
 			'initiated'     => (bool) get_user_meta( $uid, 'odd_initiated',     true ),
@@ -122,6 +123,12 @@ function odd_rest_prefs_post( WP_REST_Request $request ) {
 		$sh = odd_wallpaper_sanitize_shuffle( $params['shuffle'] );
 		update_user_meta( $uid, 'odd_shuffle', $sh );
 		$out['shuffle'] = $sh;
+	}
+
+	if ( array_key_exists( 'screensaver', $params ) ) {
+		$ss = odd_wallpaper_sanitize_screensaver( $params['screensaver'] );
+		update_user_meta( $uid, 'odd_screensaver', $ss );
+		$out['screensaver'] = $ss;
 	}
 
 	if ( array_key_exists( 'audioReactive', $params ) ) {

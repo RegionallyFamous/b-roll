@@ -250,5 +250,19 @@
     ],
     "fallbackColor": "#d66a2a",
     "added": "1.2.0"
+  },
+  {
+    "slug": "rainfall",
+    "label": "Rainfall",
+    "franchise": "Atmosphere",
+    "tags": [
+      "rain",
+      "night",
+      "surfaces",
+      "physics",
+      "wet"
+    ],
+    "fallbackColor": "#050811",
+    "added": "1.3.0"
   }
 ]

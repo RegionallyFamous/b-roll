@@ -70,6 +70,18 @@
 			active:        'wallpaper',
 			cfg:           clone( window.odd || {} ),
 			posting:       false,
+			// Preview state: when non-null, the user has clicked a
+			// scene or icon-set card and the shell is showing the
+			// live result without having committed yet. Confirming
+			// persists via REST; cancelling reverts to `original`.
+			//
+			//   { kind: 'wallpaper' | 'iconSet',
+			//     slug:         'aurora',
+			//     originalSlug: 'flux',
+			//     iconSnapshot: [ { img, src } ]   // iconSet only
+			//     reloadOnCommit: bool              // iconSet only
+			//   }
+			preview:       null,
 		};
 		var buttons = {};
 
@@ -102,6 +114,15 @@
 		/* --- routing --- */
 
 		function renderSection( id ) {
+			// Abandoning a tab with a pending preview reverts the
+			// live swap — no silent commits because the user clicked
+			// "About" to look at stats.
+			if ( state.preview ) {
+				var sameTab = ( id === 'wallpaper' && state.preview.kind === 'wallpaper' ) ||
+					( id === 'icons' && state.preview.kind === 'iconSet' );
+				if ( ! sameTab ) cancelPreview();
+			}
+
 			state.active = id;
 			for ( var k in buttons ) {
 				if ( Object.prototype.hasOwnProperty.call( buttons, k ) ) {
@@ -118,6 +139,9 @@
 			} else {
 				content.appendChild( renderAbout() );
 			}
+			// If we re-entered the tab that owns an active preview,
+			// re-draw the sticky confirmation bar.
+			if ( state.preview ) renderPreviewBar();
 		}
 
 		/* --- Apps section --- */
@@ -538,6 +562,91 @@
 
 			wrap.appendChild( toolbar );
 
+			// Screensaver controls row — a second toolbar beneath the
+			// shuffle row, grouped because the options are only
+			// meaningful when the checkbox is on.
+			var ss = state.cfg.screensaver || { enabled: false, minutes: 5, scene: 'current' };
+			var ssRow = el( 'div', { class: 'odd-toolbar odd-toolbar--sub' } );
+
+			var ssToggle = el( 'label', { class: 'odd-toggle' } );
+			var ssBox = el( 'input', { type: 'checkbox' } );
+			ssBox.checked = !! ss.enabled;
+			var ssLbl = el( 'span' );
+			ssLbl.textContent = 'Screensaver after';
+			var ssMins = el( 'input', { type: 'number', min: '1', max: '120', class: 'odd-minutes' } );
+			ssMins.value = String( Math.max( 1, Math.min( 120, ( ss.minutes | 0 ) || 5 ) ) );
+			var ssMinsLbl = el( 'span' );
+			ssMinsLbl.textContent = 'min idle';
+			ssToggle.appendChild( ssBox );
+			ssToggle.appendChild( ssLbl );
+			ssToggle.appendChild( ssMins );
+			ssToggle.appendChild( ssMinsLbl );
+			ssRow.appendChild( ssToggle );
+
+			// Scene choice for the screensaver. "Current" = whatever
+			// is active when the timer fires. "Random" = pick a new
+			// one each time. Explicit slugs pick that scene every
+			// time it fires.
+			var ssSceneWrap = el( 'label', { class: 'odd-toggle odd-toggle--select' } );
+			var ssSceneLbl = el( 'span' );
+			ssSceneLbl.textContent = 'Play';
+			var ssSceneSel = el( 'select', { class: 'odd-select' } );
+			var ssChoices = [
+				{ value: 'current', label: 'current scene' },
+				{ value: 'random',  label: 'a random scene' },
+			];
+			( state.cfg.scenes || [] ).forEach( function ( s ) {
+				ssChoices.push( { value: s.slug, label: s.label || s.slug } );
+			} );
+			ssChoices.forEach( function ( opt ) {
+				var o = el( 'option', { value: opt.value } );
+				o.textContent = opt.label;
+				ssSceneSel.appendChild( o );
+			} );
+			ssSceneSel.value = ss.scene || 'current';
+			ssSceneWrap.appendChild( ssSceneLbl );
+			ssSceneWrap.appendChild( ssSceneSel );
+			ssRow.appendChild( ssSceneWrap );
+
+			var ssPreview = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+			ssPreview.textContent = 'Preview';
+			ssPreview.addEventListener( 'click', function () {
+				var ssApi = window.__odd && window.__odd.screensaver;
+				if ( ssApi && typeof ssApi.show === 'function' ) ssApi.show();
+			} );
+			ssRow.appendChild( ssPreview );
+
+			function pushScreensaver() {
+				var m = parseInt( ssMins.value, 10 );
+				if ( isNaN( m ) ) m = 5;
+				if ( m < 1 ) m = 1;
+				if ( m > 120 ) m = 120;
+				ssMins.value = String( m );
+				var patch = {
+					screensaver: {
+						enabled: ssBox.checked,
+						minutes: m,
+						scene:   ssSceneSel.value || 'current',
+					},
+				};
+				savePrefs( patch, function ( data ) {
+					if ( data && data.screensaver ) {
+						state.cfg.screensaver = data.screensaver;
+						// Push to the live module so the idle timer
+						// picks up new values without reload.
+						var ssApi = window.__odd && window.__odd.screensaver;
+						if ( ssApi && typeof ssApi.applyPrefs === 'function' ) ssApi.applyPrefs( data.screensaver );
+						var events = window.__odd && window.__odd.events;
+						if ( events ) { try { events.emit( 'odd.screensaver-prefs-changed', data.screensaver ); } catch ( e ) {} }
+					}
+				} );
+			}
+			ssBox.addEventListener( 'change', pushScreensaver );
+			ssMins.addEventListener( 'change', pushScreensaver );
+			ssSceneSel.addEventListener( 'change', pushScreensaver );
+
+			wrap.appendChild( ssRow );
+
 			var scenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [];
 			var grid = el( 'div', { class: 'odd-grid' } );
 			scenes.forEach( function ( scene ) {
@@ -549,10 +658,15 @@
 		}
 
 		function renderSceneCard( scene ) {
-			var active = scene.slug === ( state.cfg.wallpaper || state.cfg.scene );
+			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
+			var active = scene.slug === currentSlug;
+			var isPreview = state.preview && state.preview.kind === 'wallpaper' && state.preview.slug === scene.slug;
+
 			var card = el( 'button', {
 				type: 'button',
-				class: 'odd-card' + ( active ? ' is-active' : '' ),
+				class: 'odd-card'
+					+ ( active && ! state.preview ? ' is-active' : '' )
+					+ ( isPreview ? ' is-previewing' : '' ),
 				'data-slug': scene.slug,
 			} );
 
@@ -574,36 +688,98 @@
 			card.appendChild( meta );
 
 			card.addEventListener( 'click', function () {
-				if ( scene.slug === ( state.cfg.wallpaper || state.cfg.scene ) ) return;
-				applyScene( scene.slug, card );
+				var current = state.cfg.wallpaper || state.cfg.scene;
+				// Clicking the already-active (committed) card clears
+				// any pending preview back to the real state.
+				if ( scene.slug === current && ! state.preview ) return;
+				if ( state.preview && state.preview.kind === 'wallpaper' && scene.slug === state.preview.originalSlug ) {
+					cancelPreview();
+					return;
+				}
+				previewScene( scene.slug );
 			} );
 
 			return card;
 		}
 
-		function applyScene( slug, cardEl ) {
+		function previewScene( slug ) {
 			if ( state.posting ) return;
-			state.posting = true;
 
-			// Optimistic UI update.
-			var all = content.querySelectorAll( '.odd-card' );
-			for ( var i = 0; i < all.length; i++ ) all[ i ].classList.remove( 'is-active' );
-			if ( cardEl ) cardEl.classList.add( 'is-active' );
+			// First click starts a preview; subsequent clicks on other
+			// cards just swap the preview target without changing the
+			// `originalSlug` we'd revert to on cancel.
+			var originalSlug;
+			if ( state.preview && state.preview.kind === 'wallpaper' ) {
+				originalSlug = state.preview.originalSlug;
+			} else if ( state.preview && state.preview.kind === 'iconSet' ) {
+				// Entering a wallpaper preview while an icon preview is
+				// open just leaves the icon preview in place.
+				originalSlug = state.cfg.wallpaper || state.cfg.scene;
+			} else {
+				originalSlug = state.cfg.wallpaper || state.cfg.scene;
+			}
 
-			// The wallpaper engine subscribes to `odd.pickScene` via
-			// @wordpress/hooks — firing this swaps the scene live
-			// without a reload. See odd/src/wallpaper/index.js.
+			state.preview = {
+				kind: 'wallpaper',
+				slug: slug,
+				originalSlug: originalSlug,
+			};
+
+			// Live-swap the visible wallpaper without persisting.
+			pickSceneLive( slug );
+
+			// Re-decorate the grid so "is-previewing" highlights move.
+			redecorateSceneGrid();
+			renderPreviewBar();
+		}
+
+		function pickSceneLive( slug ) {
 			if ( window.wp && window.wp.hooks && typeof window.wp.hooks.doAction === 'function' ) {
 				try { window.wp.hooks.doAction( 'odd.pickScene', slug ); } catch ( e ) {}
 			}
+		}
+
+		function redecorateSceneGrid() {
+			var cards = content.querySelectorAll( '.odd-card[data-slug]' );
+			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
+			var previewSlug = state.preview && state.preview.kind === 'wallpaper' ? state.preview.slug : null;
+			for ( var i = 0; i < cards.length; i++ ) {
+				var c = cards[ i ];
+				var slug = c.getAttribute( 'data-slug' );
+				c.classList.remove( 'is-active', 'is-previewing' );
+				if ( previewSlug && slug === previewSlug ) c.classList.add( 'is-previewing' );
+				else if ( ! previewSlug && slug === currentSlug ) c.classList.add( 'is-active' );
+			}
+		}
+
+		function confirmScenePreview() {
+			if ( ! state.preview || state.preview.kind !== 'wallpaper' || state.posting ) return;
+			state.posting = true;
+			var slug = state.preview.slug;
 
 			savePrefs( { wallpaper: slug }, function ( data ) {
 				state.posting = false;
 				if ( data && typeof data.wallpaper === 'string' ) {
 					state.cfg.wallpaper = data.wallpaper;
-					state.cfg.scene = data.wallpaper;
+					state.cfg.scene    = data.wallpaper;
 				}
+				state.preview = null;
+				redecorateSceneGrid();
+				renderPreviewBar();
 			} );
+		}
+
+		function cancelPreview() {
+			if ( ! state.preview ) return;
+			if ( state.preview.kind === 'wallpaper' ) {
+				pickSceneLive( state.preview.originalSlug );
+			} else if ( state.preview.kind === 'iconSet' ) {
+				restoreIconSnapshot();
+			}
+			state.preview = null;
+			redecorateSceneGrid();
+			redecorateIconGrid();
+			renderPreviewBar();
 		}
 
 		/* --- Icons section --- */
@@ -636,9 +812,12 @@
 			var currentSlug = state.cfg.iconSet || '';
 			var isDefault = ! currentSlug;
 			var active = ( set.slug === 'none' && isDefault ) || ( set.slug !== 'none' && set.slug === currentSlug );
+			var isPreview = state.preview && state.preview.kind === 'iconSet' && state.preview.slug === set.slug;
 
 			var card = el( 'div', {
-				class: 'odd-catalog-row odd-catalog-row--iconset' + ( active ? ' is-active' : '' ),
+				class: 'odd-catalog-row odd-catalog-row--iconset'
+					+ ( active && ! state.preview ? ' is-active' : '' )
+					+ ( isPreview ? ' is-previewing' : '' ),
 				'data-slug': set.slug,
 			} );
 
@@ -681,66 +860,148 @@
 			var actions = el( 'div', { class: 'odd-catalog-row__actions' } );
 			var btn = el( 'button', {
 				type: 'button',
-				class: 'odd-apps-btn odd-apps-btn--pill' + ( active ? '' : ' odd-apps-btn--primary' ),
+				class: 'odd-apps-btn odd-apps-btn--pill' + ( active && ! state.preview ? '' : ' odd-apps-btn--primary' ),
 			} );
-			btn.textContent = active ? 'Active' : 'Apply';
-			if ( active ) btn.disabled = true;
+			if ( isPreview ) {
+				btn.textContent = 'Previewing';
+				btn.disabled = true;
+			} else if ( active && ! state.preview ) {
+				btn.textContent = 'Active';
+				btn.disabled = true;
+			} else {
+				btn.textContent = 'Preview';
+			}
 			btn.addEventListener( 'click', function ( e ) {
 				e.stopPropagation();
-				if ( active ) return;
-				applyIconSet( set.slug, card );
+				if ( btn.disabled ) return;
+				previewIconSet( set.slug );
 			} );
 			actions.appendChild( btn );
 			card.appendChild( actions );
 
+			// Whole-row click also starts a preview (except on the
+			// action button, which stops propagation). Makes the grid
+			// feel like the wallpaper cards.
+			card.addEventListener( 'click', function () {
+				if ( isPreview ) return;
+				if ( active && ! state.preview ) return;
+				previewIconSet( set.slug );
+			} );
+
 			return card;
 		}
 
-		function applyIconSet( slug, cardEl ) {
+		function previewIconSet( slug ) {
 			if ( state.posting ) return;
-			state.posting = true;
 
+			var isNone  = ( slug === 'none' || slug === '' );
+			var current = state.cfg.iconSet || '';
+
+			// First entry into preview mode — snapshot the current
+			// dock + desktop-shortcut icon <img>.src URLs so Cancel
+			// can revert pixel-for-pixel. Subsequent preview
+			// switches don't re-snapshot: we always revert to the
+			// on-screen state *before* the preview flow started.
+			if ( ! state.preview || state.preview.kind !== 'iconSet' ) {
+				state.preview = {
+					kind:           'iconSet',
+					slug:           slug,
+					originalSlug:   current,
+					iconSnapshot:   snapshotIconDom(),
+					reloadOnCommit: isNone,
+				};
+			} else {
+				state.preview.slug           = slug;
+				state.preview.reloadOnCommit = isNone;
+			}
+
+			if ( isNone ) {
+				// No live preview — we can't rebuild the pre-ODD
+				// icon URLs client-side. Keep the current icons
+				// visible and warn via the preview bar that commit
+				// requires a reload.
+				restoreIconSnapshot();
+			} else {
+				liveSwapIcons( slug );
+			}
+
+			redecorateIconGrid();
+			renderPreviewBar();
+		}
+
+		function snapshotIconDom() {
+			var snap = [];
+			var tiles = document.querySelectorAll( '.wp-desktop-dock__item[data-menu-slug] img' );
+			for ( var i = 0; i < tiles.length; i++ ) {
+				snap.push( { img: tiles[ i ], src: tiles[ i ].getAttribute( 'src' ) } );
+			}
+			var shortcuts = document.querySelectorAll( '.wp-desktop-icon[data-icon-id] img' );
+			for ( var j = 0; j < shortcuts.length; j++ ) {
+				snap.push( { img: shortcuts[ j ], src: shortcuts[ j ].getAttribute( 'src' ) } );
+			}
+			return snap;
+		}
+
+		function restoreIconSnapshot() {
+			if ( ! state.preview || ! Array.isArray( state.preview.iconSnapshot ) ) return;
+			var snap = state.preview.iconSnapshot;
+			for ( var i = 0; i < snap.length; i++ ) {
+				var rec = snap[ i ];
+				if ( rec && rec.img && rec.src ) rec.img.setAttribute( 'src', rec.src );
+			}
+		}
+
+		function redecorateIconGrid() {
 			var rows = content.querySelectorAll( '.odd-catalog-row--iconset' );
+			var currentSlug = state.cfg.iconSet || '';
+			var previewSlug = state.preview && state.preview.kind === 'iconSet' ? state.preview.slug : null;
 			for ( var i = 0; i < rows.length; i++ ) {
-				rows[ i ].classList.remove( 'is-active' );
-				var rb = rows[ i ].querySelector( '.odd-apps-btn' );
-				if ( rb ) {
-					rb.textContent = 'Apply';
-					rb.disabled = false;
-					rb.classList.add( 'odd-apps-btn--primary' );
+				var row = rows[ i ];
+				var slug = row.getAttribute( 'data-slug' );
+				var isActive     = ( slug === 'none' && ! currentSlug ) || ( slug !== 'none' && slug === currentSlug );
+				var isPreviewing = previewSlug && slug === previewSlug;
+				row.classList.toggle( 'is-active',     !! ( isActive && ! previewSlug ) );
+				row.classList.toggle( 'is-previewing', !! isPreviewing );
+
+				var btn = row.querySelector( '.odd-apps-btn' );
+				if ( btn ) {
+					if ( isPreviewing ) {
+						btn.textContent = 'Previewing';
+						btn.disabled = true;
+						btn.classList.remove( 'odd-apps-btn--primary' );
+					} else if ( isActive && ! previewSlug ) {
+						btn.textContent = 'Active';
+						btn.disabled = true;
+						btn.classList.remove( 'odd-apps-btn--primary' );
+					} else {
+						btn.textContent = 'Preview';
+						btn.disabled = false;
+						btn.classList.add( 'odd-apps-btn--primary' );
+					}
 				}
 			}
-			if ( cardEl ) {
-				cardEl.classList.add( 'is-active' );
-				var cb = cardEl.querySelector( '.odd-apps-btn' );
-				if ( cb ) {
-					cb.textContent = 'Active';
-					cb.disabled = true;
-					cb.classList.remove( 'odd-apps-btn--primary' );
-				}
-			}
+		}
+
+		function confirmIconPreview() {
+			if ( ! state.preview || state.preview.kind !== 'iconSet' || state.posting ) return;
+			state.posting = true;
+			var slug   = state.preview.slug;
+			var reload = state.preview.reloadOnCommit;
 
 			savePrefs( { iconSet: slug }, function ( data ) {
 				state.posting = false;
 				if ( data && typeof data.iconSet === 'string' ) {
 					state.cfg.iconSet = data.iconSet;
 				}
-				// Live-swap instead of reloading: the panel stays
-				// open, no flicker. The server filters at priority
-				// 20 remain the source of truth for any full page
-				// render, so subsequent admin loads pick up the
-				// same choice from user meta.
-				//
-				// Switching **to** "none" needs a reload because we
-				// don't have the pre-ODD icon URLs cached JS-side;
-				// only the user's next load will rebuild them.
-				if ( slug === 'none' || slug === '' ) {
+				state.preview = null;
+				if ( reload ) {
 					setTimeout( function () {
 						try { window.location.reload(); } catch ( e ) {}
 					}, 180 );
 					return;
 				}
-				liveSwapIcons( slug );
+				redecorateIconGrid();
+				renderPreviewBar();
 			} );
 		}
 
@@ -851,9 +1112,9 @@
 		 * discipline of every other tab. Everything else is a macOS-ish
 		 * two-pane; this is a self-indulgent title card. The big ODD
 		 * wordmark also doubles as a chaos button: clicking it fires
-		 * a random scene swap through the same `applyScene()` path the
-		 * wallpaper grid uses, so it's a "real" affordance and not a
-		 * decorative div.
+		 * a random scene commit — same live-swap + REST write the
+		 * wallpaper grid's Keep button uses — so it's a "real"
+		 * affordance and not a decorative div.
 		 */
 
 		function renderAbout() {
@@ -896,15 +1157,30 @@
 				word.appendChild( sp );
 			} );
 			word.addEventListener( 'click', function () {
-				// Random scene swap via the same path as the wallpaper
-				// grid — stays guarded by state.posting so rapid taps
-				// can't queue up overlapping POSTs.
+				// Random scene swap — chaos commit, no preview bar.
+				// Fires through the same live-swap + REST path the
+				// wallpaper grid uses when the user confirms, so the
+				// active card elsewhere stays in sync on reload.
+				if ( state.posting ) return;
 				var scenes = Array.isArray( cfg.scenes ) ? cfg.scenes : [];
 				var current = cfg.wallpaper || cfg.scene;
 				var choices = scenes.filter( function ( s ) { return s && s.slug && s.slug !== current; } );
 				if ( choices.length ) {
 					var next = choices[ Math.floor( Math.random() * choices.length ) ];
-					applyScene( next.slug, null );
+					// If a preview is open, cancel it first so we don't
+					// stack two swaps.
+					if ( state.preview ) cancelPreview();
+					state.posting = true;
+					pickSceneLive( next.slug );
+					savePrefs( { wallpaper: next.slug }, function ( data ) {
+						state.posting = false;
+						if ( data && typeof data.wallpaper === 'string' ) {
+							state.cfg.wallpaper = data.wallpaper;
+							state.cfg.scene    = data.wallpaper;
+							cfg.wallpaper      = data.wallpaper;
+							cfg.scene          = data.wallpaper;
+						}
+					} );
 				}
 				word.classList.remove( 'is-whee' );
 				// Force reflow so the animation restarts even on
@@ -1000,6 +1276,74 @@
 		}
 
 		/* --- shared helpers --- */
+
+		/**
+		 * Sticky confirmation bar for the preview-and-confirm flow.
+		 * Mounted as the last child of the content pane; removed when
+		 * `state.preview` is cleared. Keep / Apply writes the pending
+		 * change through REST; Cancel reverts the live swap.
+		 */
+		function renderPreviewBar() {
+			var existing = content.querySelector( '[data-odd-preview-bar]' );
+			if ( existing && existing.parentNode ) existing.parentNode.removeChild( existing );
+			if ( ! state.preview ) return;
+
+			var kind     = state.preview.kind;
+			var slug     = state.preview.slug;
+			var reload   = state.preview.kind === 'iconSet' && state.preview.reloadOnCommit;
+			var itemName = '';
+			if ( kind === 'wallpaper' ) {
+				var scenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [];
+				for ( var i = 0; i < scenes.length; i++ ) {
+					if ( scenes[ i ] && scenes[ i ].slug === slug ) { itemName = scenes[ i ].label || slug; break; }
+				}
+			} else {
+				if ( slug === 'none' || slug === '' ) {
+					itemName = 'Default icons';
+				} else {
+					var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets : [];
+					for ( var j = 0; j < sets.length; j++ ) {
+						if ( sets[ j ] && sets[ j ].slug === slug ) { itemName = sets[ j ].label || slug; break; }
+					}
+				}
+			}
+
+			var bar = el( 'div', { class: 'odd-preview-bar', 'data-odd-preview-bar': '1', role: 'status' } );
+
+			var eye = el( 'div', { class: 'odd-preview-bar__eye', 'aria-hidden': 'true' } );
+			eye.textContent = '👁';
+			bar.appendChild( eye );
+
+			var text = el( 'div', { class: 'odd-preview-bar__text' } );
+			if ( kind === 'wallpaper' ) {
+				text.innerHTML = 'Previewing <em></em>. Keep to save, Cancel to revert.';
+			} else if ( reload ) {
+				text.innerHTML = 'Applying <em></em> reloads the page to restore stock dock icons.';
+			} else {
+				text.innerHTML = 'Previewing <em></em> icons. Apply to save, Cancel to revert.';
+			}
+			text.querySelector( 'em' ).textContent = itemName || slug;
+			bar.appendChild( text );
+
+			var actions = el( 'div', { class: 'odd-preview-bar__actions' } );
+			var cancel = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+			cancel.textContent = 'Cancel';
+			cancel.addEventListener( 'click', function () { cancelPreview(); } );
+			actions.appendChild( cancel );
+
+			var commit = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-apps-btn--primary' } );
+			if ( kind === 'wallpaper' ) {
+				commit.textContent = 'Keep';
+				commit.addEventListener( 'click', function () { confirmScenePreview(); } );
+			} else {
+				commit.textContent = reload ? 'Apply & reload' : 'Apply';
+				commit.addEventListener( 'click', function () { confirmIconPreview(); } );
+			}
+			actions.appendChild( commit );
+
+			bar.appendChild( actions );
+			content.appendChild( bar );
+		}
 
 		function sectionHeader( title, sub ) {
 			var h = el( 'header', { class: 'odd-section-header' } );
@@ -1180,8 +1524,31 @@
 			'.odd-panel .odd-catalog-row__installed{font-size:11px;color:#8c8f94;text-transform:uppercase;letter-spacing:.04em}',
 			'.odd-panel .odd-apps-btn--pill{border-radius:999px;padding:6px 18px;font-weight:600}',
 			'.odd-panel .odd-apps-btn:disabled{opacity:1;cursor:default}',
+			'.odd-panel .odd-catalog-row--iconset{cursor:pointer}',
 			'.odd-panel .odd-catalog-row--iconset.is-active{border-color:#2271b1;box-shadow:0 0 0 1px #2271b1 inset}',
 			'.odd-panel .odd-catalog-row--iconset.is-active .odd-catalog-row__icon{box-shadow:0 0 0 2px #2271b1}',
+			'.odd-panel .odd-catalog-row--iconset.is-previewing{border-color:#d97706;box-shadow:0 0 0 2px #f59e0b inset;background:#fffbeb}',
+			'.odd-panel .odd-catalog-row--iconset.is-previewing .odd-catalog-row__icon{box-shadow:0 0 0 2px #f59e0b}',
+			/* Click-to-preview affordances for scene cards. Amber so
+			 * the state is distinct from the committed blue `is-active`. */
+			'.odd-panel .odd-card.is-previewing{border-color:#d97706;box-shadow:0 0 0 2px #f59e0b inset}',
+			'.odd-panel .odd-card.is-previewing::after{content:"👁";position:absolute;top:6px;right:8px;width:22px;height:22px;border-radius:50%;background:#f59e0b;color:#fff;font-size:12px;line-height:22px;text-align:center;font-weight:700}',
+			/* Preview confirmation bar — sticky at the bottom of the
+			 * scrollable content pane. Uses a slight lift + amber tint
+			 * so it reads as a decision, not a toolbar. */
+			'.odd-panel .odd-preview-bar{position:sticky;bottom:-24px;margin:16px -28px -24px;padding:14px 28px;background:#fff;border-top:1px solid #f59e0b;box-shadow:0 -12px 28px -18px rgba(20,14,40,.18);display:flex;align-items:center;gap:16px;z-index:5;animation:odd-preview-slide .22s cubic-bezier(.2,.8,.2,1)}',
+			'.odd-panel .odd-preview-bar__eye{width:28px;height:28px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}',
+			'.odd-panel .odd-preview-bar__text{flex:1 1 auto;min-width:0;font-size:13px;color:#1d2327;line-height:1.4}',
+			'.odd-panel .odd-preview-bar__text strong{font-weight:700}',
+			'.odd-panel .odd-preview-bar__text em{font-style:normal;color:#92400e;font-weight:600}',
+			'.odd-panel .odd-preview-bar__actions{display:flex;gap:8px;flex-shrink:0}',
+			'@keyframes odd-preview-slide{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}',
+			'@media (prefers-reduced-motion: reduce){.odd-panel .odd-preview-bar{animation:none}}',
+			/* Sub-toolbar for the screensaver row — denser + indented
+			 * so it reads as an extension of the main toolbar. */
+			'.odd-panel .odd-toolbar--sub{margin-top:-12px;padding-top:8px;padding-bottom:8px;border-top:0;gap:12px 20px}',
+			'.odd-panel .odd-toggle--select{gap:6px}',
+			'.odd-panel .odd-select{padding:3px 6px;border:1px solid #8c8f94;border-radius:4px;font:inherit;font-size:13px;background:#fff;color:#1d2327}',
 			'.odd-panel .odd-iconset-mini{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;width:100%;height:100%;padding:6px;box-sizing:border-box}',
 			'.odd-panel .odd-iconset-mini img{width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,.85);border-radius:4px;padding:2px;box-sizing:border-box}',
 			'.odd-panel .odd-pill{display:inline-block;padding:1px 6px;border-radius:999px;background:#eaf2ff;color:#135e96;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}',

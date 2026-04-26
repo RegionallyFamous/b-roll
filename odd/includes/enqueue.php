@@ -142,6 +142,16 @@ add_action(
 			ODD_VERSION,
 			true
 		);
+		// Screensaver: idle-detector + fullscreen scene overlay.
+		// Self-contained — only depends on odd-store (for the
+		// localized prefs) and odd-events (for panel echoes).
+		wp_enqueue_script(
+			'odd-screensaver',
+			ODD_URL . '/src/screensaver/index.js',
+			array( 'odd-store', 'odd-events' ),
+			ODD_VERSION,
+			true
+		);
 		wp_enqueue_style(
 			'odd-icon-contrast',
 			ODD_URL . '/src/icons/contrast.css',
@@ -209,6 +219,7 @@ add_action(
 			'favorites'        => odd_wallpaper_get_user_slug_list( $uid, 'odd_favorites' ),
 			'recents'          => odd_wallpaper_get_user_slug_list( $uid, 'odd_recents' ),
 			'shuffle'          => odd_wallpaper_get_user_shuffle( $uid ),
+			'screensaver'      => odd_wallpaper_get_user_screensaver( $uid ),
 			'audioReactive'    => odd_wallpaper_get_user_audio_reactive( $uid ),
 
 			// Iris personality prefs (Cut 3).
