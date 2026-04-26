@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.3
+Stable tag: 1.5.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.5.4 =
+* Fixes the long-running "still white" app window: installed apps now actually load their HTML. The cookie-auth serve path was unintentionally emitting the `?odd_debug=1` JSON envelope on every `/odd-app/<slug>/` request, because the debug trace buffer was always passed as an array (and `is_array()` always true) into the serve function — so the iframe's body was the debug trace instead of `index.html`. The top-level matcher now passes `null` when debug is off, and the serve function additionally requires `?odd_debug=1` in the query before emitting JSON.
 
 = 1.5.3 =
 * Fixes the Wallpaper setting cards wrapping one word per line on narrow panels. The switch/label column now claims the remaining width, the helper text wraps as normal prose, and cards reflow in a responsive grid instead of getting squeezed against the controls column.

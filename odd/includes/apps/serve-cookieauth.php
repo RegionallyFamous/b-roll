@@ -135,7 +135,16 @@ function odd_apps_cookieauth_maybe_serve() {
 		$debug_trace['sub']     = $sub;
 	}
 
-	odd_apps_serve_cookieauth( $slug, $sub, $debug_trace );
+	// Pass `null` (not an empty array) when debug is off, so the
+	// callee's `is_array( $debug_trace )` gate actually gates. An
+	// earlier revision passed the bare `$debug_trace` array in both
+	// paths, which made `is_array()` always true inside
+	// odd_apps_serve_cookieauth() — so every `/odd-app/<slug>/`
+	// request emitted the debug-JSON envelope instead of the real
+	// HTML / asset response. That's the long-running "still white"
+	// regression: the iframe's body was literally the debug JSON
+	// trace, so nothing mounted and `#root` was missing entirely.
+	odd_apps_serve_cookieauth( $slug, $sub, $debug_on ? $debug_trace : null );
 	exit;
 }
 
@@ -174,7 +183,15 @@ function odd_apps_debug_emit( array $data ) {
  * @param string $path Requested file path relative to the app root.
  */
 function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
-	$debug_on = is_array( $debug_trace );
+	// `$debug_trace` must be null to disable debug JSON output.
+	// An empty array still arms the debug emitter — callers must
+	// pass null explicitly. Belt-and-suspenders: also require the
+	// `?odd_debug=1` query to be present, so a stray non-null
+	// value from a future caller can't accidentally leak JSON
+	// instead of the real response body.
+	$debug_on = is_array( $debug_trace )
+		&& isset( $_GET['odd_debug'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		&& '1' === (string) $_GET['odd_debug']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$slug     = sanitize_key( $slug );
 	if ( '' === $slug ) {
 		if ( $debug_on ) {
