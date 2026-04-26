@@ -34,7 +34,7 @@ jobs:
     env:
       WP_CLI_ALLOW_ROOT: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: shivammathur/setup-php@v2
         with:

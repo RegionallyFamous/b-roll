@@ -12,11 +12,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
@@ -37,7 +37,7 @@ jobs:
         run: odd/bin/build-zip
 
       - name: Upload zip for install-smoke
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: odd-zip-release
           path: dist/odd.zip
@@ -54,12 +54,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Fetch built zip
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: odd-zip-release
           path: dist
