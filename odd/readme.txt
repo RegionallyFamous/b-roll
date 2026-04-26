@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.6.3
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,10 +16,11 @@ ODD (Outlandish Desktop Decorator) layers on top of the [WP Desktop Mode](https:
 
 * **Wallpapers.** Generative PixiJS scenes painted on custom 1920×1080 backdrops, with more packs shipping through the catalog over time.
 * **Icon sets.** Full-color SVG packs that re-skin the WP Desktop dock and desktop shortcut icons.
+* **Widgets.** Small desktop companions (a handwritten sticky note, a WP-flavoured Magic 8-ball) you add to your desktop from the Shop and drag anywhere.
 * **Apps.** Install small standalone web apps (HTML/CSS/JS) as windows and desktop icons. Apps run on your WordPress desktop without using or knowing about WordPress — they just open. Browse and install from the ODD Shop.
 * **Iris.** A lightweight mascot/personality layer that reacts to scene changes, app lifecycle events, and time of day.
 
-All three surfaces — wallpaper, icons, apps — are switched from a single native WP Desktop window: the ODD Shop (Mac App Store-style, with category shelves).
+All four surfaces — wallpaper, icons, widgets, apps — are switched from a single native WP Desktop window: the ODD Shop (Mac App Store-style, with category shelves).
 
 == Installation ==
 
@@ -43,6 +44,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.7.0 =
+* Widgets department in the ODD Shop. Adds a fourth department between Icon Sets and Apps that browses ODD's desktop widgets (Sticky Note, Magic 8-Ball) with the same Mac App Store chrome as the rest of the Shop: an editorial hero, a shelf of gradient-glyph tiles, and an "Add to desktop" / "Remove" pill on each tile that wires straight into `wp.desktop.widgetLayer`. The hero flips from "Featured widget" to "On your desktop" once a widget is enabled. Enabling or dismissing a widget from its × button on the desktop is picked up live via the `wp-desktop.widget.added` / `.removed` hooks, so the Shop stays in sync either way.
 
 = 1.6.3 =
 * Hero contrast fix. The hero scrim was sliding past the title on bright editorial backdrops (Apps, Icon Sets); tightened it to a near-solid left ink panel with a soft vertical haze and stacked text-shadow halos on the title + subtitle, so the body stays legible on any artwork. Eyebrow pill darkens its shadow to match.

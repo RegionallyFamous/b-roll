@@ -6,11 +6,14 @@
  * a detached host element with a stubbed `window.odd` config and
  * stubbed global.fetch, then exercise the critical paths:
  *
- *   - Rail lists the expected departments (Wallpapers, Icon Sets, About).
+ *   - Rail lists the expected departments (Wallpapers, Icon Sets,
+ *     Widgets, About).
  *   - Wallpaper department renders franchise shelves + scene cards.
  *   - Clicking a scene card opens the preview bar.
  *   - Clicking "Keep" POSTs /odd/v1/prefs with { wallpaper: slug }.
  *   - Clicking "Cancel" clears the preview bar.
+ *   - Widgets department renders a widget shelf with Add/Remove buttons
+ *     wired to `wp.desktop.widgetLayer`.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -68,6 +71,20 @@ function installHooks() {
 	};
 }
 
+function installWidgetLayer() {
+	const calls = { add: [], remove: [] };
+	let enabled = [];
+	window.wp = window.wp || {};
+	window.wp.desktop = window.wp.desktop || {};
+	window.wp.desktop.widgetLayer = {
+		add: ( id ) => { calls.add.push( id ); if ( ! enabled.includes( id ) ) enabled.push( id ); },
+		remove: ( id ) => { calls.remove.push( id ); enabled = enabled.filter( ( x ) => x !== id ); },
+		getEnabledIds: () => [ ...enabled ],
+		__setEnabled: ( ids ) => { enabled = ids.slice(); },
+	};
+	return calls;
+}
+
 function loadPanel() {
 	const src = readFileSync( PANEL_JS, 'utf8' );
 	const fn = new Function( `${ src }\n//# sourceURL=panel/index.js` );
@@ -91,6 +108,8 @@ describe( 'ODD Shop', () => {
 		const existing = document.getElementById( 'odd-panel-styles' );
 		if ( existing ) existing.remove();
 		delete window.wpDesktopNativeWindows;
+		if ( window.wp && window.wp.desktop ) delete window.wp.desktop.widgetLayer;
+		try { window.localStorage.removeItem( 'wp-desktop-widgets' ); } catch ( e ) {}
 		seedConfig();
 		installHooks();
 
@@ -119,7 +138,7 @@ describe( 'ODD Shop', () => {
 		// button text (which also contains the glyph + tagline).
 		const railLabels = Array.from( host.querySelectorAll( '.odd-shop__rail-label strong' ) )
 			.map( ( n ) => n.textContent.trim() );
-		expect( railLabels ).toEqual( expect.arrayContaining( [ 'Wallpapers', 'Icon Sets', 'About' ] ) );
+		expect( railLabels ).toEqual( expect.arrayContaining( [ 'Wallpapers', 'Icon Sets', 'Widgets', 'About' ] ) );
 
 		// Wallpapers department groups scenes by category; with
 		// three slugs that map to three distinct categories
@@ -188,6 +207,37 @@ describe( 'ODD Shop', () => {
 
 		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeFalsy();
 		expect( fetchMock ).not.toHaveBeenCalled();
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'Widgets department renders ODD widget cards wired to widgetLayer', () => {
+		const calls = installWidgetLayer();
+		const { host, cleanup } = mountPanel();
+
+		// Switch to the Widgets tab.
+		const widgetsTab = Array.from( host.querySelectorAll( '.odd-shop__rail-item' ) )
+			.find( ( b ) => b.querySelector( '.odd-shop__rail-label strong' )?.textContent.trim() === 'Widgets' );
+		expect( widgetsTab, 'Widgets rail button must be present' ).toBeTruthy();
+		widgetsTab.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		// Both ODD widgets should render as tiles.
+		const cards = host.querySelectorAll( '.odd-shop__tile--widget' );
+		expect( cards.length ).toBe( 2 );
+
+		const stickyCard = host.querySelector( '.odd-shop__tile--widget[data-widget-id="odd/sticky"]' );
+		expect( stickyCard, 'sticky card must be rendered' ).toBeTruthy();
+
+		// Adding a widget should call widgetLayer.add and re-render
+		// with an "on desktop" state.
+		const addBtn = stickyCard.querySelector( '.odd-shop__tile-btn' );
+		expect( addBtn.textContent.trim() ).toBe( 'Add to desktop' );
+		addBtn.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+		expect( calls.add ).toEqual( [ 'odd/sticky' ] );
+
+		const refreshedSticky = host.querySelector( '.odd-shop__tile--widget[data-widget-id="odd/sticky"]' );
+		expect( refreshedSticky.classList.contains( 'is-active' ) ).toBe( true );
+		expect( refreshedSticky.querySelector( '.odd-shop__tile-btn' ).textContent.trim() ).toBe( 'Remove' );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

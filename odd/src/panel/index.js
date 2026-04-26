@@ -44,6 +44,7 @@
 	var SECTIONS = [
 		{ id: 'wallpaper', label: 'Wallpapers', icon: '🖼', tagline: 'Live generative scenes' },
 		{ id: 'icons',     label: 'Icon Sets',  icon: '🧩', tagline: 'Re-skin the dock' },
+		{ id: 'widgets',   label: 'Widgets',    icon: '🧷', tagline: 'Desktop companions' },
 		{ id: 'apps',      label: 'Apps',       icon: '📦', tagline: 'Mini apps that just run', gated: 'appsEnabled' },
 		{ id: 'about',     label: 'About',      icon: '👁', tagline: 'Credits & chaos' },
 	];
@@ -191,6 +192,15 @@
 
 		return function teardown() {
 			body.classList.remove( 'odd-panel', 'odd-shop' );
+			// Pull the widget-layer subscriptions so a reopen doesn't
+			// stack duplicate listeners that each re-render the
+			// section on every widget add/remove.
+			try {
+				if ( window.wp && window.wp.hooks ) {
+					window.wp.hooks.removeAction( 'wp-desktop.widget.added',   'odd/widgets' );
+					window.wp.hooks.removeAction( 'wp-desktop.widget.removed', 'odd/widgets' );
+				}
+			} catch ( e ) {}
 		};
 
 		/* --- routing --- */
@@ -226,6 +236,8 @@
 				content.appendChild( renderWallpaper() );
 			} else if ( id === 'icons' ) {
 				content.appendChild( renderIcons() );
+			} else if ( id === 'widgets' ) {
+				content.appendChild( renderWidgets() );
 			} else if ( id === 'apps' ) {
 				content.appendChild( renderApps() );
 			} else {
@@ -1170,15 +1182,23 @@
 			var title = el( 'h3', { class: 'odd-shop__shelf-title' } );
 			title.textContent = franchise;
 			var count = el( 'span', { class: 'odd-shop__shelf-count' } );
-			var noun = scope === 'wallpaper'
-				? ( items.length === 1 ? 'scene' : 'scenes' )
-				: ( items.length === 1 ? 'set' : 'sets' );
+			var noun;
+			if ( scope === 'wallpaper' ) {
+				noun = items.length === 1 ? 'scene' : 'scenes';
+			} else if ( scope === 'widgets' ) {
+				noun = items.length === 1 ? 'widget' : 'widgets';
+			} else {
+				noun = items.length === 1 ? 'set' : 'sets';
+			}
 			count.textContent = items.length + ' ' + noun;
 			head.appendChild( title );
 			head.appendChild( count );
 			shelf.appendChild( head );
 
-			var trackClass = scope === 'wallpaper'
+			// Tiles layout for wallpapers + widgets (both have a big
+			// visual preview panel); list rows for icon sets (which
+			// want text-heavy metadata alongside their mini-grid).
+			var trackClass = ( scope === 'wallpaper' || scope === 'widgets' )
 				? 'odd-shop__shelf-track odd-shop__shelf-track--tiles'
 				: 'odd-shop__shelf-track odd-shop__shelf-track--list';
 			var track = el( 'div', { class: trackClass } );
@@ -1857,6 +1877,261 @@
 			fresh.src = url;
 			fresh.alt = '';
 			host.appendChild( fresh );
+		}
+
+		/* --- Widgets section ---------------------------------------
+		 *
+		 * Widgets are small, self-contained cards that live in the
+		 * right-side column (or anywhere the user drags them) on the
+		 * desktop itself — not inside the ODD window. WP Desktop
+		 * Mode persists enabled widget ids to localStorage and
+		 * exposes `wp.desktop.widgetLayer.add(id)` / `.remove(id)` /
+		 * `.getEnabledIds()` for programmatic wiring. Everything in
+		 * this tab is a thin UI over those three calls plus the
+		 * `wp-desktop.widget.added` / `.removed` hooks for the case
+		 * where the user dismisses a widget from its own × button
+		 * while the Shop is open.
+		 */
+
+		function widgetCatalog() {
+			// Keep this list in sync with `src/widgets/index.js`. We
+			// duplicate the metadata here (glyph + gradient + tagline)
+			// rather than pulling it from the registry because the
+			// widget registry doesn't carry editorial copy or palette
+			// — those are a Shop concern, not a runtime concern.
+			return [
+				{
+					id:          'odd/sticky',
+					label:       'Sticky Note',
+					glyph:       '📝',
+					accent:      '#f4b93a',
+					gradient:    'linear-gradient(135deg,#ffd84a 0%,#ff9c5b 55%,#ff6a3d 100%)',
+					tagline:     'Tilted handwritten note, auto-saves.',
+					description: 'A pocket-sized scratchpad that picks a different tilt on every load. Scribble a URL, a todo, a reminder — it saves locally as you type, no database round-trip. Drag from the title bar and it\'ll remember wherever you drop it.',
+				},
+				{
+					id:          'odd/eight-ball',
+					label:       'Magic 8-Ball',
+					glyph:       '🎱',
+					accent:      '#3b2fa0',
+					gradient:    'linear-gradient(135deg,#1f1f2d 0%,#3b2fa0 55%,#7a49d6 100%)',
+					tagline:     'Shake for definitive-ish WordPress advice.',
+					description: 'Thirty WordPress-flavoured answers from a mystical plastic sphere. Click the ball to shake. Best consulted before a destructive migration, never during. Reduced-motion mode downgrades the rattle to a quick cross-fade.',
+				},
+			];
+		}
+
+		function enabledWidgetIds() {
+			try {
+				if ( window.wp && window.wp.desktop && window.wp.desktop.widgetLayer ) {
+					var layer = window.wp.desktop.widgetLayer;
+					if ( typeof layer.getEnabledIds === 'function' ) {
+						return layer.getEnabledIds() || [];
+					}
+				}
+			} catch ( e ) {}
+			// Fallback — read the same localStorage key the desktop
+			// layer writes to. Keeps the Shop functional even if the
+			// desktop layer object is temporarily unavailable (e.g.
+			// during boot races after a hard reload).
+			try {
+				var raw = window.localStorage.getItem( 'wp-desktop-widgets' );
+				if ( ! raw ) return [];
+				var parsed = JSON.parse( raw );
+				return Array.isArray( parsed ) ? parsed.filter( function ( x ) { return typeof x === 'string'; } ) : [];
+			} catch ( e2 ) { return []; }
+		}
+
+		function toggleWidget( id, shouldAdd ) {
+			function notify( msg ) {
+				try {
+					if ( window.__odd && window.__odd.api && typeof window.__odd.api.toast === 'function' ) {
+						window.__odd.api.toast( msg );
+					}
+				} catch ( e ) {}
+			}
+			if ( ! window.wp || ! window.wp.desktop || ! window.wp.desktop.widgetLayer ) {
+				notify( 'Widgets need WP Desktop Mode 0.8+.' );
+				return;
+			}
+			var layer = window.wp.desktop.widgetLayer;
+			try {
+				if ( shouldAdd && typeof layer.add === 'function' ) {
+					layer.add( id );
+				} else if ( ! shouldAdd && typeof layer.remove === 'function' ) {
+					layer.remove( id );
+				}
+			} catch ( e ) {
+				notify( 'Couldn\'t toggle that widget.' );
+				return;
+			}
+			// The widgetLayer fires the `wp-desktop.widget.added` /
+			// `.removed` hooks we're listening to below, but re-render
+			// synchronously too so the Shop doesn't flicker with a
+			// stale "Add" state while the hook propagates.
+			if ( state.active === 'widgets' ) {
+				renderSection( 'widgets', { keepQuery: true } );
+			}
+		}
+
+		// Widget hooks are installed once per panel mount. Re-entering
+		// the Widgets tab reuses the single subscription; teardown
+		// isn't needed because a panel close re-runs the mount path.
+		if ( ! state.widgetHooksInstalled ) {
+			state.widgetHooksInstalled = true;
+			try {
+				if ( window.wp && window.wp.hooks ) {
+					window.wp.hooks.addAction( 'wp-desktop.widget.added', 'odd/widgets', function () {
+						if ( state.active === 'widgets' ) renderSection( 'widgets', { keepQuery: true } );
+					} );
+					window.wp.hooks.addAction( 'wp-desktop.widget.removed', 'odd/widgets', function () {
+						if ( state.active === 'widgets' ) renderSection( 'widgets', { keepQuery: true } );
+					} );
+				}
+			} catch ( e ) {}
+		}
+
+		function renderWidgets() {
+			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--widgets' } );
+			wrap.appendChild( sectionHeader(
+				'Widgets',
+				'Small, self-contained cards that live on the desktop itself — not inside this window. Add one and it appears in the right-hand column; drag it by its title bar to park it anywhere.',
+				{ eyebrow: 'ODD · Desktop Companions' }
+			) );
+
+			var catalog = widgetCatalog();
+			var enabled = enabledWidgetIds();
+			var enabledMap = {};
+			enabled.forEach( function ( eid ) { enabledMap[ eid ] = true; } );
+
+			var filtered = state.query
+				? catalog.filter( function ( w ) {
+					var q = state.query.toLowerCase();
+					return ( w.label || '' ).toLowerCase().indexOf( q ) !== -1
+						|| ( w.tagline || '' ).toLowerCase().indexOf( q ) !== -1
+						|| ( w.description || '' ).toLowerCase().indexOf( q ) !== -1;
+				} )
+				: catalog;
+
+			// Hero: whatever's currently on the desktop goes first.
+			// If nothing is enabled we feature the top of the catalog
+			// as a "try me" slot.
+			var hero = null;
+			for ( var i = 0; i < catalog.length; i++ ) {
+				if ( enabledMap[ catalog[ i ].id ] ) { hero = catalog[ i ]; break; }
+			}
+			if ( ! hero ) hero = catalog[ 0 ];
+			if ( hero && ! state.query ) {
+				wrap.appendChild( renderWidgetsHero( hero, !! enabledMap[ hero.id ] ) );
+			}
+
+			if ( ! filtered.length ) {
+				wrap.appendChild( renderEmptyResults( 'No widgets match "' + state.query + '".' ) );
+				return wrap;
+			}
+
+			wrap.appendChild( renderShelf(
+				'ODD Widgets',
+				filtered,
+				function ( w ) { return renderWidgetCard( w, !! enabledMap[ w.id ] ); },
+				{ scope: 'widgets' }
+			) );
+
+			// Gentle reminder footer — widgets live on the desktop
+			// itself, which may not be obvious when browsing them
+			// from inside an ODD window that sits on top of the dock.
+			if ( ! state.query ) {
+				var tip = el( 'div', { class: 'odd-shop__widget-tip' } );
+				tip.textContent = 'Tip: added widgets appear on your desktop\'s right column. Drag one by its title bar to park it wherever you like.';
+				wrap.appendChild( tip );
+			}
+
+			return wrap;
+		}
+
+		function renderWidgetsHero( widget, isEnabled ) {
+			var hero = el( 'div', {
+				class: 'odd-shop__hero odd-shop__hero--widgets',
+				'data-hero-slug': widget.id,
+				style: 'background:' + widget.gradient,
+			} );
+			// Giant translucent glyph floats to the right as the hero's
+			// visual anchor — no painted artwork to ship, and the
+			// gradient + emoji combo reads instantly across locales.
+			var art = el( 'div', {
+				class: 'odd-shop__hero-glyph',
+				'aria-hidden': 'true',
+			} );
+			art.textContent = widget.glyph;
+			hero.appendChild( art );
+			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
+
+			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
+			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
+			eyebrow.textContent = isEnabled ? 'On your desktop' : 'Featured widget';
+			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
+			title.textContent = widget.label;
+			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
+			sub.textContent = widget.description;
+
+			var cta = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__hero-cta' + ( isEnabled ? ' is-active' : '' ),
+			} );
+			cta.textContent = isEnabled ? 'Remove from desktop' : 'Add to desktop';
+			cta.addEventListener( 'click', function () {
+				toggleWidget( widget.id, ! isEnabled );
+			} );
+
+			inner.appendChild( eyebrow );
+			inner.appendChild( title );
+			inner.appendChild( sub );
+			inner.appendChild( cta );
+			hero.appendChild( inner );
+			return hero;
+		}
+
+		function renderWidgetCard( widget, isEnabled ) {
+			var card = el( 'div', {
+				class: 'odd-card odd-shop__tile odd-shop__tile--widget'
+					+ ( isEnabled ? ' is-active' : '' ),
+				'data-widget-id': widget.id,
+			} );
+
+			var thumb = el( 'div', { class: 'odd-shop__tile-thumb odd-shop__tile-thumb--widget' } );
+			thumb.style.background = widget.gradient;
+			var glyph = el( 'div', { class: 'odd-shop__tile-glyph', 'aria-hidden': 'true' } );
+			glyph.textContent = widget.glyph;
+			thumb.appendChild( glyph );
+			if ( isEnabled ) {
+				var chip = el( 'span', { class: 'odd-shop__tile-chip' } );
+				chip.textContent = 'On desktop';
+				thumb.appendChild( chip );
+			}
+			card.appendChild( thumb );
+
+			var meta = el( 'div', { class: 'odd-shop__tile-meta' } );
+			var h = el( 'div', { class: 'odd-shop__tile-title' } );
+			h.textContent = widget.label;
+			var p = el( 'div', { class: 'odd-shop__tile-sub' } );
+			p.textContent = widget.tagline;
+			meta.appendChild( h );
+			meta.appendChild( p );
+			card.appendChild( meta );
+
+			var actions = el( 'div', { class: 'odd-shop__tile-actions' } );
+			var btn = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__tile-btn' + ( isEnabled ? ' is-active' : '' ),
+			} );
+			btn.textContent = isEnabled ? 'Remove' : 'Add to desktop';
+			btn.addEventListener( 'click', function () {
+				toggleWidget( widget.id, ! isEnabled );
+			} );
+			actions.appendChild( btn );
+			card.appendChild( actions );
+
+			return card;
 		}
 
 		/* --- About section ---------------------------------------
@@ -2542,6 +2817,38 @@
 			'.odd-panel.odd-shop .odd-apps-subhead{font-size:11px;letter-spacing:.08em;color:var(--odd-shop-ink-3);margin:24px 0 10px}',
 			'.odd-panel.odd-shop .odd-apps-upload{border-radius:var(--odd-shop-radius);border-color:var(--odd-shop-border-strong);background:#fff}',
 			'.odd-panel.odd-shop .odd-apps-upload.is-dragover{border-color:var(--odd-shop-accent);background:#eef5ff}',
+
+			/* Widgets department — gradient thumbnails with a giant
+			 * emoji glyph instead of painted artwork (widgets are
+			 * code-only, no ship-side textures). Hero reuses the same
+			 * trick: translucent oversized glyph in place of a WebP. */
+			'.odd-panel.odd-shop .odd-shop__hero--widgets{background:linear-gradient(135deg,#1f1f2d 0%,#3b2fa0 100%)}',
+			'.odd-panel.odd-shop .odd-shop__hero--widgets .odd-shop__hero-scrim{background:linear-gradient(98deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,.58) 36%,rgba(0,0,0,.28) 58%,rgba(0,0,0,0) 82%),linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.3) 100%)}',
+			'.odd-panel.odd-shop .odd-shop__hero-glyph{position:absolute;top:50%;right:8%;transform:translateY(-50%);font-size:min(260px,42vh);line-height:1;opacity:.55;filter:drop-shadow(0 12px 30px rgba(0,0,0,.35));pointer-events:none;z-index:0}',
+			'.odd-panel.odd-shop .odd-shop__hero-cta{margin-top:18px;padding:10px 22px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.18);color:#fff;font-size:13px;font-weight:600;cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:background .18s ease,transform .12s ease}',
+			'.odd-panel.odd-shop .odd-shop__hero-cta:hover{background:rgba(255,255,255,.3)}',
+			'.odd-panel.odd-shop .odd-shop__hero-cta:active{transform:translateY(1px)}',
+			'.odd-panel.odd-shop .odd-shop__hero-cta.is-active{background:rgba(0,0,0,.4);border-color:rgba(255,255,255,.55);color:#fff}',
+			'.odd-panel.odd-shop .odd-shop__hero-cta.is-active:hover{background:rgba(0,0,0,.55)}',
+
+			/* Widget cards — tile shell with a gradient top panel and
+			 * a stacked meta+action layout. Override the shared tile
+			 * meta grid so the action pill sits on its own row. */
+			'.odd-panel.odd-shop .odd-shop__tile--widget{display:flex;flex-direction:column}',
+			'.odd-panel.odd-shop .odd-shop__tile-thumb--widget{display:flex;align-items:center;justify-content:center;aspect-ratio:16/10;background:#1d1d1f}',
+			'.odd-panel.odd-shop .odd-shop__tile-glyph{font-size:72px;line-height:1;filter:drop-shadow(0 8px 20px rgba(0,0,0,.3))}',
+			'.odd-panel.odd-shop .odd-shop__tile-chip{position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.94);color:#0a66cf;font-size:10px;font-weight:700;letter-spacing:.04em;box-shadow:0 4px 10px -4px rgba(0,0,0,.4)}',
+			'.odd-panel.odd-shop .odd-shop__tile--widget .odd-shop__tile-meta{display:flex;flex-direction:column;gap:4px;padding:12px 14px 6px;grid-template-columns:none}',
+			'.odd-panel.odd-shop .odd-shop__tile--widget .odd-shop__tile-title{white-space:normal;overflow:visible;text-overflow:clip}',
+			'.odd-panel.odd-shop .odd-shop__tile--widget .odd-shop__tile-sub{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}',
+			'.odd-panel.odd-shop .odd-shop__tile-actions{padding:6px 14px 14px;display:flex;justify-content:flex-start}',
+			'.odd-panel.odd-shop .odd-shop__tile-btn{padding:7px 16px;border-radius:999px;border:1px solid transparent;background:var(--odd-shop-accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .18s ease,transform .12s ease}',
+			'.odd-panel.odd-shop .odd-shop__tile-btn:hover{background:#0a66cf}',
+			'.odd-panel.odd-shop .odd-shop__tile-btn:active{transform:translateY(1px)}',
+			'.odd-panel.odd-shop .odd-shop__tile-btn.is-active{background:#fff;color:var(--odd-shop-ink);border-color:var(--odd-shop-border-strong)}',
+			'.odd-panel.odd-shop .odd-shop__tile-btn.is-active:hover{background:#f6f6f8;border-color:#b8b8c2}',
+			'.odd-panel.odd-shop .odd-shop__tile--widget.is-active{border-color:var(--odd-shop-accent)}',
+			'.odd-panel.odd-shop .odd-shop__widget-tip{margin:18px 0 0;padding:12px 16px;border-radius:var(--odd-shop-radius);background:rgba(0,113,227,.08);color:var(--odd-shop-ink-2);font-size:12px;line-height:1.5}',
 
 			/* Rail collapses the tagline on narrow widths so the chrome
 			 * still reads at the WP Desktop Mode minimum of 720×480. */

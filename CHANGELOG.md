@@ -11,6 +11,23 @@ bodies.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.7.0"></a>
+## [1.7.0] — 2026-04-26
+
+### Added
+- **Widgets department in the ODD Shop.** New fourth department (between Icon Sets and Apps) for browsing and toggling ODD's desktop widgets. Ships with the two widgets introduced in 1.4.0 (**Sticky Note** 📝 and **Magic 8-Ball** 🎱) presented as gradient-glyph tiles — a warm yellow/papaya gradient for Sticky, a midnight/purple gradient for 8-Ball — on the same Mac App Store chrome as the other departments:
+  - **Hero card.** Features whatever's currently on your desktop, falling back to the top of the catalog as a "try me" slot when nothing's enabled. The eyebrow flips from "Featured widget" to "On your desktop" based on enablement; the CTA flips from "Add to desktop" to "Remove from desktop". Hero uses an oversized translucent glyph as its visual anchor (no painted artwork to ship — widgets are code-only).
+  - **Shelf of cards.** One row titled "ODD Widgets" with a gradient thumbnail panel + giant glyph, the widget label, a one-line tagline, and an Add/Remove pill. Enabled widgets pick up an "On desktop" chip on the thumbnail and an inverted pill treatment.
+  - **Search works.** The Shop's global search filters widgets by label, tagline, and description.
+  - **Helpful footer.** A reminder tip that added widgets appear on the desktop's right-hand column and can be dragged anywhere by their title bar — widgets live on the desktop itself, which isn't obvious when browsing them from inside an ODD window that sits above the dock.
+
+### Internal
+- **Uses `wp.desktop.widgetLayer` directly.** Add/remove go through `.add(id)` / `.remove(id)`; the rendered state reads `.getEnabledIds()` and falls back to the `wp-desktop-widgets` localStorage key if the layer object isn't available yet (boot races after a hard reload). This is the public API WP Desktop Mode exposes for exactly this kind of external picker.
+- **Live sync with external × clicks.** Subscribes to `wp-desktop.widget.added` / `wp-desktop.widget.removed` under the `odd/widgets` namespace during panel mount, removes them on teardown so re-opening the Shop doesn't stack duplicate subscriptions. If the user dismisses a widget from the × on the card itself (while the Shop is open), the Widgets tab re-renders so the Add/Remove state stays correct. The hook subscription is gated on `state.active === 'widgets'` to avoid re-rendering the Wallpapers or Apps tabs when the user is looking at something else.
+- **Catalog is local.** Widget metadata (glyph, gradient, accent, tagline, long description) lives inline in `renderWidgets()` rather than in the widget registry — the registry holds runtime defs (id, label, mount), not editorial copy. When we grow beyond two widgets we'll either split this out into a JSON manifest alongside the wallpaper / icon-set registries, or lift the copy into each widget's `registerWidget` call.
+- **Shelf scope extended.** `renderShelf` previously switched layout + noun on `scope === 'wallpaper'` vs. everything-else (treated as icon sets). Added a third scope, `'widgets'`, that gets the tile track (same visual rhythm as wallpapers) and "widget"/"widgets" noun. Icon-set scope is unchanged.
+- **Test coverage.** `panel.test.js` now stubs `wp.desktop.widgetLayer` with a fake that captures `add` / `remove` calls and exposes `getEnabledIds`; the new test switches to the Widgets tab, asserts both ODD widgets render as tiles, clicks the Sticky "Add to desktop" pill, confirms `widgetLayer.add('odd/sticky')` fires, and verifies the card re-renders into the `is-active` state with the "Remove" label. The existing rail-labels test was extended to include "Widgets" alongside Wallpapers / Icon Sets / About.
+
 <a id="v1.6.3"></a>
 ## [1.6.3] — 2026-04-26
 
