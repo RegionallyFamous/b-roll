@@ -159,9 +159,18 @@ function odd_apps_icon_url( $slug, $manifest ) {
 		return '';
 	}
 	// Absolute URL (http / https) — the manifest author is hosting
-	// the icon themselves; pass through.
+	// the icon themselves. Validate it: allow only http/https schemes,
+	// strip anything that esc_url rejects. Shields the dock from a
+	// compromised .wp bundle trying to smuggle in `javascript:` URIs
+	// or other exotic schemes. For the common case (a bundle shipping
+	// its icon on disk), we prefer the REST-served route below —
+	// cheaper, same-origin, and gated by our own realpath logic.
 	if ( 0 === stripos( $icon, 'http://' ) || 0 === stripos( $icon, 'https://' ) ) {
-		return $icon;
+		$safe = esc_url( $icon, array( 'http', 'https' ) );
+		if ( '' === $safe ) {
+			return '';
+		}
+		return $safe;
 	}
 	// data: URIs would be ideal but WP Desktop Mode's dock sanitizer
 	// only accepts dashicon classes or http(s) URLs (see

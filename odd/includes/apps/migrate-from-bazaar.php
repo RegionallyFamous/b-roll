@@ -52,7 +52,16 @@ if ( ! defined( 'ODD_BAZAAR_CONTENT_DIR' ) ) {
  * Migration callable. Hooked through the odd_migrations filter at
  * version 3 (see includes/migrations.php).
  *
+ * Return value contract (consumed by the odd_run_migrations runner):
+ *   - true  : migration ran (either no-op because Bazaar isn't
+ *             present, or fully completed). Runner advances schema.
+ *   - false : skip — another process is already migrating, or we
+ *             partially completed and want to retry on the next
+ *             login. Runner will NOT advance schema, so the user
+ *             comes back here next admin pageload.
+ *
  * @param int $user_id The user whose login triggered the run.
+ * @return bool True on success/no-op; false when skipped.
  */
 function odd_migration_3_from_bazaar( $user_id ) {
 	unset( $user_id );
@@ -60,114 +69,128 @@ function odd_migration_3_from_bazaar( $user_id ) {
 	$has_fs      = is_dir( ODD_BAZAAR_CONTENT_DIR );
 	$has_option  = false !== get_option( 'bazaar_index', false );
 	if ( ! $has_fs && ! $has_option ) {
-		return;
+		return true;
 	}
 
-	// Concurrent-login guard. `add_option` returns false when the key
-	// already exists, so two simultaneous admin pageloads can't
-	// race and copy overlapping trees.
-	if ( ! add_option( 'odd_apps_bazaar_migration_lock', (string) time(), '', false ) ) {
-		return;
+	// Concurrent-login guard. A 60-second transient means a stale
+	// lock from a died-mid-migration process automatically frees
+	// itself without any manual intervention. Previously we used a
+	// permanent add_option lock that could wedge every user's
+	// migration forever if the first runner fatal'd before the
+	// delete_option at the tail.
+	$lock_key = 'odd_apps_bazaar_migration_lock';
+	if ( false !== get_transient( $lock_key ) ) {
+		return false;
 	}
+	set_transient( $lock_key, (string) time(), 60 );
 
-	odd_apps_ensure_storage();
+	try {
+		odd_apps_ensure_storage();
 
-	$report = array(
-		'at'      => time(),
-		'moved'   => array(),
-		'skipped' => array(),
-	);
+		$report = array(
+			'at'      => time(),
+			'moved'   => array(),
+			'skipped' => array(),
+		);
 
-	// Move bundles first so the options can reference existing files.
-	if ( $has_fs ) {
-		$entries = scandir( ODD_BAZAAR_CONTENT_DIR );
-		if ( $entries ) {
-			foreach ( $entries as $entry ) {
-				if ( '.' === $entry || '..' === $entry ) {
-					continue;
-				}
-				if ( 0 === strpos( $entry, '.' ) ) {
-					continue;
-				}
-				$src = ODD_BAZAAR_CONTENT_DIR . $entry;
-				if ( ! is_dir( $src ) ) {
-					continue;
-				}
-				$slug = sanitize_key( $entry );
-				if ( '' === $slug ) {
-					continue;
-				}
-				$dst = odd_apps_dir_for( $slug );
-				if ( is_dir( $dst ) ) {
-					$report['skipped'][] = $slug . ' (already exists in odd-apps)';
-					continue;
-				}
-				if ( odd_apps_recursive_copy( $src, rtrim( $dst, '/' ) ) ) {
-					$report['moved'][] = $slug;
-				} else {
-					$report['skipped'][] = $slug . ' (copy failed)';
+		// Move bundles first so the options can reference existing files.
+		if ( $has_fs ) {
+			$entries = scandir( ODD_BAZAAR_CONTENT_DIR );
+			if ( $entries ) {
+				foreach ( $entries as $entry ) {
+					if ( '.' === $entry || '..' === $entry ) {
+						continue;
+					}
+					if ( 0 === strpos( $entry, '.' ) ) {
+						continue;
+					}
+					$src = ODD_BAZAAR_CONTENT_DIR . $entry;
+					if ( ! is_dir( $src ) ) {
+						continue;
+					}
+					$slug = sanitize_key( $entry );
+					if ( '' === $slug ) {
+						continue;
+					}
+					$dst = odd_apps_dir_for( $slug );
+					if ( is_dir( $dst ) ) {
+						$report['skipped'][] = $slug . ' (already exists in odd-apps)';
+						continue;
+					}
+					if ( odd_apps_recursive_copy( $src, rtrim( $dst, '/' ) ) ) {
+						$report['moved'][] = $slug;
+					} else {
+						$report['skipped'][] = $slug . ' (copy failed)';
+					}
 				}
 			}
 		}
-	}
 
-	// Rewrite index + per-ware options.
-	$bazaar_index = get_option( 'bazaar_index', array() );
-	if ( is_array( $bazaar_index ) && $bazaar_index ) {
-		$existing = odd_apps_index_load();
-		foreach ( $bazaar_index as $slug => $row ) {
-			$slug = sanitize_key( (string) $slug );
-			if ( '' === $slug || ! is_array( $row ) ) {
-				continue;
+		// Rewrite index + per-ware options.
+		$bazaar_index = get_option( 'bazaar_index', array() );
+		if ( is_array( $bazaar_index ) && $bazaar_index ) {
+			$existing = odd_apps_index_load();
+			foreach ( $bazaar_index as $slug => $row ) {
+				$slug = sanitize_key( (string) $slug );
+				if ( '' === $slug || ! is_array( $row ) ) {
+					continue;
+				}
+				if ( ! isset( $existing[ $slug ] ) ) {
+					$existing[ $slug ] = array_merge(
+						array(
+							'slug'        => $slug,
+							'name'        => $slug,
+							'version'     => '',
+							'enabled'     => true,
+							'icon'        => '',
+							'description' => '',
+							'capability'  => 'manage_options',
+							'installed'   => time(),
+						),
+						array_intersect_key(
+							$row,
+							array_flip( array( 'name', 'version', 'enabled', 'icon', 'description', 'capability' ) )
+						)
+					);
+				}
+				$manifest = get_option( 'bazaar_ware_' . $slug, array() );
+				if ( is_array( $manifest ) && $manifest ) {
+					unset( $manifest['license'] );
+					odd_apps_manifest_save( $slug, $manifest );
+				}
 			}
-			if ( ! isset( $existing[ $slug ] ) ) {
-				$existing[ $slug ] = array_merge(
-					array(
-						'slug'        => $slug,
-						'name'        => $slug,
-						'version'     => '',
-						'enabled'     => true,
-						'icon'        => '',
-						'description' => '',
-						'capability'  => 'manage_options',
-						'installed'   => time(),
-					),
-					array_intersect_key(
-						$row,
-						array_flip( array( 'name', 'version', 'enabled', 'icon', 'description', 'capability' ) )
-					)
-				);
-			}
-			$manifest = get_option( 'bazaar_ware_' . $slug, array() );
-			if ( is_array( $manifest ) && $manifest ) {
-				unset( $manifest['license'] );
-				odd_apps_manifest_save( $slug, $manifest );
+			odd_apps_index_save( $existing );
+		}
+
+		// Copy the shared secret if Bazaar used one.
+		$secret = get_option( 'bazaar_shared_secret', '' );
+		if ( $secret && ! get_option( 'odd_apps_shared_secret', '' ) ) {
+			update_option( 'odd_apps_shared_secret', $secret, false );
+		}
+
+		// Deactivate Bazaar if still active. The plugin file stays on
+		// disk so the admin can delete it at their own pace.
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		if ( function_exists( 'is_plugin_active' ) && function_exists( 'deactivate_plugins' ) ) {
+			$plugin_file = 'bazaar/bazaar.php';
+			if ( is_plugin_active( $plugin_file ) ) {
+				deactivate_plugins( $plugin_file, true );
 			}
 		}
-		odd_apps_index_save( $existing );
+
+		update_option( 'odd_apps_bazaar_migration', $report, false );
+		update_option( 'odd_apps_bazaar_notice', 1, false );
+	} finally {
+		// Always release the lock so a partial-run doesn't wedge
+		// every subsequent login. The 60s transient TTL is belt +
+		// suspenders if the process dies between the try{} body
+		// and this finally{} (e.g. OOM kill).
+		delete_transient( $lock_key );
 	}
 
-	// Copy the shared secret if Bazaar used one.
-	$secret = get_option( 'bazaar_shared_secret', '' );
-	if ( $secret && ! get_option( 'odd_apps_shared_secret', '' ) ) {
-		update_option( 'odd_apps_shared_secret', $secret, false );
-	}
-
-	// Deactivate Bazaar if still active. The plugin file stays on
-	// disk so the admin can delete it at their own pace.
-	if ( ! function_exists( 'deactivate_plugins' ) ) {
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-	}
-	if ( function_exists( 'is_plugin_active' ) && function_exists( 'deactivate_plugins' ) ) {
-		$plugin_file = 'bazaar/bazaar.php';
-		if ( is_plugin_active( $plugin_file ) ) {
-			deactivate_plugins( $plugin_file, true );
-		}
-	}
-
-	update_option( 'odd_apps_bazaar_migration', $report, false );
-	update_option( 'odd_apps_bazaar_notice', 1, false );
-	delete_option( 'odd_apps_bazaar_migration_lock' );
+	return true;
 }
 
 /**

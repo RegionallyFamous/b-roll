@@ -60,12 +60,21 @@ function odd_run_migrations( $user_id = 0 ) {
 			continue;
 		}
 		try {
-			call_user_func( $callable, $user_id );
+			$result = call_user_func( $callable, $user_id );
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'error_log' ) ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				error_log( sprintf( '[ODD] migration %d failed for user %d: %s', $version, $user_id, $e->getMessage() ) );
 			}
+			return;
+		}
+		// A migration may return `false` to signal "skip, don't advance
+		// the schema version — retry on the next pageload." This is
+		// how odd_migration_3_from_bazaar handles lock-contention or
+		// partial-progress without silently losing the migration
+		// forever. `null` / `true` / `void` all count as success for
+		// back-compat with no-op migrations.
+		if ( false === $result ) {
 			return;
 		}
 		update_user_meta( $user_id, 'odd_schema_version', $version );
@@ -98,10 +107,17 @@ function odd_migration_2_apps_baseline( $user_id ) {
 
 // Run on every admin pageload for the current user. Cheap when the
 // version already matches target; a single integer meta read.
+//
+// Intentionally independent of WP Desktop Mode's own loader: if an
+// admin temporarily deactivates the host plugin during an ODD
+// upgrade, we still need usermeta to migrate forward — otherwise the
+// next boot of the Desktop shell sees stale b_roll_* keys and we
+// lose data. Migrations are pure meta rewrites; they're safe to run
+// with or without the host plugin loaded.
 add_action(
 	'admin_init',
 	function () {
-		if ( ! function_exists( 'wpdm_is_enabled' ) ) {
+		if ( ! is_user_logged_in() ) {
 			return;
 		}
 		odd_run_migrations();

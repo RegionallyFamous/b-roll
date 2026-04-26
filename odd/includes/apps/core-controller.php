@@ -147,7 +147,11 @@ function odd_apps_install_builtin( $slug ) {
 		'enabled'     => true,
 		'icon'        => isset( $manifest['icon'] ) ? sanitize_text_field( (string) $manifest['icon'] ) : 'icon.svg',
 		'description' => isset( $manifest['description'] ) ? sanitize_text_field( (string) $manifest['description'] ) : '',
-		'capability'  => isset( $manifest['capability'] ) ? sanitize_text_field( (string) $manifest['capability'] ) : 'read',
+		// Default to `manage_options` so built-in apps are admin-only
+		// unless the manifest explicitly declares a lower bar. Keeps
+		// the default policy consistent with odd_apps_install() in
+		// registry.php (same serve + cookie-auth gates downstream).
+		'capability'  => isset( $manifest['capability'] ) ? sanitize_text_field( (string) $manifest['capability'] ) : 'manage_options',
 		'installed'   => time(),
 		'builtin'     => true,
 	);

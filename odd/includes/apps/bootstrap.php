@@ -31,12 +31,49 @@ if ( ! defined( 'ODD_APPS_ENABLED' ) ) {
 	define( 'ODD_APPS_ENABLED', (bool) apply_filters( 'odd_apps_enabled', true ) );
 }
 
+// Always-loaded files.
+//
+//   - storage.php defines the filesystem + option helpers that every
+//     other apps file leans on.
+//   - registry.php exposes odd_apps_list() / odd_apps_manifest_load()
+//     — called from enqueue, main REST, and serve-cookieauth on every
+//     request that hits an /odd-app/ URL.
+//   - serve-cookieauth.php registers the init-priority-1 matcher that
+//     serves iframe sub-requests.
+//   - loader.php owns odd_apps_forbidden_extensions(), needed by the
+//     cookie-auth serve path on any /odd-app/ URL.
+//   - rest.php owns odd_apps_mime_for(), used by the cookie-auth serve
+//     path. Its register_rest_route() calls are hooked inside
+//     rest_api_init so the parse is cheap.
+//
+// All five are required on every request because a `/odd-app/...`
+// URL can be hit from the public front-end (the iframe asset
+// sub-requests are not flagged as REST/admin) and the serve path
+// would fatal without them.
 require_once ODD_DIR . 'includes/apps/storage.php';
-require_once ODD_DIR . 'includes/apps/loader.php';
 require_once ODD_DIR . 'includes/apps/registry.php';
+require_once ODD_DIR . 'includes/apps/loader.php';
 require_once ODD_DIR . 'includes/apps/rest.php';
 require_once ODD_DIR . 'includes/apps/serve-cookieauth.php';
-require_once ODD_DIR . 'includes/apps/native-surfaces.php';
-require_once ODD_DIR . 'includes/apps/migrate-from-bazaar.php';
-require_once ODD_DIR . 'includes/apps/bazaar-compat.php';
-require_once ODD_DIR . 'includes/apps/core-controller.php';
+
+// Context-gated files.
+//
+// These implement WP Desktop window/icon registration, the Bazaar →
+// ODD migration, catalog install, and Bazaar-compat shims. None of
+// it is needed on the public front-end (where a logged-out visitor
+// never sees the Desktop shell) or for iframe asset sub-requests.
+// Admin / REST / ajax / cron / CLI all still load everything.
+$odd_apps_bootstrap_needs_admin_surfaces = (
+	is_admin() ||
+	wp_doing_ajax() ||
+	wp_doing_cron() ||
+	( defined( 'WP_CLI' ) && WP_CLI ) ||
+	( isset( $_SERVER['REQUEST_URI'] ) && false !== strpos( (string) $_SERVER['REQUEST_URI'], '/wp-json/' ) )
+);
+if ( $odd_apps_bootstrap_needs_admin_surfaces ) {
+	require_once ODD_DIR . 'includes/apps/native-surfaces.php';
+	require_once ODD_DIR . 'includes/apps/migrate-from-bazaar.php';
+	require_once ODD_DIR . 'includes/apps/bazaar-compat.php';
+	require_once ODD_DIR . 'includes/apps/core-controller.php';
+}
+unset( $odd_apps_bootstrap_needs_admin_surfaces );

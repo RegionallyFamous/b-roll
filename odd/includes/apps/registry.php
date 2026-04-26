@@ -174,14 +174,34 @@ add_filter(
 );
 
 /**
- * Reapply manifest.extensions for every installed app on every load.
- * This is how apps' muses / commands / widgets / rituals / motion
- * primitives stay registered across requests.
+ * Reapply manifest.extensions for every installed app on every load
+ * of a context that actually renders the Desktop shell or speaks to
+ * the ODD REST namespace. This is how apps' muses / commands /
+ * widgets / rituals / motion primitives stay registered.
+ *
+ * Gated to admin / REST / ajax: the public front-end, wp-cron,
+ * WP-CLI, and `wp_installing()` have no use for these filters, and
+ * the loop costs one get_option + JSON decode + filter registration
+ * per enabled app. Skipping them on irrelevant requests adds up when
+ * you consider cron waking the site dozens of times an hour.
  */
 add_action(
 	'init',
 	function () {
 		if ( ! defined( 'ODD_APPS_ENABLED' ) || ! ODD_APPS_ENABLED ) {
+			return;
+		}
+		if ( wp_installing() ) {
+			return;
+		}
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			return;
+		}
+		if ( wp_doing_cron() ) {
+			return;
+		}
+		$needs_extensions = is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST );
+		if ( ! $needs_extensions ) {
 			return;
 		}
 		foreach ( odd_apps_list() as $row ) {

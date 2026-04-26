@@ -17,6 +17,72 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Shared registry of broken manifest.json paths.
+ *
+ * Both the scene registry (odd/includes/wallpaper/registry.php) and
+ * the icon registry below push onto this list when json_decode
+ * silently returns null — previously those failures were invisible
+ * and the whole set/scene just disappeared from the panel with no
+ * admin-side signal.
+ *
+ * On WP_DEBUG we error_log each entry as it comes in so devs see
+ * the failure on first refresh; for production we also surface a
+ * single admin_notices banner to any `manage_options` user so the
+ * site owner knows something broke.
+ *
+ * Kept intentionally minimal — odd/bin/validate-scenes and
+ * odd/bin/validate-icon-sets are the primary authoring tools; this
+ * is the runtime safety net for hand-edited JSON or broken
+ * third-party content.
+ */
+function odd_registry_bad_manifests( $path = null, $error = null ) {
+	static $store = array();
+	if ( null !== $path ) {
+		if ( ! isset( $store[ $path ] ) ) {
+			$store[ $path ] = (string) $error;
+		}
+	}
+	return $store;
+}
+
+function odd_registry_report_bad_manifest( $path, $error = '' ) {
+	$before = count( odd_registry_bad_manifests() );
+	odd_registry_bad_manifests( (string) $path, (string) $error );
+	$after = count( odd_registry_bad_manifests() );
+	if ( $after === $before ) {
+		return; // Already reported this path.
+	}
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'error_log' ) ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf( '[ODD] manifest failed to parse: %s (%s)', $path, $error ) );
+	}
+	if ( 1 === $after && is_admin() && ! has_action( 'admin_notices', 'odd_registry_admin_notice_bad_manifests' ) ) {
+		add_action( 'admin_notices', 'odd_registry_admin_notice_bad_manifests' );
+	}
+}
+
+function odd_registry_admin_notice_bad_manifests() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	$list = odd_registry_bad_manifests();
+	if ( empty( $list ) ) {
+		return;
+	}
+	echo '<div class="notice notice-error"><p><strong>ODD</strong>: ';
+	echo esc_html__( 'One or more manifest.json files failed to parse and were ignored. Check the plugin folder:', 'odd' );
+	echo '</p><ul style="margin-left:2em;list-style:disc">';
+	foreach ( $list as $path => $error ) {
+		echo '<li><code>' . esc_html( (string) $path ) . '</code>';
+		if ( $error ) {
+			echo ' — ' . esc_html( (string) $error );
+		}
+		echo '</li>';
+	}
+	echo '</ul></div>';
+}
+
+/**
  * Why not data URIs any more: in v1.0.4 we stopped emitting
  * `data:image/svg+xml;utf8,...` icons because WP Desktop Mode's
  * client-side `resolveIcon()` only accepts `data:image/svg+xml;base64,`
@@ -90,11 +156,37 @@ function odd_icons_tinted_svg_url( $set_slug, $key ) {
 	return rest_url( 'odd/v1/icons/' . $set_slug . '/' . $key );
 }
 
+/**
+ * Transient key for the persisted icon registry. Keyed by
+ * ODD_VERSION so a plugin update automatically busts the cache —
+ * new / renamed / removed sets propagate without a manual flush.
+ */
+function odd_icons_registry_transient_key() {
+	return 'odd_icon_registry_v' . ( defined( 'ODD_VERSION' ) ? ODD_VERSION : '0' );
+}
+
 function odd_icons_get_sets() {
 	static $cache = null;
 	if ( null !== $cache ) {
 		return $cache;
 	}
+
+	// Persistent cache: the on-disk registry is fully determined by
+	// files under assets/icons/, which only change on plugin update.
+	// Hitting this transient avoids ~221 small file reads + 17 JSON
+	// parses per cold PHP worker (17 sets × 13 icons each).
+	//
+	// Third-party plugins that extend the registry via the
+	// `odd_icon_set_registry` filter still get called on every
+	// request — the disk scan is the only thing we memoize.
+	$transient_key = odd_icons_registry_transient_key();
+	$persisted     = get_transient( $transient_key );
+	if ( is_array( $persisted ) ) {
+		$filtered = apply_filters( 'odd_icon_set_registry', $persisted );
+		$cache    = is_array( $filtered ) ? $filtered : $persisted;
+		return $cache;
+	}
+
 	$cache = array();
 
 	$root = ODD_DIR . 'assets/icons';
@@ -121,6 +213,7 @@ function odd_icons_get_sets() {
 		}
 		$data = json_decode( $raw, true );
 		if ( ! is_array( $data ) ) {
+			odd_registry_report_bad_manifest( $manifest_path, json_last_error_msg() );
 			continue;
 		}
 
@@ -178,6 +271,12 @@ function odd_icons_get_sets() {
 			'icons'       => $icons,
 		);
 	}
+
+	// Persist the disk-scan result before letting filters mutate it.
+	// Filters run per-request so plugins that register sets
+	// conditionally (per-user, per-role) keep working; the cached
+	// value is the "raw" set list only.
+	set_transient( $transient_key, $cache, DAY_IN_SECONDS );
 
 	/**
 	 * Filter the ODD icon-set registry.

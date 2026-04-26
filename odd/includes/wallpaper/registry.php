@@ -28,6 +28,9 @@ function odd_wallpaper_scenes() {
 		$path      = ODD_DIR . 'src/wallpaper/scenes.json';
 		$raw       = is_readable( $path ) ? file_get_contents( $path ) : '';
 		$data      = json_decode( $raw, true );
+		if ( ! is_array( $data ) && '' !== $raw ) {
+			odd_registry_report_bad_manifest( $path, json_last_error_msg() );
+		}
 		$from_disk = is_array( $data ) ? $data : array();
 		/**
 		 * Filter the ODD scene registry.
@@ -48,6 +51,10 @@ function odd_wallpaper_scenes() {
 }
 
 function odd_wallpaper_scene_slugs() {
+	static $slugs = null;
+	if ( null !== $slugs ) {
+		return $slugs;
+	}
 	$slugs = array();
 	foreach ( odd_wallpaper_scenes() as $scene ) {
 		if ( isset( $scene['slug'] ) ) {

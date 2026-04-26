@@ -56,6 +56,7 @@ function odd_rest_prefs_get() {
 	}
 
 	$apps_enabled = defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED;
+	$apps_list    = ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? odd_apps_list() : array();
 
 	return rest_ensure_response(
 		array(
@@ -72,9 +73,9 @@ function odd_rest_prefs_get() {
 			'scenes'        => odd_wallpaper_scenes(),
 			'sets'          => $sets,
 			'appsEnabled'   => $apps_enabled,
-			'apps'          => ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? odd_apps_list() : array(),
+			'apps'          => $apps_list,
 			'userApps'      => array(
-				'installed' => ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? wp_list_pluck( odd_apps_list(), 'slug' ) : array(),
+				'installed' => wp_list_pluck( $apps_list, 'slug' ),
 				'pinned'    => (array) get_user_meta( $uid, 'odd_apps_pinned', true ),
 			),
 		)

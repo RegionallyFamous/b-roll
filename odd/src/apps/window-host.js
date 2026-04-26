@@ -63,11 +63,24 @@
 		return nodes[ nodes.length - 1 ];
 	}
 
+	/**
+	 * Ensure a mount has its iframe. Returns one of three strings so
+	 * callers can decide whether to fire APP_OPENED or skip it:
+	 *   - 'mounted'     : iframe was newly inserted.
+	 *   - 'already'     : iframe was already present — no-op.
+	 *   - 'skipped'     : mount was missing or lacked a src attr.
+	 *
+	 * This matters because both the WINDOW_OPENED handler and the
+	 * defensive MutationObserver path call installFrame independently.
+	 * Without the return code, the slower path re-emits APP_OPENED on
+	 * an already-mounted frame — double-firing downstream subscribers
+	 * (muse, motion, analytics).
+	 */
 	function installFrame( mount ) {
-		if ( ! mount ) return;
-		if ( mount.querySelector( 'iframe.odd-app-frame' ) ) return;
+		if ( ! mount ) return 'skipped';
+		if ( mount.querySelector( 'iframe.odd-app-frame' ) ) return 'already';
 		var src = mount.getAttribute( 'data-odd-app-src' );
-		if ( ! src ) return;
+		if ( ! src ) return 'skipped';
 
 		var frame = document.createElement( 'iframe' );
 		frame.className = 'odd-app-frame';
@@ -85,6 +98,7 @@
 			if ( loading ) loading.style.display = 'none';
 		} );
 		mount.appendChild( frame );
+		return 'mounted';
 	}
 
 	function removeFrame( slug ) {
@@ -118,7 +132,10 @@
 		var slug = slugFromWindowId( payload.id );
 		if ( ! slug ) return;
 		waitForMount( slug, 30, function ( mount ) {
-			installFrame( mount );
+			var result = installFrame( mount );
+			// If the MutationObserver path already mounted the iframe
+			// AND already emitted APP_OPENED, don't double-fire.
+			if ( result === 'already' ) return;
 			events.emit( events.NAMES.APP_OPENED, { slug: slug, windowId: payload.id } );
 		} );
 	} );
@@ -159,7 +176,11 @@
 			if ( host.querySelector( 'iframe.odd-app-frame' ) ) continue;
 			var slug = host.getAttribute( 'data-odd-app-slug' );
 			if ( ! slug ) continue;
-			installFrame( host );
+			var result = installFrame( host );
+			// Only emit APP_OPENED on an actual new mount. Without the
+			// guard, a stale host that already has an iframe would
+			// re-emit every time the observer picks it up.
+			if ( result !== 'mounted' ) continue;
 			events.emit( events.NAMES.APP_OPENED, { slug: slug, windowId: APP_ID_PREFIX + slug } );
 		}
 	}

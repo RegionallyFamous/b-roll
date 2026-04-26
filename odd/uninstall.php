@@ -1,0 +1,114 @@
+<?php
+/**
+ * ODD — uninstall handler.
+ *
+ * WordPress runs this file when the site admin deletes the plugin from
+ * the Plugins screen (not on simple deactivation). It's our one chance
+ * to scrub the database so a reinstall starts clean rather than
+ * inheriting stale option rows or user_meta from the previous tenant.
+ *
+ * WHAT GETS REMOVED
+ *
+ *   Site options
+ *     - odd_apps_index                 installed app catalog
+ *     - odd_apps_bazaar_migration      Bazaar → ODD migration report
+ *     - odd_apps_bazaar_notice         one-time admin notice flag
+ *     - odd_apps_bazaar_migration_lock legacy add_option lock (pre-1.3.3)
+ *     - odd_apps_shared_secret         signed-URL shared secret
+ *     - odd_app_{slug}                 one row per installed app
+ *
+ *   Site transients
+ *     - _transient_odd_apps_bazaar_migration_lock  (1.3.3+ lock)
+ *     - _transient_odd_icon_registry_v{version}    icon registry cache
+ *     - timeout rows for the above
+ *
+ *   User meta (all users)
+ *     - odd_schema_version
+ *     - any key starting with `odd_` (wallpaper, icon_set, favorites,
+ *       recents, shuffle, screensaver, audio_reactive, apps_pinned,
+ *       initiated, mascot_quiet, wink_unlocked, …)
+ *
+ * WHAT DOESN'T GET REMOVED
+ *
+ *   - wp-content/odd-apps/                          user-installed app
+ *     bundles. Admins may want to keep them around to reinstall later;
+ *     deletion on uninstall would be surprising. Clean up by hand if
+ *     desired.
+ *   - Third-party plugin data (b-roll legacy b_roll_* keys, Bazaar
+ *     bazaar_* options). Those plugins own their own lifecycle.
+ */
+
+defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
+
+global $wpdb;
+
+// Known site-level option rows. All are autoload=no in production
+// (see odd/includes/apps/storage.php and migrate-from-bazaar.php)
+// but delete_option handles both states.
+$odd_known_options = array(
+	'odd_apps_index',
+	'odd_apps_bazaar_migration',
+	'odd_apps_bazaar_notice',
+	'odd_apps_bazaar_migration_lock',
+	'odd_apps_shared_secret',
+);
+foreach ( $odd_known_options as $opt ) {
+	delete_option( $opt );
+}
+
+// Per-app option rows: odd_app_{slug}. A direct LIKE query is the
+// only way to sweep them without knowing the slug set after the
+// odd_apps_index row is already gone.
+$app_option_rows = $wpdb->get_col(
+	$wpdb->prepare(
+		"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+		$wpdb->esc_like( 'odd_app_' ) . '%'
+	)
+);
+if ( is_array( $app_option_rows ) ) {
+	foreach ( $app_option_rows as $row ) {
+		delete_option( $row );
+	}
+}
+
+// Transients. The icon-registry transient is keyed by ODD_VERSION
+// which we don't have at uninstall time, so match the family.
+$transient_prefixes = array(
+	'_transient_odd_',
+	'_transient_timeout_odd_',
+);
+foreach ( $transient_prefixes as $prefix ) {
+	$rows = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+			$wpdb->esc_like( $prefix ) . '%'
+		)
+	);
+	if ( is_array( $rows ) ) {
+		foreach ( $rows as $row ) {
+			delete_option( $row );
+		}
+	}
+}
+
+// User meta sweep. One LIKE scan to capture every odd_* key; a
+// second explicit delete for the schema version which doesn't fit
+// the prefix pattern cleanly (different naming, but odd_ prefix —
+// so actually covered, but we keep the explicit pass for safety
+// if the prefix rule ever changes).
+$wpdb->query(
+	$wpdb->prepare(
+		"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s",
+		$wpdb->esc_like( 'odd_' ) . '%'
+	)
+);
+$wpdb->query(
+	$wpdb->prepare(
+		"DELETE FROM {$wpdb->usermeta} WHERE meta_key = %s",
+		'odd_schema_version'
+	)
+);
+
+// Clear object cache so the next request doesn't resurrect
+// freshly-deleted values from in-process memoization.
+wp_cache_flush();

@@ -245,7 +245,16 @@ function odd_apps_rest_serve( WP_REST_Request $req ) {
 	}
 
 	$mime = odd_apps_mime_for( $full );
+	$body = null;
 	$size = filesize( $full );
+
+	if ( 'text/html' === $mime && function_exists( 'odd_apps_inject_runtime_importmap' ) ) {
+		$raw = file_get_contents( $full ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false !== $raw ) {
+			$body = odd_apps_inject_runtime_importmap( $raw );
+			$size = strlen( $body );
+		}
+	}
 
 	// Drain any admin-side output buffers so readfile streams the
 	// file bytes unmolested. Without this a stray debug notice or
@@ -269,11 +278,22 @@ function odd_apps_rest_serve( WP_REST_Request $req ) {
 	// prevent a third-party site from embedding the serve URL outside
 	// our own admin shell.
 	header( 'X-Frame-Options: SAMEORIGIN' );
-	// readfile() is used intentionally: the serve endpoint streams
-	// potentially multi-megabyte static assets to a sandboxed iframe
-	// and must not buffer the whole payload into memory.
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
-	readfile( $full );
+	if ( null !== $body ) {
+		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	} else {
+		// readfile() is used intentionally: the serve endpoint streams
+		// potentially multi-megabyte static assets to a sandboxed iframe
+		// and must not buffer the whole payload into memory.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		$sent = readfile( $full );
+		if ( false === $sent && defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'error_log' ) ) {
+			// Headers are already flushed at this point, so we can't
+			// surface the failure to the client — but logging lets
+			// the admin spot a disk-read or permissions regression.
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( '[ODD Apps] readfile() failed for %s', $full ) );
+		}
+	}
 	exit;
 }
 
@@ -340,7 +360,11 @@ function odd_apps_rest_icon( WP_REST_Request $req ) {
 		header( 'Content-Length: ' . (int) $size );
 	}
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
-	readfile( $full );
+	$sent = readfile( $full );
+	if ( false === $sent && defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'error_log' ) ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf( '[ODD Apps] readfile() failed for icon %s', $full ) );
+	}
 	exit;
 }
 

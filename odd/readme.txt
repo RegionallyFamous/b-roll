@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.2
+Stable tag: 1.4.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,12 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.4.4 =
+* Speed / reliability / security audit pass. Twelve targeted fixes across three tiers, no feature surface changes.
+* Correctness: Bazaar → ODD migration now correctly skips (instead of silently advancing the schema) when it can't acquire its concurrency lock, so a user whose first login raced another admin's pageload doesn't lose their per-ware manifest copy forever. The permanent `add_option` lock is replaced with a 60-second transient so a mid-migration fatal self-heals on the next pageload rather than wedging everyone. Per-app capability default is now `manage_options` whether an app was installed from a catalog entry or a zip upload — previously zip-installed apps defaulted to admin-only while built-ins defaulted to `read`, so the same app installed two ways had two different access policies. Schema-version migrations no longer require WP Desktop Mode to be active (they're pure usermeta rewrites; gating them on the host plugin meant a temporary deactivation silently skipped migrations for that admin session).
+* Performance: icon-set registry is now cached in a `ODD_VERSION`-keyed transient so admin pages no longer do 17 manifest JSON parses + ~220 small SVG reads on cold PHP workers. Apps subsystem's manifest-extensions loop is gated to admin / REST / ajax only, so wp-cron waking the site and logged-out front-end views skip the per-app get_option + JSON decode cost. The apps submodule bootstrap itself lazy-loads `rest.php` / `loader.php` / `native-surfaces.php` / `migrate-from-bazaar.php` / `core-controller.php` on public front-end requests. Panel payload building dedupes repeated `odd_apps_list()` and `odd_wallpaper_get_user_scene()` calls.
+* Hardening: remote `http(s)://` app icons are piped through `esc_url()` with a scheme allowlist (no more `javascript:` URIs leaking in via a bad manifest), the double-`APP_OPENED` race between the WINDOW_OPENED handler and the MutationObserver is fixed so muse / motion / analytics subscribers only fire once per app open, `readfile()` failures in both serve paths now log on `WP_DEBUG` so a disk-read regression surfaces in the error log, and a new `odd/uninstall.php` scrubs every `odd_*` option + user_meta key + transient when an admin deletes the plugin. Broken `manifest.json` files now surface a single admin notice naming the path(s) that failed to parse.
 
 = 1.3.2 =
 * Really fixes the blank-iframe bug for installed apps. 1.3.1 shipped a cookie-auth rewrite endpoint (`/odd-app/<slug>/<path>`) that depended on `flush_rewrite_rules` having persisted — a precondition that silently failed on Playground installs, mu-plugin-based setups, and any site with a stale `rewrite_rules` option, so the iframe kept 403ing its own asset sub-requests and painting white. The endpoint now matches directly against `$_SERVER['REQUEST_URI']` on `init` priority 1 (after `pluggable.php` loads so `wp_validate_auth_cookie` is available) instead of going through the rewrite pipeline. No flushes, no query vars, no activation dance — just a regex on the URI, a cookie HMAC re-validation, a capability check, and `readfile()`. Works the first time the plugin activates, on every install shape.
@@ -125,6 +131,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.4.4 =
+Speed / reliability / security audit pass — fixes a Bazaar-migration data-loss bug, caches the icon registry, hardens the remote-icon path, de-dupes the APP_OPENED event, and ships an uninstall.php. Recommended for every install.
 
 = 1.3.2 =
 Fixes the blank-iframe app regression that 1.3.1 tried (and failed) to fix. If you saw installed apps still paint white in 1.3.1, upgrade — they really load now.

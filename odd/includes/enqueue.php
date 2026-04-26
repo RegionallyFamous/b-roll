@@ -205,6 +205,13 @@ add_action(
 			);
 		}
 
+		// Resolve once, reuse — the panel reads both `scene` (canonical)
+		// and `wallpaper` (alias for older consumers) off the same key.
+		$active_scene = odd_wallpaper_get_user_scene( $uid );
+		$apps_enabled = defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED;
+		$installed    = ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? wp_list_pluck( odd_apps_list(), 'slug' ) : array();
+		$has_ext      = function_exists( 'odd_extensions_collect' );
+
 		$config = array(
 			'pluginUrl'        => ODD_URL,
 			'version'          => ODD_VERSION,
@@ -214,8 +221,8 @@ add_action(
 
 			// Wallpaper.
 			'scenes'           => odd_wallpaper_scenes(),
-			'scene'            => odd_wallpaper_get_user_scene( $uid ),
-			'wallpaper'        => odd_wallpaper_get_user_scene( $uid ),
+			'scene'            => $active_scene,
+			'wallpaper'        => $active_scene,
 			'favorites'        => odd_wallpaper_get_user_slug_list( $uid, 'odd_favorites' ),
 			'recents'          => odd_wallpaper_get_user_slug_list( $uid, 'odd_recents' ),
 			'shuffle'          => odd_wallpaper_get_user_shuffle( $uid ),
@@ -234,11 +241,11 @@ add_action(
 			// Registries reserved for Cut 1 consumers. Ship empty in
 			// this release; third-party plugins fill them by adding
 			// filters on the matching odd_*_registry names.
-			'muses'            => function_exists( 'odd_extensions_collect' ) ? odd_extensions_collect( 'muses' ) : array(),
-			'commands'         => function_exists( 'odd_extensions_collect' ) ? odd_extensions_collect( 'commands' ) : array(),
-			'widgets'          => function_exists( 'odd_extensions_collect' ) ? odd_extensions_collect( 'widgets' ) : array(),
-			'rituals'          => function_exists( 'odd_extensions_collect' ) ? odd_extensions_collect( 'rituals' ) : array(),
-			'motionPrimitives' => function_exists( 'odd_extensions_collect' ) ? odd_extensions_collect( 'motionPrimitives' ) : array(),
+			'muses'            => $has_ext ? odd_extensions_collect( 'muses' ) : array(),
+			'commands'         => $has_ext ? odd_extensions_collect( 'commands' ) : array(),
+			'widgets'          => $has_ext ? odd_extensions_collect( 'widgets' ) : array(),
+			'rituals'          => $has_ext ? odd_extensions_collect( 'rituals' ) : array(),
+			'motionPrimitives' => $has_ext ? odd_extensions_collect( 'motionPrimitives' ) : array(),
 
 			// Apps (v0.16.0). `apps` is the installed + enabled list
 			// filtered through odd_app_registry. `userApps` is the
@@ -246,10 +253,10 @@ add_action(
 			// to pin, and which they've installed themselves. Both
 			// ship only when the apps feature is flag-enabled so the
 			// JS store stays empty on legacy installs.
-			'appsEnabled'      => defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED,
-			'apps'             => ( defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED && function_exists( 'odd_extensions_collect' ) ) ? odd_extensions_collect( 'apps' ) : array(),
+			'appsEnabled'      => $apps_enabled,
+			'apps'             => ( $apps_enabled && $has_ext ) ? odd_extensions_collect( 'apps' ) : array(),
 			'userApps'         => array(
-				'installed' => ( defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED && function_exists( 'odd_apps_list' ) ) ? wp_list_pluck( odd_apps_list(), 'slug' ) : array(),
+				'installed' => $installed,
 				'pinned'    => (array) get_user_meta( $uid, 'odd_apps_pinned', true ),
 			),
 		);

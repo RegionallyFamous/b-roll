@@ -21,6 +21,7 @@
  * requests whose URI path matches
  *
  *   /odd-app/<slug>/<path>
+ *   /odd-app-runtime/<runtime-module>.js
  *
  * authenticates via the logged-in cookie, checks the app's
  * capability, streams the file, and exits. No rewrite rules, no REST
@@ -86,6 +87,11 @@ function odd_apps_cookieauth_maybe_serve() {
 	// installs (example.com/odd-app/...).
 	if ( '/' !== $home_path && 0 === strpos( $path, $home_path ) ) {
 		$path = substr( $path, strlen( $home_path ) - 1 );
+	}
+
+	if ( preg_match( '#^/odd-app-runtime/(react|react-dom|react-dom-client|react-jsx-runtime)\.js$#', $path, $runtime_match ) ) {
+		odd_apps_serve_runtime_module( $runtime_match[1] );
+		exit;
 	}
 
 	// Expect `/odd-app/<slug>[/<rest>]`.
@@ -183,7 +189,22 @@ function odd_apps_serve_cookieauth( $slug, $path ) {
 	}
 
 	$mime = odd_apps_mime_for( $full );
+	$body = null;
 	$size = filesize( $full );
+
+	if ( 'text/html' === $mime ) {
+		// Browser-built app archives may leave React as bare module
+		// imports (`react`, `react-dom`, `react/jsx-runtime`). The
+		// sandbox iframe has no bundler, so those imports fail before
+		// the app can render. Injecting a same-origin import map here
+		// fixes fresh and already-installed apps without rewriting
+		// their archives on disk.
+		$raw = file_get_contents( $full ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false !== $raw ) {
+			$body = odd_apps_inject_runtime_importmap( $raw );
+			$size = strlen( $body );
+		}
+	}
 
 	while ( ob_get_level() > 0 ) {
 		@ob_end_clean();
@@ -199,8 +220,19 @@ function odd_apps_serve_cookieauth( $slug, $path ) {
 	}
 	header( 'Referrer-Policy: no-referrer' );
 	header( 'X-Frame-Options: SAMEORIGIN' );
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
-	readfile( $full );
+	if ( null !== $body ) {
+		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	} else {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		$sent = readfile( $full );
+		if ( false === $sent && defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'error_log' ) ) {
+			// Headers are already flushed by the time we're streaming,
+			// so we can't change the status — but logging makes a
+			// disk-read regression visible to admins.
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( '[ODD Apps] cookie-auth readfile() failed for %s', $full ) );
+		}
+	}
 }
 
 /**
@@ -212,4 +244,121 @@ function odd_apps_serve_cookieauth( $slug, $path ) {
 function odd_apps_cookieauth_url_for( $slug ) {
 	$slug = sanitize_key( (string) $slug );
 	return home_url( '/odd-app/' . $slug . '/' );
+}
+
+function odd_apps_runtime_importmap_html() {
+	$imports = array(
+		'react'             => home_url( '/odd-app-runtime/react.js' ),
+		'react-dom'         => home_url( '/odd-app-runtime/react-dom.js' ),
+		'react-dom/client'  => home_url( '/odd-app-runtime/react-dom-client.js' ),
+		'react/jsx-runtime' => home_url( '/odd-app-runtime/react-jsx-runtime.js' ),
+	);
+	return '<script type="importmap">' . wp_json_encode( array( 'imports' => $imports ) ) . '</script>';
+}
+
+function odd_apps_inject_runtime_importmap( $html ) {
+	if ( false !== stripos( $html, 'type="importmap"' ) || false !== stripos( $html, "type='importmap'" ) ) {
+		return $html;
+	}
+	$map = odd_apps_runtime_importmap_html();
+	if ( false !== stripos( $html, '<head>' ) ) {
+		return preg_replace( '#<head>#i', "<head>\n" . $map, $html, 1 );
+	}
+	if ( false !== stripos( $html, '<head ' ) ) {
+		return preg_replace( '#(<head\b[^>]*>)#i', '$1' . "\n" . $map, $html, 1 );
+	}
+	return $map . "\n" . $html;
+}
+
+function odd_apps_serve_runtime_module( $module ) {
+	$user_id = wp_validate_auth_cookie( '', 'logged_in' );
+	if ( ! $user_id ) {
+		status_header( 401 );
+		exit;
+	}
+	wp_set_current_user( $user_id );
+	if ( ! current_user_can( 'read' ) ) {
+		status_header( 403 );
+		exit;
+	}
+
+	$source = odd_apps_runtime_module_source( $module );
+	if ( '' === $source ) {
+		status_header( 404 );
+		exit;
+	}
+
+	while ( ob_get_level() > 0 ) {
+		@ob_end_clean();
+	}
+	nocache_headers();
+	header( 'Content-Type: text/javascript; charset=utf-8' );
+	header( 'X-Content-Type-Options: nosniff' );
+	header( 'Content-Length: ' . strlen( $source ) );
+	echo $source; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
+function odd_apps_runtime_module_source( $module ) {
+	$react_loader = "const host = window.parent || window;\n" .
+		"const wpElement = host.wp && host.wp.element ? host.wp.element : null;\n" .
+		"const React = host.React || wpElement;\n" .
+		"if (!React) { throw new Error('ODD app runtime: React is unavailable.'); }\n";
+
+	if ( 'react' === $module ) {
+		return $react_loader .
+			"export default React;\n" .
+			"export const Children = React.Children;\n" .
+			"export const Component = React.Component;\n" .
+			"export const Fragment = React.Fragment;\n" .
+			"export const StrictMode = React.StrictMode;\n" .
+			"export const cloneElement = React.cloneElement;\n" .
+			"export const createContext = React.createContext;\n" .
+			"export const createElement = React.createElement;\n" .
+			"export const createRef = React.createRef;\n" .
+			"export const forwardRef = React.forwardRef;\n" .
+			"export const isValidElement = React.isValidElement;\n" .
+			"export const lazy = React.lazy;\n" .
+			"export const memo = React.memo;\n" .
+			"export const startTransition = React.startTransition;\n" .
+			"export const Suspense = React.Suspense;\n" .
+			"export const useCallback = React.useCallback;\n" .
+			"export const useContext = React.useContext;\n" .
+			"export const useDebugValue = React.useDebugValue;\n" .
+			"export const useDeferredValue = React.useDeferredValue;\n" .
+			"export const useEffect = React.useEffect;\n" .
+			"export const useId = React.useId;\n" .
+			"export const useImperativeHandle = React.useImperativeHandle;\n" .
+			"export const useInsertionEffect = React.useInsertionEffect;\n" .
+			"export const useLayoutEffect = React.useLayoutEffect;\n" .
+			"export const useMemo = React.useMemo;\n" .
+			"export const useReducer = React.useReducer;\n" .
+			"export const useRef = React.useRef;\n" .
+			"export const useState = React.useState;\n" .
+			"export const useSyncExternalStore = React.useSyncExternalStore;\n" .
+			"export const useTransition = React.useTransition;\n";
+	}
+
+	if ( 'react-jsx-runtime' === $module ) {
+		return $react_loader .
+			"export const Fragment = React.Fragment;\n" .
+			"export function jsx(type, props, key) { return React.createElement(type, key === undefined ? props : Object.assign({}, props, { key })); }\n" .
+			"export const jsxs = jsx;\n" .
+			"export const jsxDEV = jsx;\n";
+	}
+
+	if ( 'react-dom' === $module || 'react-dom-client' === $module ) {
+		return "const host = window.parent || window;\n" .
+			"const wpElement = host.wp && host.wp.element ? host.wp.element : null;\n" .
+			"const ReactDOM = host.ReactDOM || wpElement;\n" .
+			"if (!ReactDOM) { throw new Error('ODD app runtime: ReactDOM is unavailable.'); }\n" .
+			"export default ReactDOM;\n" .
+			"export const createPortal = ReactDOM.createPortal;\n" .
+			"export const flushSync = ReactDOM.flushSync;\n" .
+			"export const createRoot = ReactDOM.createRoot;\n" .
+			"export const hydrateRoot = ReactDOM.hydrateRoot;\n" .
+			"export const render = ReactDOM.render;\n" .
+			"export const unmountComponentAtNode = ReactDOM.unmountComponentAtNode;\n";
+	}
+
+	return '';
 }
