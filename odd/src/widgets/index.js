@@ -179,20 +179,22 @@
 		var stage = el( 'button', {
 			type:       'button',
 			class:      'odd-eight__stage',
-			'aria-label': 'Magic 8-ball. Click to ask again.',
+			'aria-label': 'Magic 8-ball. Click to shake for a new answer.',
 		} );
 
 		var ball      = el( 'div', { class: 'odd-eight__ball' } );
 		var shine     = el( 'div', { class: 'odd-eight__shine', 'aria-hidden': 'true' } );
-		var window_   = el( 'div', { class: 'odd-eight__window', 'aria-hidden': 'true' } );
+		var badge     = el( 'div', { class: 'odd-eight__badge', 'aria-hidden': 'true' }, '8' );
+		var window_   = el( 'div', { class: 'odd-eight__window' } );
 		var triangle  = el( 'div', { class: 'odd-eight__triangle' } );
 		var answer    = el( 'div', { class: 'odd-eight__answer', role: 'status', 'aria-live': 'polite' }, 'Ask a question' );
-		var hint      = el( 'div', { class: 'odd-eight__hint', 'aria-hidden': 'true' }, 'Click to shake' );
+		var hint      = el( 'div', { class: 'odd-eight__hint', 'aria-hidden': 'true' }, 'Click the ball to shake' );
 
-		window_.appendChild( triangle );
 		triangle.appendChild( answer );
-		ball.appendChild( window_ );
+		window_.appendChild( triangle );
 		ball.appendChild( shine );
+		ball.appendChild( badge );
+		ball.appendChild( window_ );
 		stage.appendChild( ball );
 		container.appendChild( stage );
 		container.appendChild( hint );

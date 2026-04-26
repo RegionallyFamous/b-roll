@@ -113,8 +113,9 @@
 .odd-widget--eight {
 	align-items: center;
 	justify-content: center;
-	gap: 10px;
+	gap: 8px;
 	padding: 14px;
+	background: transparent;
 }
 
 .odd-eight__stage {
@@ -129,24 +130,26 @@
 	cursor: pointer;
 	outline-offset: 4px;
 	border-radius: 50%;
+	/* Fill most of the widget height; width adapts to fit. */
+	width: min( 170px, 100% );
+	aspect-ratio: 1 / 1;
 }
 .odd-eight__stage:focus-visible {
 	outline: 2px solid #a78bfa;
 }
 
 .odd-eight__ball {
-	--size: min( 148px, calc( 100% - 12px ) );
 	position: relative;
-	width: var( --size );
-	aspect-ratio: 1 / 1;
+	width: 100%;
+	height: 100%;
 	border-radius: 50%;
 	background:
-		radial-gradient( circle at 32% 28%, #3a3a44 0%, #14141a 46%, #04040a 100% );
+		radial-gradient( circle at 32% 28%, #44444d 0%, #17171d 44%, #050508 100% );
 	box-shadow:
-		0 1px 0 rgba( 255, 255, 255, 0.08 ) inset,
-		0 20px 30px -14px rgba( 0, 0, 0, 0.65 ),
-		0 0 0 1px rgba( 0, 0, 0, 0.6 );
-	transform-origin: 50% 60%;
+		0 1px 0 rgba( 255, 255, 255, 0.1 ) inset,
+		0 -10px 28px -10px rgba( 0, 0, 0, 0.6 ) inset,
+		0 20px 34px -12px rgba( 0, 0, 0, 0.7 ),
+		0 0 0 1px rgba( 0, 0, 0, 0.7 );
 	animation: odd-eight-wobble 6s ease-in-out infinite;
 }
 
@@ -156,58 +159,88 @@
 
 .odd-eight__shine {
 	position: absolute;
-	top: 10%;
-	left: 18%;
-	width: 38%;
-	height: 30%;
+	top: 9%;
+	left: 16%;
+	width: 34%;
+	height: 26%;
 	border-radius: 50%;
-	background: radial-gradient( ellipse at 35% 30%, rgba( 255, 255, 255, 0.55 ) 0%, rgba( 255, 255, 255, 0.1 ) 45%, rgba( 255, 255, 255, 0 ) 70% );
+	background: radial-gradient( ellipse at 35% 30%, rgba( 255, 255, 255, 0.55 ) 0%, rgba( 255, 255, 255, 0.12 ) 45%, rgba( 255, 255, 255, 0 ) 70% );
 	filter: blur( 1px );
 	pointer-events: none;
 	transition: transform 0.3s ease-out;
 }
 
+/* The iconic white "8" badge, upper-front. */
+.odd-eight__badge {
+	position: absolute;
+	top: 14%;
+	left: 50%;
+	transform: translateX( -50% );
+	width: 30%;
+	aspect-ratio: 1 / 1;
+	border-radius: 50%;
+	background: radial-gradient( circle at 38% 32%, #ffffff 0%, #f0f0f0 58%, #d8d8d8 100% );
+	box-shadow:
+		inset 0 1px 2px rgba( 255, 255, 255, 0.9 ),
+		inset 0 -1px 3px rgba( 0, 0, 0, 0.18 ),
+		0 2px 4px rgba( 0, 0, 0, 0.35 );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #0a0a0a;
+	font: 900 24px/1 "Helvetica Neue", "Arial Black", Arial, sans-serif;
+	pointer-events: none;
+}
+
+/* The dark answer window, lower-front. */
 .odd-eight__window {
 	position: absolute;
+	bottom: 10%;
 	left: 50%;
-	top: 50%;
-	width: 58%;
+	transform: translateX( -50% );
+	width: 60%;
 	aspect-ratio: 1 / 1;
-	transform: translate( -50%, -50% );
 	border-radius: 50%;
-	background: radial-gradient( circle at 50% 50%, #1a2a4a 0%, #0a1530 65%, #050a20 100% );
+	background:
+		radial-gradient( circle at 50% 38%, #0a1530 0%, #050a18 72%, #02040a 100% );
 	box-shadow:
-		0 0 0 2px rgba( 0, 0, 0, 0.8 ) inset,
-		0 0 14px rgba( 0, 0, 0, 0.6 ) inset;
+		inset 0 2px 5px rgba( 0, 0, 0, 0.85 ),
+		inset 0 -1px 2px rgba( 10, 30, 80, 0.45 ),
+		0 0 0 1px rgba( 0, 0, 0, 0.9 );
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	overflow: hidden;
+	pointer-events: none;
 }
 
+/* Inverted blue triangle floating in the window — flat top,
+   point at the bottom. Text reads across the wide top edge. */
 .odd-eight__triangle {
 	position: relative;
-	width: 78%;
-	aspect-ratio: 1 / 1;
-	background: linear-gradient( 180deg, #264a9a 0%, #13285a 100% );
-	clip-path: polygon( 50% 0, 100% 100%, 0 100% );
+	width: 88%;
+	aspect-ratio: 1 / 0.92;
+	background: linear-gradient( 180deg, #2d5cc0 0%, #1d3f8c 55%, #122766 100% );
+	clip-path: polygon( 0 0, 100% 0, 50% 100% );
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: center;
-	padding: 18% 10% 4%;
+	padding: 9% 10% 0;
 	box-sizing: border-box;
+	pointer-events: none;
 }
 
 .odd-eight__answer {
 	color: #eaf0ff;
 	text-align: center;
-	font: 600 10.5px/1.15 "Helvetica Neue", Arial, sans-serif;
+	font: 700 9.5px/1.15 "Helvetica Neue", Arial, sans-serif;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
-	text-shadow: 0 1px 0 rgba( 0, 0, 0, 0.5 );
+	text-shadow: 0 1px 0 rgba( 0, 0, 0, 0.55 );
 	opacity: 1;
 	transition: opacity 0.22s ease;
 	word-break: break-word;
+	max-width: 100%;
 }
 .odd-eight__answer.is-fading { opacity: 0; }
 
@@ -216,6 +249,7 @@
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	opacity: 0.58;
+	text-align: center;
 }
 
 .odd-widget--eight.is-reduced .odd-eight__ball {
@@ -229,16 +263,16 @@
 
 @keyframes odd-eight-shake {
 	0%   { transform: translate( 0, 0 ) rotate( 0 ); }
-	15%  { transform: translate( -6px, -2px ) rotate( -4deg ); }
-	30%  { transform: translate( 6px, 1px ) rotate( 4deg ); }
-	45%  { transform: translate( -5px, 2px ) rotate( -3deg ); }
-	60%  { transform: translate( 5px, -1px ) rotate( 3deg ); }
+	15%  { transform: translate( -6px, -2px ) rotate( -6deg ); }
+	30%  { transform: translate( 6px, 1px ) rotate( 6deg ); }
+	45%  { transform: translate( -5px, 2px ) rotate( -4deg ); }
+	60%  { transform: translate( 5px, -1px ) rotate( 4deg ); }
 	75%  { transform: translate( -3px, 1px ) rotate( -2deg ); }
 	90%  { transform: translate( 2px, 0 ) rotate( 1deg ); }
 	100% { transform: translate( 0, 0 ) rotate( 0 ); }
 }
 
 @media ( prefers-reduced-motion: reduce ) {
-	.odd-eight__ball { animation: none; }
+	.odd-eight__ball { animation: none; transition: none; }
 	.odd-eight__shine { transition: none; }
 }
