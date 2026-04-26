@@ -38,8 +38,8 @@ odd/
 │   ├── shared/
 │   │   └── api.js                 window.__odd.api — setScene / setIconSet / shuffle / openPanel / toast
 │   ├── widgets/
-│   │   ├── index.js               registerWidget × 4 (Now Playing, Picker, Postcard, Clock)
-│   │   └── style.css              scoped widget styles + per-icon-set clock skins
+│   │   ├── index.js               registerWidget × 2 (Sticky Note, Magic 8-Ball)
+│   │   └── style.css              scoped widget styles
 │   ├── commands/
 │   │   └── index.js               registerCommand × 4 (/odd, /odd-icons, /shuffle, /odd-panel)
 │   ├── panel/
@@ -68,7 +68,7 @@ odd/
 
 ### Single-window contract
 
-The desktop icon registered in `includes/native-window.php`, the `/odd-panel` slash command, and every widget "Open ODD" affordance ultimately call `wp.desktop.registerWindow({ id: 'odd', … })` (via `window.__odd.api.openPanel()`). WP Desktop Mode's window manager reuses any window with a matching `baseId`, so there's always at most one Control Panel instance on screen.
+The desktop icon registered in `includes/native-window.php` and the `/odd-panel` slash command both call `wp.desktop.registerWindow({ id: 'odd', … })` (via `window.__odd.api.openPanel()`). WP Desktop Mode's window manager reuses any window with a matching `baseId`, so there's always at most one Control Panel instance on screen.
 
 The panel body is rendered by `window.wpDesktopNativeWindows.odd = body => { … }` in `src/panel/index.js`. Layout is a fixed-width sidebar (Wallpaper / Icons / About) plus a scrollable content pane. All state flows through REST.
 
