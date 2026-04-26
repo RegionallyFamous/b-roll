@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="ODD">
+	<defs>
+		<linearGradient id="odd-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+			<stop offset="0%" stop-color="#ff4fa8"/>
+			<stop offset="55%" stop-color="#9d6bff"/>
+			<stop offset="100%" stop-color="#5a35d6"/>
+		</linearGradient>
+		<radialGradient id="odd-iris" cx="42%" cy="38%" r="68%">
+			<stop offset="0%" stop-color="#c6fbff"/>
+			<stop offset="45%" stop-color="#70f5ff"/>
+			<stop offset="100%" stop-color="#1e7ac9"/>
+		</radialGradient>
+	</defs>
+	<rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="url(#odd-bg)"/>
+	<circle cx="32" cy="32" r="20" fill="#fdfaf2" stroke="#130826" stroke-width="3"/>
+	<circle cx="32" cy="32" r="13" fill="url(#odd-iris)"/>
+	<circle cx="32" cy="32" r="6" fill="#091425"/>
+	<circle cx="29" cy="29" r="2.4" fill="#ffffff"/>
+</svg>
