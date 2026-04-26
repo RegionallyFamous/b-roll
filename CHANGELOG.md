@@ -8,6 +8,11 @@ Each section is delimited by an `<a id="vX.Y.Z"></a>` anchor so
 `odd/bin/release-notes <version>` can slice it out for GitHub release
 bodies.
 
+This file records the milestones users actually care about. Patch
+releases that tuned, corrected, or iterated on a milestone are folded
+into the parent entry and called out inline where it matters. The git
+tag history is the full record of every shipped version.
+
 <a id="unreleased"></a>
 ## [Unreleased]
 
@@ -15,229 +20,101 @@ bodies.
 ## [1.7.1] — 2026-04-26
 
 ### Changed
-- **Polish pass across the ODD Shop.** Consolidates the chrome into a single interaction grammar so every department looks like the same store.
-  - **Shared pill language.** Hero CTAs and widget tile buttons both come from the same `--primary` (accent fill with soft shadow) / `--ghost` (white with border / bordered translucent) pattern, with consistent hover-lift (`translateY(-1px)`), `:active` depress, and `:focus-visible` ring. Replaces the bespoke `.odd-shop__hero-cta` variants used on the Widgets hero.
-  - **Rail + topbar.** Active rail item picks up a subtle top-to-bottom gradient (`#1d8cff → #006cdd`) with an inner highlight, plus a `:focus-visible` ring. Topbar gets a 1px inset top highlight (`rgba(255,255,255,.6)`) so it reads as glass instead of matte paint.
-  - **Shelf + quilt details.** Shelf counts render as small rounded chips (`rgba(60,60,67,.08)` tabular numerals) rather than raw grey text, so they feel like labels instead of afterthoughts. Quilt tiles reveal a soft "→" arrow in the top-right on hover or keyboard focus (hidden baseline, fades in on interaction) to signal they jump to a shelf.
-  - **Shelf entrance.** New `odd-shop-rise` keyframe runs a 6px fade-up on shelf mount so switching departments feels live; respects `prefers-reduced-motion`.
-
-### Polished
-- **Widget tiles get depth.** Inner shine overlay (`radial-gradient + linear-gradient`) on every thumb gives the gradient + emoji combo a molded-sticker feel; glyph scales up to `scale(1.06) translateY(-2px)` on hover with a `.24s cubic-bezier(.2,.8,.2,1)` transition; the "On desktop" chip now shows a green status dot (`#22c55e`) with a soft ring; enabled tiles get an accent-tinted outer glow (`0 18px 36px -24px rgba(0,113,227,.35)`).
-- **Widget hero glyph.** Gentle 7-second vertical bob (`odd-shop-bob`) swaps out under reduced-motion. Font-size clamped to `clamp(130px, 26vw, 240px)` so the glyph never clips on narrow panels — the earlier `min(260px, 42vh)` was hit by tall aspect-ratio heroes and bled past the scrim.
-- **Empty-state + tip + reset row.** The "No results" state now leads with a 🔍 icon above the headline. Widget footer is a shared `.odd-shop__tip` row (13px text, subtle blue gradient background, 💡 icon in a white tinted circle). Icon-set "Reset to default" row gets a matching ↺ icon in the same circle treatment, so the three informational rows read as one visual family.
-- **Icon-set catalog rows.** Pick up a 1px hover lift + softer shadow so the rows read as tappable surfaces; the `is-active` row gains a subtle accent-tinted outer shadow to match the tile active state.
+- **Polish pass across the ODD Shop.** One interaction grammar for every department: shared primary/ghost pill language for hero CTAs and tile buttons, consistent hover lifts on tiles and catalog rows, subtle top-to-bottom gradient on the active rail item, 1px inset top highlight on the topbar, pill-style shelf counts, and a "→" arrow hint on category quilt tiles. Empty state, widgets footer, and the "Reset to default" row share one informational-row pattern (icon-in-circle + text). Widget tiles gain an inner shine overlay, a scaling glyph on hover, and a green status dot on the "On desktop" chip; the widget hero glyph bobs gently on a 7s loop.
 
 ### Accessibility
-- **Focus rings everywhere.** Explicit `:focus-visible` outlines added to rail items, hero buttons (`odd-shop__hero-btn` primary + ghost), and widget tile buttons. Every interactive element in the Shop now has a visible keyboard-focus state.
-- **`aria-pressed`** on widget tile buttons so screen readers announce the current enablement state alongside the label (`Add to desktop` → pressed=false, `Remove` → pressed=true).
+- Explicit `:focus-visible` outlines on the rail, hero buttons, and tile buttons; `aria-pressed` on widget Add/Remove pills.
 
 <a id="v1.7.0"></a>
 ## [1.7.0] — 2026-04-26
 
 ### Added
-- **Widgets department in the ODD Shop.** New fourth department (between Icon Sets and Apps) for browsing and toggling ODD's desktop widgets. Ships with the two widgets introduced in 1.4.0 (**Sticky Note** 📝 and **Magic 8-Ball** 🎱) presented as gradient-glyph tiles — a warm yellow/papaya gradient for Sticky, a midnight/purple gradient for 8-Ball — on the same Mac App Store chrome as the other departments:
-  - **Hero card.** Features whatever's currently on your desktop, falling back to the top of the catalog as a "try me" slot when nothing's enabled. The eyebrow flips from "Featured widget" to "On your desktop" based on enablement; the CTA flips from "Add to desktop" to "Remove from desktop". Hero uses an oversized translucent glyph as its visual anchor (no painted artwork to ship — widgets are code-only).
-  - **Shelf of cards.** One row titled "ODD Widgets" with a gradient thumbnail panel + giant glyph, the widget label, a one-line tagline, and an Add/Remove pill. Enabled widgets pick up an "On desktop" chip on the thumbnail and an inverted pill treatment.
-  - **Search works.** The Shop's global search filters widgets by label, tagline, and description.
-  - **Helpful footer.** A reminder tip that added widgets appear on the desktop's right-hand column and can be dragged anywhere by their title bar — widgets live on the desktop itself, which isn't obvious when browsing them from inside an ODD window that sits above the dock.
+- **Widgets department in the ODD Shop.** Fourth department (between Icon Sets and Apps) for browsing and toggling ODD's desktop widgets (Sticky Note 📝 and Magic 8-Ball 🎱). Editorial hero card with a translucent oversized glyph that flips between "Featured widget" and "On your desktop" depending on state; shelf of gradient-glyph tiles with inline Add/Remove pills; global search filters widget label, tagline, and description; footer tip explaining where widgets appear on the desktop.
 
 ### Internal
-- **Uses `wp.desktop.widgetLayer` directly.** Add/remove go through `.add(id)` / `.remove(id)`; the rendered state reads `.getEnabledIds()` and falls back to the `wp-desktop-widgets` localStorage key if the layer object isn't available yet (boot races after a hard reload). This is the public API WP Desktop Mode exposes for exactly this kind of external picker.
-- **Live sync with external × clicks.** Subscribes to `wp-desktop.widget.added` / `wp-desktop.widget.removed` under the `odd/widgets` namespace during panel mount, removes them on teardown so re-opening the Shop doesn't stack duplicate subscriptions. If the user dismisses a widget from the × on the card itself (while the Shop is open), the Widgets tab re-renders so the Add/Remove state stays correct. The hook subscription is gated on `state.active === 'widgets'` to avoid re-rendering the Wallpapers or Apps tabs when the user is looking at something else.
-- **Catalog is local.** Widget metadata (glyph, gradient, accent, tagline, long description) lives inline in `renderWidgets()` rather than in the widget registry — the registry holds runtime defs (id, label, mount), not editorial copy. When we grow beyond two widgets we'll either split this out into a JSON manifest alongside the wallpaper / icon-set registries, or lift the copy into each widget's `registerWidget` call.
-- **Shelf scope extended.** `renderShelf` previously switched layout + noun on `scope === 'wallpaper'` vs. everything-else (treated as icon sets). Added a third scope, `'widgets'`, that gets the tile track (same visual rhythm as wallpapers) and "widget"/"widgets" noun. Icon-set scope is unchanged.
-- **Test coverage.** `panel.test.js` now stubs `wp.desktop.widgetLayer` with a fake that captures `add` / `remove` calls and exposes `getEnabledIds`; the new test switches to the Widgets tab, asserts both ODD widgets render as tiles, clicks the Sticky "Add to desktop" pill, confirms `widgetLayer.add('odd/sticky')` fires, and verifies the card re-renders into the `is-active` state with the "Remove" label. The existing rail-labels test was extended to include "Widgets" alongside Wallpapers / Icon Sets / About.
+- Uses `wp.desktop.widgetLayer` directly for add/remove, with a `wp-desktop-widgets` localStorage fallback for post-reload boot races. Subscribes to `wp-desktop.widget.added` / `.removed` under the `odd/widgets` namespace so the Shop stays in sync with × clicks on the widgets themselves, and removes the subscriptions on teardown.
 
 <a id="v1.6.3"></a>
 ## [1.6.3] — 2026-04-26
 
 ### Changed
-- Hero contrast finally rock-solid. The 1.6.2 scrim faded to ~22% opacity by the title baseline and got eaten alive by bright editorial art (the Icons + Apps banners, especially). Replaced it with a near-solid left ink panel that holds .94→.92 alpha through the first 36% of the hero, eases out at 50%, and only goes transparent past the body content at ~84%. Stacked it with a vertical bottom haze so the floating thumbnail still bleeds in cleanly. Title + subtitle pick up a two-stop text-shadow halo (1px tight + 14px diffuse) and force `color:#fff` so they're legible on any backdrop. Eyebrow pill darkens its shadow stop to match.
-- Categories instead of franchises. The shelving model rolled up by `franchise`, but every icon set declared its own franchise — so the Icons department rendered 17 shelves of one set each. Wallpapers were nearly as bad: 15 of 19 scenes lived under "ODD Originals" alongside three franchise singletons. Both surfaces now bucket items into curated categories with real siblings:
-  - Wallpapers: **Skies** (5 — aurora, rainfall, big-sky, cloud-city, weather-factory), **Wilds** (6 — circuit-garden, tropical-greenhouse, wildflower-meadow, tide-pool, abyssal-aquarium, sun-print), **Places** (5 — iris-observatory, pocket-dimension, balcony-noon, mercado, beach-umbrellas), **Forms** (3 — flux, origami, terrazzo).
-  - Icon Sets: **Playful** (5 — arcade-tokens, lemonade-stand, tiki, stadium, eyeball-avenue), **Crafted** (5 — claymation, cross-stitch, botanical-plate, fold, risograph), **Technical** (5 — blueprint, circuit-bend, hologram, monoline, filament), **Cool** (2 — arctic, brutalist-stencil).
-- Quilt + shelf headers now read "Browse by category" and use category gradients (Skies blue→sky, Wilds forest→leaf, Places terracotta→cream, Forms violet→lilac, Playful magenta→amber, Crafted umber→sand, Technical teal→cyan, Cool slate→ice).
-- "Default" pseudo-set no longer renders as a 1-item shelf. The synthetic "Default" tile is filtered out of both the category quilt and the shelves; instead, when a custom icon set is committed, a dedicated **Reset to default** pill renders between the hero and the quilt with a tertiary-style action that previews `none` so the user can confirm before reloading.
+- **The ODD Control Panel is now the ODD Shop** — a Mac App Store-style browsing surface for wallpapers, icon sets, and apps. Top bar with the ODD wordmark + search pill; translucent left rail with departments (Wallpapers · Icon Sets · Apps · About); editorial hero cards per department with artwork, scrim, and inline actions; category quilt that smooth-scrolls to the matching shelf; horizontal-scroll tile shelves with snap + count chips; floating preview bar for staged changes. The default window grew from 820×560 to 960×620 to match the new chrome.
+- **Curated categories instead of per-item franchises.** Every shelf has real siblings:
+  - Wallpapers: **Skies** · **Wilds** · **Places** · **Forms**
+  - Icon Sets: **Playful** · **Crafted** · **Technical** · **Cool**
+- **Apps get editorial framing.** Dedicated hero artwork (Icon Sets and Apps banners generated as original editorial art); "mini apps that just run on your WordPress desktop" language replaces the prior "sandboxed bundles" framing throughout user-facing copy. Technical references to the iframe sandbox are unchanged.
+- **Hero contrast pass.** Stacked asymmetric scrim (near-solid on the left where text lives, transparent on the right where the artwork sits) with two-stop text-shadow halos on the title + subtitle so headlines stay legible on any backdrop.
+- **Reset-to-default row.** When a custom icon set is committed, a dedicated pill renders between the hero and the quilt instead of surfacing a synthetic "Default" tile inside the catalog.
 
 ### Internal
-- New `categoryOf( item, kind )` and `compareCategoryNames( a, b )` helpers replace the per-franchise `groupByFranchise` path. Tables live inside the helper functions so they survive `var`-hoist ordering during initial render — same fix pattern as `franchiseGradient` from 1.6.1. Items not yet curated fall back to their declared `franchise` so nothing disappears, just lands at the bottom of the category sort.
-- `franchiseGradient` keeps its name (legacy callers) but the palette gains explicit entries for each new category. Old per-franchise entries stay so any uncurated item renders the same as before.
-- `panel.test.js` fixture now uses three slugs that map to three distinct categories (flux→Forms, aurora→Skies, circuit-garden→Wilds) so the existing 3-shelf assertion still holds; assertion comment updated to reflect category grouping.
-
-<a id="v1.6.2"></a>
-## [1.6.2] — 2026-04-26
-
-### Changed
-- Apps user-facing copy rewritten. The Apps department is no longer described as "sandbox bundles" / "sandboxed bundles" / "apps in a sandbox" anywhere users actually read. Apps are now framed as **mini apps that run on your WordPress desktop without using or knowing anything about WordPress** — they just open from the dock icon. Applies to: rail tagline, Apps section description, About strapline, About credit, and `readme.txt` plugin description. Technical references to the iframe sandbox (security headers, REST docs, app-developer docs) are unchanged because the iframe IS sandboxed.
-- Icon Sets + Apps departments now ship dedicated editorial hero artwork. Generated `odd/assets/shop/icons-hero.webp` (constellation of pastel app-icon stickers on a deep galactic gradient) and `odd/assets/shop/apps-hero.webp` (still-life of floating 3D mini-app objects on a peach-to-rose backdrop). The Icon Sets hero now uses the icons banner instead of a flat franchise gradient. The Apps department gets a hero where it previously had none.
-- Contrast + spacing pass on the Shop:
-  - Hero scrim is asymmetric (heavy on the left where text lives, transparent on the right where the artwork sits) so headlines stay readable on bright backgrounds like Aurora and Origami without washing out the art. Hero title + subtitle pick up text-shadow as belt-and-braces.
-  - Hero padding 26→32px, min-height 220→248px, title 36→40px, subtitle .82→.94 alpha; eyebrow opacity .16→.22 for legibility on light scrims.
-  - Department title 28→30px, shelf title 17→19px, content pane padding 28/36→32/40px, shelf bottom margins 32→36/48px so franchises breathe.
-  - `--odd-shop-ink-3` darkened from #6e6e73 to #5d5d62 (4.7→5.7 contrast on white) for the tile sub-line and rail tagline; `--odd-shop-ink-2` from #424245 to #3a3a3d.
-  - Quilt count picks up text-shadow + bumps to weight 700 so it survives the Paper (cream→amber) gradient. Quilt scrim now darkens both edges instead of only the bottom.
-  - Tile pill background 10%→12% alpha, hover 12%→18%; previewing pill swapped from amber-on-cream to a higher-contrast warm-brown-on-yellow. Tile title + sub now ellipsis-truncate.
-  - Search pill border thickened, padding bumped, max-width 360→380. Top bar drops the unused right-side gutter column (was reserving 60px for an avatar that never landed).
-
-### Internal
-- `pickFeaturedSet` no longer returns the synthetic "Default" pseudo-set as the hero for new users. It only honors `state.cfg.iconSet` when explicitly set, otherwise falls through to the first real installed set so the hero always shows off something stylable.
-- New `renderAppsHero()` mirrors the wallpaper / icons hero renderers; reads its banner from `assets/shop/apps-hero.webp`.
-
-<a id="v1.6.1"></a>
-## [1.6.1] — 2026-04-26
-
-### Changed
-- ODD Shop now ships a full Mac App Store-style layout pass. Each department (Wallpapers, Icon Sets) gets a full-width **hero card** featuring the active (or filtered-top) title with preview art, blurred scrim, eyebrow pill, and inline Preview / Active actions; a **"Browse by franchise" quilt** of gradient category tiles that smooth-scroll to the matching shelf; **horizontal-scrolling shelves** replacing the flat grids, with scroll-snap, native scrollbar styling, and a count anchor in the head; and **tile-style scene cards** — preview thumbnail on top, title + "Generative · Scene" subhead, inline blue `Preview` / `Open` / `Previewing` pill, corner `✓ Active` badge on the committed scene.
-- Top bar now includes a **search pill** that filters the current department's cards live against label, slug, franchise, and tags. Empty-results state reads "No scenes match …" and preserves the hero-less layout.
-- Preview bar was redesigned as a **floating pill** anchored to the content pane's lower-right (was: full-width sticky toolbar). Retains the eye glyph + `Keep` / `Apply` / `Cancel` actions.
-
-### Internal
-- New helpers in `src/panel/index.js`: `pickFeaturedScene` / `pickFeaturedSet` (hero source-of-truth), `renderWallpaperHero` / `renderIconHero`, `renderCategoryQuilt`, `filterByQuery`, `franchiseGradient` (deterministic hash fallback for unknown franchises), and `cssEscape` shim for franchise scroll anchors. `renderShelf` now takes `{ scope }` and builds a horizontal-scroll track instead of a grid. `redecorateSceneGrid` also syncs the inline pill label and the corner active badge so live swaps match the hero without re-render.
-- No REST, data, or extension-API changes. Internal window id is still `odd`. Back-compat preserved for slash commands, tests, and third-party extensions.
-
-<a id="v1.6.0"></a>
-## [1.6.0] — 2026-04-26
-
-### Changed
-- The ODD Control Panel is now the **ODD Shop** — a Mac App Store-style browsing surface. The native window adds a top bar with an ODD wordmark + tagline, a translucent left rail listing the departments (Wallpapers · Icon Sets · Apps · About) with glyphs and one-line taglines, and groups each catalog into franchise "shelves" (Generative, Atmosphere, Paper…). Default window size grew from 820×560 to 960×620 to match the new chrome; minimum is 720×480.
-- Slash command `/odd-panel` now reads "ODD: open Shop" in the ⌘K palette.
-- Plugin description (`odd/odd.php`) and short description (`odd/readme.txt`) refer to the window as the ODD Shop.
-
-### Internal
-- Window id stays `odd` for back-compat with WP Desktop Mode session state, tests, slash commands, and third-party extensions. All data, REST endpoints, live-swap hooks, and panel state logic are unchanged — only the chrome + copy moved.
-- `panel.test.js` asserts the new department rail labels (`Wallpapers`, `Icon Sets`, `About`) and the franchise shelf grouping (one `.odd-shop__shelf` per franchise in `window.odd.scenes`).
-
-<a id="v1.5.8"></a>
-## [1.5.8] — 2026-04-26
-
-### Added
-- `install-smoke` workflow that boots WordPress + WP Desktop Mode in CI, installs `odd.zip`, and asserts core entry points (`odd` active, `odd_wallpaper_scene_slugs`, `odd_apps_install`, `wp_desktop_dock_item` filter). Wired into the release pipeline as a gate.
-- Playground / blueprint / release-zip uptime probe (every 30 minutes). Opens or reuses a `uptime-auto`-labelled GitHub issue on failure and closes it on recovery.
-- Husky pre-commit hook running version check, scene + icon-set validators, the full Vitest suite, and `phpcs` on staged PHP.
-- `CHANGELOG.md` + `odd/bin/release-notes` for machine-readable release bodies.
-- Pull-request template and `.github/CODEOWNERS`.
+- No REST, data, or extension-API changes. Window id stays `odd`; slash commands, tests, and third-party extensions are preserved.
+- _Shipped across 1.6.0 – 1.6.3 as the redesign stabilized._
 
 <a id="v1.5.2"></a>
-## [1.5.2] — 2026-04-25
+## [1.5.2] — 2026-04-26
 
 ### Added
-- JS smoke tests: `scenes.test.js` (registers every scene, runs `setup` + `tick`), `widgets.test.js` (mount Sticky Note + Magic 8-Ball, regression-guards `pointer-events: none` on 8-Ball decorations), `panel.test.js` (sidebar/tabs render, preview bar Keep/Cancel flow).
+- **Testing + release infrastructure.**
+  - PHP_CodeSniffer + WordPress Coding Standards + PHPCompatibilityWP wired into CI (`phpcs.xml.dist`, `composer.json` scripts).
+  - PHPUnit integration suite on `wp-phpunit`: prefs REST, icons dock filter, wallpaper registry, apps install/uninstall, Bazaar shim.
+  - Vitest JS smoke suite: `scenes.test.js` (every scene registers, runs `setup` + `tick`), `widgets.test.js` (Sticky Note + Magic 8-Ball mount; regression guard for `pointer-events: none` on 8-Ball decorations), `panel.test.js` (sidebar / tabs / preview-bar Keep/Cancel flow).
+  - `install-smoke` workflow that boots WordPress + WP Desktop Mode in CI, installs `odd.zip`, and asserts core entry points.
+  - Playground / blueprint / release-zip uptime probe (every 30 minutes), opens a `uptime-auto` GitHub issue on failure.
+  - Husky pre-commit hook (version check, validators, Vitest, `phpcs` on staged PHP).
+  - `CHANGELOG.md` + `odd/bin/release-notes` for machine-readable release bodies. PR template + `.github/CODEOWNERS`.
 
 ### Fixed
 - Installed apps without React now paint an in-iframe banner instead of rendering blank.
-
-<a id="v1.5.1"></a>
-## [1.5.1] — 2026-04-25
-
-### Added
-- PHPUnit integration suite built on `wp-phpunit`, with tests for the prefs REST endpoint, icons dock filter, wallpaper registry, apps install/uninstall lifecycle, and the Bazaar compatibility shim.
-- Composer scripts (`phpcs`, `phpcbf`, `phpunit`, `test`) and an `install-wp-tests.sh` CI helper.
-
-<a id="v1.5.0"></a>
-## [1.5.0] — 2026-04-25
-
-### Added
-- PHP_CodeSniffer + WordPress Coding Standards + PHPCompatibilityWP wired into CI via `phpcs.xml.dist` and `composer.json`.
-
-### Changed
-- Large automated PHPCS/PHPCBF cleanup pass across `odd/` (spacing, Yoda, alignment, text-domain, silenced-error whitelist).
-
-<a id="v1.4.6"></a>
-## [1.4.6] — 2026
-
-### Fixed
-- Apps: enqueue `wp-element` so bare `react` imports resolve in installed apps.
-
-<a id="v1.4.5"></a>
-## [1.4.5]
-
-### Fixed
-- Installed-app windows hydrate client-side so Playground can no longer paint them white.
-
-<a id="v1.4.4"></a>
-## [1.4.4]
-
-### Changed
-- Speed / reliability / security audit pass across the plugin.
-
-<a id="v1.4.3"></a>
-## [1.4.3]
-
-### Fixed
-- Magic 8-Ball widget looks and behaves like an actual 8-Ball (the `pointer-events: none` regression guard later added in 1.5.2 covers this class of bug).
-
-<a id="v1.4.2"></a>
-## [1.4.2]
-
-### Changed
-- README and `CLAUDE.md` refreshed for the current scene + icon-set + apps catalog.
-
-<a id="v1.4.1"></a>
-## [1.4.1]
-
-### Fixed
-- Normalised stray comment encoding in four scene files that could surface as control bytes.
+- _Shipped across 1.5.0 – 1.5.8._
 
 <a id="v1.4.0"></a>
-## [1.4.0]
+## [1.4.0] — 2026-04-26
 
 ### Changed
-- Widgets: replace the introspective "Now Playing / Postcard / Clock" set with **Sticky Note** (persists via localStorage) and **Magic 8-Ball**.
+- **New widgets.** Replaced the "Now Playing / Postcard / Clock" set with **Sticky Note** (persists via `localStorage`) and **Magic 8-Ball**.
 
 ### Fixed
-- Installed apps no longer paint blank because `/odd-app/` URIs now match on `init`.
+- Installed apps no longer paint blank: React + `wp-element` hydration and `/odd-app/<slug>/` routing hardened.
+- _Shipped across 1.4.0 – 1.4.6 with incremental app-runtime hardening._
 
 <a id="v1.3.2"></a>
-## [1.3.2]
-
-### Fixed
-- Installed apps actually open; the odd border around icons is gone.
-
-<a id="v1.3.0"></a>
-## [1.3.0]
+## [1.3.2] — 2026-04-26
 
 ### Added
-- Screensaver option, rainfall wallpaper scene, click-to-preview on scene cards.
+- **Screensaver option**, **Rainfall** wallpaper scene (collision-aware via `wp.desktop.getWallpaperSurfaces()`), and **click-to-preview** on both scene and icon-set cards with a floating preview bar.
+
+### Fixed
+- Installed apps actually open; odd-border artefact around icons removed.
 
 <a id="v1.2.0"></a>
-## [1.2.0]
+## [1.2.0] — 2026-04-26
 
 ### Added
-- 10 new wallpaper scenes and 10 new icon sets.
+- **10 new wallpaper scenes and 10 new icon sets** (ODD's content doubled in one drop).
 
 ### Changed
-- Icons section reskinned to match the app catalog list.
+- Catalog install flow redesigned with surfaced install errors; the `.odd` extension retired in favour of `.wp`.
 - About tab redesigned with a funky title card.
 
-### Fixed
-- Catalog install 500 (with the `.odd` extension retired in favour of `.wp`).
-- Catalog UI redesigned with surfaced install errors.
-- App icons flattened and window-mount logic hardened.
-
 <a id="v1.1.0"></a>
-## [1.1.0]
+## [1.1.0] — 2026-04-25
 
 ### Added
-- Self-hosted catalog assets behind `odd.regionallyfamous.com`.
-- Iris Observatory wallpaper scene.
-- Architecture documentation page covering the Apps subsystem.
-
-### Changed
-- Desktop dock icons enlarged.
-- Icon sets refreshed; demo app removed.
+- **Self-hosted catalog** at `odd.regionallyfamous.com` with Playground-compatible CORS mirrors.
+- **Iris Observatory** wallpaper scene.
+- **Extension API documentation** covering the Apps subsystem, filters, events, registries, lifecycle phases, and the debug inspector.
 
 ### Fixed
-- Playground CORS mirrors for the catalog endpoints.
-- Icons appear on first paint, no more reload when switching sets.
-- First-run onboarding card retired.
-- Empty Apps catalog + missing desktop icons on fresh installs.
+- Dock icons render on first paint — no more reload when switching icon sets. Empty Apps catalog + missing desktop icons on fresh installs.
+- _Shipped across 1.1.0 – 1.1.4 as catalog hosting stabilized._
 
 <a id="v1.0.0"></a>
-## [1.0.0] — Absorb Bazaar
+## [1.0.0] — 2026-04-25 — Absorb Bazaar
 
 ### Added
-- Apps subsystem absorbed from the standalone Bazaar plugin (`odd_apps_*` API, sandboxed `/odd-app/<slug>/` windows, catalog + upload install).
+- **Apps subsystem absorbed from the standalone Bazaar plugin.** `odd_apps_*` PHP API, sandboxed `/odd-app/<slug>/` windows, catalog install + upload install. ODD now ships wallpapers, icon sets, **and** apps in one plugin.
 - Passes WordPress Plugin Check.
+- _Shipped across 1.0.0 – 1.0.8 as catalog + install flows hardened._
 
 ---
 
