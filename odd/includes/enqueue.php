@@ -168,21 +168,16 @@ add_action(
 		// manually-registered apps (via odd_register_app from another
 		// plugin) work even when uploads are off.
 		//
-		// `wp-element` + `wp-dom-ready` are load-bearing deps: installed
-		// apps' Vite bundles import `react` / `react-dom` /
-		// `react/jsx-runtime` as bare specifiers, and the serve path
-		// injects an import-map that redirects them to shims reading
-		// `window.parent.wp.element`. If the parent page doesn't load
-		// wp-element the shim throws `React is unavailable`, the app
-		// never mounts, and the iframe paints pure white. (The throw
-		// lands in the iframe's console context — not the main page —
-		// which is why it was invisible to users.) Declaring the dep
-		// here guarantees `window.wp.element` is globally installed
-		// wherever this script loads (every WPDM admin page).
+		// `wp-dom-ready` guarantees DOM readiness before window-host.js
+		// hydrates native window bodies. We used to also depend on
+		// `wp-element` because the runtime shim proxied through
+		// `window.parent.wp.element`, but v1.5.6 ships real React 19
+		// from /odd-app-runtime/*.js so that proxy (and its version
+		// skew against React 18 wp-element) is no longer relevant.
 		wp_enqueue_script(
 			'odd-apps',
 			ODD_URL . '/src/apps/window-host.js',
-			array_merge( $foundation_deps, array( 'odd-api', 'wp-element', 'wp-dom-ready' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'wp-dom-ready' ) ),
 			ODD_VERSION,
 			true
 		);

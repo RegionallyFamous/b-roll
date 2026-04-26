@@ -58,7 +58,7 @@
  *   - After iframe `load`, we wait 1500ms and peek at the app's
  *     `#root` (or `body`) children. If still empty, we replace the
  *     loading placeholder with a diagnostic card explaining the
- *     most likely cause (wp.element missing → bare `react` imports
+ *     most likely cause (app JS threw → bare `react` imports
  *     unresolvable). This is the Phase H5 fix from the v1.4.6
  *     "Still White" diagnostic — turns a silent failure into a
  *     user-visible, user-actionable one.
@@ -177,17 +177,16 @@
 		if ( mountTarget.children.length > 0 ) return;
 		if ( ( mountTarget.textContent || '' ).trim().length > 0 ) return;
 
-		// Still empty. Probable cause: runtime importmap shim
-		// couldn't find React in `window.parent.wp.element` and
-		// threw. Replace the (hidden) loading placeholder with a
-		// visible diagnostic card.
+		// Still empty. The ODD plugin now ships its own React 19
+		// runtime under /odd-app-runtime/*.js, so the classic
+		// `wp.element`-missing / bare-react-imports failure mode
+		// from earlier releases is gone. If we reach this point
+		// the most likely cause is a runtime exception thrown by
+		// the app itself (e.g. an unhandled render error).
 		var loading = mount.querySelector( '.odd-app-host__loading' );
 		if ( ! loading ) return;
 		loading.style.cssText = 'position:absolute;inset:0;display:grid;place-items:center;color:#eaeaf0;background:#1a1420;padding:24px;text-align:center;font:13px/1.5 -apple-system,system-ui,sans-serif;';
-		var parentHasWpElement = !! ( window.wp && window.wp.element );
-		var hint = parentHasWpElement
-			? 'The app loaded but did not render. Open the iframe in DevTools (right-click → Inspect) and check its Console for errors.'
-			: 'The WordPress React runtime (wp-element) is not loaded on this page, so the app\u2019s bare "react" imports cannot resolve. Reload the desktop once; if it persists, file an issue.';
+		var hint = 'The app loaded but did not render. Right-click inside the window → Inspect, switch the DevTools context to this frame, and check the Console for errors.';
 		loading.innerHTML = '';
 		var card = document.createElement( 'div' );
 		card.style.cssText = 'max-width:460px;display:grid;gap:10px;';
@@ -204,7 +203,6 @@
 
 		events.emit( events.NAMES.IFRAME_ERROR, {
 			message: 'odd-apps: iframe loaded but app root stayed empty',
-			parentHasWpElement: parentHasWpElement,
 		} );
 	}
 

@@ -103,7 +103,14 @@ function odd_apps_cookieauth_maybe_serve() {
 		$path = substr( $path, strlen( $home_path ) - 1 );
 	}
 
-	if ( preg_match( '#^/odd-app-runtime/(react|react-dom|react-dom-client|react-jsx-runtime)\.js$#', $path, $runtime_match ) ) {
+	// Runtime endpoint: serves React 19 ESM bundles + any shared chunks
+	// esbuild emitted alongside them. The app bundles' bare `react` /
+	// `react-dom` / `react/jsx-runtime` imports are rewritten by
+	// odd_apps_rewrite_runtime_bare_imports() to absolute URLs under
+	// /odd-app-runtime/, and the entry modules import their shared
+	// chunks with relative paths like `./chunk-AB12CDEF.js`, which
+	// the browser resolves back into this same endpoint.
+	if ( preg_match( '#^/odd-app-runtime/([a-zA-Z0-9._-]+\.js)$#', $path, $runtime_match ) ) {
 		odd_apps_serve_runtime_module( $runtime_match[1] );
 		exit;
 	}
@@ -493,7 +500,29 @@ function odd_apps_inject_runtime_importmap( $html ) {
 	return $map . "\n" . $html;
 }
 
-function odd_apps_serve_runtime_module( $module ) {
+/**
+ * Absolute path to the directory containing the pre-built React 19
+ * ESM bundles. odd/bin/build-runtime regenerates these. Keeping the
+ * directory centralised makes it easy to audit what's shipping.
+ */
+function odd_apps_runtime_dir() {
+	return rtrim( ODD_DIR, '/\\' ) . '/apps/runtime';
+}
+
+/**
+ * Serve a file from odd/apps/runtime/ at /odd-app-runtime/<name>.js.
+ *
+ * These are pre-built React 19 ESM bundles (`react.js`, `react-dom.js`,
+ * `react-dom-client.js`, `react-jsx-runtime.js`) plus any shared
+ * `chunk-*.js` files esbuild emitted when code-splitting.
+ *
+ * We ship real React 19 (not a shim that proxies wp.element) because
+ * Vite-built apps read `React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE`
+ * — that internals pointer only exists in React 19, while WordPress's
+ * wp.element is still React 18. Proxying produced a classic
+ * "Cannot read properties of undefined (reading 'S')" at runtime.
+ */
+function odd_apps_serve_runtime_module( $name ) {
 	$user_id = wp_validate_auth_cookie( '', 'logged_in' );
 	if ( ! $user_id ) {
 		status_header( 401 );
@@ -505,11 +534,38 @@ function odd_apps_serve_runtime_module( $module ) {
 		exit;
 	}
 
-	$source = odd_apps_runtime_module_source( $module );
-	if ( '' === $source ) {
+	$name = (string) $name;
+	if ( '' === $name || ! preg_match( '#^[a-zA-Z0-9._-]+\.js$#', $name ) ) {
 		status_header( 404 );
 		exit;
 	}
+
+	$base_dir = odd_apps_runtime_dir();
+	$full     = realpath( $base_dir . '/' . $name );
+	$root     = realpath( $base_dir );
+	if ( ! $root || ! $full || 0 !== strpos( $full, $root ) ) {
+		status_header( 404 );
+		exit;
+	}
+	if ( ! is_file( $full ) || ! is_readable( $full ) ) {
+		status_header( 404 );
+		exit;
+	}
+
+	$raw = file_get_contents( $full ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	if ( false === $raw ) {
+		status_header( 500 );
+		exit;
+	}
+
+	// esbuild emits relative imports between chunks (`./chunk-X.js`)
+	// and the app bundles import our entry files via absolute
+	// `/odd-app-runtime/*.js` paths that are rewritten in
+	// odd_apps_rewrite_runtime_bare_imports(). Run the same rewrite
+	// here as a safety net: if a future build ever leaves a bare
+	// `react`/`react-dom` specifier in a runtime chunk (bug or a
+	// dependency change), the rewrite will still catch it.
+	$source = odd_apps_rewrite_runtime_bare_imports( $raw );
 
 	while ( ob_get_level() > 0 ) {
 		@ob_end_clean();
@@ -519,90 +575,4 @@ function odd_apps_serve_runtime_module( $module ) {
 	header( 'X-Content-Type-Options: nosniff' );
 	header( 'Content-Length: ' . strlen( $source ) );
 	echo $source; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-}
-
-function odd_apps_runtime_module_source( $module ) {
-	// Shared preamble baked into every runtime shim. If React can't
-	// be resolved we paint a visible error banner into the iframe's
-	// own <body> *before* throwing, so the user sees an actionable
-	// failure message directly inside the app window — no DevTools
-	// scope-switching required. (The parent-side watchdog in
-	// window-host.js also catches this, but this inner fallback is
-	// robust even if cross-frame DOM access is ever blocked.)
-	$missing_banner = "(function(){\n" .
-		"  try {\n" .
-		"    var d = document;\n" .
-		"    if (!d || !d.body) return;\n" .
-		"    var prev = d.getElementById('odd-runtime-error');\n" .
-		"    if (prev) return;\n" .
-		"    var b = d.createElement('div');\n" .
-		"    b.id = 'odd-runtime-error';\n" .
-		"    b.style.cssText = 'position:fixed;inset:0;display:grid;place-items:center;background:#1a1420;color:#eaeaf0;font:13px/1.5 -apple-system,system-ui,sans-serif;padding:24px;text-align:center;z-index:2147483647;';\n" .
-		"    b.innerHTML = '<div style=\"max-width:460px;display:grid;gap:10px;\"><div style=\"font-weight:600;font-size:14px;color:#ffd9a3;\">ODD runtime: React is unavailable</div><div style=\"opacity:.88;\">The WordPress React runtime (<code>wp.element</code>) is not loaded on the parent page, so this app\\u2019s bare <code>react</code> imports cannot resolve. Reload the desktop once; if it persists, the ODD plugin host is missing the <code>wp-element</code> script dependency.</div></div>';\n" .
-		"    d.body.appendChild(b);\n" .
-		"  } catch (e) { /* best-effort */ }\n" .
-		"})();\n";
-
-	$react_loader = "const host = window.parent || window;\n" .
-		"const wpElement = host.wp && host.wp.element ? host.wp.element : null;\n" .
-		"const React = host.React || wpElement;\n" .
-		'if (!React) { ' . $missing_banner . "throw new Error('ODD app runtime: React is unavailable.'); }\n";
-
-	if ( 'react' === $module ) {
-		return $react_loader .
-			"export default React;\n" .
-			"export const Children = React.Children;\n" .
-			"export const Component = React.Component;\n" .
-			"export const Fragment = React.Fragment;\n" .
-			"export const StrictMode = React.StrictMode;\n" .
-			"export const cloneElement = React.cloneElement;\n" .
-			"export const createContext = React.createContext;\n" .
-			"export const createElement = React.createElement;\n" .
-			"export const createRef = React.createRef;\n" .
-			"export const forwardRef = React.forwardRef;\n" .
-			"export const isValidElement = React.isValidElement;\n" .
-			"export const lazy = React.lazy;\n" .
-			"export const memo = React.memo;\n" .
-			"export const startTransition = React.startTransition;\n" .
-			"export const Suspense = React.Suspense;\n" .
-			"export const useCallback = React.useCallback;\n" .
-			"export const useContext = React.useContext;\n" .
-			"export const useDebugValue = React.useDebugValue;\n" .
-			"export const useDeferredValue = React.useDeferredValue;\n" .
-			"export const useEffect = React.useEffect;\n" .
-			"export const useId = React.useId;\n" .
-			"export const useImperativeHandle = React.useImperativeHandle;\n" .
-			"export const useInsertionEffect = React.useInsertionEffect;\n" .
-			"export const useLayoutEffect = React.useLayoutEffect;\n" .
-			"export const useMemo = React.useMemo;\n" .
-			"export const useReducer = React.useReducer;\n" .
-			"export const useRef = React.useRef;\n" .
-			"export const useState = React.useState;\n" .
-			"export const useSyncExternalStore = React.useSyncExternalStore;\n" .
-			"export const useTransition = React.useTransition;\n";
-	}
-
-	if ( 'react-jsx-runtime' === $module ) {
-		return $react_loader .
-			"export const Fragment = React.Fragment;\n" .
-			"export function jsx(type, props, key) { return React.createElement(type, key === undefined ? props : Object.assign({}, props, { key })); }\n" .
-			"export const jsxs = jsx;\n" .
-			"export const jsxDEV = jsx;\n";
-	}
-
-	if ( 'react-dom' === $module || 'react-dom-client' === $module ) {
-		return "const host = window.parent || window;\n" .
-			"const wpElement = host.wp && host.wp.element ? host.wp.element : null;\n" .
-			"const ReactDOM = host.ReactDOM || wpElement;\n" .
-			'if (!ReactDOM) { ' . $missing_banner . "throw new Error('ODD app runtime: ReactDOM is unavailable.'); }\n" .
-			"export default ReactDOM;\n" .
-			"export const createPortal = ReactDOM.createPortal;\n" .
-			"export const flushSync = ReactDOM.flushSync;\n" .
-			"export const createRoot = ReactDOM.createRoot;\n" .
-			"export const hydrateRoot = ReactDOM.hydrateRoot;\n" .
-			"export const render = ReactDOM.render;\n" .
-			"export const unmountComponentAtNode = ReactDOM.unmountComponentAtNode;\n";
-	}
-
-	return '';
 }

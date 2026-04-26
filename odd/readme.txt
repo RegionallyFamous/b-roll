@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.5
+Stable tag: 1.5.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.5.6 =
+* Ships real React 19 from the plugin instead of proxying through wp.element, fixing the "Cannot read properties of undefined (reading 'S')" crash that installed apps threw after v1.5.5. Vite-built apps are compiled against React 19 and read React's `__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE` internals pointer, which only exists in React 19 — but WordPress's `wp.element` is still React 18, so the proxy handed back objects whose internals the apps couldn't use. The runtime endpoint at `/odd-app-runtime/*.js` now serves pre-built React 19 ESM bundles (`react.js`, `react-dom.js`, `react-dom-client.js`, `react-jsx-runtime.js` plus shared chunks) from `odd/apps/runtime/`, regeneratable via the new `odd/bin/build-runtime` script.
 
 = 1.5.5 =
 * Makes installed apps actually render, not just load their HTML. Vite-built bundles use bare module imports (`from "react"`, `from "react/jsx-runtime"`, `from "react-dom"`) that depend on a browser import map. The import map was present in the iframe's HTML, but inside Playground's service-worker-mediated iframe sandbox the module loader raced ahead of it and threw "Failed to resolve module specifier" before the map registered. ODD now also rewrites those bare specifiers inside every served JS chunk to absolute `/odd-app-runtime/*.js` URLs, so modules resolve without relying on import-map support or timing.

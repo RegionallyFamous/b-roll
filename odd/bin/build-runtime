@@ -1,0 +1,102 @@
+#!/usr/bin/env node
+/**
+ * build-runtime — rebuild odd/apps/runtime/*.js from React 19.
+ *
+ * These files are served by includes/apps/serve-cookieauth.php at
+ *   /odd-app-runtime/<name>.js
+ * and are what the per-app JS chunks import when they say
+ * `from "react"` / `from "react/jsx-runtime"` / etc.
+ *
+ * We ship actual React 19 (not a shim that proxies wp.element) because
+ * Vite-built apps use `React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE`
+ * which is a React-19-only internals pointer. WordPress's wp.element is
+ * still React 18, so proxying through it produces `Cannot read
+ * properties of undefined (reading 'S')` at runtime.
+ *
+ * Usage:
+ *   odd/bin/build-runtime
+ *
+ * Requires: node 18+, network access for `npm install`.
+ * Produces: odd/apps/runtime/{react,react-dom,react-dom-client,react-jsx-runtime}.js
+ *   plus any shared chunks esbuild decides to emit.
+ */
+
+'use strict';
+
+const { execSync } = require( 'node:child_process' );
+const fs = require( 'node:fs' );
+const os = require( 'node:os' );
+const path = require( 'node:path' );
+
+const REACT_VERSION = '19.2.0';
+
+async function main() {
+	const repoRoot = path.resolve( __dirname, '..', '..' );
+	const outDir = path.join( repoRoot, 'odd', 'apps', 'runtime' );
+	const workDir = fs.mkdtempSync( path.join( os.tmpdir(), 'odd-runtime-' ) );
+	process.stdout.write( `→ workdir: ${ workDir }\n` );
+
+	process.chdir( workDir );
+	fs.writeFileSync( 'package.json', JSON.stringify( { private: true }, null, 2 ) );
+
+	process.stdout.write( `→ installing react@${ REACT_VERSION } react-dom@${ REACT_VERSION } esbuild…\n` );
+	execSync(
+		`npm install --silent --no-audit --no-fund react@${ REACT_VERSION } react-dom@${ REACT_VERSION } esbuild`,
+		{ stdio: 'inherit' }
+	);
+
+	const entries = {
+		'react': "export * from 'react';\nexport { default } from 'react';\n",
+		'react-dom': "export * from 'react-dom';\nexport { default } from 'react-dom';\n",
+		'react-dom-client': "export * from 'react-dom/client';\n",
+		'react-jsx-runtime': "export * from 'react/jsx-runtime';\n",
+	};
+	for ( const [ name, src ] of Object.entries( entries ) ) {
+		fs.writeFileSync( `entry-${ name }.js`, src );
+	}
+
+	const esbuild = require( path.join( workDir, 'node_modules', 'esbuild' ) );
+	await esbuild.build( {
+		entryPoints: {
+			'react': 'entry-react.js',
+			'react-dom': 'entry-react-dom.js',
+			'react-dom-client': 'entry-react-dom-client.js',
+			'react-jsx-runtime': 'entry-react-jsx-runtime.js',
+		},
+		bundle: true,
+		splitting: true,
+		format: 'esm',
+		target: 'es2020',
+		minify: true,
+		define: { 'process.env.NODE_ENV': '"production"' },
+		outdir: 'build-out',
+	} );
+
+	// Clear existing outputs so stale chunk hashes don't linger.
+	if ( fs.existsSync( outDir ) ) {
+		for ( const f of fs.readdirSync( outDir ) ) {
+			if ( f.endsWith( '.js' ) ) {
+				fs.unlinkSync( path.join( outDir, f ) );
+			}
+		}
+	} else {
+		fs.mkdirSync( outDir, { recursive: true } );
+	}
+
+	let total = 0;
+	for ( const f of fs.readdirSync( path.join( workDir, 'build-out' ) ) ) {
+		const src = path.join( workDir, 'build-out', f );
+		const dst = path.join( outDir, f );
+		fs.copyFileSync( src, dst );
+		const size = fs.statSync( dst ).size;
+		total += size;
+		process.stdout.write( `  ${ f }\t${ size } bytes\n` );
+	}
+	process.stdout.write( `→ total ${ total } bytes written to ${ outDir }\n` );
+	process.stdout.write( '→ done\n' );
+}
+
+main().catch( ( err ) => {
+	process.stderr.write( `\nbuild-runtime failed: ${ err && err.message ? err.message : err }\n` );
+	process.exit( 1 );
+} );
