@@ -45,12 +45,29 @@ async function main() {
 		{ stdio: 'inherit' }
 	);
 
+	// React, ReactDOM, and their subpath entries are CommonJS modules,
+	// so `export * from 'react'` through esbuild only exposes the
+	// default interop wrapper. The installed apps import named
+	// symbols (e.g. `import { createContext } from "react"`), which
+	// triggers "does not provide an export named 'X'" at runtime.
+	// Fix: enumerate the public API at build time (via require()) and
+	// emit explicit `export { default, A, B, C } from "..."` entries.
+	// esbuild then rewrites each name to `module.exports.A` in the
+	// output, so the iframe gets real named ESM exports backed by
+	// the CJS module's live-bound properties.
+	const keysOf = ( spec ) => Object.keys( require( spec ) ).sort();
 	const entries = {
-		'react': "export * from 'react';\nexport { default } from 'react';\n",
-		'react-dom': "export * from 'react-dom';\nexport { default } from 'react-dom';\n",
-		'react-dom-client': "export * from 'react-dom/client';\n",
-		'react-jsx-runtime': "export * from 'react/jsx-runtime';\n",
+		'react':             buildEntry( 'react', keysOf( 'react' ) ),
+		'react-dom':         buildEntry( 'react-dom', keysOf( 'react-dom' ) ),
+		'react-dom-client':  buildEntry( 'react-dom/client', keysOf( 'react-dom/client' ) ),
+		'react-jsx-runtime': buildEntry( 'react/jsx-runtime', keysOf( 'react/jsx-runtime' ) ),
 	};
+	function buildEntry( spec, names ) {
+		// `default` is the whole CJS module (esbuild interop). Keep
+		// it first so `import React from "react"` continues to work.
+		const list = [ 'default', ...names ];
+		return `export { ${ list.join( ', ' ) } } from '${ spec }';\n`;
+	}
 	for ( const [ name, src ] of Object.entries( entries ) ) {
 		fs.writeFileSync( `entry-${ name }.js`, src );
 	}

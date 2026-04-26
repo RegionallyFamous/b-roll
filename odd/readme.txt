@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.6
+Stable tag: 1.5.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.5.7 =
+* Fixes `Uncaught SyntaxError: The requested module '/odd-app-runtime/react.js' does not provide an export named 'createContext'` in installed apps. React and ReactDOM are CommonJS packages, so `export * from 'react'` through esbuild only exposes a single `default` interop wrapper and loses the named symbols apps import (`createContext`, `useState`, `StrictMode`, etc.). `odd/bin/build-runtime` now enumerates each package's public exports at build time and emits explicit `export { default, A, B, C } from "…"` entry files, so the served bundles expose real named ESM exports backed by the CJS modules' live-bound properties. Affects `react.js`, `react-dom.js`, `react-dom-client.js`, and `react-jsx-runtime.js`.
 
 = 1.5.6 =
 * Ships real React 19 from the plugin instead of proxying through wp.element, fixing the "Cannot read properties of undefined (reading 'S')" crash that installed apps threw after v1.5.5. Vite-built apps are compiled against React 19 and read React's `__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE` internals pointer, which only exists in React 19 — but WordPress's `wp.element` is still React 18, so the proxy handed back objects whose internals the apps couldn't use. The runtime endpoint at `/odd-app-runtime/*.js` now serves pre-built React 19 ESM bundles (`react.js`, `react-dom.js`, `react-dom-client.js`, `react-jsx-runtime.js` plus shared chunks) from `odd/apps/runtime/`, regeneratable via the new `odd/bin/build-runtime` script.
