@@ -352,6 +352,21 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 			$body = odd_apps_inject_runtime_importmap( $raw );
 			$size = strlen( $body );
 		}
+	} elseif ( odd_apps_is_js_mime( $mime ) ) {
+		// Defense-in-depth for the same bare-import problem: rewrite
+		// `from"react"` / `from"react/jsx-runtime"` etc. inside JS
+		// chunks to absolute `/odd-app-runtime/*.js` URLs. The HTML
+		// import map works for most browsers, but some environments
+		// (sandboxed iframes behind service workers, preloaded module
+		// graphs, etc.) race ahead of the import map and throw
+		// `Failed to resolve module specifier "react/jsx-runtime"`
+		// before it registers. Rewriting the chunks makes them
+		// self-resolving regardless of import-map support or timing.
+		$raw = file_get_contents( $full ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false !== $raw ) {
+			$body = odd_apps_rewrite_runtime_bare_imports( $raw );
+			$size = strlen( $body );
+		}
 	}
 
 	while ( ob_get_level() > 0 ) {
@@ -402,6 +417,66 @@ function odd_apps_runtime_importmap_html() {
 		'react/jsx-runtime' => home_url( '/odd-app-runtime/react-jsx-runtime.js' ),
 	);
 	return '<script type="importmap">' . wp_json_encode( array( 'imports' => $imports ) ) . '</script>';
+}
+
+/**
+ * Is this MIME a JavaScript module we should process for bare imports?
+ */
+function odd_apps_is_js_mime( $mime ) {
+	$mime = strtolower( (string) $mime );
+	if ( false !== strpos( $mime, ';' ) ) {
+		$mime = trim( substr( $mime, 0, strpos( $mime, ';' ) ) );
+	}
+	return in_array(
+		$mime,
+		array(
+			'application/javascript',
+			'text/javascript',
+			'application/x-javascript',
+			'application/ecmascript',
+			'text/ecmascript',
+		),
+		true
+	);
+}
+
+/**
+ * Rewrite bare React imports inside a JS chunk to absolute
+ * /odd-app-runtime/*.js URLs.
+ *
+ * Vite emits minified forms like:
+ *   import{jsx}from"react/jsx-runtime"
+ *   import R,{useState}from"react"
+ *   import"react-dom"
+ *   export*from"react-dom/client"
+ *
+ * We rewrite each bare specifier to a same-origin URL so the module
+ * loader never needs an import map. Slash-bearing specifiers
+ * (`react/jsx-runtime`, `react-dom/client`) map to hyphenated
+ * filenames to match the runtime endpoint regex in the top-level
+ * matcher (`/odd-app-runtime/react-jsx-runtime.js` etc.).
+ */
+function odd_apps_rewrite_runtime_bare_imports( $js ) {
+	if ( ! is_string( $js ) || '' === $js ) {
+		return $js;
+	}
+	// Quick reject: if no `"react` substring at all, nothing to do —
+	// avoids running the regex over large vendor-less chunks.
+	if ( false === strpos( $js, '"react' ) && false === strpos( $js, "'react" ) ) {
+		return $js;
+	}
+	$base = rtrim( home_url( '/odd-app-runtime' ), '/' );
+	$re   = '#(\b(?:from|import)\s*)(["\'])(react(?:/jsx-runtime|-dom(?:/client)?)?)\2#';
+	return preg_replace_callback(
+		$re,
+		function ( $m ) use ( $base ) {
+			$spec      = $m[3];
+			$slug      = str_replace( '/', '-', $spec );
+			$safe_slug = preg_replace( '#[^a-z0-9-]#', '', $slug );
+			return $m[1] . $m[2] . $base . '/' . $safe_slug . '.js' . $m[2];
+		},
+		$js
+	);
 }
 
 function odd_apps_inject_runtime_importmap( $html ) {
