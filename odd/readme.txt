@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.5.2 =
+* Third-line-of-defense against the "Still White" app window. v1.4.5 added client-side window-body hydration; v1.4.6 added `wp-element` as a script dep so the React-runtime shim could resolve bare `react` imports. This release adds an in-iframe visible-error banner: if the shim ever can't find React or ReactDOM on the parent page, it now paints a full-viewport diagnostic card ("ODD runtime: React is unavailable") into the iframe's own `<body>` *before* throwing, instead of leaving the iframe completely blank. Unlike the parent-side watchdog (which needs same-origin DOM access + a 1.5s timer), this inner fallback runs synchronously at module-evaluation time and is robust against cross-frame access restrictions, timing races, and any future sandbox tightening. End-user promise: if an app ever fails to mount again, the user sees why, directly inside the window, without opening DevTools or switching iframe context.
 
 = 1.5.1 =
 * Redesigns the Wallpaper controls (Shuffle, Audio-reactive, Screensaver) as polished setting cards with pill toggles, helper text, and a clearer Preview action. Bumps ODD_VERSION so cached `odd-panel` scripts get invalidated on upgrade.
@@ -143,6 +146,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.5.2 =
+Adds a third line of defense against "pure white" app windows: if React/ReactDOM can't be resolved for any reason, the iframe now paints its own visible error banner directly into its body before throwing. No more silent failures even in worst-case scenarios.
 
 = 1.4.6 =
 Actually fixes the "Still White" app window — 1.4.5 fixed half the problem (the window body now builds reliably) but the apps themselves couldn't mount React because wp-element wasn't guaranteed on the parent page. Also ships a visible "App did not render" card instead of pure white for any future mount failure. Recommended immediately if you're on 1.4.4 or 1.4.5.
