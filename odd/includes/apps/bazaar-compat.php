@@ -36,7 +36,7 @@ add_action(
 			return;
 		}
 
-		$read_cb = function () {
+		$read_cb   = function () {
 			return current_user_can( 'read' );
 		};
 		$manage_cb = function () {
@@ -143,7 +143,12 @@ function odd_apps_bazaar_compat_serve( WP_REST_Request $req ) {
 	$slug = sanitize_key( $req['slug'] );
 	$path = (string) $req['path'];
 	$fwd  = new WP_REST_Request( 'GET', '/odd/v1/apps/serve/' . $slug . ( $path ? '/' . $path : '' ) );
-	$fwd->set_url_params( array( 'slug' => $slug, 'path' => $path ) );
+	$fwd->set_url_params(
+		array(
+			'slug' => $slug,
+			'path' => $path,
+		)
+	);
 	// The real handler streams directly with readfile() + exit. Let
 	// it do that — we're in the same PHP process, so the bytes flow
 	// through untouched.

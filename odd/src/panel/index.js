@@ -516,22 +516,36 @@
 			var wrap = el( 'div' );
 			wrap.appendChild( sectionHeader( 'Wallpaper', 'Pick a scene. Live preview updates the desktop in the background.' ) );
 
-			var toolbar = el( 'div', { class: 'odd-toolbar' } );
+			var settings = el( 'div', { class: 'odd-wallpaper-settings' } );
 
-			var shuffleRow = el( 'label', { class: 'odd-toggle' } );
+			var shuffleCard = el( 'div', { class: 'odd-setting-card odd-setting-card--shuffle' } );
+			var shuffleRow = el( 'label', { class: 'odd-switch-row' } );
 			var shuffleBox = el( 'input', { type: 'checkbox' } );
 			shuffleBox.checked = !! ( state.cfg.shuffle && state.cfg.shuffle.enabled );
-			var shuffleLabel = el( 'span' );
+			var shuffleKnob = el( 'span', { class: 'odd-switch' } );
+			var shuffleText = el( 'span', { class: 'odd-setting-card__text' } );
+			var shuffleLabel = el( 'strong' );
 			shuffleLabel.textContent = 'Shuffle every';
+			var shuffleHint = el( 'span' );
+			shuffleHint.textContent = 'Rotate scenes automatically while the desktop is open.';
+			shuffleText.appendChild( shuffleLabel );
+			shuffleText.appendChild( shuffleHint );
 			var minutes = el( 'input', { type: 'number', min: '1', max: '240', class: 'odd-minutes' } );
 			minutes.value = String( ( state.cfg.shuffle && state.cfg.shuffle.minutes ) || 15 );
+			var shuffleControls = el( 'div', { class: 'odd-setting-card__controls' } );
+			var minutesPrefix = el( 'span' );
+			minutesPrefix.textContent = 'Every';
 			var minutesSuffix = el( 'span' );
-			minutesSuffix.textContent = 'min';
+			minutesSuffix.textContent = 'minutes';
 			shuffleRow.appendChild( shuffleBox );
-			shuffleRow.appendChild( shuffleLabel );
-			shuffleRow.appendChild( minutes );
-			shuffleRow.appendChild( minutesSuffix );
-			toolbar.appendChild( shuffleRow );
+			shuffleRow.appendChild( shuffleKnob );
+			shuffleRow.appendChild( shuffleText );
+			shuffleControls.appendChild( minutesPrefix );
+			shuffleControls.appendChild( minutes );
+			shuffleControls.appendChild( minutesSuffix );
+			shuffleCard.appendChild( shuffleRow );
+			shuffleCard.appendChild( shuffleControls );
+			settings.appendChild( shuffleCard );
 
 			function pushShuffle() {
 				var m = parseInt( minutes.value, 10 );
@@ -546,48 +560,63 @@
 			shuffleBox.addEventListener( 'change', pushShuffle );
 			minutes.addEventListener( 'change', pushShuffle );
 
-			var audioRow = el( 'label', { class: 'odd-toggle' } );
+			var audioRow = el( 'label', { class: 'odd-setting-card odd-setting-card--audio odd-switch-row' } );
 			var audioBox = el( 'input', { type: 'checkbox' } );
 			audioBox.checked = !! state.cfg.audioReactive;
-			var audioLbl = el( 'span' );
+			var audioKnob = el( 'span', { class: 'odd-switch' } );
+			var audioText = el( 'span', { class: 'odd-setting-card__text' } );
+			var audioLbl = el( 'strong' );
 			audioLbl.textContent = 'Audio-reactive';
+			var audioHint = el( 'span' );
+			audioHint.textContent = 'Let scenes pulse subtly with sound when supported.';
+			audioText.appendChild( audioLbl );
+			audioText.appendChild( audioHint );
 			audioRow.appendChild( audioBox );
-			audioRow.appendChild( audioLbl );
-			toolbar.appendChild( audioRow );
+			audioRow.appendChild( audioKnob );
+			audioRow.appendChild( audioText );
+			settings.appendChild( audioRow );
 			audioBox.addEventListener( 'change', function () {
 				savePrefs( { audioReactive: audioBox.checked }, function ( data ) {
 					if ( data ) state.cfg.audioReactive = !! data.audioReactive;
 				} );
 			} );
 
-			wrap.appendChild( toolbar );
+			wrap.appendChild( settings );
 
 			// Screensaver controls row — a second toolbar beneath the
 			// shuffle row, grouped because the options are only
 			// meaningful when the checkbox is on.
 			var ss = state.cfg.screensaver || { enabled: false, minutes: 5, scene: 'current' };
-			var ssRow = el( 'div', { class: 'odd-toolbar odd-toolbar--sub' } );
+			var ssRow = el( 'div', { class: 'odd-setting-card odd-setting-card--screensaver' } );
 
-			var ssToggle = el( 'label', { class: 'odd-toggle' } );
+			var ssToggle = el( 'label', { class: 'odd-switch-row' } );
 			var ssBox = el( 'input', { type: 'checkbox' } );
 			ssBox.checked = !! ss.enabled;
-			var ssLbl = el( 'span' );
+			var ssKnob = el( 'span', { class: 'odd-switch' } );
+			var ssText = el( 'span', { class: 'odd-setting-card__text' } );
+			var ssLbl = el( 'strong' );
 			ssLbl.textContent = 'Screensaver after';
+			var ssHint = el( 'span' );
+			ssHint.textContent = 'Dim into a full-screen scene when the admin sits idle.';
+			ssText.appendChild( ssLbl );
+			ssText.appendChild( ssHint );
+			var ssControls = el( 'div', { class: 'odd-setting-card__controls odd-setting-card__controls--screensaver' } );
 			var ssMins = el( 'input', { type: 'number', min: '1', max: '120', class: 'odd-minutes' } );
 			ssMins.value = String( Math.max( 1, Math.min( 120, ( ss.minutes | 0 ) || 5 ) ) );
 			var ssMinsLbl = el( 'span' );
-			ssMinsLbl.textContent = 'min idle';
+			ssMinsLbl.textContent = 'minutes idle';
 			ssToggle.appendChild( ssBox );
-			ssToggle.appendChild( ssLbl );
-			ssToggle.appendChild( ssMins );
-			ssToggle.appendChild( ssMinsLbl );
+			ssToggle.appendChild( ssKnob );
+			ssToggle.appendChild( ssText );
 			ssRow.appendChild( ssToggle );
+			ssControls.appendChild( ssMins );
+			ssControls.appendChild( ssMinsLbl );
 
 			// Scene choice for the screensaver. "Current" = whatever
 			// is active when the timer fires. "Random" = pick a new
 			// one each time. Explicit slugs pick that scene every
 			// time it fires.
-			var ssSceneWrap = el( 'label', { class: 'odd-toggle odd-toggle--select' } );
+			var ssSceneWrap = el( 'label', { class: 'odd-setting-field' } );
 			var ssSceneLbl = el( 'span' );
 			ssSceneLbl.textContent = 'Play';
 			var ssSceneSel = el( 'select', { class: 'odd-select' } );
@@ -606,15 +635,16 @@
 			ssSceneSel.value = ss.scene || 'current';
 			ssSceneWrap.appendChild( ssSceneLbl );
 			ssSceneWrap.appendChild( ssSceneSel );
-			ssRow.appendChild( ssSceneWrap );
+			ssControls.appendChild( ssSceneWrap );
 
-			var ssPreview = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+			var ssPreview = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-setting-preview' } );
 			ssPreview.textContent = 'Preview';
 			ssPreview.addEventListener( 'click', function () {
 				var ssApi = window.__odd && window.__odd.screensaver;
 				if ( ssApi && typeof ssApi.show === 'function' ) ssApi.show();
 			} );
-			ssRow.appendChild( ssPreview );
+			ssControls.appendChild( ssPreview );
+			ssRow.appendChild( ssControls );
 
 			function pushScreensaver() {
 				var m = parseInt( ssMins.value, 10 );
@@ -1435,10 +1465,25 @@
 			'.odd-panel .odd-section-header{margin:0 0 16px}',
 			'.odd-panel .odd-section-header h2{margin:0 0 6px;font-size:18px;font-weight:600}',
 			'.odd-panel .odd-section-header p{margin:0;color:#50575e;font-size:13px;max-width:58ch;line-height:1.45}',
-			'.odd-panel .odd-toolbar{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center;padding:10px 12px;margin:0 0 16px;background:#fff;border:1px solid #dcdcde;border-radius:8px}',
-			'.odd-panel .odd-toggle{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#1d2327}',
-			'.odd-panel .odd-toggle input[type="checkbox"]{margin:0}',
-			'.odd-panel .odd-minutes{width:58px;padding:2px 6px;border:1px solid #8c8f94;border-radius:4px;font:inherit;font-size:13px}',
+			'.odd-panel .odd-wallpaper-settings{display:grid;grid-template-columns:minmax(260px,1fr) minmax(220px,.75fr);gap:12px;margin:0 0 12px}',
+			'.odd-panel .odd-setting-card{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;padding:16px 18px;background:linear-gradient(180deg,#fff,#fbfbff);border:1px solid #dfe3ea;border-radius:16px;box-shadow:0 14px 30px -24px rgba(20,14,40,.35),0 1px 0 rgba(255,255,255,.9) inset;color:#1d2327}',
+			'.odd-panel .odd-setting-card--screensaver{margin:0 0 18px;align-items:flex-start;background:linear-gradient(135deg,#ffffff 0%,#f8fbff 58%,#fff8ec 100%)}',
+			'.odd-panel .odd-setting-card--audio{justify-content:flex-start}',
+			'.odd-panel .odd-switch-row{position:relative;display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer}',
+			'.odd-panel .odd-switch-row input[type="checkbox"]{position:absolute;opacity:0;pointer-events:none}',
+			'.odd-panel .odd-switch{position:relative;flex:0 0 auto;width:44px;height:26px;border-radius:999px;background:#dcdcde;box-shadow:0 1px 2px rgba(0,0,0,.16) inset;transition:background .16s ease,box-shadow .16s ease}',
+			'.odd-panel .odd-switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 7px rgba(20,14,40,.24);transition:transform .18s cubic-bezier(.2,.8,.2,1)}',
+			'.odd-panel .odd-switch-row input[type="checkbox"]:checked + .odd-switch{background:linear-gradient(135deg,#2271b1,#8b5cf6);box-shadow:0 8px 18px -12px #2271b1}',
+			'.odd-panel .odd-switch-row input[type="checkbox"]:checked + .odd-switch::after{transform:translateX(18px)}',
+			'.odd-panel .odd-switch-row input[type="checkbox"]:focus-visible + .odd-switch{outline:2px solid #2271b1;outline-offset:3px}',
+			'.odd-panel .odd-setting-card__text{display:flex;flex-direction:column;gap:3px;min-width:0}',
+			'.odd-panel .odd-setting-card__text strong{font-size:13px;line-height:1.2;color:#1d2327}',
+			'.odd-panel .odd-setting-card__text span{font-size:11px;line-height:1.35;color:#646970}',
+			'.odd-panel .odd-setting-card__controls{display:flex;align-items:center;gap:8px;flex:0 0 auto;color:#50575e;font-size:12px;font-weight:600}',
+			'.odd-panel .odd-setting-card__controls--screensaver{flex-wrap:wrap;justify-content:flex-end;padding-top:2px}',
+			'.odd-panel .odd-setting-field{display:inline-flex;align-items:center;gap:8px;color:#50575e;font-size:12px;font-weight:600}',
+			'.odd-panel .odd-minutes{width:70px;min-height:38px;padding:6px 10px;border:1px solid #c7ced8;border-radius:10px;font:inherit;font-size:14px;font-weight:700;color:#1d2327;background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.8) inset}',
+			'.odd-panel .odd-minutes:focus,.odd-panel .odd-select:focus{border-color:#2271b1;box-shadow:0 0 0 2px rgba(34,113,177,.14);outline:none}',
 			'.odd-panel .odd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}',
 			'.odd-panel .odd-grid--icons{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}',
 			'.odd-panel .odd-card{all:unset;display:flex;flex-direction:column;background:#fff;border:1px solid #dcdcde;border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .12s ease,border-color .12s ease,box-shadow .18s ease;position:relative}',
@@ -1544,11 +1589,10 @@
 			'.odd-panel .odd-preview-bar__actions{display:flex;gap:8px;flex-shrink:0}',
 			'@keyframes odd-preview-slide{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}',
 			'@media (prefers-reduced-motion: reduce){.odd-panel .odd-preview-bar{animation:none}}',
-			/* Sub-toolbar for the screensaver row — denser + indented
-			 * so it reads as an extension of the main toolbar. */
-			'.odd-panel .odd-toolbar--sub{margin-top:-12px;padding-top:8px;padding-bottom:8px;border-top:0;gap:12px 20px}',
-			'.odd-panel .odd-toggle--select{gap:6px}',
-			'.odd-panel .odd-select{padding:3px 6px;border:1px solid #8c8f94;border-radius:4px;font:inherit;font-size:13px;background:#fff;color:#1d2327}',
+			'.odd-panel .odd-setting-preview{min-height:36px;background:#111827!important;color:#fff!important;border-color:#111827!important;box-shadow:0 10px 18px -14px rgba(17,24,39,.8)}',
+			'.odd-panel .odd-setting-preview:hover{background:#1f2937!important;border-color:#1f2937!important;color:#fff!important}',
+			'.odd-panel .odd-select{min-height:38px;min-width:190px;padding:6px 34px 6px 10px;border:1px solid #c7ced8;border-radius:10px;font:inherit;font-size:14px;font-weight:600;background:#fff;color:#1d2327}',
+			'@media (max-width: 760px){.odd-panel .odd-wallpaper-settings{grid-template-columns:1fr}.odd-panel .odd-setting-card,.odd-panel .odd-setting-card--screensaver{align-items:stretch;flex-direction:column}.odd-panel .odd-setting-card__controls,.odd-panel .odd-setting-card__controls--screensaver{justify-content:flex-start}.odd-panel .odd-select{min-width:0;width:100%}.odd-panel .odd-setting-field{width:100%;align-items:flex-start;flex-direction:column}}',
 			'.odd-panel .odd-iconset-mini{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;width:100%;height:100%;padding:6px;box-sizing:border-box}',
 			'.odd-panel .odd-iconset-mini img{width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,.85);border-radius:4px;padding:2px;box-sizing:border-box}',
 			'.odd-panel .odd-pill{display:inline-block;padding:1px 6px;border-radius:999px;background:#eaf2ff;color:#135e96;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}',

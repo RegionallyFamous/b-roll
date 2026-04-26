@@ -5,6 +5,7 @@ vendor/
 dist/
 composer.lock
 package-lock.json
+.phpcs-cache
 _tools/raw/
 _tools/batch.txt
 .idea/

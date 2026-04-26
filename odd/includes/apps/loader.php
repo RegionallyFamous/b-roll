@@ -34,9 +34,20 @@ defined( 'ABSPATH' ) || exit;
  */
 function odd_apps_forbidden_extensions() {
 	return array(
-		'php', 'phtml', 'phar',
-		'php3', 'php4', 'php5', 'php7', 'phps',
-		'cgi', 'pl', 'py', 'rb', 'sh', 'bash',
+		'php',
+		'phtml',
+		'phar',
+		'php3',
+		'php4',
+		'php5',
+		'php7',
+		'phps',
+		'cgi',
+		'pl',
+		'py',
+		'rb',
+		'sh',
+		'bash',
 	);
 }
 

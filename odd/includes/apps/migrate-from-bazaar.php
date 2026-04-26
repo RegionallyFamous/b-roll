@@ -66,8 +66,8 @@ if ( ! defined( 'ODD_BAZAAR_CONTENT_DIR' ) ) {
 function odd_migration_3_from_bazaar( $user_id ) {
 	unset( $user_id );
 
-	$has_fs      = is_dir( ODD_BAZAAR_CONTENT_DIR );
-	$has_option  = false !== get_option( 'bazaar_index', false );
+	$has_fs     = is_dir( ODD_BAZAAR_CONTENT_DIR );
+	$has_option = false !== get_option( 'bazaar_index', false );
 	if ( ! $has_fs && ! $has_option ) {
 		return true;
 	}
@@ -250,8 +250,8 @@ add_action(
 				return;
 			}
 		}
-		$report = get_option( 'odd_apps_bazaar_migration', array() );
-		$moved  = is_array( $report ) && isset( $report['moved'] ) ? count( (array) $report['moved'] ) : 0;
+		$report      = get_option( 'odd_apps_bazaar_migration', array() );
+		$moved       = is_array( $report ) && isset( $report['moved'] ) ? count( (array) $report['moved'] ) : 0;
 		$dismiss_url = esc_url(
 			wp_nonce_url(
 				add_query_arg( 'odd_bazaar_notice_dismiss', '1' ),

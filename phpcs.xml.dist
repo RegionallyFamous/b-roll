@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<ruleset name="ODD">
+	<description>Coding standards for the ODD WordPress plugin.</description>
+
+	<!-- Scan -->
+	<file>odd</file>
+
+	<!-- Ignore generated / vendored / binary assets. -->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/dist/*</exclude-pattern>
+	<exclude-pattern>*/_tools/*</exclude-pattern>
+	<exclude-pattern>*/tests/*/fixtures/*</exclude-pattern>
+	<exclude-pattern>*\.(css|js|json|svg|webp|png|md|py|zip)$</exclude-pattern>
+
+	<!-- Arguments -->
+	<arg name="basepath" value="."/>
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+	<arg name="parallel" value="8"/>
+	<arg name="cache" value=".phpcs-cache"/>
+
+	<!-- Rulesets.
+	     We deliberately start from WordPress (core) plus PHPCompatibilityWP.
+	     WordPress-Extra / WordPress-Docs add documentation-heavy rules that
+	     are expensive to satisfy for a codebase that uses header comments
+	     but not full per-function docblocks. Opt-in later.
+	-->
+	<rule ref="WordPress-Core">
+		<!-- We ship the plugin with its own filename + constant naming.
+		     The WP prefix check complains about our namespaced globals
+		     that start with `odd_` — allow them explicitly. -->
+		<exclude name="WordPress.NamingConventions.PrefixAllGlobals"/>
+
+		<!-- The plugin deliberately talks to options/user-meta directly
+		     because there's no object cache guarantee in Playground. -->
+		<exclude name="WordPress.DB.DirectDatabaseQuery"/>
+
+		<!-- Allow file operations that are intrinsic to app installation
+		     (e.g. unzipping into wp-content/odd-apps/). Rule is flagged
+		     by value, each call site uses WP_Filesystem where practical. -->
+		<exclude name="WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents"/>
+
+		<!-- Short ternary / yoda rules add churn without catching bugs. -->
+		<exclude name="WordPress.PHP.YodaConditions"/>
+		<exclude name="Universal.Operators.DisallowShortTernary"/>
+
+		<!-- Allow PHP output without i18n where we're emitting machine
+		     strings (REST bodies, error codes). Individual UI strings
+		     should still use __(). -->
+		<exclude name="WordPress.WP.I18n.MissingTranslatorsComment"/>
+		<exclude name="WordPress.WP.I18n.TextDomainMismatch"/>
+
+		<!-- File naming: our PHP files use kebab-case-like names that
+		     predate the class-* / trait-* convention. -->
+		<exclude name="WordPress.Files.FileName"/>
+	</rule>
+
+	<!-- Every string passed through the i18n functions must use the
+	     `odd` text domain. -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="odd"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Allow `@` suppression on specific idempotent cleanup calls.
+	     ob_end_clean / copy / file_put_contents are silenced in paths
+	     where an error is legitimately recoverable or a no-op. -->
+	<rule ref="WordPress.PHP.NoSilencedErrors">
+		<properties>
+			<property name="customAllowedFunctionsList" type="array">
+				<element value="ob_end_clean"/>
+				<element value="copy"/>
+				<element value="file_put_contents"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- PHP version floor matches the Requires PHP header in odd.php. -->
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- Minimum WordPress version targeted. -->
+	<config name="minimum_supported_wp_version" value="6.0"/>
+</ruleset>

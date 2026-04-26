@@ -25,18 +25,18 @@ defined( 'ABSPATH' ) || exit;
 function odd_icons_slug_to_key( $slug ) {
 	$slug = (string) $slug;
 	$map  = array(
-		'index.php'                 => 'dashboard',
-		'edit.php'                  => 'posts',
-		'edit.php?post_type=page'   => 'pages',
-		'upload.php'                => 'media',
-		'edit-comments.php'         => 'comments',
-		'themes.php'                => 'appearance',
-		'plugins.php'               => 'plugins',
-		'users.php'                 => 'users',
-		'tools.php'                 => 'tools',
-		'options-general.php'       => 'settings',
-		'profile.php'               => 'profile',
-		'link-manager.php'          => 'links',
+		'index.php'               => 'dashboard',
+		'edit.php'                => 'posts',
+		'edit.php?post_type=page' => 'pages',
+		'upload.php'              => 'media',
+		'edit-comments.php'       => 'comments',
+		'themes.php'              => 'appearance',
+		'plugins.php'             => 'plugins',
+		'users.php'               => 'users',
+		'tools.php'               => 'tools',
+		'options-general.php'     => 'settings',
+		'profile.php'             => 'profile',
+		'link-manager.php'        => 'links',
 	);
 	if ( isset( $map[ $slug ] ) ) {
 		return $map[ $slug ];
@@ -49,68 +49,77 @@ function odd_icons_slug_to_key( $slug ) {
 	return '';
 }
 
-add_filter( 'wp_desktop_dock_item', function ( $item, $menu_slug ) {
-	if ( ! is_array( $item ) ) {
-		return $item;
-	}
-	$slug = odd_icons_get_active_slug();
-	if ( '' === $slug ) {
-		return $item;
-	}
-	$set = odd_icons_get_set( $slug );
-	if ( ! $set || empty( $set['icons'] ) ) {
-		return $item;
-	}
-
-	$key = odd_icons_slug_to_key( (string) $menu_slug );
-	if ( '' !== $key && ! empty( $set['icons'][ $key ] ) ) {
-		$item['icon'] = (string) $set['icons'][ $key ];
-		return $item;
-	}
-	// Always-on fallback so every dock tile feels themed even when
-	// a set ships no match for e.g. a third-party admin page.
-	if ( ! empty( $set['icons']['fallback'] ) ) {
-		$item['icon'] = (string) $set['icons']['fallback'];
-	}
-	return $item;
-}, 20, 2 );
-
-add_filter( 'wp_desktop_icons', function ( $registry ) {
-	if ( ! is_array( $registry ) || empty( $registry ) ) {
-		return $registry;
-	}
-	$slug = odd_icons_get_active_slug();
-	if ( '' === $slug ) {
-		return $registry;
-	}
-	$set = odd_icons_get_set( $slug );
-	if ( ! $set || empty( $set['icons'] ) ) {
-		return $registry;
-	}
-
-	foreach ( $registry as $id => $entry ) {
-		if ( ! is_array( $entry ) ) {
-			continue;
+add_filter(
+	'wp_desktop_dock_item',
+	function ( $item, $menu_slug ) {
+		if ( ! is_array( $item ) ) {
+			return $item;
 		}
-		// Skip the ODD control panel icon itself — keep its native gear.
-		$entry_id = isset( $entry['id'] ) ? (string) $entry['id'] : (string) $id;
-		if ( 'odd' === $entry_id ) {
-			continue;
+		$slug = odd_icons_get_active_slug();
+		if ( '' === $slug ) {
+			return $item;
 		}
-		$window = isset( $entry['window'] ) ? (string) $entry['window'] : '';
-		$key    = odd_icons_slug_to_key( $window );
-		if ( '' === $key ) {
-			// Desktop icons can also target URLs — try matching by the
-			// icon id as a last-ditch key.
-			$key = sanitize_key( $entry_id );
+		$set = odd_icons_get_set( $slug );
+		if ( ! $set || empty( $set['icons'] ) ) {
+			return $item;
 		}
+
+		$key = odd_icons_slug_to_key( (string) $menu_slug );
 		if ( '' !== $key && ! empty( $set['icons'][ $key ] ) ) {
-			$registry[ $id ]['icon'] = (string) $set['icons'][ $key ];
-			continue;
+			$item['icon'] = (string) $set['icons'][ $key ];
+			return $item;
 		}
+		// Always-on fallback so every dock tile feels themed even when
+		// a set ships no match for e.g. a third-party admin page.
 		if ( ! empty( $set['icons']['fallback'] ) ) {
-			$registry[ $id ]['icon'] = (string) $set['icons']['fallback'];
+			$item['icon'] = (string) $set['icons']['fallback'];
 		}
-	}
-	return $registry;
-}, 20 );
+		return $item;
+	},
+	20,
+	2
+);
+
+add_filter(
+	'wp_desktop_icons',
+	function ( $registry ) {
+		if ( ! is_array( $registry ) || empty( $registry ) ) {
+			return $registry;
+		}
+		$slug = odd_icons_get_active_slug();
+		if ( '' === $slug ) {
+			return $registry;
+		}
+		$set = odd_icons_get_set( $slug );
+		if ( ! $set || empty( $set['icons'] ) ) {
+			return $registry;
+		}
+
+		foreach ( $registry as $id => $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+			// Skip the ODD control panel icon itself — keep its native gear.
+			$entry_id = isset( $entry['id'] ) ? (string) $entry['id'] : (string) $id;
+			if ( 'odd' === $entry_id ) {
+				continue;
+			}
+			$window = isset( $entry['window'] ) ? (string) $entry['window'] : '';
+			$key    = odd_icons_slug_to_key( $window );
+			if ( '' === $key ) {
+				// Desktop icons can also target URLs — try matching by the
+				// icon id as a last-ditch key.
+				$key = sanitize_key( $entry_id );
+			}
+			if ( '' !== $key && ! empty( $set['icons'][ $key ] ) ) {
+				$registry[ $id ]['icon'] = (string) $set['icons'][ $key ];
+				continue;
+			}
+			if ( ! empty( $set['icons']['fallback'] ) ) {
+				$registry[ $id ]['icon'] = (string) $set['icons']['fallback'];
+			}
+		}
+		return $registry;
+	},
+	20
+);

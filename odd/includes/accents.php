@@ -25,8 +25,8 @@ add_filter(
 
 		foreach ( odd_icons_get_sets() as $set ) {
 			$accent = isset( $set['accent'] ) ? $set['accent'] : '';
-			$slug   = isset( $set['slug'] )   ? $set['slug']   : '';
-			$label  = isset( $set['label'] )  ? $set['label']  : '';
+			$slug   = isset( $set['slug'] ) ? $set['slug'] : '';
+			$label  = isset( $set['label'] ) ? $set['label'] : '';
 			if ( ! $slug || ! $accent ) {
 				continue;
 			}

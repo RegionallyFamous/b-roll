@@ -213,7 +213,15 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 	$index = odd_apps_index_load();
 	if ( ! isset( $index[ $slug ] ) ) {
 		if ( $debug_on ) {
-			odd_apps_debug_emit( array_merge( $debug_trace, array( 'reason' => 'slug_not_in_index', 'known_slugs' => array_keys( $index ) ) ) );
+			odd_apps_debug_emit(
+				array_merge(
+					$debug_trace,
+					array(
+						'reason'      => 'slug_not_in_index',
+						'known_slugs' => array_keys( $index ),
+					)
+				)
+			);
 		}
 		status_header( 404 );
 		exit;
@@ -266,7 +274,15 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 	$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 	if ( in_array( $ext, odd_apps_forbidden_extensions(), true ) ) {
 		if ( $debug_on ) {
-			odd_apps_debug_emit( array_merge( $debug_trace, array( 'reason' => 'forbidden_ext', 'ext' => $ext ) ) );
+			odd_apps_debug_emit(
+				array_merge(
+					$debug_trace,
+					array(
+						'reason' => 'forbidden_ext',
+						'ext'    => $ext,
+					)
+				)
+			);
 		}
 		status_header( 403 );
 		exit;
@@ -300,10 +316,10 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 	$size = filesize( $full );
 
 	if ( $debug_on ) {
-		$debug_trace['mime']       = $mime;
-		$debug_trace['size']       = (int) $size;
-		$head                      = (string) @file_get_contents( $full, false, null, 0, 512 );
-		$debug_trace['body_head']  = $head;
+		$debug_trace['mime']      = $mime;
+		$debug_trace['size']      = (int) $size;
+		$head                     = (string) @file_get_contents( $full, false, null, 0, 512 );
+		$debug_trace['body_head'] = $head;
 		odd_apps_debug_emit( array_merge( $debug_trace, array( 'reason' => 'ok_would_serve' ) ) );
 	}
 

@@ -25,9 +25,9 @@ defined( 'ABSPATH' ) || exit;
 function odd_wallpaper_scenes() {
 	static $cache = null;
 	if ( null === $cache ) {
-		$path      = ODD_DIR . 'src/wallpaper/scenes.json';
-		$raw       = is_readable( $path ) ? file_get_contents( $path ) : '';
-		$data      = json_decode( $raw, true );
+		$path = ODD_DIR . 'src/wallpaper/scenes.json';
+		$raw  = is_readable( $path ) ? file_get_contents( $path ) : '';
+		$data = json_decode( $raw, true );
 		if ( ! is_array( $data ) && '' !== $raw ) {
 			odd_registry_report_bad_manifest( $path, json_last_error_msg() );
 		}
@@ -42,7 +42,7 @@ function odd_wallpaper_scenes() {
 		 *                        `label`, `franchise`, `tags`, `fallbackColor`,
 		 *                        and `added`.
 		 */
-		$cache     = apply_filters( 'odd_scene_registry', $from_disk );
+		$cache = apply_filters( 'odd_scene_registry', $from_disk );
 		if ( ! is_array( $cache ) ) {
 			$cache = $from_disk;
 		}

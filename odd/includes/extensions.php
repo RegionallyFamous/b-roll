@@ -73,16 +73,29 @@ function odd_extensions_upsert( $registry, $entry ) {
  * source yet.
  */
 function odd_extensions_collect( $name ) {
-	$name     = (string) $name;
-	$filter   = '';
+	$name   = (string) $name;
+	$filter = '';
 	switch ( $name ) {
-		case 'muses':            $filter = 'odd_muse_registry'; break;
-		case 'commands':         $filter = 'odd_command_registry'; break;
-		case 'widgets':          $filter = 'odd_widget_registry'; break;
-		case 'rituals':          $filter = 'odd_ritual_registry'; break;
-		case 'motionPrimitives': $filter = 'odd_motion_primitive_registry'; break;
-		case 'apps':             $filter = 'odd_app_registry'; break;
-		default: return array();
+		case 'muses':
+			$filter = 'odd_muse_registry';
+			break;
+		case 'commands':
+			$filter = 'odd_command_registry';
+			break;
+		case 'widgets':
+			$filter = 'odd_widget_registry';
+			break;
+		case 'rituals':
+			$filter = 'odd_ritual_registry';
+			break;
+		case 'motionPrimitives':
+			$filter = 'odd_motion_primitive_registry';
+			break;
+		case 'apps':
+			$filter = 'odd_app_registry';
+			break;
+		default:
+			return array();
 	}
 	/**
 	 * Filter a JS-only ODD registry. See odd/includes/extensions.php

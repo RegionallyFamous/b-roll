@@ -166,8 +166,8 @@ function odd_apps_rest_upload( WP_REST_Request $req ) {
 	$name   = $file['name'];
 	$result = odd_apps_install( $tmp, $name );
 	if ( is_wp_error( $result ) ) {
-		$data              = $result->get_error_data();
-		$data['status']    = isset( $data['status'] ) ? $data['status'] : 400;
+		$data           = $result->get_error_data();
+		$data['status'] = isset( $data['status'] ) ? $data['status'] : 400;
 		$result->add_data( $data );
 		return $result;
 	}
@@ -256,7 +256,7 @@ function odd_apps_rest_serve( WP_REST_Request $req ) {
 		return new WP_Error( 'forbidden', __( 'This file type cannot be served.', 'odd' ), array( 'status' => 403 ) );
 	}
 
-	$base = odd_apps_dir_for( $slug );
+	$base      = odd_apps_dir_for( $slug );
 	$real_base = realpath( $base );
 	$full      = realpath( $base . $path );
 	if ( ! $real_base || ! $full || 0 !== strpos( $full, $real_base ) ) {
@@ -393,27 +393,27 @@ function odd_apps_rest_icon( WP_REST_Request $req ) {
 function odd_apps_mime_for( $path ) {
 	$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 	$map = array(
-		'html' => 'text/html; charset=utf-8',
-		'htm'  => 'text/html; charset=utf-8',
-		'css'  => 'text/css; charset=utf-8',
-		'js'   => 'application/javascript; charset=utf-8',
-		'mjs'  => 'application/javascript; charset=utf-8',
-		'json' => 'application/json; charset=utf-8',
-		'svg'  => 'image/svg+xml',
-		'webp' => 'image/webp',
-		'png'  => 'image/png',
-		'jpg'  => 'image/jpeg',
-		'jpeg' => 'image/jpeg',
-		'gif'  => 'image/gif',
-		'ico'  => 'image/x-icon',
-		'woff' => 'font/woff',
-		'woff2'=> 'font/woff2',
-		'ttf'  => 'font/ttf',
-		'otf'  => 'font/otf',
-		'txt'  => 'text/plain; charset=utf-8',
-		'md'   => 'text/markdown; charset=utf-8',
-		'wasm' => 'application/wasm',
-		'map'  => 'application/json; charset=utf-8',
+		'html'  => 'text/html; charset=utf-8',
+		'htm'   => 'text/html; charset=utf-8',
+		'css'   => 'text/css; charset=utf-8',
+		'js'    => 'application/javascript; charset=utf-8',
+		'mjs'   => 'application/javascript; charset=utf-8',
+		'json'  => 'application/json; charset=utf-8',
+		'svg'   => 'image/svg+xml',
+		'webp'  => 'image/webp',
+		'png'   => 'image/png',
+		'jpg'   => 'image/jpeg',
+		'jpeg'  => 'image/jpeg',
+		'gif'   => 'image/gif',
+		'ico'   => 'image/x-icon',
+		'woff'  => 'font/woff',
+		'woff2' => 'font/woff2',
+		'ttf'   => 'font/ttf',
+		'otf'   => 'font/otf',
+		'txt'   => 'text/plain; charset=utf-8',
+		'md'    => 'text/markdown; charset=utf-8',
+		'wasm'  => 'application/wasm',
+		'map'   => 'application/json; charset=utf-8',
 	);
 	return isset( $map[ $ext ] ) ? $map[ $ext ] : 'application/octet-stream';
 }
@@ -454,18 +454,18 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 	// Every function we rely on across the install→render→serve
 	// chain. If any of these is false, that's the failure mode.
 	$loaders = array(
-		'odd_apps_list'                  => function_exists( 'odd_apps_list' ),
-		'odd_apps_index_load'            => function_exists( 'odd_apps_index_load' ),
-		'odd_apps_manifest_load'         => function_exists( 'odd_apps_manifest_load' ),
-		'odd_apps_dir_for'               => function_exists( 'odd_apps_dir_for' ),
-		'odd_apps_register_surfaces'     => function_exists( 'odd_apps_register_surfaces' ),
-		'odd_apps_render_window_template' => function_exists( 'odd_apps_render_window_template' ),
-		'odd_apps_cookieauth_url_for'    => function_exists( 'odd_apps_cookieauth_url_for' ),
-		'odd_apps_cookieauth_maybe_serve' => function_exists( 'odd_apps_cookieauth_maybe_serve' ),
-		'odd_apps_forbidden_extensions'  => function_exists( 'odd_apps_forbidden_extensions' ),
-		'odd_apps_mime_for'              => function_exists( 'odd_apps_mime_for' ),
+		'odd_apps_list'                     => function_exists( 'odd_apps_list' ),
+		'odd_apps_index_load'               => function_exists( 'odd_apps_index_load' ),
+		'odd_apps_manifest_load'            => function_exists( 'odd_apps_manifest_load' ),
+		'odd_apps_dir_for'                  => function_exists( 'odd_apps_dir_for' ),
+		'odd_apps_register_surfaces'        => function_exists( 'odd_apps_register_surfaces' ),
+		'odd_apps_render_window_template'   => function_exists( 'odd_apps_render_window_template' ),
+		'odd_apps_cookieauth_url_for'       => function_exists( 'odd_apps_cookieauth_url_for' ),
+		'odd_apps_cookieauth_maybe_serve'   => function_exists( 'odd_apps_cookieauth_maybe_serve' ),
+		'odd_apps_forbidden_extensions'     => function_exists( 'odd_apps_forbidden_extensions' ),
+		'odd_apps_mime_for'                 => function_exists( 'odd_apps_mime_for' ),
 		'odd_apps_inject_runtime_importmap' => function_exists( 'odd_apps_inject_runtime_importmap' ),
-		'wp_register_desktop_window'     => function_exists( 'wp_register_desktop_window' ),
+		'wp_register_desktop_window'        => function_exists( 'wp_register_desktop_window' ),
 	);
 
 	// Hook priority — is serve-cookieauth actually on init@1?
@@ -483,7 +483,10 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 				if ( false === strpos( $name, 'odd_apps' ) ) {
 					continue;
 				}
-				$init_hooks[] = array( 'priority' => $priority, 'function' => $name );
+				$init_hooks[] = array(
+					'priority' => $priority,
+					'function' => $name,
+				);
 			}
 		}
 	}
@@ -515,8 +518,8 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 
 	// Exercise the same regex the cookie-auth matcher uses, against
 	// a simulated path shaped like what the browser would send.
-	$simulated      = '/odd-app/' . $slug . '/';
-	$regex_matches  = (bool) preg_match( '#^/odd-app/([a-z0-9-]+)(?:/(.*))?$#', $simulated );
+	$simulated     = '/odd-app/' . $slug . '/';
+	$regex_matches = (bool) preg_match( '#^/odd-app/([a-z0-9-]+)(?:/(.*))?$#', $simulated );
 
 	// Sanity: would the import-map injection corrupt an empty-head
 	// HTML? Run the actual function on a known-good minimal doc.
@@ -536,21 +539,21 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 	}
 
 	$diag = array(
-		'slug'        => $slug,
-		'env'         => $env,
-		'loaders'     => $loaders,
-		'init_hooks'  => $init_hooks,
-		'install'     => array(
-			'installed'  => $installed,
-			'enabled'    => $enabled,
-			'row'        => $row,
-			'manifest'   => $manifest ? array(
-				'name'       => isset( $manifest['name'] ) ? $manifest['name'] : null,
-				'entry'      => $entry,
+		'slug'       => $slug,
+		'env'        => $env,
+		'loaders'    => $loaders,
+		'init_hooks' => $init_hooks,
+		'install'    => array(
+			'installed' => $installed,
+			'enabled'   => $enabled,
+			'row'       => $row,
+			'manifest'  => $manifest ? array(
+				'name'           => isset( $manifest['name'] ) ? $manifest['name'] : null,
+				'entry'          => $entry,
 				'has_extensions' => ! empty( $manifest['extensions'] ),
 			) : null,
 		),
-		'filesystem'  => array(
+		'filesystem' => array(
 			'base'       => $base,
 			'real_base'  => $real_base,
 			'entry_path' => $entry_path,
@@ -558,17 +561,16 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 			'entry_size' => $entry_size,
 			'entry_head' => $entry_head,
 		),
-		'serve'       => array(
-			'url'            => $serve_url,
-			'regex_matches'  => $regex_matches,
-			'importmap_ok'   => $importmap_ok,
+		'serve'      => array(
+			'url'           => $serve_url,
+			'regex_matches' => $regex_matches,
+			'importmap_ok'  => $importmap_ok,
 		),
-		'wpdm'        => array(
-			'window_id'             => 'odd-app-' . $slug,
-			'window_registered'     => $wpdm_registered,
+		'wpdm'       => array(
+			'window_id'         => 'odd-app-' . $slug,
+			'window_registered' => $wpdm_registered,
 		),
 	);
 
 	return rest_ensure_response( $diag );
 }
-
