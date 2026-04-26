@@ -7,6 +7,25 @@
 class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 
 	/**
+	 * @var int
+	 */
+	protected $user_id;
+
+	public function set_up() {
+		parent::set_up();
+		// odd_icons_set_active_slug() writes to user meta and no-ops
+		// when no user is logged in, so every filter test that wants
+		// an active set has to run as a real user.
+		$this->user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $this->user_id );
+	}
+
+	public function tear_down() {
+		wp_set_current_user( 0 );
+		parent::tear_down();
+	}
+
+	/**
 	 * Return the first icon set slug that has at least one mapping
 	 * and a fallback — safe to run the filter tests against.
 	 */
