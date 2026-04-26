@@ -83,8 +83,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Matrix is PHP-only: wp-phpunit/wp-phpunit is locked against
+        # modern WP core (it expects wp-includes/class-wpdb.php) so
+        # testing against WP 6.0 here would require per-matrix
+        # version juggling. install-smoke.yml already boots the
+        # plugin against real, live WordPress end-to-end, so the
+        # value of a WP-version matrix dimension on PHPUnit is low.
         php: ['7.4', '8.0', '8.2']
-        wp: ['6.0', 'latest']
+        wp: ['latest']
     services:
       mysql:
         image: mysql:8.0
