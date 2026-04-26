@@ -1,0 +1,23 @@
+{
+  "slug": "stadium",
+  "label": "Stadium",
+  "franchise": "Sport",
+  "accent": "#d73a3a",
+  "description": "Chenille varsity-patch icons on crimson backing with dashed stitched outlines and a pennant corner.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

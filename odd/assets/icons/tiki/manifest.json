@@ -1,0 +1,23 @@
+{
+  "slug": "tiki",
+  "label": "Tiki",
+  "franchise": "Lounge",
+  "accent": "#c47a3c",
+  "description": "Mid-century tiki lounge \u2014 warm wood-grain backplate with a rattan weave frame and cocoa-engraved glyphs.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

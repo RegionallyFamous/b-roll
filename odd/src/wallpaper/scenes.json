@@ -110,5 +110,145 @@
     ],
     "fallbackColor": "#1a2530",
     "added": "1.0.8"
+  },
+  {
+    "slug": "tide-pool",
+    "label": "Tide Pool",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "water",
+      "caustics",
+      "macro",
+      "bright"
+    ],
+    "fallbackColor": "#2ba4ad",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "tropical-greenhouse",
+    "label": "Tropical Greenhouse",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "plants",
+      "sunlight",
+      "interior",
+      "warm"
+    ],
+    "fallbackColor": "#1e5a3a",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "big-sky",
+    "label": "Big Sky",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "clouds",
+      "prairie",
+      "landscape",
+      "parallax"
+    ],
+    "fallbackColor": "#7cb8d9",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "terrazzo",
+    "label": "Terrazzo",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "pattern",
+      "flat",
+      "pastel",
+      "calm"
+    ],
+    "fallbackColor": "#e8dcc4",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "balcony-noon",
+    "label": "Balcony Noon",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "city",
+      "laundry",
+      "anime",
+      "summer"
+    ],
+    "fallbackColor": "#a8c8e5",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "cloud-city",
+    "label": "Cloud City",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "sky",
+      "airships",
+      "sunrise",
+      "parallax"
+    ],
+    "fallbackColor": "#f9c8a8",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "wildflower-meadow",
+    "label": "Wildflower Meadow",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "flowers",
+      "butterflies",
+      "meadow",
+      "summer"
+    ],
+    "fallbackColor": "#6ba347",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "sun-print",
+    "label": "Sun Print",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "cyanotype",
+      "craft",
+      "lawn",
+      "summer"
+    ],
+    "fallbackColor": "#2f6fa1",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "beach-umbrellas",
+    "label": "Beach Umbrellas",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "beach",
+      "aerial",
+      "summer",
+      "pattern"
+    ],
+    "fallbackColor": "#e8c88a",
+    "added": "1.2.0"
+  },
+  {
+    "slug": "mercado",
+    "label": "Mercado",
+    "franchise": "ODD Originals",
+    "tags": [
+      "gpt-image-2",
+      "market",
+      "papel-picado",
+      "marigold",
+      "festive"
+    ],
+    "fallbackColor": "#d66a2a",
+    "added": "1.2.0"
   }
 ]

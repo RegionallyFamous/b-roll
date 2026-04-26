@@ -1,0 +1,23 @@
+{
+  "slug": "risograph",
+  "label": "Risograph",
+  "franchise": "Print",
+  "accent": "#ff4fa8",
+  "description": "Two-color riso print look \u2014 fluorescent pink and cyan off-register on dust-grit paper. Loud and cheerful.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

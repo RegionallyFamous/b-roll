@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="0" y="0" width="64" height="64" fill="#f5ead2" />
+  <g transform="translate(1.2, 1.2)"><polygon points="16 12 42 12 52 22 52 52 16 52" fill="#b6cc72" stroke="#8ea749" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" />
+  <polygon points="42 12 42 22 52 22" fill="#b6cc72" stroke="#8ea749" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" />
+  <line x1="22" y1="30" x2="44" y2="30" stroke="#8ea749" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" />
+  <line x1="22" y1="38" x2="44" y2="38" stroke="#8ea749" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" />
+  <line x1="22" y1="46" x2="38" y2="46" stroke="#8ea749" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" /></g>
+  <polygon points="16 12 42 12 52 22 52 52 16 52" fill="none" stroke="#3a2a14" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+  <polygon points="42 12 42 22 52 22" fill="none" stroke="#3a2a14" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="22" y1="30" x2="44" y2="30" stroke="#3a2a14" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="22" y1="38" x2="44" y2="38" stroke="#3a2a14" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="22" y1="46" x2="38" y2="46" stroke="#3a2a14" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="12" y1="58" x2="52" y2="58" stroke="#3a2a14" stroke-width="0.7" opacity="0.55" />
+</svg>

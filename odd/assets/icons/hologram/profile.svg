@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><linearGradient id="holo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd0ff"/><stop offset="0.33" stop-color="#fea8ff"/><stop offset="0.66" stop-color="#a8ffd9"/><stop offset="1" stop-color="#ffe79a"/></linearGradient><linearGradient id="holoDk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs>
+  <circle cx="32.0" cy="32.0" r="20.0" fill="url(#holo)" stroke="url(#holo)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="32.0" cy="28.0" r="7" fill="url(#holo)" stroke="url(#holo)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+  <polygon points="18.0 48 24.0 30 40.0 30 46.0 48" fill="url(#holo)" stroke="url(#holo)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="32.0" cy="32.0" r="20.0" fill="none" stroke="url(#holoDk)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
+  <circle cx="32.0" cy="28.0" r="7" fill="none" stroke="url(#holoDk)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
+  <polygon points="18.0 48 24.0 30 40.0 30 46.0 48" fill="none" stroke="url(#holoDk)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
+  <path d="M 54 54 L 62 54 L 62 62 Z" fill="#eaf6ff" opacity="0.9" /><path d="M 54 54 L 62 54 L 58 58 Z" fill="#b7d8ef" opacity="0.9" />
+</svg>

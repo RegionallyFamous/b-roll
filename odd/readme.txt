@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.4
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,11 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.2.0 =
+* Ships a full expansion pack: 10 new GPT Image 2 wallpaper scenes (Tide Pool, Tropical Greenhouse, Big Sky, Terrazzo, Balcony Noon, Cloud City, Wildflower Meadow, Sun Print, Beach Umbrellas, Mercado) and 10 new icon sets (Risograph, Claymation, Circuit Bend, Stadium, Botanical Plate, Arcade Tokens, Cross-Stitch, Lemonade Stand, Hologram, Tiki). Every wallpaper has a custom PixiJS motion scene layered over the painted backdrop; every icon set provides all 13 WP Desktop icon keys.
+* All new concepts are bright / warm / daytime / whimsical — no dark or moody wallpapers in this pack.
+* Scene catalog doubles from 8 → 18; icon-set catalog grows from 7 → 17.
 
 = 1.1.4 =
 * Redesigned all seven catalog app icons (Mosaic, Ledger, Flow, Board, Sine, Swatch, Tome) as flat, bold glyphs with no gradient background boxes, sparkles, or drop shadows. Replaces the previous purple-gradient-chrome style that clashed with the dock and the desktop.
@@ -112,6 +117,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Doubles the wallpaper catalog and more than doubles the icon-set catalog with 10 new bright / warm / daytime scenes and 10 new icon sets. Highly recommended for anyone who wants more to look at.
 
 = 1.1.4 =
 Cleans up the look of installed app icons (flat, no gradient boxes) and hardens window mounting so installed apps always open. Recommended.

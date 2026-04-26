@@ -1,0 +1,23 @@
+{
+  "slug": "botanical-plate",
+  "label": "Botanical Plate",
+  "franchise": "Illustrated",
+  "accent": "#6a8f3b",
+  "description": "Copperplate ink + soft green watercolor wash on aged paper, like a naturalist's field guide.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

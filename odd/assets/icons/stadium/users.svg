@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="0" y="0" width="64" height="64" rx="8" fill="#c23030" />
+  <rect x="3" y="3" width="58" height="58" rx="6" fill="none" stroke="#f2f2ea" stroke-width="1" stroke-dasharray="2 2" />
+  <polygon points="0 6 14 8 6 12 0 12" fill="#f2c445" />
+  <circle cx="24.0" cy="24" r="7" fill="#f2eede" stroke="#f2eede" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="40.0" cy="24" r="7" fill="#f2eede" stroke="#f2eede" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <polygon points="14.0 52 18.0 36 30.0 36 34.0 52" fill="#f2eede" stroke="#f2eede" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <polygon points="30.0 52 34.0 36 46.0 36 50.0 52" fill="#f2eede" stroke="#f2eede" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="24.0" cy="24" r="7" fill="none" stroke="#c89a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <circle cx="40.0" cy="24" r="7" fill="none" stroke="#c89a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <polygon points="14.0 52 18.0 36 30.0 36 34.0 52" fill="none" stroke="#c89a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <polygon points="30.0 52 34.0 36 46.0 36 50.0 52" fill="none" stroke="#c89a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+</svg>

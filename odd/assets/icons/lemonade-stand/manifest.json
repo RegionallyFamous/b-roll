@@ -1,0 +1,23 @@
+{
+  "slug": "lemonade-stand",
+  "label": "Lemonade Stand",
+  "franchise": "Summer",
+  "accent": "#ffd64b",
+  "description": "Crayon-stroke glyphs on a sunny yellow gingham backplate. Kid-drawn, summer-bright.",
+  "preview": "dashboard.svg",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}
