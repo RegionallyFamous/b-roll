@@ -430,10 +430,31 @@ function odd_apps_serve_runtime_module( $module ) {
 }
 
 function odd_apps_runtime_module_source( $module ) {
+	// Shared preamble baked into every runtime shim. If React can't
+	// be resolved we paint a visible error banner into the iframe's
+	// own <body> *before* throwing, so the user sees an actionable
+	// failure message directly inside the app window — no DevTools
+	// scope-switching required. (The parent-side watchdog in
+	// window-host.js also catches this, but this inner fallback is
+	// robust even if cross-frame DOM access is ever blocked.)
+	$missing_banner = "(function(){\n" .
+		"  try {\n" .
+		"    var d = document;\n" .
+		"    if (!d || !d.body) return;\n" .
+		"    var prev = d.getElementById('odd-runtime-error');\n" .
+		"    if (prev) return;\n" .
+		"    var b = d.createElement('div');\n" .
+		"    b.id = 'odd-runtime-error';\n" .
+		"    b.style.cssText = 'position:fixed;inset:0;display:grid;place-items:center;background:#1a1420;color:#eaeaf0;font:13px/1.5 -apple-system,system-ui,sans-serif;padding:24px;text-align:center;z-index:2147483647;';\n" .
+		"    b.innerHTML = '<div style=\"max-width:460px;display:grid;gap:10px;\"><div style=\"font-weight:600;font-size:14px;color:#ffd9a3;\">ODD runtime: React is unavailable</div><div style=\"opacity:.88;\">The WordPress React runtime (<code>wp.element</code>) is not loaded on the parent page, so this app\\u2019s bare <code>react</code> imports cannot resolve. Reload the desktop once; if it persists, the ODD plugin host is missing the <code>wp-element</code> script dependency.</div></div>';\n" .
+		"    d.body.appendChild(b);\n" .
+		"  } catch (e) { /* best-effort */ }\n" .
+		"})();\n";
+
 	$react_loader = "const host = window.parent || window;\n" .
 		"const wpElement = host.wp && host.wp.element ? host.wp.element : null;\n" .
 		"const React = host.React || wpElement;\n" .
-		"if (!React) { throw new Error('ODD app runtime: React is unavailable.'); }\n";
+		'if (!React) { ' . $missing_banner . "throw new Error('ODD app runtime: React is unavailable.'); }\n";
 
 	if ( 'react' === $module ) {
 		return $react_loader .
@@ -481,7 +502,7 @@ function odd_apps_runtime_module_source( $module ) {
 		return "const host = window.parent || window;\n" .
 			"const wpElement = host.wp && host.wp.element ? host.wp.element : null;\n" .
 			"const ReactDOM = host.ReactDOM || wpElement;\n" .
-			"if (!ReactDOM) { throw new Error('ODD app runtime: ReactDOM is unavailable.'); }\n" .
+			'if (!ReactDOM) { ' . $missing_banner . "throw new Error('ODD app runtime: ReactDOM is unavailable.'); }\n" .
 			"export default ReactDOM;\n" .
 			"export const createPortal = ReactDOM.createPortal;\n" .
 			"export const flushSync = ReactDOM.flushSync;\n" .

@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<phpunit
+	bootstrap="odd/tests/php/bootstrap.php"
+	colors="true"
+	verbose="true"
+	beStrictAboutCoversAnnotation="false"
+	beStrictAboutOutputDuringTests="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	convertDeprecationsToExceptions="true"
+	failOnWarning="true"
+	failOnRisky="true"
+>
+	<testsuites>
+		<testsuite name="odd">
+			<directory suffix=".php">odd/tests/php</directory>
+			<exclude>odd/tests/php/bootstrap.php</exclude>
+			<exclude>odd/tests/php/fixtures</exclude>
+			<exclude>odd/tests/php/includes</exclude>
+		</testsuite>
+	</testsuites>
+	<php>
+		<const name="WP_TESTS_FORCE_KNOWN_BUGS" value="false"/>
+	</php>
+</phpunit>
