@@ -17,14 +17,23 @@
  * subsequent asset fetch unsets the current user and 403s — the
  * iframe paints blank white.
  *
- * This endpoint sidesteps REST entirely. It binds a rewrite rule
+ * This endpoint sidesteps REST entirely. It listens on `init` for
+ * requests whose URI path matches
  *
  *   /odd-app/<slug>/<path>
  *
- * to a `template_redirect` handler that authenticates via the
- * logged-in cookie, checks the app's capability, streams the file,
- * and exits. No nonce required, so relative asset URLs from the
- * iframe's own document resolve and stream.
+ * authenticates via the logged-in cookie, checks the app's
+ * capability, streams the file, and exits. No rewrite rules, no REST
+ * pipeline, no nonce — so relative asset URLs from the iframe's own
+ * document resolve and stream cleanly.
+ *
+ * Earlier revisions (<= 1.3.1) used `add_rewrite_rule` +
+ * `template_redirect`, but that path depended on `flush_rewrite_rules`
+ * having run (and having persisted) on the exact install the user is
+ * loading. Playground installs, mu-plugin setups, and any site with a
+ * stale `rewrite_rules` option regressed back to the REST path and
+ * left the iframe blank. A direct `$_SERVER['REQUEST_URI']` match
+ * has no such dependency.
  *
  * SECURITY
  * --------
@@ -36,69 +45,60 @@
  *     the app's own directory.
  *   - `X-Frame-Options: SAMEORIGIN` + `Referrer-Policy: no-referrer`
  *     mirror the REST route headers.
- *
- * FLUSH CONTRACT
- * --------------
- * Rewrite rules ship via `add_rewrite_rule` on init. Flushing is
- * triggered by the main plugin activation hook (ODD_FILE) and by a
- * version-stamped option so a code update that adds new rules
- * re-flushes once on first admin pageload.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! defined( 'ODD_APPS_SERVE_REWRITE_VERSION' ) ) {
-	define( 'ODD_APPS_SERVE_REWRITE_VERSION', '1' );
-}
-
+/**
+ * Match + serve on every request. Registered at priority 1 on
+ * `init` — that's the first hook after `pluggable.php` loads, so
+ * `wp_validate_auth_cookie` is guaranteed to be available. It still
+ * runs before any template / canonical-redirect logic, so the URL
+ * can't be repurposed out from under us.
+ */
 add_action(
 	'init',
-	function () {
-		if ( ! defined( 'ODD_APPS_ENABLED' ) || ! ODD_APPS_ENABLED ) {
-			return;
-		}
-		add_rewrite_rule(
-			'^odd-app/([a-z0-9-]+)/?(.*)$',
-			'index.php?odd_app_slug=$matches[1]&odd_app_path=$matches[2]',
-			'top'
-		);
-
-		// Flush exactly once per rewrite-schema version. add_rewrite_rule
-		// registers into the cached rules but does not re-emit them; WP
-		// only persists fresh rules when the cache is rebuilt. A version
-		// stamp in options lets us force that rebuild after a code update.
-		$stamped = get_option( 'odd_apps_serve_rewrite_version' );
-		if ( ODD_APPS_SERVE_REWRITE_VERSION !== $stamped ) {
-			flush_rewrite_rules( false );
-			update_option( 'odd_apps_serve_rewrite_version', ODD_APPS_SERVE_REWRITE_VERSION );
-		}
-	},
-	11
+	'odd_apps_cookieauth_maybe_serve',
+	1
 );
 
-add_filter(
-	'query_vars',
-	function ( $vars ) {
-		$vars[] = 'odd_app_slug';
-		$vars[] = 'odd_app_path';
-		return $vars;
+function odd_apps_cookieauth_maybe_serve() {
+	if ( ! defined( 'ODD_APPS_ENABLED' ) || ! ODD_APPS_ENABLED ) {
+		return;
 	}
-);
 
-add_action(
-	'template_redirect',
-	function () {
-		$slug = get_query_var( 'odd_app_slug' );
-		if ( empty( $slug ) ) {
-			return;
-		}
-		$slug = sanitize_key( (string) $slug );
-		$path = (string) get_query_var( 'odd_app_path' );
-		odd_apps_serve_cookieauth( $slug, $path );
-		exit;
-	},
-	0
-);
+	$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+	if ( '' === $uri ) {
+		return;
+	}
+
+	$parts = explode( '?', $uri, 2 );
+	$path  = (string) $parts[0];
+
+	$home_path = wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+	if ( ! is_string( $home_path ) ) {
+		$home_path = '/';
+	}
+	$home_path = '/' . ltrim( (string) $home_path, '/' );
+
+	// Strip the site's home path prefix so that subdir installs
+	// (example.com/blog/odd-app/...) match the same way as root
+	// installs (example.com/odd-app/...).
+	if ( '/' !== $home_path && 0 === strpos( $path, $home_path ) ) {
+		$path = substr( $path, strlen( $home_path ) - 1 );
+	}
+
+	// Expect `/odd-app/<slug>[/<rest>]`.
+	if ( ! preg_match( '#^/odd-app/([a-z0-9-]+)(?:/(.*))?$#', $path, $m ) ) {
+		return;
+	}
+
+	$slug = $m[1];
+	$sub  = isset( $m[2] ) ? (string) $m[2] : '';
+
+	odd_apps_serve_cookieauth( $slug, $sub );
+	exit;
+}
 
 /**
  * Serve an app bundle file using cookie auth only.
@@ -122,6 +122,13 @@ function odd_apps_serve_cookieauth( $slug, $path ) {
 		exit;
 	}
 	wp_set_current_user( $user_id );
+
+	if ( ! function_exists( 'odd_apps_index_load' ) ) {
+		// Registry wasn't loaded — this can happen during very early
+		// bootstrap errors. Fail closed rather than serve nothing.
+		status_header( 500 );
+		exit;
+	}
 
 	$index = odd_apps_index_load();
 	if ( ! isset( $index[ $slug ] ) ) {
@@ -197,39 +204,12 @@ function odd_apps_serve_cookieauth( $slug, $path ) {
 }
 
 /**
- * Build the public iframe URL for an app.
+ * Build the public iframe URL for an app. Always uses the pretty
+ * `/odd-app/<slug>/` shape — since the matcher runs directly on
+ * `$_SERVER['REQUEST_URI']` we don't need permalinks configured or
+ * rewrite rules flushed for it to work.
  */
 function odd_apps_cookieauth_url_for( $slug ) {
 	$slug = sanitize_key( (string) $slug );
-	// home_url() respects permalink structure. If pretty permalinks
-	// aren't configured, fall back to the index.php?query path so the
-	// iframe still mounts — asset sub-requests resolve relatively
-	// against whichever URL shape WP hands back.
-	$permalinks = get_option( 'permalink_structure' );
-	if ( $permalinks ) {
-		return home_url( '/odd-app/' . $slug . '/' );
-	}
-	return add_query_arg(
-		array(
-			'odd_app_slug' => $slug,
-			'odd_app_path' => '',
-		),
-		home_url( '/' )
-	);
+	return home_url( '/odd-app/' . $slug . '/' );
 }
-
-register_activation_hook(
-	ODD_FILE,
-	function () {
-		// Register the rule synchronously so flush has something to
-		// persist. The init hook registers it for normal page loads;
-		// activation runs before the next init so we duplicate here.
-		add_rewrite_rule(
-			'^odd-app/([a-z0-9-]+)/?(.*)$',
-			'index.php?odd_app_slug=$matches[1]&odd_app_path=$matches[2]',
-			'top'
-		);
-		flush_rewrite_rules( false );
-		update_option( 'odd_apps_serve_rewrite_version', ODD_APPS_SERVE_REWRITE_VERSION );
-	}
-);

@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.3.2 =
+* Really fixes the blank-iframe bug for installed apps. 1.3.1 shipped a cookie-auth rewrite endpoint (`/odd-app/<slug>/<path>`) that depended on `flush_rewrite_rules` having persisted — a precondition that silently failed on Playground installs, mu-plugin-based setups, and any site with a stale `rewrite_rules` option, so the iframe kept 403ing its own asset sub-requests and painting white. The endpoint now matches directly against `$_SERVER['REQUEST_URI']` on `init` priority 1 (after `pluggable.php` loads so `wp_validate_auth_cookie` is available) instead of going through the rewrite pipeline. No flushes, no query vars, no activation dance — just a regex on the URI, a cookie HMAC re-validation, a capability check, and `readfile()`. Works the first time the plugin activates, on every install shape.
 
 = 1.3.1 =
 * Fixes two long-running visual / functional bugs around installed apps and icon surfaces.
@@ -122,6 +125,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.3.2 =
+Fixes the blank-iframe app regression that 1.3.1 tried (and failed) to fix. If you saw installed apps still paint white in 1.3.1, upgrade — they really load now.
 
 = 1.3.1 =
 Fixes installed apps (blank iframe after the HTML loaded) and strips the "weird border / dark plate" around catalog app icons and the v1.2 icon sets on both the dock and desktop. Strongly recommended.

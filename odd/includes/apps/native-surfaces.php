@@ -112,13 +112,14 @@ function odd_apps_register_surfaces( $row ) {
  * load leaves a visible placeholder rather than a silent window.
  */
 function odd_apps_render_window_template( $slug, $manifest ) {
-	// Apps are served from /odd-app/{slug}/{path} via a cookie-auth
-	// rewrite endpoint, not from the REST namespace. Going through
-	// REST worked for the initial index.html load (we could tack a
-	// _wpnonce onto the query string) but the browser does not
-	// propagate that nonce to sub-requests for ./assets/*.js etc., so
-	// WP core's rest_cookie_check_errors unsets the current user and
-	// 403s every asset — the iframe paints blank white.
+	// Apps are served from /odd-app/{slug}/{path} via a direct
+	// request-URI match on `init` (priority 1), not from the REST
+	// namespace. Going through REST worked for the initial
+	// index.html load (we could tack a _wpnonce onto the query
+	// string) but the browser does not propagate that nonce to
+	// sub-requests for ./assets/*.js etc., so WP core's
+	// rest_cookie_check_errors unsets the current user and 403s
+	// every asset — the iframe paints blank white.
 	//
 	// See odd/includes/apps/serve-cookieauth.php for the endpoint.
 	// A fresh rest nonce is still appended so apps that want to call
