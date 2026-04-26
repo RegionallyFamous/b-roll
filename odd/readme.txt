@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,11 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.3.1 =
+* Fixes two long-running visual / functional bugs around installed apps and icon surfaces.
+* Installed apps now load correctly. Previously the app iframe served its HTML entry but every relative asset fetch (`./assets/*.js`, CSS, images) returned 403 because WP core's REST cookie check runs `wp_set_current_user(0)` on any logged-in cookie request without a nonce — the browser doesn't propagate nonces to `<script src>` sub-requests. Apps now serve from a dedicated cookie-auth rewrite endpoint (`/odd-app/<slug>/<path>`) that sits outside the REST pipeline, so relative URLs resolve against the iframe's own base and all assets stream cleanly. Rewrite rules are flushed once on activation and re-flushed by a version-stamped option when the endpoint ships new rules.
+* Dock and desktop-shortcut icons no longer wrap ODD-owned artwork in WP Desktop Mode's default dark glass plate with a white border. The plate is now stripped for every ODD icon URL — themed icon sets (`/wp-json/odd/v1/icons/`, `/assets/icons/`), installed app icons (`/wp-json/odd/v1/apps/icon/`), and catalog icons (`/apps/catalog/icons/`) — and a uniform rounded corner is clipped onto the `<img>` so the full-bleed v1.2 sets (Risograph, Cross-Stitch, Lemonade Stand, etc.) match the rounded silhouette of the hand-authored sets.
 
 = 1.2.0 =
 * Ships a full expansion pack: 10 new GPT Image 2 wallpaper scenes (Tide Pool, Tropical Greenhouse, Big Sky, Terrazzo, Balcony Noon, Cloud City, Wildflower Meadow, Sun Print, Beach Umbrellas, Mercado) and 10 new icon sets (Risograph, Claymation, Circuit Bend, Stadium, Botanical Plate, Arcade Tokens, Cross-Stitch, Lemonade Stand, Hologram, Tiki). Every wallpaper has a custom PixiJS motion scene layered over the painted backdrop; every icon set provides all 13 WP Desktop icon keys.
@@ -117,6 +122,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.3.1 =
+Fixes installed apps (blank iframe after the HTML loaded) and strips the "weird border / dark plate" around catalog app icons and the v1.2 icon sets on both the dock and desktop. Strongly recommended.
 
 = 1.2.0 =
 Doubles the wallpaper catalog and more than doubles the icon-set catalog with 10 new bright / warm / daytime scenes and 10 new icon sets. Highly recommended for anyone who wants more to look at.

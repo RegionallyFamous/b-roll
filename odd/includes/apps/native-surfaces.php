@@ -112,17 +112,25 @@ function odd_apps_register_surfaces( $row ) {
  * load leaves a visible placeholder rather than a silent window.
  */
 function odd_apps_render_window_template( $slug, $manifest ) {
-	// A fresh rest nonce is appended to the iframe src so apps can
-	// make authenticated REST calls — read it once in the app with
+	// Apps are served from /odd-app/{slug}/{path} via a cookie-auth
+	// rewrite endpoint, not from the REST namespace. Going through
+	// REST worked for the initial index.html load (we could tack a
+	// _wpnonce onto the query string) but the browser does not
+	// propagate that nonce to sub-requests for ./assets/*.js etc., so
+	// WP core's rest_cookie_check_errors unsets the current user and
+	// 403s every asset — the iframe paints blank white.
+	//
+	// See odd/includes/apps/serve-cookieauth.php for the endpoint.
+	// A fresh rest nonce is still appended so apps that want to call
+	// back into /wp-json/odd/v1/ from their own code can read it via
 	// `new URLSearchParams( window.location.search ).get( '_wpnonce' )`
-	// and include it as the `X-WP-Nonce` header on outgoing fetches.
-	// Same convention Bazaar used; nonces are user-scoped and expire
-	// after 12h, so leaking the iframe URL is low-risk.
+	// and send it as X-WP-Nonce on their outgoing fetches.
+	$base_url  = odd_apps_cookieauth_url_for( $slug );
 	$serve_url = add_query_arg(
 		array(
 			'_wpnonce' => wp_create_nonce( 'wp_rest' ),
 		),
-		rest_url( 'odd/v1/apps/serve/' . $slug . '/' )
+		$base_url
 	);
 	$serve_url = esc_url( $serve_url );
 	$name      = isset( $manifest['name'] ) ? (string) $manifest['name'] : $slug;

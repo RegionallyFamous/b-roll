@@ -35,6 +35,7 @@ require_once ODD_DIR . 'includes/apps/storage.php';
 require_once ODD_DIR . 'includes/apps/loader.php';
 require_once ODD_DIR . 'includes/apps/registry.php';
 require_once ODD_DIR . 'includes/apps/rest.php';
+require_once ODD_DIR . 'includes/apps/serve-cookieauth.php';
 require_once ODD_DIR . 'includes/apps/native-surfaces.php';
 require_once ODD_DIR . 'includes/apps/migrate-from-bazaar.php';
 require_once ODD_DIR . 'includes/apps/bazaar-compat.php';

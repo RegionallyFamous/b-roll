@@ -51,17 +51,42 @@ body.wp-desktop-active .wp-desktop-dock__item-primary:focus-visible {
 	background: rgba( 8, 14, 28, 0.68 );
 }
 
+/*
+ * Strip the dock's glass tile for any ODD-owned icon — themed icon
+ * sets, installed app icons, and catalog app icons. The artwork is
+ * already self-contained; the plate just pads a weird border around
+ * a wallpaper-aware illustration.
+ */
 body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ) {
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"] ),
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ),
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] ) {
 	background: transparent;
 	box-shadow: none;
 }
 
 body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):hover,
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"] ):hover,
 body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):hover,
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] ):hover,
 body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):focus-visible,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):focus-visible {
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"] ):focus-visible,
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):focus-visible,
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] ):focus-visible {
 	background: rgba( 255, 255, 255, 0.08 );
+}
+
+/*
+ * Uniform rounded silhouette for ODD icons. Some of the v1.2 icon
+ * sets bake in a full-bleed 64x64 backplate (riso paper, gingham,
+ * wood grain); clipping the <img> to a rounded rect hides the hard
+ * corners so they match the softer monoline/filament style.
+ */
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"],
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"],
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"],
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] {
+	border-radius: 14px;
 }
 
 body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img,
@@ -84,7 +109,9 @@ body.wp-desktop-active .wp-desktop-dock__item .dashicons {
 }
 
 body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"] {
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"],
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"],
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] {
 	width: var( --odd-dock-custom-icon-size );
 	height: var( --odd-dock-custom-icon-size );
 	max-width: var( --odd-dock-custom-icon-size );
@@ -124,6 +151,45 @@ body.wp-desktop-active .wp-desktop-icon__image img {
 	filter:
 		drop-shadow( 0 1px 1px rgba( 0, 0, 0, 0.95 ) )
 		drop-shadow( 0 0 5px rgba( 0, 0, 0, 0.75 ) );
+}
+
+/*
+ * Strip the desktop-shortcut glass plate for ODD-owned icons, same
+ * as we strip the dock tile. Without this the catalog app icons and
+ * every icon-set shortcut render inside a dark glass square with a
+ * white border — a "weird border / background" around otherwise
+ * clean artwork. The SVGs are self-contained; let them fill the tile
+ * and take a light hover plate for affordance.
+ */
+body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
+body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/apps/icon/"] ),
+body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ),
+body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/apps/catalog/icons/"] ) {
+	background: none;
+	border: none;
+	box-shadow: none;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
+body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/apps/icon/"] ),
+body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ),
+body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/apps/catalog/icons/"] ),
+body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
+body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/apps/icon/"] ),
+body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ),
+body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/apps/catalog/icons/"] ) {
+	background: rgba( 255, 255, 255, 0.10 );
+}
+
+body.wp-desktop-active .wp-desktop-icon__image img[src*="/wp-json/odd/v1/icons/"],
+body.wp-desktop-active .wp-desktop-icon__image img[src*="/wp-json/odd/v1/apps/icon/"],
+body.wp-desktop-active .wp-desktop-icon__image img[src*="/assets/icons/"],
+body.wp-desktop-active .wp-desktop-icon__image img[src*="/apps/catalog/icons/"] {
+	max-width: 54px;
+	max-height: 54px;
+	border-radius: 14px;
 }
 
 body.wp-desktop-active .wp-desktop-icon__label {
