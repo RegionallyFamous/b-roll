@@ -36,6 +36,34 @@ jobs:
       - name: Build zip
         run: odd/bin/build-zip
 
+      - name: Upload zip for install-smoke
+        uses: actions/upload-artifact@v4
+        with:
+          name: odd-zip-release
+          path: dist/odd.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  install-smoke:
+    needs: release
+    uses: ./.github/workflows/install-smoke.yml
+
+  publish:
+    needs: [release, install-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch built zip
+        uses: actions/download-artifact@v4
+        with:
+          name: odd-zip-release
+          path: dist
+
       - name: Create GitHub release and upload zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
