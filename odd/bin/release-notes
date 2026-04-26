@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Extract a release's CHANGELOG section and emit it on stdout.
+
+Usage:
+    odd/bin/release-notes <version>
+
+`<version>` may be given as `1.5.0`, `v1.5.0`, or `unreleased`.
+The tool reads CHANGELOG.md at the repo root, finds the `<a id="vX.Y.Z"></a>`
+anchor (or `<a id="unreleased"></a>`), and prints every line until the
+next anchor or EOF. Exit codes:
+
+    0  section found and printed
+    1  section not found
+    2  CHANGELOG.md missing
+"""
+from __future__ import annotations
+
+import pathlib
+import re
+import sys
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2:
+        sys.stderr.write("usage: release-notes <version>\n")
+        return 1
+
+    raw = argv[1].strip()
+    anchor_id = raw if raw.lower() == "unreleased" else raw
+    if anchor_id.lower() != "unreleased":
+        if not anchor_id.startswith("v"):
+            anchor_id = f"v{anchor_id}"
+
+    repo_root = pathlib.Path(__file__).resolve().parents[2]
+    changelog = repo_root / "CHANGELOG.md"
+    if not changelog.is_file():
+        sys.stderr.write(f"{changelog}: missing\n")
+        return 2
+
+    text = changelog.read_text(encoding="utf-8")
+    anchor_pattern = re.compile(r'<a id="([^"]+)"></a>')
+    anchors = list(anchor_pattern.finditer(text))
+
+    for i, match in enumerate(anchors):
+        if match.group(1).lower() != anchor_id.lower():
+            continue
+        start = match.end()
+        end = anchors[i + 1].start() if i + 1 < len(anchors) else len(text)
+        section = text[start:end].strip()
+        sys.stdout.write(section + "\n")
+        return 0
+
+    sys.stderr.write(f'release-notes: no section for "{raw}" in {changelog}\n')
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

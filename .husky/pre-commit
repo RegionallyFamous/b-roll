@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+# ODD pre-commit gate.
+#
+# Runs (in order) version check, asset validators, JS suites, and
+# phpcs on any staged PHP files. Override in emergencies with
+# `git commit --no-verify`.
+
+set -e
+
+echo "→ odd/bin/check-version"
+odd/bin/check-version
+
+echo "→ odd/bin/validate-scenes"
+odd/bin/validate-scenes
+
+echo "→ odd/bin/validate-icon-sets"
+odd/bin/validate-icon-sets
+
+echo "→ vitest (one-shot)"
+npm test --silent -- --run
+
+# Only run phpcs if composer deps are installed AND there is staged PHP.
+staged_php=$(git diff --cached --name-only --diff-filter=ACM -- 'odd/**/*.php' || true)
+if [ -n "$staged_php" ]; then
+  if [ -x vendor/bin/phpcs ]; then
+    echo "→ phpcs on staged PHP"
+    echo "$staged_php" | xargs vendor/bin/phpcs -q
+  else
+    echo "! vendor/bin/phpcs missing - run \`composer install\` to enable PHP linting in pre-commit"
+  fi
+fi

@@ -1,0 +1,12 @@
+# Code ownership. These patterns auto-request review from the listed
+# owners on any PR that touches matching paths.
+
+/odd/                   @RegionallyFamous
+/docs/                  @RegionallyFamous
+/.github/workflows/     @RegionallyFamous
+/CHANGELOG.md           @RegionallyFamous
+/composer.json          @RegionallyFamous
+/phpcs.xml.dist         @RegionallyFamous
+/phpunit.xml.dist       @RegionallyFamous
+/package.json           @RegionallyFamous
+/blueprint.json         @RegionallyFamous

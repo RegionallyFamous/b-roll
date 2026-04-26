@@ -64,18 +64,40 @@ jobs:
           name: odd-zip-release
           path: dist
 
-      - name: Create GitHub release and upload zip
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve release notes from CHANGELOG
+        id: notes
         run: |
           set -e
           tag="${GITHUB_REF_NAME}"
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          if odd/bin/release-notes "$tag" >"$notes_file" 2>/dev/null && [ -s "$notes_file" ]; then
+            echo "source=changelog" >>"$GITHUB_OUTPUT"
+            echo "notes-file=$notes_file" >>"$GITHUB_OUTPUT"
+          else
+            echo "source=generated" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub release and upload zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTES_SOURCE: ${{ steps.notes.outputs.source }}
+          NOTES_FILE: ${{ steps.notes.outputs.notes-file }}
+        run: |
+          set -e
+          tag="${GITHUB_REF_NAME}"
+
+          if [ "$NOTES_SOURCE" = "changelog" ]; then
+            notes_arg=( --notes-file "$NOTES_FILE" )
+          else
+            notes_arg=( --generate-notes )
+          fi
+
           # First attempt; retry once after a short nap if the asset upload
           # hits the "Error creating policy" 409 flake called out in CLAUDE.md.
           if ! gh release create "$tag" dist/odd.zip \
               --title "$tag" \
               --latest=true \
-              --generate-notes; then
+              "${notes_arg[@]}"; then
               echo "release create failed - retrying after 3s"
               sleep 3
               if gh release view "$tag" >/dev/null 2>&1; then
@@ -84,7 +106,7 @@ jobs:
                   gh release create "$tag" dist/odd.zip \
                       --title "$tag" \
                       --latest=true \
-                      --generate-notes
+                      "${notes_arg[@]}"
               fi
           fi
 
