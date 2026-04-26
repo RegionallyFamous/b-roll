@@ -123,7 +123,7 @@
 	};
 } )();
 /**
- * ODD scene: Abyssal Aquarium — v1.1.0
+ * ODD scene: Abyssal Aquarium ï¿½ v1.1.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (assets/wallpapers/abyssal-aquarium.webp)
  * with layered Pixi motion that sells the aquarium glass:
@@ -231,7 +231,7 @@
 	}
 
 	function drawJelly( g, x, y, r, alpha, tint ) {
-		// Translucent bell — three stacked filled half-ellipses for
+		// Translucent bell ï¿½ three stacked filled half-ellipses for
 		// volume, plus a short tentacle fringe.
 		for ( var k = 0; k < 3; k++ ) {
 			var kr = r * ( 1 - k * 0.18 );

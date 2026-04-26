@@ -131,7 +131,7 @@
 	};
 } )();
 /**
- * ODD scene: Weather Factory — v1.1.0
+ * ODD scene: Weather Factory ï¿½ v1.1.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (assets/wallpapers/weather-factory.webp)
  * with live weather produced by the painted machine:

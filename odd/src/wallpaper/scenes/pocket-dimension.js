@@ -123,7 +123,7 @@
 	};
 } )();
 /**
- * ODD scene: Pocket Dimension — v1.1.0
+ * ODD scene: Pocket Dimension ï¿½ v1.1.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (assets/wallpapers/pocket-dimension.webp)
  * of an impossible floating room + portal, decorated with live Pixi:
@@ -131,7 +131,7 @@
  *   1. A lensing ring around the painted portal that breathes and
  *      occasionally emits a refracting shimmer pass.
  *
- *   2. Orbiting shards — small glyph-like shapes circling the portal
+ *   2. Orbiting shards ï¿½ small glyph-like shapes circling the portal
  *      at three parallax depths, softly rotating.
  *
  *   3. A slow starfield drift behind the nebula for quiet motion.

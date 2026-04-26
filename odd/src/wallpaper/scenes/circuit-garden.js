@@ -126,7 +126,7 @@
 	};
 } )();
 /**
- * ODD scene: Circuit Garden — v1.1.0
+ * ODD scene: Circuit Garden ï¿½ v1.1.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (assets/wallpapers/circuit-garden.webp)
  * with a thin layer of "living circuitry":
@@ -137,7 +137,7 @@
  *   2. Circuit traces that pulse a moving spark along pre-seeded
  *      paths, as if a packet were routing through the garden.
  *
- *   3. A scatter of "blossoms" — small radial bursts that inhale
+ *   3. A scatter of "blossoms" ï¿½ small radial bursts that inhale
  *      and exhale on a breath rhythm, tinted by season.
  *
  *   4. Optional low-perf fallback: skip traces, keep fireflies and
