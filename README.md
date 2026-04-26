@@ -42,9 +42,21 @@ Two little widgets you can drop anywhere on the desktop via the widget shelf:
 - **Sticky Note** — a tilted handwritten scrap that auto-saves as you type.
 - **Magic 8-Ball** — ask a question, click to shake, get an opinionated (if occasionally unhelpful) answer.
 
-### Apps — self-contained desktop apps
+### Apps — a seven-app drawer, bundled in
 
-Install small, sandboxed apps that each get their own desktop icon and open in their own native window. Browse the curated catalog inside the Apps panel, or drop in your own `.odd` / `.wp` archive. Apps can register commands, muses, widgets, rituals, and motion primitives through a manifest — no PHP bootstrap required.
+ODD ships a curated Bazaar-compatible catalog. One click inside the **Apps** tab installs an app into WordPress; it gets its own desktop icon and opens in its own WP Desktop window — no admin-page detours, no extra plugins.
+
+The bundled catalog:
+
+- **Mosaic** — pixel editor with drawing tools, fills, undo/redo, and PNG export for your 32×32 masterpieces.
+- **Flow** — Pomodoro with ambient soundscapes, per-session task lists, and a heatmap of the days you actually showed up.
+- **Board** — no-nonsense kanban: cards, columns, drag, drop, done.
+- **Ledger** — track clients, generate polished invoices, and log payments without leaving WordPress.
+- **Swatch** — HSL editing, harmony rules, WCAG contrast checks, and one-click export to CSS, Tailwind, or SVG.
+- **Sine** — a real Web Audio synthesizer: four waveforms, ADSR envelope, resonant filter, and a step sequencer.
+- **Tome** — a fast markdown wiki for your team — pages, search, no SaaS tab.
+
+Drop your own `.odd` / `.wp` archive into the panel to side-load anything Bazaar-compatible. Apps can register commands, muses, widgets, rituals, and motion primitives through a manifest — no PHP bootstrap required.
 
 ---
 
