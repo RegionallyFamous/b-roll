@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.7.1
+Stable tag: 1.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,11 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.7.2 =
+* ODD Shop shelves are now proper sliders. Every category row (wallpapers, icon sets, widgets) gets a pair of floating prev/next pills that nudge the track by about one card's width. Native touch, wheel, and keyboard scroll still work — the buttons fade out at the start or end, and disappear entirely on rows that don't overflow, so short shelves stay clean.
+* "Browse by category" tiles now ship with hand-drawn SVG artwork per category (Skies, Wilds, Places, Forms, Playful, Crafted, Technical, Cool, Generative, Atmosphere, Paper, ODD Originals, WP Desktop Mode, Default). Each tile's illustration crops to the right side of the card and scales gently on hover, making the quilt feel like a real navigation surface instead of flat gradients.
+* The Widgets department shelf now reads "Widgets" instead of "ODD Widgets" — one less redundant brand stamp inside a panel that's already clearly ours.
 
 = 1.7.1 =
 * Polish pass across the ODD Shop. Shared pill language for every button (primary / ghost) from the hero CTAs down to the widget "Add to desktop" tiles, so the interaction vocabulary is one grammar instead of five bespoke variants. Rail active state gets a subtle top-to-bottom gradient + inner highlight, topbar picks up a 1px top inset so it reads as glass instead of matte, shelf count sits in a small rounded chip, and category quilt tiles reveal a "→" on hover or keyboard focus to signal they jump to a shelf.

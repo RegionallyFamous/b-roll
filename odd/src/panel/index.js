@@ -965,6 +965,106 @@
 		 * Forms / Playful / Crafted / Technical / Cool / Default),
 		 * keeping a few legacy franchise entries below for fallback.
 		 */
+		/**
+		 * SVG artwork for each category tile. Each returns a compact
+		 * <svg> string sized to the tile's 240×120 viewbox, positioned
+		 * absolute by `.odd-shop__quilt-art`. Artwork is white-on-
+		 * gradient at low-ish opacity so it reads as decoration behind
+		 * the category name + count, and crops cleanly on either side
+		 * via preserveAspectRatio="xMaxYMid slice".
+		 *
+		 * Unknown categories fall back to a concentric-dots default,
+		 * so new franchises always get *something* visual.
+		 */
+		function categoryArtwork( name ) {
+			var SVG_OPEN = '<svg viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">';
+			var SVG_CLOSE = '</svg>';
+			var ART = {
+				'Skies':
+					'<circle cx="196" cy="32" r="22" fill="#fff" opacity=".55"/>' +
+					'<circle cx="196" cy="32" r="13" fill="#fff" opacity=".55"/>' +
+					'<ellipse cx="158" cy="58" rx="42" ry="12" fill="#fff" opacity=".55"/>' +
+					'<ellipse cx="130" cy="48" rx="26" ry="8" fill="#fff" opacity=".38"/>',
+				'Wilds':
+					'<circle cx="210" cy="28" r="10" fill="#fff" opacity=".6"/>' +
+					'<path d="M140 98 L172 44 L192 72 L212 38 L244 98 Z" fill="#fff" opacity=".58"/>' +
+					'<path d="M108 98 L134 56 L150 82 L170 60 L198 98 Z" fill="#fff" opacity=".38"/>',
+				'Places':
+					'<circle cx="200" cy="28" r="8" fill="#fff" opacity=".7"/>' +
+					'<rect x="138" y="60" width="22" height="42" fill="#fff" opacity=".5"/>' +
+					'<rect x="164" y="40" width="18" height="62" fill="#fff" opacity=".72"/>' +
+					'<rect x="186" y="52" width="24" height="50" fill="#fff" opacity=".48"/>' +
+					'<rect x="214" y="66" width="20" height="36" fill="#fff" opacity=".4"/>',
+				'Forms':
+					'<circle cx="180" cy="52" r="34" fill="#fff" opacity=".34"/>' +
+					'<rect x="150" y="46" width="48" height="48" rx="4" fill="#fff" opacity=".48" transform="rotate(12 174 70)"/>' +
+					'<path d="M204 30 L236 92 L172 92 Z" fill="#fff" opacity=".58"/>',
+				'Playful':
+					'<path d="M194 20 L198 34 L212 34 L201 43 L206 58 L194 50 L182 58 L187 43 L176 34 L190 34 Z" fill="#fff" opacity=".75"/>' +
+					'<circle cx="148" cy="40" r="4" fill="#fff" opacity=".75"/>' +
+					'<circle cx="228" cy="58" r="5" fill="#fff" opacity=".7"/>' +
+					'<rect x="166" y="70" width="9" height="9" fill="#fff" opacity=".55" transform="rotate(20 170 74)"/>' +
+					'<rect x="214" y="88" width="7" height="7" fill="#fff" opacity=".65" transform="rotate(30 217 91)"/>' +
+					'<path d="M134 86 L138 94 L146 90 L142 82 Z" fill="#fff" opacity=".55"/>',
+				'Crafted':
+					'<path d="M148 94 L192 22 L236 94 Z" fill="#fff" opacity=".6"/>' +
+					'<path d="M192 22 L192 94 L148 94 Z" fill="#fff" opacity=".32"/>' +
+					'<path d="M192 22 L236 94 L192 94 Z" fill="#000" opacity=".12"/>',
+				'Technical':
+					'<path d="M138 40 L170 40 L170 60 L200 60 L200 80 L234 80" stroke="#fff" stroke-width="2.5" fill="none" opacity=".7"/>' +
+					'<path d="M138 80 L160 80 L160 64 L186 64 L186 44 L224 44" stroke="#fff" stroke-width="2.5" fill="none" opacity=".42"/>' +
+					'<circle cx="170" cy="40" r="5" fill="#fff" opacity=".85"/>' +
+					'<circle cx="200" cy="60" r="5" fill="#fff" opacity=".85"/>' +
+					'<circle cx="186" cy="64" r="4" fill="#fff" opacity=".65"/>',
+				'Cool':
+					'<circle cx="200" cy="60" r="46" fill="none" stroke="#fff" stroke-width="2" opacity=".38"/>' +
+					'<circle cx="200" cy="60" r="30" fill="none" stroke="#fff" stroke-width="2" opacity=".6"/>' +
+					'<circle cx="200" cy="60" r="13" fill="#fff" opacity=".75"/>',
+				'Generative':
+					'<path d="M124 96 Q160 36 202 70 Q232 96 244 44" fill="none" stroke="#fff" stroke-width="2.5" opacity=".7"/>' +
+					'<path d="M128 78 Q162 26 204 56 Q234 80 244 28" fill="none" stroke="#fff" stroke-width="2" opacity=".45"/>' +
+					'<circle cx="202" cy="70" r="4" fill="#fff" opacity=".85"/>' +
+					'<circle cx="168" cy="62" r="3" fill="#fff" opacity=".7"/>',
+				'Atmosphere':
+					'<path d="M110 32 Q150 16 190 32 T280 32" fill="none" stroke="#fff" stroke-width="3" opacity=".45"/>' +
+					'<path d="M100 58 Q140 42 180 58 T270 58" fill="none" stroke="#fff" stroke-width="3" opacity=".65"/>' +
+					'<path d="M110 84 Q150 68 190 84 T280 84" fill="none" stroke="#fff" stroke-width="3" opacity=".4"/>',
+				'Paper':
+					'<path d="M150 24 L222 24 L222 96 L150 96 Z" fill="#fff" opacity=".55"/>' +
+					'<path d="M222 24 L222 96 L162 96 Z" fill="#000" opacity=".18"/>' +
+					'<path d="M150 24 L222 24 L182 62 Z" fill="#fff" opacity=".7"/>',
+				'ODD Originals':
+					'<ellipse cx="196" cy="60" rx="42" ry="24" fill="#fff" opacity=".7"/>' +
+					'<circle cx="196" cy="60" r="14" fill="#0c0a1d"/>' +
+					'<circle cx="200" cy="56" r="4" fill="#fff"/>',
+				'WP Desktop Mode':
+					'<rect x="136" y="26" width="98" height="72" rx="6" fill="#fff" opacity=".5"/>' +
+					'<rect x="136" y="26" width="98" height="14" rx="6" fill="#fff" opacity=".32"/>' +
+					'<circle cx="146" cy="33" r="2.5" fill="#fff" opacity=".9"/>' +
+					'<circle cx="154" cy="33" r="2.5" fill="#fff" opacity=".78"/>' +
+					'<circle cx="162" cy="33" r="2.5" fill="#fff" opacity=".66"/>' +
+					'<rect x="148" y="52" width="74" height="8" rx="2" fill="#fff" opacity=".3"/>' +
+					'<rect x="148" y="66" width="52" height="8" rx="2" fill="#fff" opacity=".25"/>',
+				'Default':
+					'<circle cx="200" cy="60" r="38" fill="#fff" opacity=".35"/>' +
+					'<circle cx="200" cy="60" r="22" fill="#fff" opacity=".55"/>' +
+					'<circle cx="200" cy="60" r="8" fill="#fff" opacity=".85"/>',
+			};
+			var inner = ART[ name ];
+			if ( ! inner ) {
+				// Deterministic pick from a few "safe" fallbacks so new
+				// categories still get a distinct illustration.
+				var FALLBACKS = [ 'Cool', 'Forms', 'Generative', 'Default' ];
+				var hash = 0;
+				var key = String( name || '' );
+				for ( var i = 0; i < key.length; i++ ) {
+					hash = ( ( hash << 5 ) - hash + key.charCodeAt( i ) ) | 0;
+				}
+				inner = ART[ FALLBACKS[ Math.abs( hash ) % FALLBACKS.length ] ];
+			}
+			return SVG_OPEN + inner + SVG_CLOSE;
+		}
+
 		function franchiseGradient( name ) {
 			var PALETTE = {
 				'Skies':            'linear-gradient(135deg,#1a4b8e 0%,#5dadec 60%,#a3d8f4 100%)',
@@ -1113,12 +1213,18 @@
 					'data-franchise-jump': category,
 					'data-scope': scope,
 				} );
+				var art = el( 'span', {
+					class: 'odd-shop__quilt-art',
+					'aria-hidden': 'true',
+				} );
+				art.innerHTML = categoryArtwork( category );
 				var name = el( 'span', { class: 'odd-shop__quilt-name' } );
 				name.textContent = category;
 				var count = el( 'span', { class: 'odd-shop__quilt-count' } );
 				count.textContent = counts[ category ] + ( counts[ category ] === 1
 					? ( scope === 'wallpaper' ? ' scene' : ' set' )
 					: ( scope === 'wallpaper' ? ' scenes' : ' sets' ) );
+				tile.appendChild( art );
 				tile.appendChild( name );
 				tile.appendChild( count );
 				tile.addEventListener( 'click', function () {
@@ -1208,7 +1314,63 @@
 			items.forEach( function ( item ) {
 				track.appendChild( cardFn( item ) );
 			} );
-			shelf.appendChild( track );
+
+			// Wrap the track in a slider shell so we can overlay
+			// prev/next pills. The native scroll still works for
+			// touch, wheel, and keyboard — buttons are a convenience
+			// layer that nudge by roughly-one-card-width on click.
+			var slider = el( 'div', { class: 'odd-shop__slider' } );
+			var prev = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__slider-btn odd-shop__slider-btn--prev',
+				'aria-label': 'Scroll ' + franchise + ' back',
+			} );
+			prev.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+			var next = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__slider-btn odd-shop__slider-btn--next',
+				'aria-label': 'Scroll ' + franchise + ' forward',
+			} );
+			next.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 4 L17 12 L9 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+			slider.appendChild( prev );
+			slider.appendChild( track );
+			slider.appendChild( next );
+			shelf.appendChild( slider );
+
+			// Scroll by roughly one card's worth of width, clamped so
+			// a narrow pane still advances a meaningful distance.
+			function step( dir ) {
+				var amt = Math.max( 260, Math.round( track.clientWidth * 0.85 ) );
+				if ( typeof track.scrollBy === 'function' ) {
+					track.scrollBy( { left: dir * amt, behavior: 'smooth' } );
+				} else {
+					track.scrollLeft += dir * amt;
+				}
+			}
+			prev.addEventListener( 'click', function () { step( -1 ); } );
+			next.addEventListener( 'click', function () { step( 1 ); } );
+
+			// Fade the buttons in/out depending on whether there's
+			// content to scroll toward. Called on scroll, on resize,
+			// and once after mount (images arriving later can change
+			// scrollWidth). `is-overflowing` gates visibility entirely
+			// so short shelves don't show buttons at all.
+			function updateButtons() {
+				var canPrev = track.scrollLeft > 2;
+				var canNext = track.scrollLeft + track.clientWidth < track.scrollWidth - 2;
+				slider.classList.toggle( 'is-start', ! canPrev );
+				slider.classList.toggle( 'is-end', ! canNext );
+				slider.classList.toggle( 'is-overflowing', track.scrollWidth > track.clientWidth + 2 );
+			}
+			track.addEventListener( 'scroll', updateButtons, { passive: true } );
+			if ( typeof window !== 'undefined' && typeof window.setTimeout === 'function' ) {
+				window.setTimeout( updateButtons, 0 );
+				window.setTimeout( updateButtons, 400 );
+			}
+			if ( typeof ResizeObserver !== 'undefined' ) {
+				try { new ResizeObserver( updateButtons ).observe( track ); } catch ( _e ) {}
+			}
+
 			return shelf;
 		}
 
@@ -2039,7 +2201,7 @@
 			}
 
 			wrap.appendChild( renderShelf(
-				'ODD Widgets',
+				'Widgets',
 				filtered,
 				function ( w ) { return renderWidgetCard( w, !! enabledMap[ w.id ] ); },
 				{ scope: 'widgets' }
@@ -2751,6 +2913,13 @@
 			'.odd-panel.odd-shop .odd-shop__quilt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}',
 			'.odd-panel.odd-shop .odd-shop__quilt-tile{all:unset;cursor:pointer;position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:120px;padding:18px 20px;border-radius:var(--odd-shop-radius);color:#fff;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04),0 14px 32px -22px rgba(20,14,40,.38);transition:transform .16s ease,box-shadow .16s ease}',
 			'.odd-panel.odd-shop .odd-shop__quilt-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,0) 35%,rgba(0,0,0,.32) 100%);pointer-events:none}',
+			// Category artwork — full-bleed SVG decoration behind the
+			// name + count, cropped to the right half of the tile via
+			// preserveAspectRatio="xMaxYMid slice". Transitions gently
+			// on hover to hint at interactivity.
+			'.odd-panel.odd-shop .odd-shop__quilt-art{position:absolute;inset:0;pointer-events:none;opacity:.88;transition:opacity .18s ease,transform .22s ease;z-index:0}',
+			'.odd-panel.odd-shop .odd-shop__quilt-art svg{width:100%;height:100%;display:block}',
+			'.odd-panel.odd-shop .odd-shop__quilt-tile:hover .odd-shop__quilt-art{opacity:1;transform:scale(1.04)}',
 			// Subtle "→" arrow hint that animates in on hover, signaling
 			// "this tile takes you somewhere". z-index:1 to sit over the scrim.
 			'.odd-panel.odd-shop .odd-shop__quilt-tile::before{content:"→";position:absolute;top:16px;right:18px;z-index:1;font-size:18px;font-weight:700;color:#fff;opacity:0;transform:translateX(-4px);transition:opacity .16s ease,transform .16s ease;text-shadow:0 1px 3px rgba(0,0,0,.35)}',
@@ -2786,11 +2955,29 @@
 			/* Shelf tracks — horizontal scroller with snap so drag
 			 * gestures stop on a card boundary. Extra right padding
 			 * leaves the last card breathing room against the pane. */
-			'.odd-panel.odd-shop .odd-shop__shelf-track{display:flex;gap:14px;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 4px 14px;margin:-4px -4px 0;scrollbar-width:thin}',
-			'.odd-panel.odd-shop .odd-shop__shelf-track::-webkit-scrollbar{height:8px}',
-			'.odd-panel.odd-shop .odd-shop__shelf-track::-webkit-scrollbar-thumb{background:var(--odd-shop-border-strong);border-radius:999px}',
+			'.odd-panel.odd-shop .odd-shop__shelf-track{display:flex;gap:14px;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 4px 14px;margin:-4px -4px 0;scrollbar-width:none}',
+			'.odd-panel.odd-shop .odd-shop__shelf-track::-webkit-scrollbar{height:0;display:none}',
 			'.odd-panel.odd-shop .odd-shop__shelf-track--tiles > .odd-shop__tile{flex:0 0 224px;scroll-snap-align:start}',
 			'.odd-panel.odd-shop .odd-shop__shelf-track--list > .odd-catalog-row{flex:0 0 320px;max-width:360px;scroll-snap-align:start}',
+
+			/* Slider shell — relative box that anchors the prev/next
+			 * pills on top of the horizontally-scrolling track. The
+			 * native scroll still drives motion; the buttons just
+			 * nudge it by ~one card width. Buttons fade out at either
+			 * end and hide entirely when the track isn\'t overflowing,
+			 * so short shelves (1–2 cards) stay clean.
+			 */
+			'.odd-panel.odd-shop .odd-shop__slider{position:relative}',
+			'.odd-panel.odd-shop .odd-shop__slider-btn{all:unset;position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.96);border:1px solid var(--odd-shop-border-strong);display:none;align-items:center;justify-content:center;color:var(--odd-shop-ink);cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.08),0 14px 28px -18px rgba(20,14,40,.4);transition:opacity .18s ease,transform .18s ease,background .18s ease,box-shadow .18s ease,color .18s ease;-webkit-backdrop-filter:saturate(1.4) blur(10px);backdrop-filter:saturate(1.4) blur(10px)}',
+			'.odd-panel.odd-shop .odd-shop__slider-btn--prev{left:-14px}',
+			'.odd-panel.odd-shop .odd-shop__slider-btn--next{right:-14px}',
+			'.odd-panel.odd-shop .odd-shop__slider.is-overflowing .odd-shop__slider-btn{display:flex}',
+			'.odd-panel.odd-shop .odd-shop__slider.is-start .odd-shop__slider-btn--prev{opacity:0;pointer-events:none;transform:translateY(-50%) scale(.85)}',
+			'.odd-panel.odd-shop .odd-shop__slider.is-end .odd-shop__slider-btn--next{opacity:0;pointer-events:none;transform:translateY(-50%) scale(.85)}',
+			'.odd-panel.odd-shop .odd-shop__slider-btn:hover{background:#fff;color:var(--odd-shop-accent);transform:translateY(-50%) scale(1.08);box-shadow:0 6px 14px rgba(0,0,0,.12),0 18px 32px -18px rgba(20,14,40,.5)}',
+			'.odd-panel.odd-shop .odd-shop__slider-btn:active{transform:translateY(-50%) scale(.96)}',
+			'.odd-panel.odd-shop .odd-shop__slider-btn:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:2px}',
+			'@media (prefers-reduced-motion: reduce){.odd-panel.odd-shop .odd-shop__slider-btn{transition:none}}',
 
 			/* Tiles — roughly square MAS-style app cards. The button
 			 * role keeps keyboard activation working; the inner pill
