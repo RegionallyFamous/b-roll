@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.6
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.5.1 =
+* Redesigns the Wallpaper controls (Shuffle, Audio-reactive, Screensaver) as polished setting cards with pill toggles, helper text, and a clearer Preview action. Bumps ODD_VERSION so cached `odd-panel` scripts get invalidated on upgrade.
 
 = 1.4.6 =
 * Actually fixes the "Still White" app window. 1.4.5 shipped a client-side hydration path that confirmed the window body was being built correctly, but installed apps still painted blank. The `?odd_debug=1` trace added in 1.4.5 showed the server was serving a valid 393-byte `index.html` with a working `<script type="module">` pointing at the Vite bundle — meaning the blank-white was happening after the HTML loaded, inside the iframe, at module-evaluation time. Inspection of the shipped catalog bundles confirmed the actual root cause: every Vite-built app imports `react` / `react-dom` / `react/jsx-runtime` as bare module specifiers, and ODD's import-map redirects those to runtime shims that read React out of `window.parent.wp.element`. But `odd-apps` didn't declare `wp-element` as a script dependency, so on WPDM admin pages that don't otherwise pull in Gutenberg-adjacent code, `window.wp.element` was `undefined` — the shim threw `ODD app runtime: React is unavailable.` inside the iframe's execution context, which doesn't surface in the main-page console without manually switching DevTools scope (hence the "no errors visible" user report). Adding `wp-element` + `wp-dom-ready` as deps of the `odd-apps` handle guarantees React is on the parent page wherever the apps host loads.
