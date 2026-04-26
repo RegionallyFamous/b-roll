@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.5.2
+Stable tag: 1.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.5.3 =
+* Fixes the Wallpaper setting cards wrapping one word per line on narrow panels. The switch/label column now claims the remaining width, the helper text wraps as normal prose, and cards reflow in a responsive grid instead of getting squeezed against the controls column.
 
 = 1.5.2 =
 * Third-line-of-defense against the "Still White" app window. v1.4.5 added client-side window-body hydration; v1.4.6 added `wp-element` as a script dep so the React-runtime shim could resolve bare `react` imports. This release adds an in-iframe visible-error banner: if the shim ever can't find React or ReactDOM on the parent page, it now paints a full-viewport diagnostic card ("ODD runtime: React is unavailable") into the iframe's own `<body>` *before* throwing, instead of leaving the iframe completely blank. Unlike the parent-side watchdog (which needs same-origin DOM access + a 1.5s timer), this inner fallback runs synchronously at module-evaluation time and is robust against cross-frame access restrictions, timing races, and any future sandbox tightening. End-user promise: if an app ever fails to mount again, the user sees why, directly inside the window, without opening DevTools or switching iframe context.
