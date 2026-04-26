@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.8.1
+Stable tag: 1.8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,10 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.8.2 =
+* Fix: `odd_icons_get_sets( true )` now actually rebuilds the registry and returns the fresh list. Before this, passing `true` to force a refresh wiped the static cache but short-circuited with `[]` — so callers (including the bundle-install round-trip test added in 1.8.0) got an empty set back even when installed icon packs existed on disk. The install/uninstall flow itself is unchanged; this is a read-side cache semantics fix.
+* Docs: README and marketing site rewritten around jobs-to-be-done — every section now leads with what you can do (plan, ship, write, design, pick a wallpaper, try before you commit) instead of listing features. No plugin-behavior change.
 
 = 1.8.1 =
 * **Dedicated Install tab.** The per-shelf "Install from file…" helper links are gone. Instead, Wallpapers / Icon Sets / Widgets / Apps now get a sibling **Install** tab in the sidebar that owns the whole flow: a big, clickable drop zone for a `.wp` archive plus a four-card "What can I install?" grid that explains each content type. The topbar **Install** pill and the Shop-wide drag-and-drop overlay still work from anywhere; the new tab just gives the action a first-class destination.
