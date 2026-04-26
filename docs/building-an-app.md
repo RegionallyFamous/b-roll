@@ -1,15 +1,14 @@
 # Building an ODD App
 
-> Status: v1.0.8. Mirrored to the [Building an App](https://github.com/RegionallyFamous/odd/wiki/Building-an-App)
-> wiki page.
+> One of four ODD author guides. Siblings: [Building a Scene](building-a-scene.md), [Building an Icon Set](building-an-icon-set.md), [Building a Widget](building-a-widget.md).
 
 An ODD app is any static web app — HTML, CSS, JS, assets — packaged as a
-`.odd` (or `.wp`) archive with a `manifest.json`. Once installed, ODD gives
-it a desktop icon, opens it in a native WP Desktop Mode window, and
-serves every file from a sandboxed iframe.
+`.wp` archive with a `manifest.json`. Drop the `.wp` on the ODD Shop and
+you get a desktop icon, a native WP Desktop Mode window, and a sandboxed
+iframe that serves every file in the bundle.
 
-Your app doesn't need to know anything about WordPress internals. If it
-runs as a static site, it runs as an ODD app.
+Your app never touches WordPress internals and never needs a companion
+plugin. If it runs as a static site, it runs as an ODD app.
 
 ---
 
@@ -26,12 +25,11 @@ runs as a static site, it runs as an ODD app.
 9. [Installing, updating, and uninstalling](#installing-updating-and-uninstalling)
 10. [Debugging](#debugging)
 11. [Limits and validation](#limits-and-validation)
-12. [Bazaar compatibility](#bazaar-compatibility)
 
-Reference material lives in two sibling pages:
+Reference material:
 
-- [App Manifest Reference](app-manifest.md) — every `manifest.json` field.
-- [Apps REST API](app-rest-api.md) — every endpoint.
+- [`.wp` Manifest Reference](wp-manifest.md) — every `manifest.json` field, every type.
+- [Apps REST API](app-rest-api.md) — every endpoint (for tooling + CI).
 
 ---
 
@@ -56,16 +54,16 @@ current user's cookies — no CORS setup, no external auth service.
 └─────────────────────────────────────────────────────────┘
 ```
 
-The only WordPress concept you need to learn is `manifest.json`, which
-tells ODD what to call your app, which HTML file to load, and who's
-allowed to open it.
+The only ODD concept you need to learn is `manifest.json`, which tells
+ODD what to call your app, which HTML file to load, and who's allowed
+to open it.
 
 ---
 
 ## Anatomy of an app
 
 ```
-my-app.odd                    ← renamed .zip (also accepts .wp)
+my-app.wp                     ← renamed .zip
 ├── manifest.json             ← REQUIRED — metadata
 ├── index.html                ← REQUIRED — entry (path can be overridden)
 ├── icon.svg                  ← optional — dock + desktop icon
@@ -83,14 +81,16 @@ The minimum viable `manifest.json`:
 
 ```json
 {
+    "type":    "app",
     "slug":    "my-app",
     "name":    "My App",
     "version": "1.0.0"
 }
 ```
 
-Everything else is optional and has sensible defaults — see
-[App Manifest Reference](app-manifest.md).
+`type` is optional and defaults to `"app"` when absent — so v1.7.x apps
+keep working without touching their manifest. Every other field is
+optional and has sensible defaults — see [`.wp` Manifest Reference](wp-manifest.md).
 
 ---
 
@@ -102,6 +102,7 @@ The fastest path to a working app. No tools, no npm, no bundler.
 
 ```json
 {
+    "type":        "app",
     "slug":        "hello-odd",
     "name":        "Hello ODD",
     "version":     "1.0.0",
@@ -154,12 +155,13 @@ The fastest path to a working app. No tools, no npm, no bundler.
 ### 4. Package and install
 
 ```bash
-zip hello-odd.odd manifest.json index.html icon.svg
+zip hello-odd.wp manifest.json index.html icon.svg
 ```
 
-Then in the ODD Control Panel → Apps tab, drag `hello-odd.odd` onto the
-drop zone (or hit the file picker). A **Hello ODD** icon appears on
-the desktop. Double-click to open.
+Then open the ODD Control Panel (via the desktop shortcut or
+`/odd-panel`), click **Install** in the topbar, and pick
+`hello-odd.wp` — or drop it anywhere on the Shop. A **Hello ODD** icon
+appears on the desktop. Double-click to open.
 
 That's the whole workflow.
 
@@ -205,6 +207,7 @@ against that.
 
 ```json
 {
+    "type":        "app",
     "slug":        "my-app",
     "name":        "My App",
     "version":     "1.0.0",
@@ -225,7 +228,7 @@ Add a one-liner that builds and zips in a single step:
 {
     "scripts": {
         "build":   "vite build",
-        "package": "npm run build && cp manifest.json icon.svg dist/ && cd dist && zip -r ../$(node -p \"require('../manifest.json').slug\").odd ."
+        "package": "npm run build && cp manifest.json icon.svg dist/ && cd dist && zip -r ../$(node -p \"require('../manifest.json').slug\").wp ."
     }
 }
 ```
@@ -234,10 +237,11 @@ Add a one-liner that builds and zips in a single step:
 
 ```bash
 npm run package
-# → my-app.odd in project root
+# → my-app.wp in project root
 ```
 
-Drag `my-app.odd` onto the ODD Apps panel.
+Drag `my-app.wp` onto the ODD Shop (anywhere — the Shop-wide drop
+overlay accepts any department).
 
 ### Dev workflow
 
@@ -344,39 +348,6 @@ await wp( '/wp/v2/posts', {
 } );
 ```
 
-### Registering your own REST endpoints
-
-If your app needs server-side logic, ship a companion WordPress plugin:
-
-```php
-// my-app-companion.php
-add_action( 'rest_api_init', function () {
-    register_rest_route( 'my-app/v1', '/settings', [
-        [
-            'methods'             => WP_REST_Server::READABLE,
-            'callback'            => fn() => rest_ensure_response(
-                get_option( 'my_app_settings', [] )
-            ),
-            'permission_callback' => fn() => current_user_can( 'manage_options' ),
-        ],
-        [
-            'methods'             => WP_REST_Server::CREATABLE,
-            'callback'            => function ( WP_REST_Request $req ) {
-                update_option( 'my_app_settings', $req->get_json_params(), false );
-                return rest_ensure_response( [ 'success' => true ] );
-            },
-            'permission_callback' => fn() => current_user_can( 'manage_options' ),
-        ],
-    ] );
-} );
-```
-
-From your app:
-
-```js
-const settings = await wp( '/my-app/v1/settings' );
-```
-
 ---
 
 ## Iframe sandbox capabilities
@@ -421,12 +392,12 @@ layer of hardening:
 
 ## manifest.extensions — apps that extend ODD
 
-An app can register entries in ODD's core extension registries without
-shipping a companion PHP plugin. Add an `extensions` object to your
-manifest:
+An app can register entries in ODD's core extension registries
+straight from its manifest. Add an `extensions` object:
 
 ```json
 {
+    "type":    "app",
     "slug":    "ledger",
     "name":    "Ledger",
     "version": "1.2.0",
@@ -461,8 +432,8 @@ priority 6), so your registrations stay in effect without any custom
 bootstrap.
 
 Each entry gets tagged with `source: "app:<your-slug>"`, visible in the
-debug inspector — see the [ODD Extension API](building-on-odd.md) for
-the full registry contracts.
+debug inspector — see [Building on ODD](building-on-odd.md) for the
+full registry contracts.
 
 ---
 
@@ -475,69 +446,66 @@ needs to notify the host.
 | Event                | Payload                              | Fires when                                 |
 |----------------------|--------------------------------------|--------------------------------------------|
 | `odd.app-installed`  | `{ slug, manifest }`                 | After upload / catalog install succeeds.   |
-| `odd.app-uninstalled`| `{ slug }`                           | After `DELETE /odd/v1/apps/{slug}`.        |
+| `odd.app-uninstalled`| `{ slug }`                           | After `DELETE /odd/v1/bundles/{slug}`.     |
 | `odd.app-enabled`    | `{ slug }`                           | After `POST /apps/{slug}/toggle { enabled: true }`. |
 | `odd.app-disabled`   | `{ slug }`                           | Same as above with `false`.                |
 | `odd.app-opened`     | `{ slug, windowId }`                 | User double-clicks the icon / opens window.|
 | `odd.app-closed`     | `{ slug, windowId }`                 | User closes the window.                    |
 | `odd.app-focused`    | `{ slug, windowId }`                 | User focuses an already-open window.       |
 
-Host-side subscription example (from a theme or companion plugin):
-
-```js
-window.__odd.events.on( 'odd.app-opened', ( { slug } ) => {
-    if ( slug === 'ledger' ) {
-        // Fire analytics, flash a welcome toast, etc.
-    }
-} );
-```
+A broader `odd.bundle-installed` event (payload: `{ slug, type, manifest }`)
+fires for every install regardless of type, in case you want one
+subscription to cover apps + scenes + icon sets + widgets.
 
 ---
 
 ## Installing, updating, and uninstalling
 
-### From the UI
+### The ODD Shop (recommended)
 
-ODD Control Panel → **Apps** tab:
+Open the Control Panel, click **Install** in the topbar (or drop the
+`.wp` anywhere on the Shop), and ODD handles the rest:
 
-- **Upload** — drag a `.odd` or `.wp` archive onto the drop zone.
-- **Catalog** — pick a curated entry and click **Install**.
-- **Uninstall** — click the × on any installed app card.
-- **Enable / disable** — toggle to hide the app without deleting it.
+1. The Shop extracts + validates the archive.
+2. On success, it jumps to the Apps department and flashes your new
+   app's tile so you can see where it landed.
+3. The dock icon + desktop shortcut appear on the next paint.
 
-### From REST
+To remove an app, click the × on its card.
+
+### Advanced — from REST or PHP
 
 See [Apps REST API](app-rest-api.md) for the full surface. The short
 version:
 
 ```bash
-# Upload
-curl -X POST https://example.com/wp-json/odd/v1/apps/upload \
+# Upload (universal endpoint — accepts any .wp type)
+curl -X POST https://example.com/wp-json/odd/v1/bundles/upload \
     -H "X-WP-Nonce: $NONCE" \
-    -F "file=@my-app.odd"
+    -F "file=@my-app.wp"
 
-# Uninstall
-curl -X DELETE https://example.com/wp-json/odd/v1/apps/my-app \
+# Uninstall (works for any bundle type by slug)
+curl -X DELETE https://example.com/wp-json/odd/v1/bundles/my-app \
     -H "X-WP-Nonce: $NONCE"
 
-# Toggle
+# Toggle (apps-specific)
 curl -X POST https://example.com/wp-json/odd/v1/apps/my-app/toggle \
     -H "X-WP-Nonce: $NONCE" \
     -H "Content-Type: application/json" \
     -d '{"enabled": false}'
 ```
 
-### From PHP
+From PHP:
 
 ```php
-$result = odd_apps_install( $tmp_path, $filename );
+$result = odd_bundle_install( $tmp_path, $filename );
 if ( is_wp_error( $result ) ) {
     // Handle the error.
 } else {
-    // $result is the parsed manifest.
+    // $result is [ 'slug' => ..., 'type' => 'app', 'manifest' => [...] ].
 }
 
-odd_apps_uninstall( 'my-app' );
+odd_bundle_uninstall( 'my-app' );
 odd_apps_set_enabled( 'my-app', false );
 ```
 
@@ -546,8 +514,8 @@ odd_apps_set_enabled( 'my-app', false );
 Uploads reject an archive whose slug is already installed — you'll see
 a `slug_exists` error with HTTP 400. To upgrade:
 
-1. Delete the existing app (`DELETE /odd/v1/apps/{slug}` or the × in
-   the panel).
+1. Delete the existing app (× button in the Shop, or
+   `DELETE /odd/v1/bundles/{slug}`).
 2. Upload the new archive.
 
 A future release will add a force-replace flag so updates become a
@@ -602,11 +570,11 @@ window.__odd.debug.apps();
 ODD validates every archive on upload. An archive is rejected if any
 of the following fail:
 
-- File extension is `.odd` or `.wp`.
+- File extension is `.wp` (the legacy `.odd` extension was retired in
+  v1.5.0 — existing installs keep working; new uploads must be `.wp`).
 - File is a valid ZIP.
 - Archive contains no more than **2,000 files**.
-- Total uncompressed size is under **25 MB** (filter:
-  `odd_apps_max_uncompressed`).
+- Total uncompressed size is under **25 MB**.
 - No per-file compression ratio exceeds **100:1** (zip-bomb guard).
 - No symlinks.
 - No path-traversal entries (`..` in file names).
@@ -617,49 +585,18 @@ of the following fail:
 - `manifest.json` is valid JSON.
 - `name`, `slug`, and `version` are non-empty strings.
 - `slug` matches `^[a-z0-9-]+$`.
-- `slug` is not already installed.
+- `slug` is not already installed — globally, across apps, icon sets,
+  scenes, and widgets.
+- `type` (if set) is one of `"app"`, `"icon-set"`, `"scene"`, `"widget"`.
 - The `entry` file (default `index.html`) exists.
 - The `entry` path doesn't contain `..`, leading `/`, or invalid
   characters.
 
 ---
 
-## Bazaar compatibility
-
-Users upgrading from the standalone Bazaar plugin are migrated
-automatically on first admin login — bundles move from
-`wp-content/bazaar/` to `wp-content/odd-apps/`, options rewrite from
-`bazaar_index` / `bazaar_ware_<slug>` to `odd_apps_index` /
-`odd_app_<slug>`, and Bazaar is deactivated.
-
-For authors: **the old `.wp` extension is still accepted** alongside the
-canonical `.odd`. Existing Bazaar wares install into ODD without
-changes as long as they stick to the manifest fields ODD supports
-(see [App Manifest Reference](app-manifest.md)). Features that Bazaar
-shipped but ODD doesn't implement — shared libraries, zero-trust
-network allowlists, CSP management, jobs, health checks, license
-keys, signed archives, dev-mode proxying — are silently ignored. Your
-ware will still work; those capabilities just aren't enforced.
-
-The Bazaar REST shim forwards these routes while
-`ODD_BAZAAR_COMPAT` is on (default: `true`):
-
-| Bazaar route                                   | Forwards to                                    |
-|------------------------------------------------|------------------------------------------------|
-| `GET  /wp-json/bazaar/v1/wares`                | `GET  /wp-json/odd/v1/apps`                    |
-| `GET  /wp-json/bazaar/v1/wares/{slug}`         | `GET  /wp-json/odd/v1/apps/{slug}`             |
-| `POST /wp-json/bazaar/v1/upload`               | `POST /wp-json/odd/v1/apps/upload`             |
-| `DELETE /wp-json/bazaar/v1/wares/{slug}`       | `DELETE /wp-json/odd/v1/apps/{slug}`           |
-| `POST /wp-json/bazaar/v1/wares/{slug}/toggle`  | `POST /wp-json/odd/v1/apps/{slug}/toggle`      |
-| `GET  /wp-json/bazaar/v1/serve/{slug}/{path}`  | `GET  /wp-json/odd/v1/apps/serve/{slug}/{path}`|
-
-New apps should target `odd/v1/apps/*` directly.
-
----
-
 ## See also
 
-- [App Manifest Reference](app-manifest.md)
+- [`.wp` Manifest Reference](wp-manifest.md)
 - [Apps REST API](app-rest-api.md)
-- [Building on ODD](building-on-odd.md) — scenes, icon sets, muses,
-  commands, widgets, rituals, and motion primitives.
+- [Building on ODD](building-on-odd.md) — core registry internals.
+- Sibling author guides: [Building a Scene](building-a-scene.md), [Building an Icon Set](building-an-icon-set.md), [Building a Widget](building-a-widget.md).

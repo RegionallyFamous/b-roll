@@ -1,14 +1,22 @@
 # Building on ODD
 
-> Status: v0.17.0 (foundation + Iris + Apps). This page is the source of truth
-> for every filter, event, registry, and lifecycle phase ODD exposes.
-> It's meant to be mirrored verbatim into the GitHub wiki.
+> This page documents ODD's filter, event, registry, and lifecycle surface.
+> Target audience: integrators and plugin authors who want to wire ODD into
+> a larger system (theme, mu-plugin, companion plugin).
+>
+> **If you just want to ship a scene, icon set, widget, or app, don't read this page.**
+> The four author guides — [Building an App](building-an-app.md),
+> [Building a Scene](building-a-scene.md),
+> [Building an Icon Set](building-an-icon-set.md),
+> [Building a Widget](building-a-widget.md) — cover the `.wp` authoring
+> path end-to-end. No filters, no PHP.
 
 ODD is a WordPress plugin layered on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode).
-From v0.14.0 forward the plugin has a stable extension surface so other
-plugins (and authors writing `mu-plugins`) can add scenes, icon sets,
-muses, commands, widgets, rituals, and motion primitives without
-touching ODD's core files.
+Its content — scenes, icon sets, widgets, apps — is authored through
+the universal `.wp` format and installed via the ODD Shop. The PHP
+and JS registries on this page are the plumbing that makes that format
+work, exposed so integrators can read from (and, in advanced cases,
+write to) the same registries from their own plugins or themes.
 
 All extension points follow WordPress conventions:
 
@@ -20,7 +28,16 @@ All extension points follow WordPress conventions:
 Everything below is part of the 1.0 contract. Event names and filter
 slugs are stable; the store shape is considered public.
 
-## Quick start — register a scene
+## Registries (internal)
+
+> These are how the `.wp` format is built. The four author guides are
+> the recommended path for shipping content — you should only reach
+> for the PHP registries below if you're integrating ODD into a larger
+> system (a theme that paints its own scenes, a migration tool that
+> back-fills icon sets, etc.).
+
+Example — registering a scene directly in PHP (for reference only; the
+`.wp` flow is strongly preferred):
 
 ```php
 add_action( 'plugins_loaded', function () {
@@ -39,7 +56,7 @@ add_action( 'plugins_loaded', function () {
 Ship the matching `my-scene.js`, `assets/previews/my-scene.webp`, and
 `assets/wallpapers/my-scene.webp` alongside the registration, enqueue
 the scene module after `odd` using `wp_enqueue_script`, and ODD will
-pick it up on the next page load. No fork required.
+pick it up on the next page load.
 
 ## Lifecycle phases
 

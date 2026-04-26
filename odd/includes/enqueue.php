@@ -290,6 +290,32 @@ add_action(
 				'installed' => $installed,
 				'pinned'    => (array) get_user_meta( $uid, 'odd_apps_pinned', true ),
 			),
+
+			// Installed widget bundles (type: widget). Panel reads
+			// these to merge user-installed widgets into the catalog
+			// on the Widgets department. Empty when no widgets have
+			// been installed — the built-in sticky + eight-ball live
+			// entirely client-side.
+			'installedWidgets' => function_exists( 'odd_widgets_index_load' ) ? array_values(
+				array_map(
+					function ( $row ) {
+						return array(
+							'id'          => 'odd/' . $row['slug'],
+							'slug'        => $row['slug'],
+							'label'       => isset( $row['label'] ) ? $row['label'] : $row['slug'],
+							'description' => isset( $row['name'] ) ? $row['name'] : '',
+							'franchise'   => isset( $row['franchise'] ) ? $row['franchise'] : 'Community',
+							'installed'   => true,
+						);
+					},
+					odd_widgets_index_load()
+				)
+			) : array(),
+
+			// Capability flags the Shop UI keys off when deciding
+			// whether to render install affordances.
+			'canInstall'       => current_user_can( 'manage_options' ),
+			'bundlesUploadUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/upload' ) ),
 		);
 
 		// The store and the feature surfaces read from the same

@@ -165,16 +165,34 @@ function odd_icons_registry_transient_key() {
 	return 'odd_icon_registry_v' . ( defined( 'ODD_VERSION' ) ? ODD_VERSION : '0' );
 }
 
-function odd_icons_get_sets() {
+/**
+ * Per-request cache-reset hook. The icon-set installer fires
+ * `odd_icons_invalidate_cache` after install/uninstall so the static
+ * below gets wiped on the same request the change happened.
+ */
+add_action(
+	'odd_icons_invalidate_cache',
+	function () {
+		odd_icons_get_sets( true );
+	}
+);
+
+function odd_icons_get_sets( $reset = false ) {
 	static $cache = null;
+	if ( $reset ) {
+		$cache = null;
+		return array();
+	}
 	if ( null !== $cache ) {
 		return $cache;
 	}
 
 	// Persistent cache: the on-disk registry is fully determined by
-	// files under assets/icons/, which only change on plugin update.
-	// Hitting this transient avoids ~221 small file reads + 17 JSON
-	// parses per cold PHP worker (17 sets × 13 icons each).
+	// files under assets/icons/ + wp-content/odd-icon-sets/, which
+	// only change on plugin update or `.wp` install/uninstall (the
+	// installer busts this transient explicitly). Hitting this
+	// transient avoids ~221 small file reads + 17 JSON parses per
+	// cold PHP worker for the built-ins.
 	//
 	// Third-party plugins that extend the registry via the
 	// `odd_icon_set_registry` filter still get called on every
@@ -189,40 +207,59 @@ function odd_icons_get_sets() {
 
 	$cache = array();
 
-	$root = ODD_DIR . 'assets/icons';
-	if ( ! is_dir( $root ) ) {
-		return $cache;
-	}
-	$dirs = glob( $root . '/*', GLOB_ONLYDIR );
-	if ( ! is_array( $dirs ) ) {
-		return $cache;
+	// Built-in sets: scanned from odd/assets/icons/<slug>/.
+	$sources = array();
+	$root    = ODD_DIR . 'assets/icons';
+	if ( is_dir( $root ) ) {
+		$dirs = glob( $root . '/*', GLOB_ONLYDIR );
+		if ( is_array( $dirs ) ) {
+			foreach ( $dirs as $dir ) {
+				$slug = basename( $dir );
+				if ( '' === $slug || $slug[0] === '.' ) {
+					continue;
+				}
+				$manifest_path = $dir . '/manifest.json';
+				if ( ! is_readable( $manifest_path ) ) {
+					continue;
+				}
+				$raw  = file_get_contents( $manifest_path );
+				$data = is_string( $raw ) ? json_decode( $raw, true ) : null;
+				if ( ! is_array( $data ) ) {
+					odd_registry_report_bad_manifest( $manifest_path, json_last_error_msg() );
+					continue;
+				}
+				$sources[ $slug ] = array(
+					'data'     => $data,
+					'base_dir' => $dir,
+					'base_url' => ODD_URL . '/assets/icons/' . rawurlencode( $slug ),
+					'source'   => 'plugin',
+				);
+			}
+		}
 	}
 
-	foreach ( $dirs as $dir ) {
-		$slug = basename( $dir );
-		if ( '' === $slug || $slug[0] === '.' ) {
-			continue;
+	// Installed sets: scanned from wp-content/odd-icon-sets/<slug>/.
+	// Installed sets take precedence over built-ins on collision —
+	// the installer already refuses a slug that exists anywhere in
+	// the bundle namespace, but if a user drops a folder in by hand
+	// the installed copy wins.
+	if ( function_exists( 'odd_iconsets_scan_installed' ) ) {
+		foreach ( odd_iconsets_scan_installed() as $slug => $entry ) {
+			$sources[ $slug ] = $entry;
 		}
-		$manifest_path = $dir . '/manifest.json';
-		if ( ! is_readable( $manifest_path ) ) {
-			continue;
-		}
-		$raw = file_get_contents( $manifest_path );
-		if ( false === $raw ) {
-			continue;
-		}
-		$data = json_decode( $raw, true );
-		if ( ! is_array( $data ) ) {
-			odd_registry_report_bad_manifest( $manifest_path, json_last_error_msg() );
-			continue;
-		}
+	}
+
+	foreach ( $sources as $slug => $entry ) {
+		$data     = $entry['data'];
+		$base_dir = $entry['base_dir'];
+		$base_url = $entry['base_url'];
 
 		$accent = isset( $data['accent'] ) ? (string) $data['accent'] : '#3858e9';
 
 		$icons = array();
 		if ( isset( $data['icons'] ) && is_array( $data['icons'] ) ) {
 			foreach ( $data['icons'] as $key => $rel ) {
-				$abs = odd_icons_resolve_set_path( $dir, $rel );
+				$abs = odd_icons_resolve_set_path( $base_dir, $rel );
 				if ( '' === $abs || ! is_readable( $abs ) ) {
 					continue;
 				}
@@ -231,21 +268,16 @@ function odd_icons_get_sets() {
 				if ( odd_icons_svg_uses_current_color( $abs ) ) {
 					$icons[ $clean_key ] = odd_icons_tinted_svg_url( $slug, $clean_key );
 				} else {
-					$icons[ $clean_key ] = ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $basename );
+					$icons[ $clean_key ] = $base_url . '/' . rawurlencode( $basename );
 				}
 			}
 		}
 
 		$preview = '';
 		if ( ! empty( $data['preview'] ) ) {
-			$preview_abs = odd_icons_resolve_set_path( $dir, $data['preview'] );
+			$preview_abs = odd_icons_resolve_set_path( $base_dir, $data['preview'] );
 			if ( '' !== $preview_abs && is_readable( $preview_abs ) ) {
 				$preview_basename = basename( $preview_abs );
-				// The preview is one of the set's existing icon keys
-				// most of the time (e.g. `dashboard.svg` or
-				// `fallback.svg`). Fall back to the static file URL
-				// when it doesn't use currentColor — same logic as
-				// individual icons.
 				if ( odd_icons_svg_uses_current_color( $preview_abs ) ) {
 					$preview_key = '__preview__';
 					foreach ( (array) $data['icons'] as $k => $rel ) {
@@ -256,7 +288,7 @@ function odd_icons_get_sets() {
 					}
 					$preview = odd_icons_tinted_svg_url( $slug, $preview_key );
 				} else {
-					$preview = ODD_URL . '/assets/icons/' . rawurlencode( $slug ) . '/' . rawurlencode( $preview_basename );
+					$preview = $base_url . '/' . rawurlencode( $preview_basename );
 				}
 			}
 		}
@@ -269,6 +301,7 @@ function odd_icons_get_sets() {
 			'description' => isset( $data['description'] ) ? (string) $data['description'] : '',
 			'preview'     => $preview,
 			'icons'       => $icons,
+			'source'      => $entry['source'],
 		);
 	}
 
@@ -388,7 +421,17 @@ function odd_icons_rest_serve_tinted( WP_REST_Request $request ) {
 		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon.', 'odd' ), array( 'status' => 404 ) );
 	}
 
+	// Built-ins live under odd/assets/icons/; user-installed sets
+	// live under wp-content/odd-icon-sets/. The registry already
+	// merges both when building URLs, so the tinted-SVG endpoint
+	// has to look up both too.
 	$root = ODD_DIR . 'assets/icons/' . $set_slug;
+	if ( ! is_dir( $root ) && defined( 'ODD_ICONSETS_DIR' ) ) {
+		$installed_root = ODD_ICONSETS_DIR . $set_slug;
+		if ( is_dir( $installed_root ) ) {
+			$root = $installed_root;
+		}
+	}
 	if ( ! is_dir( $root ) ) {
 		return new WP_Error( 'odd_icon_invalid', __( 'Unknown icon set.', 'odd' ), array( 'status' => 404 ) );
 	}

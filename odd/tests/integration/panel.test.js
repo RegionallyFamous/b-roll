@@ -29,6 +29,9 @@ function seedConfig() {
 		version:   'test',
 		restUrl:   '/wp-json/odd/v1/prefs',
 		restNonce: 'nonce-abc',
+		bundlesUploadUrl: '/wp-json/odd/v1/bundles/upload',
+		canInstall:       true,
+		installedWidgets: [],
 		wallpaper: 'flux',
 		scene:     'flux',
 		// Three slugs, three distinct categories: flux→Forms,
@@ -207,6 +210,33 @@ describe( 'ODD Shop', () => {
 
 		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeFalsy();
 		expect( fetchMock ).not.toHaveBeenCalled();
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'renders a topbar Install pill that opens the hidden file input', () => {
+		const { host, cleanup } = mountPanel();
+
+		const pill = host.querySelector( '[data-odd-install-pill]' );
+		expect( pill, 'topbar Install pill must render when canInstall is true' ).toBeTruthy();
+
+		const input = host.querySelector( '[data-odd-install-input]' );
+		expect( input, 'hidden install file input must render alongside the pill' ).toBeTruthy();
+
+		let clicked = false;
+		input.addEventListener( 'click', ( e ) => { clicked = true; e.preventDefault(); } );
+		pill.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+		expect( clicked, 'clicking the pill must forward to the hidden input' ).toBe( true );
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'hides the Install pill when canInstall is false', () => {
+		window.odd.canInstall = false;
+		const { host, cleanup } = mountPanel();
+
+		const pill = host.querySelector( '[data-odd-install-pill]' );
+		expect( pill, 'pill must not render without manage_options' ).toBeFalsy();
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

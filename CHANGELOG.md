@@ -16,6 +16,24 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.8.0"></a>
+## [1.8.0] — 2026-04-26
+
+### Added
+- **Universal `.wp` archive.** The `.wp` format now carries any ODD content type — app, icon set, scene, or widget — selected via a new `type` field in `manifest.json`. One manifest, one archive, one install flow for everything. Authors no longer need a companion plugin to ship a scene or an icon pack.
+- **ODD Shop as the install surface.** Topbar **Install** pill opens a file picker from anywhere in the Shop; a glassy drop overlay picks up `.wp` files dropped anywhere on the window; each department gets an inline "Install from file…" link. After install the Shop auto-switches to the matching department, scrolls the new item into view, and flashes a subtle highlight.
+- **Unified bundle dispatcher.** New `odd_bundle_install()` routes every upload through shared archive validation, per-type validators and installers under `odd/includes/content/`, a REST endpoint at `POST /odd/v1/bundles/upload` and `DELETE /odd/v1/bundles/{slug}`, and a global slug uniqueness check across all four content types. `POST /odd/v1/apps/upload` stays as a back-compat alias.
+- **Per-type author docs.** Four focused guides — [Building an App](docs/building-an-app.md), [Building a Scene](docs/building-a-scene.md), [Building an Icon Set](docs/building-an-icon-set.md), [Building a Widget](docs/building-a-widget.md) — plus a universal [`.wp` Manifest Reference](docs/wp-manifest.md).
+
+### Changed
+- Install progress and errors are first-class UI: the topbar pill reads "Installing…" during upload, green-success for ~2s after, and shows a descriptive error state with retry on failure. Type-specific error copy explains exactly what's wrong instead of a generic failure string.
+- [Building on ODD](docs/building-on-odd.md) reframed as the integrator / plugin-author surface (filters, events, registries). The path for shipping content is the four author guides above.
+- Capitalization pass: every product reference in prose and UI strings is the all-caps brand name **ODD**. Code identifiers (`odd/v1/*`, `odd_*` filters, `window.__odd`, CSS classes) stay lowercase where the system requires it.
+
+### Security
+- Scenes and widgets run JavaScript in the privileged admin frame, so installs of those two types require `manage_options` plus a one-time inline confirmation banner inside the Shop — no modal dialogs.
+- Icon-set SVGs are scrubbed on the server (no `<script>`, no `on*` attributes, no external `xlink:href`, no control bytes outside `\t\n\r`) before they hit disk.
+
 <a id="v1.7.1"></a>
 ## [1.7.1] — 2026-04-26
 

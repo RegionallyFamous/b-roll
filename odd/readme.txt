@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.7.2
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,15 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.8.0 =
+* **Universal `.wp` format.** The `.wp` archive now carries any ODD content type — app, icon set, scene, or widget — selected via a new `type` field in `manifest.json`. One manifest, one archive, one install flow for everything. Authors no longer need to ship a companion plugin to add a scene or an icon pack; drop the `.wp` on the ODD Shop and it's live.
+* **ODD Shop as the install surface.** A topbar **Install** pill (with keyboard focus + aria label) opens a file picker from anywhere in the Shop. Drop a `.wp` file anywhere over the Shop and the whole window shows a glassy drop target. Each department — Wallpapers, Icon Sets, Widgets, Apps — also gets an inline "Install from file…" link at the top of its shelf. After install the Shop auto-switches to the matching department, scrolls the new item into view, and flashes a subtle highlight.
+* **Install progress and errors are first-class UI.** The topbar pill reads "Installing…" during the upload, green-success checkmark for about two seconds after, and a descriptive error state with retry on failure. Type-specific error copy explains what's wrong (missing scene script, SVG outside the icon set directory, widget trying to run without admin trust, etc.) instead of a generic "install failed."
+* **JavaScript-executing content asks first.** Scenes and widgets run in the privileged admin frame, so installs of those two types require `manage_options` plus a one-time inline confirmation banner inside the Shop — no modal dialogs, no blocking `window.confirm()`. Admins see exactly what's about to run and click Install or Cancel. Icon-set SVGs are scrubbed (no `<script>`, no `on*` handlers, no external `xlink:href`) on the server before they hit disk.
+* **Unified bundle dispatcher.** A new `odd_bundle_install()` entry point routes every upload through one pipeline — shared archive validation, per-type validators and installers under `odd/includes/content/`, a REST endpoint at `POST /odd/v1/bundles/upload` and `DELETE /odd/v1/bundles/{slug}`, and a global slug uniqueness check across all four content types. `POST /odd/v1/apps/upload` stays as a back-compat alias so existing tooling keeps working.
+* **Docs rewrite.** Four focused author guides — [Building an App](docs/building-an-app.md), [Building a Scene](docs/building-a-scene.md), [Building an Icon Set](docs/building-an-icon-set.md), [Building a Widget](docs/building-a-widget.md) — plus a universal [`.wp` Manifest Reference](docs/wp-manifest.md). Each is a one-stop guide: anatomy, manifest fields, runtime contracts, install flow, validation rules. The [Building on ODD](docs/building-on-odd.md) page is reframed as the integrator / plugin-author surface (filters, events, registries) — not where you go to ship content. README, `CLAUDE.md`, and the old `app-manifest.md` all cross-link to the new guides.
+* **"ODD" capitalization pass.** Every product reference in prose and UI strings is the all-caps brand name; code identifiers (`odd/v1/*`, `odd_*` filters, `window.__odd`, CSS classes) stay lowercase where the system requires it.
 
 = 1.7.2 =
 * ODD Shop shelves are now proper sliders. Every category row (wallpapers, icon sets, widgets) gets a pair of floating prev/next pills that nudge the track by about one card's width. Native touch, wheel, and keyboard scroll still work — the buttons fade out at the start or end, and disappear entirely on rows that don't overflow, so short shelves stay clean.

@@ -91,8 +91,22 @@ First load takes ~20–30 seconds while Playground boots and the plugin installs
 
 ---
 
+## Build your own
+
+Anyone can ship a scene, icon set, widget, or app as a single `.wp`
+file and hand it to an ODD user — they drop it on the Shop and it
+installs. No companion plugin required.
+
+- [Building an App](docs/building-an-app.md)
+- [Building a Scene](docs/building-a-scene.md)
+- [Building an Icon Set](docs/building-an-icon-set.md)
+- [Building a Widget](docs/building-a-widget.md)
+- [`.wp` Manifest Reference](docs/wp-manifest.md)
+
 ## License
 
 GPLv2 or later, matching [WP Desktop Mode](https://github.com/WordPress/desktop-mode). See [LICENSE](./LICENSE).
 
-Building on ODD? See the [wiki](https://github.com/RegionallyFamous/odd/wiki).
+Integrating ODD into a larger plugin or theme? The filter / event /
+registry surface is documented in [Building on ODD](docs/building-on-odd.md)
+and on the [wiki](https://github.com/RegionallyFamous/odd/wiki).

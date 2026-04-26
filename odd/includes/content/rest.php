@@ -1,0 +1,93 @@
+<?php
+/**
+ * ODD — universal bundle REST routes.
+ *
+ * Two routes, one namespace:
+ *
+ *   POST   /wp-json/odd/v1/bundles/upload
+ *   DELETE /wp-json/odd/v1/bundles/{slug}
+ *
+ * The per-type REST surfaces (`/apps/upload`, `/apps/{slug}`) stay
+ * as thin back-compat aliases so pre-1.8.0 clients keep working.
+ * See odd/includes/apps/rest.php for the Apps routes.
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+add_action(
+	'rest_api_init',
+	function () {
+		$manage_cb = function () {
+			return current_user_can( 'manage_options' );
+		};
+
+		register_rest_route(
+			'odd/v1',
+			'/bundles/upload',
+			array(
+				'methods'             => 'POST',
+				'callback'            => 'odd_bundle_rest_upload',
+				'permission_callback' => $manage_cb,
+			)
+		);
+
+		register_rest_route(
+			'odd/v1',
+			'/bundles/(?P<slug>[a-z0-9-]+)',
+			array(
+				'methods'             => 'DELETE',
+				'callback'            => 'odd_bundle_rest_delete',
+				'permission_callback' => $manage_cb,
+			)
+		);
+	}
+);
+
+/**
+ * Accept a multipart file upload, dispatch to the type-specific
+ * installer, and respond with { installed, slug, type, manifest }.
+ */
+function odd_bundle_rest_upload( WP_REST_Request $req ) {
+	$files = $req->get_file_params();
+	if ( empty( $files['file'] ) || ! isset( $files['file']['tmp_name'] ) ) {
+		return new WP_Error(
+			'no_file',
+			__( 'No file uploaded. Use multipart field "file".', 'odd' ),
+			array( 'status' => 400 )
+		);
+	}
+	$file = $files['file'];
+	$tmp  = $file['tmp_name'];
+	$name = $file['name'];
+
+	$result = odd_bundle_install( $tmp, $name );
+	if ( is_wp_error( $result ) ) {
+		$data           = $result->get_error_data();
+		$data           = is_array( $data ) ? $data : array();
+		$data['status'] = isset( $data['status'] ) ? (int) $data['status'] : 400;
+		$result->add_data( $data );
+		return $result;
+	}
+
+	return rest_ensure_response(
+		array(
+			'installed' => true,
+			'slug'      => $result['slug'],
+			'type'      => $result['type'],
+			'manifest'  => $result['manifest'],
+		)
+	);
+}
+
+function odd_bundle_rest_delete( WP_REST_Request $req ) {
+	$slug   = sanitize_key( (string) $req['slug'] );
+	$result = odd_bundle_uninstall( $slug );
+	if ( is_wp_error( $result ) ) {
+		$data           = $result->get_error_data();
+		$data           = is_array( $data ) ? $data : array();
+		$data['status'] = isset( $data['status'] ) ? (int) $data['status'] : 400;
+		$result->add_data( $data );
+		return $result;
+	}
+	return rest_ensure_response( array( 'uninstalled' => true ) );
+}

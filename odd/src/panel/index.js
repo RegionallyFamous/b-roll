@@ -50,6 +50,21 @@
 	];
 
 	var renderPanel = function ( body ) {
+		// Bundle-install lookup tables. Hoisted so nested
+		// render functions can use them regardless of file order.
+		var DEPT_FOR_TYPE = {
+			'app':      'apps',
+			'icon-set': 'icons',
+			'scene':    'wallpaper',
+			'widget':   'widgets',
+		};
+		var NOUN_FOR_TYPE = {
+			'app':      'app',
+			'icon-set': 'icon set',
+			'scene':    'scene',
+			'widget':   'widget',
+		};
+
 		body.innerHTML = '';
 		injectStyles();
 		body.classList.add( 'odd-panel', 'odd-shop' );
@@ -108,6 +123,44 @@
 		searchWrap.appendChild( searchGlyph );
 		searchWrap.appendChild( searchInput );
 		topbar.appendChild( searchWrap );
+
+		// Universal install pill. Accepts a .wp bundle of any type
+		// (app, icon-set, scene, widget) and routes it through
+		// /odd/v1/bundles/upload. Hidden for users without
+		// manage_options — the REST endpoint rejects them too, but
+		// the UI shouldn't hint at an action they can't take.
+		var installPill = null;
+		var installInput = null;
+		if ( ( window.odd || {} ).canInstall ) {
+			installPill = el( 'button', {
+				type:         'button',
+				class:        'odd-shop__install',
+				'aria-label': 'Install from .wp file',
+				'data-odd-install-pill': '1',
+			} );
+			var installGlyph = el( 'span', { class: 'odd-shop__install-glyph', 'aria-hidden': 'true' } );
+			installGlyph.textContent = '⇪';
+			var installLabel = el( 'span', { class: 'odd-shop__install-label' } );
+			installLabel.textContent = 'Install';
+			installPill.appendChild( installGlyph );
+			installPill.appendChild( installLabel );
+
+			installInput = el( 'input', {
+				type:   'file',
+				accept: '.wp,application/zip',
+				style:  'display:none',
+				'data-odd-install-input': '1',
+			} );
+			installPill.addEventListener( 'click', function () { installInput.click(); } );
+			installInput.addEventListener( 'change', function () {
+				if ( installInput.files && installInput.files[ 0 ] ) {
+					installBundle( installInput.files[ 0 ] );
+					installInput.value = '';
+				}
+			} );
+			topbar.appendChild( installPill );
+			topbar.appendChild( installInput );
+		}
 
 		var sidebar = el( 'nav', {
 			'data-odd-sidebar': '1',
@@ -188,6 +241,8 @@
 		body.appendChild( sidebar );
 		body.appendChild( content );
 
+		installDropAnywhere( body );
+
 		renderSection( state.active );
 
 		return function teardown() {
@@ -246,6 +301,11 @@
 			// If we re-entered the tab that owns an active preview,
 			// re-draw the sticky confirmation bar.
 			if ( state.preview ) renderPreviewBar();
+
+			// Flash-highlight the just-installed tile, if we owe
+			// the user one from a bundle install that landed on
+			// this department.
+			highlightJustInstalled();
 		}
 
 		/* --- Apps section --- */
@@ -263,38 +323,14 @@
 			// visual weight as Wallpapers + Icon Sets.
 			wrap.appendChild( renderAppsHero() );
 
-			// Upload row: a labeled file input paired with a drop zone.
-			var upload = el( 'div', { class: 'odd-apps-upload' } );
-			upload.innerHTML =
-				'<strong>Install an app</strong>' +
-				'<div class="odd-apps-upload__sub">Drop a .wp archive or choose one from disk.</div>';
+			// Per-department install link — lives under the hero so
+			// users who landed here from the sidebar can install
+			// without hunting for the topbar pill. The universal
+			// installer routes by manifest.type, so the same .wp
+			// flow works for every department.
+			wrap.appendChild( renderDeptInstallLink( 'app' ) );
 
-			var input = el( 'input', { type: 'file', accept: '.wp,application/zip', style: 'display:none' } );
-			var pick  = el( 'button', { type: 'button', class: 'odd-apps-btn' } );
-			pick.textContent = 'Choose file…';
-			pick.addEventListener( 'click', function () { input.click(); } );
-			input.addEventListener( 'change', function () {
-				if ( input.files && input.files[ 0 ] ) installFile( input.files[ 0 ], wrap );
-			} );
-			upload.appendChild( input );
-			upload.appendChild( pick );
-
-			upload.addEventListener( 'dragover', function ( e ) {
-				e.preventDefault();
-				upload.classList.add( 'is-dragover' );
-			} );
-			upload.addEventListener( 'dragleave', function () {
-				upload.classList.remove( 'is-dragover' );
-			} );
-			upload.addEventListener( 'drop', function ( e ) {
-				e.preventDefault();
-				upload.classList.remove( 'is-dragover' );
-				var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[ 0 ];
-				if ( f ) installFile( f, wrap );
-			} );
-			wrap.appendChild( upload );
-
-			// Status rail. Populated by installFile() / deletions.
+			// Status rail. Populated by installBundle() / deletions.
 			var status = el( 'div', { class: 'odd-apps-status', 'data-odd-apps-status': '1' } );
 			wrap.appendChild( status );
 
@@ -564,6 +600,341 @@
 			} );
 		}
 
+		// ----------------------------------------------------------
+		// Universal bundle install.
+		//
+		// Accepts a .wp of any type, routes through the universal
+		// /odd/v1/bundles/upload endpoint, surfaces progress + errors
+		// through both the topbar pill and window.__odd.api.toast,
+		// and on success auto-switches to the landing department +
+		// flash-highlights the new tile for the user.
+		//
+		// DEPT_FOR_TYPE + NOUN_FOR_TYPE are hoisted up top so inner
+		// helpers (renderDeptInstallLink, etc.) resolve them even
+		// when renderSection runs before this block is evaluated.
+		// ----------------------------------------------------------
+
+		function bundlesUploadUrl() {
+			var cfg = state.cfg || {};
+			if ( cfg.bundlesUploadUrl ) return cfg.bundlesUploadUrl;
+			var base = cfg.restUrl || '';
+			return base.replace( /\/prefs\/?$/, '/bundles/upload' );
+		}
+
+		function toast( msg ) {
+			try {
+				if ( window.__odd && window.__odd.api && typeof window.__odd.api.toast === 'function' ) {
+					window.__odd.api.toast( msg );
+					return;
+				}
+			} catch ( e ) {}
+			// Fallback — the plain WP Desktop notice channel.
+			try {
+				if ( window.wp && window.wp.desktop && typeof window.wp.desktop.toast === 'function' ) {
+					window.wp.desktop.toast( msg );
+				}
+			} catch ( e2 ) {}
+		}
+
+		function errorCopy( code, fallback ) {
+			switch ( code ) {
+				case 'invalid_extension':    return 'That file isn\'t a .wp bundle.';
+				case 'invalid_zip':          return 'That file isn\'t a valid ZIP archive.';
+				case 'zip_unavailable':     return 'This site is missing the PHP ZipArchive extension — ask the host to enable it.';
+				case 'too_many_files':      return 'Bundle has too many files. The limit is 2000.';
+				case 'too_large':           return 'Bundle is too large. Keep it under 25 MB uncompressed.';
+				case 'zip_bomb':            return 'Bundle contains a suspicious compression ratio and was rejected.';
+				case 'path_traversal':      return 'Bundle contains a path-traversal entry and was rejected.';
+				case 'symlink_in_archive': return 'Bundle contains a symlink and was rejected.';
+				case 'forbidden_file_type': return 'Bundle contains a server-executable file and was rejected.';
+				case 'missing_manifest':    return 'Bundle is missing a manifest.json at the root.';
+				case 'invalid_manifest':    return 'Bundle\'s manifest.json is not valid JSON.';
+				case 'missing_manifest_field': return 'Bundle\'s manifest.json is missing a required field.';
+				case 'invalid_slug':        return 'Bundle slug must be lowercase letters, numbers, and hyphens.';
+				case 'slug_exists':         return 'A bundle with that slug is already installed. Remove the existing one first.';
+				case 'unsupported_type':   return 'This ODD version doesn\'t know how to install that bundle type.';
+				case 'install_in_progress': return 'Another install of this bundle is already in progress.';
+				case 'missing_entry':       return 'Bundle is missing the entry file declared in manifest.json.';
+				case 'invalid_entry':       return 'Bundle\'s entry path is invalid.';
+				case 'missing_preview':     return 'Bundle is missing preview.webp.';
+				case 'missing_wallpaper':   return 'Bundle is missing wallpaper.webp.';
+				case 'missing_icon':        return 'Bundle is missing one of the SVGs it declared.';
+				case 'missing_required_icons': return fallback || 'Icon set is missing required keys.';
+				case 'invalid_svg':         return 'An SVG in this bundle isn\'t well-formed.';
+				case 'extract_mkdir_failed':
+				case 'extract_rename_failed':
+					return 'ODD couldn\'t finalise the install. Check wp-content permissions and try again.';
+				default: return fallback || 'Install failed.';
+			}
+		}
+
+		function jsConfirmAlreadyGiven() {
+			var store = window.__odd && window.__odd.store;
+			try {
+				if ( store && typeof store.get === 'function' && store.get( 'bundles.jsConfirmed' ) ) {
+					return true;
+				}
+			} catch ( e ) {}
+			return false;
+		}
+
+		function jsConfirmRemember() {
+			var store = window.__odd && window.__odd.store;
+			try {
+				if ( store && typeof store.set === 'function' ) {
+					store.set( 'bundles.jsConfirmed', true );
+				}
+			} catch ( e ) {}
+		}
+
+		// Non-modal inline confirmation banner injected at the top
+		// of the Shop body. Resolves the supplied callback with true
+		// (Install) or false (Cancel). The banner auto-dismisses when
+		// clicked outside (treated as Cancel) so there's no trapped
+		// state if the user walks away. One-time per session via
+		// jsConfirmRemember().
+		function confirmJavaScriptInline( type, done ) {
+			if ( 'scene' !== type && 'widget' !== type ) { done( true ); return; }
+			if ( jsConfirmAlreadyGiven() ) { done( true ); return; }
+
+			var root = document.querySelector( '.odd-shop' ) || document.body;
+			// Avoid stacking multiple banners if the user clicks fast.
+			var existing = root.querySelector( '.odd-shop__js-confirm' );
+			if ( existing ) existing.parentNode.removeChild( existing );
+
+			var banner = el( 'div', { class: 'odd-shop__js-confirm', role: 'alertdialog', 'aria-live': 'polite' } );
+			banner.appendChild( el( 'strong', {}, [ 'Run JavaScript from this package?' ] ) );
+			banner.appendChild( el( 'p', {}, [
+				'This ',
+				type,
+				' bundle ships JavaScript that will run in your admin session. Install only from trusted sources.',
+			] ) );
+
+			var actions = el( 'div', { class: 'odd-shop__js-confirm-actions' } );
+			var cancel  = el( 'button', { type: 'button', class: 'odd-shop__js-confirm-btn' }, [ 'Cancel' ] );
+			var install = el( 'button', { type: 'button', class: 'odd-shop__js-confirm-btn is-primary' }, [ 'Install' ] );
+
+			var settled = false;
+			function finish( ok ) {
+				if ( settled ) return;
+				settled = true;
+				if ( ok ) jsConfirmRemember();
+				try { banner.parentNode.removeChild( banner ); } catch ( e ) {}
+				done( ok );
+			}
+			cancel.addEventListener( 'click', function () { finish( false ); } );
+			install.addEventListener( 'click', function () { finish( true ); } );
+			actions.appendChild( cancel );
+			actions.appendChild( install );
+			banner.appendChild( actions );
+
+			root.insertBefore( banner, root.firstChild );
+			// Focus the affirmative action so keyboard users can
+			// confirm with Return immediately.
+			setTimeout( function () { try { install.focus(); } catch ( e ) {} }, 10 );
+		}
+
+		function setInstallPillState( installing, progressText ) {
+			var pill = document.querySelector( '[data-odd-install-pill]' );
+			if ( ! pill ) return;
+			if ( installing ) {
+				pill.classList.add( 'is-busy' );
+				pill.setAttribute( 'aria-busy', 'true' );
+				if ( progressText ) pill.setAttribute( 'title', progressText );
+			} else {
+				pill.classList.remove( 'is-busy' );
+				pill.removeAttribute( 'aria-busy' );
+				pill.removeAttribute( 'title' );
+			}
+		}
+
+		function handleInstallSuccess( data ) {
+			var type  = ( data && data.type ) || 'app';
+			var slug  = ( data && data.slug ) || ( data && data.manifest && data.manifest.slug ) || '';
+			var name  = ( data && data.manifest && ( data.manifest.name || data.manifest.label ) ) || slug;
+			var noun  = NOUN_FOR_TYPE[ type ] || 'bundle';
+			var dept  = DEPT_FOR_TYPE[ type ] || state.active;
+
+			toast( 'Installed ' + noun + ' "' + name + '".' );
+
+			var ev = window.__odd && window.__odd.events;
+			if ( ev ) {
+				try { ev.emit( 'odd.bundle-installed', { slug: slug, type: type, manifest: data.manifest } ); } catch ( e ) {}
+				// Back-compat: existing listeners still expect
+				// `odd.app-installed` for type: app.
+				if ( 'app' === type ) {
+					try { ev.emit( 'odd.app-installed', { slug: slug, manifest: data.manifest } ); } catch ( e2 ) {}
+				}
+			}
+
+			// Apps need a hard reload to surface their dock icon +
+			// register their native window. Other types slot into
+			// the panel without a reload.
+			if ( 'app' === type ) {
+				setTimeout( function () {
+					try { window.location.reload(); } catch ( e ) {}
+				}, 600 );
+				return;
+			}
+
+			state.justInstalled = { type: type, slug: slug, at: Date.now() };
+			renderSection( dept );
+		}
+
+		function highlightJustInstalled() {
+			if ( ! state.justInstalled ) return;
+			var slug = state.justInstalled.slug;
+			if ( ! slug ) { state.justInstalled = null; return; }
+			// Wait a tick so the section has rendered its cards.
+			setTimeout( function () {
+				var selectors = [
+					'[data-slug="' + slug + '"]',
+					'[data-scene-slug="' + slug + '"]',
+					'[data-set-slug="' + slug + '"]',
+					'[data-widget-id="odd/' + slug + '"]',
+					'[data-catalog-slug="' + slug + '"]',
+				];
+				var tile = null;
+				for ( var i = 0; i < selectors.length && ! tile; i++ ) {
+					tile = document.querySelector( '.odd-shop ' + selectors[ i ] );
+				}
+				if ( tile ) {
+					tile.classList.add( 'is-just-installed' );
+					try { tile.scrollIntoView( { behavior: 'smooth', block: 'center' } ); } catch ( e ) {}
+					setTimeout( function () { tile.classList.remove( 'is-just-installed' ); }, 2400 );
+				}
+				state.justInstalled = null;
+			}, 80 );
+		}
+
+		function uploadBundle( file ) {
+			var fd = new FormData();
+			fd.append( 'file', file, file.name );
+			return fetch( bundlesUploadUrl(), {
+				method:      'POST',
+				credentials: 'same-origin',
+				headers:     { 'X-WP-Nonce': ( state.cfg || {} ).restNonce || '' },
+				body:        fd,
+			} ).then( function ( r ) {
+				return r.json().then( function ( data ) {
+					return { ok: r.ok, status: r.status, data: data };
+				}, function () {
+					return { ok: r.ok, status: r.status, data: null };
+				} );
+			} ).catch( function () {
+				return { ok: false, status: 0, data: null };
+			} );
+		}
+
+		function installBundle( file ) {
+			if ( ! file ) return;
+			if ( state.posting ) return;
+
+			// Early type sniff from the filename: we don't know the
+			// manifest.type until the server parses the archive, so
+			// the JS confirmation is conservative — ask whenever the
+			// file might be a scene/widget. Authors name type
+			// manifests in a consistent way (…-scene.wp / …-widget.wp)
+			// via the documented naming convention; the safe default
+			// is to ask. The server still does the real type routing.
+			var lower       = ( file.name || '' ).toLowerCase();
+			var mightExecJs = /scene|widget/.test( lower );
+
+			function proceed() {
+				state.posting = true;
+				setInstallPillState( true, 'Installing ' + file.name + '…' );
+				toast( 'Installing ' + file.name + '…' );
+
+				uploadBundle( file ).then( function ( res ) {
+					state.posting = false;
+					setInstallPillState( false );
+
+					if ( res.ok && res.data && res.data.installed ) {
+						// Second-chance JS confirm for when the
+						// filename didn't tip us off but the
+						// manifest did. The install has already
+						// happened; this just arms the store for
+						// any follow-up JS install in the session.
+						if ( ( 'scene' === res.data.type || 'widget' === res.data.type ) && ! mightExecJs ) {
+							jsConfirmRemember();
+						}
+						handleInstallSuccess( res.data );
+						return;
+					}
+					onInstallFailure( res );
+				} );
+			}
+
+			if ( mightExecJs ) {
+				confirmJavaScriptInline( 'scene', function ( ok ) {
+					if ( ! ok ) { toast( 'Install cancelled.' ); return; }
+					proceed();
+				} );
+				return;
+			}
+			proceed();
+		}
+
+		function onInstallFailure( res ) {
+			var data    = ( res && res.data ) || {};
+			var code    = data.code || 'install_failed';
+			var message = errorCopy( code, data.message );
+			toast( message );
+
+			// Leave a breadcrumb on the Apps status rail when the
+			// user is on that department, so the message doesn't
+			// disappear with the toast.
+			var statusWrap = document.querySelector( '[data-odd-apps-status]' );
+			if ( statusWrap ) {
+				statusWrap.textContent = message;
+				statusWrap.setAttribute( 'data-odd-status', 'error' );
+			}
+		}
+
+		// Shop-wide drag-and-drop overlay — accept a .wp dropped
+		// anywhere inside the panel, not just on the topbar pill.
+		function installDropAnywhere( body ) {
+			if ( ! ( window.odd || {} ).canInstall ) return;
+			if ( body.__oddDropInstalled ) return;
+			body.__oddDropInstalled = true;
+			body.addEventListener( 'dragover', function ( e ) {
+				if ( ! e.dataTransfer || ! e.dataTransfer.types ) return;
+				var types = Array.prototype.slice.call( e.dataTransfer.types );
+				if ( types.indexOf( 'Files' ) === -1 ) return;
+				e.preventDefault();
+				body.classList.add( 'is-dropping' );
+			} );
+			body.addEventListener( 'dragleave', function ( e ) {
+				if ( e.target === body ) body.classList.remove( 'is-dropping' );
+			} );
+			body.addEventListener( 'drop', function ( e ) {
+				body.classList.remove( 'is-dropping' );
+				var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[ 0 ];
+				if ( ! f ) return;
+				if ( ! /\.wp$/i.test( f.name ) ) return;
+				e.preventDefault();
+				installBundle( f );
+			} );
+		}
+
+		function renderDeptInstallLink( type ) {
+			if ( ! ( window.odd || {} ).canInstall ) {
+				return document.createDocumentFragment();
+			}
+			var wrap = el( 'div', { class: 'odd-shop__get-more' } );
+			var label = el( 'span', { class: 'odd-shop__get-more-label' } );
+			label.textContent = 'Got a ' + ( NOUN_FOR_TYPE[ type ] || 'bundle' ) + ' of your own?';
+			var btn = el( 'button', { type: 'button', class: 'odd-shop__get-more-btn' } );
+			btn.textContent = 'Install from file…';
+			btn.addEventListener( 'click', function () {
+				var input = document.querySelector( '[data-odd-install-input]' );
+				if ( input ) input.click();
+			} );
+			wrap.appendChild( label );
+			wrap.appendChild( btn );
+			return wrap;
+		}
+
 		function appsBaseUrl() {
 			// cfg.restUrl is the /odd/v1/prefs endpoint; swap the tail
 			// for /apps to get the apps namespace.
@@ -629,6 +1000,8 @@
 				'Live generative scenes for your WordPress desktop. Preview before you commit.',
 				{ eyebrow: 'ODD · Living Art' }
 			) );
+
+			wrap.appendChild( renderDeptInstallLink( 'scene' ) );
 
 			var allScenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes.slice() : [];
 			var scenes = filterByQuery( allScenes, state.query );
@@ -1555,6 +1928,8 @@
 				{ eyebrow: 'ODD · Dock Couture' }
 			) );
 
+			wrap.appendChild( renderDeptInstallLink( 'icon-set' ) );
+
 			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets.slice() : [];
 
 			// Quilt + shelves only feature real, themed sets so each
@@ -2069,7 +2444,7 @@
 			// rather than pulling it from the registry because the
 			// widget registry doesn't carry editorial copy or palette
 			// — those are a Shop concern, not a runtime concern.
-			return [
+			var builtIns = [
 				{
 					id:          'odd/sticky',
 					label:       'Sticky Note',
@@ -2089,7 +2464,31 @@
 					description: 'Thirty WordPress-flavoured answers from a mystical plastic sphere. Click the ball to shake. Best consulted before a destructive migration, never during. Reduced-motion mode downgrades the rattle to a quick cross-fade.',
 				},
 			];
+
+			var base   = builtIns.slice();
+			var extras = Array.isArray( state.cfg.installedWidgets ) ? state.cfg.installedWidgets : [];
+			// Merge installed widgets as their own cards. They don't
+			// ship editorial palette metadata so the Shop synthesises
+			// a neutral gradient + glyph fallback per card.
+			for ( var i = 0; i < extras.length; i++ ) {
+				var w = extras[ i ] || {};
+				if ( ! w.id ) continue;
+				base.push( {
+					id:          w.id,
+					label:       w.label || w.slug || w.id,
+					glyph:       '🧩',
+					accent:      '#6d6d8a',
+					gradient:    'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)',
+					tagline:     w.description || 'Installed widget.',
+					description: w.description || 'A community-installed widget. Remove it by uninstalling the bundle from wp-content/odd-widgets/.',
+					installed:   true,
+					slug:        w.slug,
+				} );
+			}
+			return base;
 		}
+
+		
 
 		function enabledWidgetIds() {
 			try {
@@ -2168,6 +2567,8 @@
 				'Small, self-contained cards that live on the desktop itself — not inside this window. Add one and it appears in the right-hand column; drag it by its title bar to park it anywhere.',
 				{ eyebrow: 'ODD · Desktop Companions' }
 			) );
+
+			wrap.appendChild( renderDeptInstallLink( 'widget' ) );
 
 			var catalog = widgetCatalog();
 			var enabled = enabledWidgetIds();
@@ -3104,6 +3505,48 @@
 			'.odd-panel.odd-shop .odd-shop__tip{display:flex;align-items:flex-start;gap:12px;margin:20px 0 0;padding:14px 18px;border-radius:var(--odd-shop-radius);background:linear-gradient(180deg,#fafbff,#f3f6ff);border:1px solid rgba(0,113,227,.18);color:var(--odd-shop-ink-2);font-size:13px;line-height:1.5}',
 			'.odd-panel.odd-shop .odd-shop__tip-icon{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 10px -6px rgba(0,113,227,.4)}',
 			'.odd-panel.odd-shop .odd-shop__tip-text{flex:1 1 auto;min-width:0}',
+
+			/* Topbar install pill — sits beside the search field and
+			 * lets admins drop a .wp straight into the Shop. */
+			'.odd-panel.odd-shop .odd-shop__install{all:unset;display:inline-flex;align-items:center;gap:8px;justify-self:end;padding:7px 14px 7px 12px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border-strong);cursor:pointer;color:var(--odd-shop-ink);font-size:12.5px;font-weight:600;transition:border-color .14s ease,background .14s ease,box-shadow .14s ease,transform .14s ease}',
+			'.odd-panel.odd-shop .odd-shop__install:hover{border-color:var(--odd-shop-accent);box-shadow:0 6px 14px -10px rgba(0,113,227,.5)}',
+			'.odd-panel.odd-shop .odd-shop__install:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:2px}',
+			'.odd-panel.odd-shop .odd-shop__install.is-busy{opacity:.85;pointer-events:none}',
+			'.odd-panel.odd-shop .odd-shop__install.is-busy .odd-shop__install-glyph{animation:odd-shop-spin .9s linear infinite}',
+			'.odd-panel.odd-shop .odd-shop__install-glyph{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:linear-gradient(135deg,#ff3d9a 0%,#6a5cff 55%,#00d1b2 100%);color:#fff;font-size:12px;font-weight:700;line-height:1}',
+			'@keyframes odd-shop-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}',
+
+			/* Per-department "Got a scene of your own?" helper link. */
+			'.odd-panel.odd-shop .odd-shop__get-more{display:flex;align-items:center;gap:10px;margin:0 0 20px;padding:12px 16px;border-radius:var(--odd-shop-radius);background:rgba(0,113,227,.06);border:1px dashed rgba(0,113,227,.25);color:var(--odd-shop-ink-2);font-size:12.5px}',
+			'.odd-panel.odd-shop .odd-shop__get-more-label{flex:1 1 auto}',
+			'.odd-panel.odd-shop .odd-shop__get-more-btn{all:unset;padding:4px 10px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border-strong);cursor:pointer;color:var(--odd-shop-accent);font-size:12px;font-weight:600}',
+			'.odd-panel.odd-shop .odd-shop__get-more-btn:hover{border-color:var(--odd-shop-accent);background:rgba(0,113,227,.08)}',
+
+			/* Shop-wide drop overlay — only visible while a file is
+			 * being dragged over the Shop body. */
+			'.odd-panel.odd-shop.is-dropping{position:relative}',
+			'.odd-panel.odd-shop.is-dropping::before{content:"";position:absolute;inset:0;z-index:9;pointer-events:none;background:rgba(0,113,227,.12);border:3px dashed var(--odd-shop-accent);border-radius:var(--odd-shop-radius-lg);animation:odd-shop-pulse 1.2s ease-in-out infinite}',
+			'.odd-panel.odd-shop.is-dropping::after{content:"Drop to install";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;pointer-events:none;padding:12px 22px;border-radius:999px;background:#fff;color:var(--odd-shop-accent);font-weight:700;font-size:15px;box-shadow:0 18px 40px -16px rgba(0,113,227,.5)}',
+			'@keyframes odd-shop-pulse{0%,100%{opacity:.6}50%{opacity:1}}',
+
+			/* Just-installed flash — 2.4s ring around a fresh tile. */
+			'.odd-panel.odd-shop .is-just-installed{animation:odd-shop-just 2.4s cubic-bezier(.22,.8,.32,1) both}',
+			'@keyframes odd-shop-just{0%{box-shadow:0 0 0 0 rgba(0,113,227,0),0 0 0 2px var(--odd-shop-accent) inset}20%{box-shadow:0 0 0 8px rgba(0,113,227,.18),0 0 0 2px var(--odd-shop-accent) inset}100%{box-shadow:0 0 0 0 rgba(0,113,227,0)}}',
+			'@media (prefers-reduced-motion: reduce){.odd-panel.odd-shop .is-just-installed{animation:none;box-shadow:0 0 0 2px var(--odd-shop-accent) inset}}',
+
+			/* One-time JS-execution confirmation banner for scene +
+			 * widget installs. Non-modal: sits at the top of the
+			 * Shop body, gives [Cancel] [Install], remembered on
+			 * window.__odd.store. */
+			'.odd-panel.odd-shop .odd-shop__js-confirm{margin:0 0 20px;padding:16px 18px;border-radius:var(--odd-shop-radius);background:linear-gradient(180deg,#fff7ed,#fff1e0);border:1px solid rgba(217,119,6,.32);color:var(--odd-shop-ink)}',
+			'.odd-panel.odd-shop .odd-shop__js-confirm strong{display:block;margin:0 0 4px;font-size:14px;font-weight:700}',
+			'.odd-panel.odd-shop .odd-shop__js-confirm p{margin:0 0 12px;font-size:13px;color:var(--odd-shop-ink-2);line-height:1.45}',
+			'.odd-panel.odd-shop .odd-shop__js-confirm-actions{display:flex;justify-content:flex-end;gap:8px}',
+			'.odd-panel.odd-shop .odd-shop__js-confirm-btn{all:unset;padding:7px 14px;border-radius:999px;border:1px solid var(--odd-shop-border-strong);background:#fff;cursor:pointer;color:var(--odd-shop-ink);font-size:12.5px;font-weight:600}',
+			'.odd-panel.odd-shop .odd-shop__js-confirm-btn:hover{border-color:var(--odd-shop-ink-2)}',
+			'.odd-panel.odd-shop .odd-shop__js-confirm-btn.is-primary{background:var(--odd-shop-accent);border-color:var(--odd-shop-accent);color:#fff}',
+			'.odd-panel.odd-shop .odd-shop__js-confirm-btn.is-primary:hover{background:#005bbf;border-color:#005bbf}',
+			'.odd-panel.odd-shop .odd-shop__js-confirm-btn:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:2px}',
 
 			/* Rail collapses the tagline on narrow widths so the chrome
 			 * still reads at the WP Desktop Mode minimum of 720×480. */

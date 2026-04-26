@@ -149,7 +149,10 @@
 
 	function previewBg( slug ) {
 		var s = SCENE_MAP[ slug ] || {};
-		var url = assetUrl( 'assets/previews/' + slug + '.webp' );
+		// Installed scenes carry an explicit previewUrl (content_url()
+		// under wp-content/odd-scenes/<slug>/preview.webp). Built-in
+		// scenes fall back to the historical plugin-assets path.
+		var url = s.previewUrl || assetUrl( 'assets/previews/' + slug + '.webp' );
 		return "url(\"" + url + "\") center/cover no-repeat, " + ( s.fallbackColor || '#111' );
 	}
 
@@ -191,6 +194,15 @@
 
 	function loadScene( slug ) {
 		if ( window.__odd.scenes[ slug ] ) return Promise.resolve();
+		var desc = SCENE_MAP[ slug ] || {};
+		// Installed scenes are enqueued via wp_enqueue_script with a
+		// dependency on `odd`, so by the time we get here their
+		// scene.js has already run and self-registered. If it
+		// somehow hasn't, do NOT fall back to the built-in scenes
+		// path — that 404 would be misleading.
+		if ( desc.installed ) {
+			throw new Error( 'Installed scene did not self-register: ' + slug );
+		}
 		return loadScript( assetUrl( 'src/wallpaper/scenes/' + slug + '.js' ) ).then( function () {
 			if ( ! window.__odd.scenes[ slug ] ) {
 				throw new Error( 'Scene did not self-register: ' + slug );
@@ -295,7 +307,8 @@
 				'transition:opacity .4s ease;opacity:1;pointer-events:none;';
 			container.appendChild( firstPaint );
 			function setFirstPaint( slug ) {
-				var url = assetUrl( 'assets/wallpapers/' + slug + '.webp' );
+				var s   = SCENE_MAP[ slug ] || {};
+				var url = s.wallpaperUrl || assetUrl( 'assets/wallpapers/' + slug + '.webp' );
 				firstPaint.style.backgroundImage = 'url("' + url + '")';
 			}
 
@@ -438,7 +451,8 @@
 			var originalAccent = document.documentElement.style.getPropertyValue( '--wp-admin-theme-color' );
 			function sampleAccent( slug ) {
 				if ( accentCache[ slug ] ) return Promise.resolve( accentCache[ slug ] );
-				var url = assetUrl( 'assets/wallpapers/' + slug + '.webp' );
+				var s   = SCENE_MAP[ slug ] || {};
+				var url = s.wallpaperUrl || assetUrl( 'assets/wallpapers/' + slug + '.webp' );
 				return new Promise( function ( resolve ) {
 					var img = new window.Image();
 					img.onload = function () {
