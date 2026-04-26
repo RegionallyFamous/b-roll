@@ -802,7 +802,7 @@
 				return wrap;
 			}
 
-			var shelves = groupByFranchise( scenes, 'Generative' );
+			var shelves = groupByCategory( scenes, 'wallpaper', 'More' );
 			shelves.forEach( function ( shelf ) {
 				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderSceneCard, { scope: 'wallpaper' } ) );
 			} );
@@ -937,24 +937,35 @@
 		}
 
 		/**
-		 * Deterministic gradient for each franchise tile. Looks
+		 * Deterministic gradient for each category tile. Looks
 		 * colorful + editorial without pulling in a palette library,
-		 * and a string hash makes new franchises pick a stable color
+		 * and a string hash makes new categories pick a stable color
 		 * without hand-tuning this list every time. Palette tables
 		 * live inside the function so they survive the `var`-hoist
 		 * ordering — `franchiseGradient` gets called during initial
 		 * render before sibling `var`-decl palettes would be assigned.
+		 *
+		 * Named after `franchise` for legacy continuity; we feed
+		 * category names through it now (Skies / Wilds / Places /
+		 * Forms / Playful / Crafted / Technical / Cool / Default),
+		 * keeping a few legacy franchise entries below for fallback.
 		 */
 		function franchiseGradient( name ) {
 			var PALETTE = {
+				'Skies':            'linear-gradient(135deg,#1a4b8e 0%,#5dadec 60%,#a3d8f4 100%)',
+				'Wilds':            'linear-gradient(135deg,#0f6b3a 0%,#2fa970 60%,#a8dca0 100%)',
+				'Places':           'linear-gradient(135deg,#b94a3b 0%,#f08e5b 60%,#ffd9a8 100%)',
+				'Forms':            'linear-gradient(135deg,#3a1a72 0%,#8a3fc8 60%,#e89cf0 100%)',
+				'Playful':          'linear-gradient(135deg,#d6266d 0%,#ff7a3c 60%,#ffd56a 100%)',
+				'Crafted':          'linear-gradient(135deg,#a04a18 0%,#e0964c 60%,#f4dca4 100%)',
+				'Technical':        'linear-gradient(135deg,#0a3a4a 0%,#2596be 60%,#9ee0f0 100%)',
+				'Cool':             'linear-gradient(135deg,#5d6470 0%,#9aa3b1 60%,#dde2ea 100%)',
+				'Default':          'linear-gradient(135deg,#1d1d1f 0%,#4a4a52 60%,#9a9aa6 100%)',
 				'Generative':       'linear-gradient(135deg,#b84df1 0%,#ff68b3 100%)',
 				'Atmosphere':       'linear-gradient(135deg,#00b4db 0%,#2c9afe 100%)',
 				'Paper':            'linear-gradient(135deg,#f6d365 0%,#fda085 100%)',
 				'ODD Originals':    'linear-gradient(135deg,#0c0a1d 0%,#ff1c6a 100%)',
 				'WP Desktop Mode':  'linear-gradient(135deg,#2c3e50 0%,#4ca1af 100%)',
-				'Filament':         'linear-gradient(135deg,#ff9966 0%,#ff5e62 100%)',
-				'Arctic':           'linear-gradient(135deg,#89f7fe 0%,#66a6ff 100%)',
-				'Fold':             'linear-gradient(135deg,#ffb88c 0%,#de6262 100%)',
 			};
 			var FALLBACK = [
 				'linear-gradient(135deg,#8e2de2 0%,#4a00e0 100%)',
@@ -973,46 +984,130 @@
 		}
 
 		/**
-		 * Category quilt — a 2-col grid of gradient franchise tiles
+		 * Resolve an item to its display category. Each manifest
+		 * declares a narrow `franchise` string (one per item, more
+		 * or less); shelving by franchise produced one-row shelves
+		 * everywhere. The slug → category tables below roll those
+		 * up into broader buckets so each shelf has real siblings.
+		 * Items that aren't curated yet fall back to their declared
+		 * franchise so nothing disappears — they'll just appear on
+		 * their own shelf at the bottom until the table catches up.
+		 *
+		 * Tables live inside the function so they survive `var`-
+		 * hoist ordering: `categoryOf` is hoisted as a function
+		 * declaration and gets called during initial render before
+		 * any sibling `var` blocks have actually run their RHS.
+		 */
+		function categoryOf( item, kind ) {
+			var SCENE_CATEGORY = {
+				'flux':                'Forms',
+				'origami':             'Forms',
+				'terrazzo':            'Forms',
+				'aurora':              'Skies',
+				'rainfall':            'Skies',
+				'big-sky':             'Skies',
+				'cloud-city':          'Skies',
+				'weather-factory':     'Skies',
+				'circuit-garden':      'Wilds',
+				'tropical-greenhouse': 'Wilds',
+				'wildflower-meadow':   'Wilds',
+				'tide-pool':           'Wilds',
+				'abyssal-aquarium':    'Wilds',
+				'sun-print':           'Wilds',
+				'iris-observatory':    'Places',
+				'pocket-dimension':    'Places',
+				'balcony-noon':        'Places',
+				'mercado':             'Places',
+				'beach-umbrellas':     'Places',
+			};
+			var ICON_SET_CATEGORY = {
+				'none':              'Default',
+				'arcade-tokens':     'Playful',
+				'lemonade-stand':    'Playful',
+				'tiki':              'Playful',
+				'stadium':           'Playful',
+				'eyeball-avenue':    'Playful',
+				'claymation':        'Crafted',
+				'cross-stitch':      'Crafted',
+				'botanical-plate':   'Crafted',
+				'fold':              'Crafted',
+				'risograph':         'Crafted',
+				'blueprint':         'Technical',
+				'circuit-bend':      'Technical',
+				'hologram':          'Technical',
+				'monoline':          'Technical',
+				'filament':          'Technical',
+				'arctic':            'Cool',
+				'brutalist-stencil': 'Cool',
+			};
+			if ( ! item ) return 'More';
+			var table = kind === 'icons' ? ICON_SET_CATEGORY : SCENE_CATEGORY;
+			if ( item.slug && table[ item.slug ] ) return table[ item.slug ];
+			return ( item.franchise && String( item.franchise ) ) || 'More';
+		}
+
+		/**
+		 * Stable display order for the bucketed shelves. Listed in
+		 * descending breadth so the densest categories surface
+		 * first; uncategorized franchises fall to the bottom.
+		 */
+		function compareCategoryNames( a, b ) {
+			var CATEGORY_ORDER = [
+				'Skies', 'Wilds', 'Places', 'Forms',
+				'Default', 'Playful', 'Crafted', 'Technical', 'Cool',
+			];
+			var ai = CATEGORY_ORDER.indexOf( a );
+			var bi = CATEGORY_ORDER.indexOf( b );
+			if ( ai === -1 && bi === -1 ) return a.localeCompare( b );
+			if ( ai === -1 ) return 1;
+			if ( bi === -1 ) return -1;
+			return ai - bi;
+		}
+
+		/**
+		 * Category quilt — a 2-col grid of gradient category tiles
 		 * that scroll the content pane to the matching shelf when
 		 * clicked. Purely navigational; no state changes.
 		 */
 		function renderCategoryQuilt( items, scope ) {
+			var kind = scope === 'icons' ? 'icons' : 'wallpaper';
 			var counts = {};
-			var order = [];
+			var seen = {};
 			items.forEach( function ( it ) {
-				if ( ! it || ! it.franchise ) return;
-				if ( ! Object.prototype.hasOwnProperty.call( counts, it.franchise ) ) {
-					counts[ it.franchise ] = 0;
-					order.push( it.franchise );
+				var cat = categoryOf( it, kind );
+				if ( ! cat ) return;
+				if ( ! Object.prototype.hasOwnProperty.call( counts, cat ) ) {
+					counts[ cat ] = 0;
+					seen[ cat ] = true;
 				}
-				counts[ it.franchise ]++;
+				counts[ cat ]++;
 			} );
+			var order = Object.keys( seen ).sort( compareCategoryNames );
 			var wrap = el( 'div', { class: 'odd-shop__quilt' } );
 			var head = el( 'div', { class: 'odd-shop__shelf-head' } );
 			var title = el( 'h3', { class: 'odd-shop__shelf-title' } );
-			title.textContent = 'Browse by franchise';
+			title.textContent = 'Browse by category';
 			head.appendChild( title );
 			wrap.appendChild( head );
 			var grid = el( 'div', { class: 'odd-shop__quilt-grid' } );
-			order.forEach( function ( franchise ) {
+			order.forEach( function ( category ) {
 				var tile = el( 'button', {
 					type: 'button',
 					class: 'odd-shop__quilt-tile',
-					style: 'background:' + franchiseGradient( franchise ),
-					'data-franchise-jump': franchise,
+					style: 'background:' + franchiseGradient( category ),
+					'data-franchise-jump': category,
 					'data-scope': scope,
 				} );
 				var name = el( 'span', { class: 'odd-shop__quilt-name' } );
-				name.textContent = franchise;
+				name.textContent = category;
 				var count = el( 'span', { class: 'odd-shop__quilt-count' } );
-				count.textContent = counts[ franchise ] + ( counts[ franchise ] === 1
+				count.textContent = counts[ category ] + ( counts[ category ] === 1
 					? ( scope === 'wallpaper' ? ' scene' : ' set' )
 					: ( scope === 'wallpaper' ? ' scenes' : ' sets' ) );
 				tile.appendChild( name );
 				tile.appendChild( count );
 				tile.addEventListener( 'click', function () {
-					var target = content.querySelector( '[data-shelf-anchor="' + cssEscape( franchise ) + '"]' );
+					var target = content.querySelector( '[data-shelf-anchor="' + cssEscape( category ) + '"]' );
 					if ( target && typeof target.scrollIntoView === 'function' ) {
 						target.scrollIntoView( { behavior: 'smooth', block: 'start' } );
 					}
@@ -1024,7 +1119,7 @@
 		}
 
 		// Narrow CSS.escape shim — jsdom doesn't have it and the
-		// franchise strings we anchor by contain spaces + apostrophes.
+		// category strings we anchor by contain spaces + apostrophes.
 		function cssEscape( s ) {
 			return String( s ).replace( /[^a-zA-Z0-9_-]/g, function ( c ) {
 				return '\\' + c.charCodeAt( 0 ).toString( 16 ) + ' ';
@@ -1032,25 +1127,27 @@
 		}
 
 		/**
-		 * Group an array of items by their `franchise` field. Items
-		 * without a franchise collapse into `fallback`. Preserves the
-		 * first-seen order of franchises so the shelves stay stable
-		 * across renders — `.sort()` would reshuffle on every tick.
+		 * Group an array of items by their resolved category. Items
+		 * without a slug-table entry collapse into their `franchise`
+		 * (or `fallback`) so nothing disappears. Categories are then
+		 * sorted by `CATEGORY_ORDER` so curated buckets come first
+		 * and uncategorized stragglers fall to the bottom.
 		 */
-		function groupByFranchise( items, fallback ) {
+		function groupByCategory( items, kind, fallback ) {
 			var order = [];
 			var bag = {};
 			items.forEach( function ( item ) {
 				if ( ! item ) return;
-				var f = ( item.franchise && String( item.franchise ) ) || fallback || 'Collection';
-				if ( ! Object.prototype.hasOwnProperty.call( bag, f ) ) {
-					bag[ f ] = [];
-					order.push( f );
+				var c = categoryOf( item, kind ) || fallback || 'More';
+				if ( ! Object.prototype.hasOwnProperty.call( bag, c ) ) {
+					bag[ c ] = [];
+					order.push( c );
 				}
-				bag[ f ].push( item );
+				bag[ c ].push( item );
 			} );
-			return order.map( function ( f ) {
-				return { franchise: f, items: bag[ f ] };
+			order.sort( compareCategoryNames );
+			return order.map( function ( c ) {
+				return { franchise: c, items: bag[ c ] };
 			} );
 		}
 
@@ -1274,24 +1371,57 @@
 			) );
 
 			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets.slice() : [];
-			// Synthetic "None" pseudo-set so the user can opt out.
-			sets.unshift( {
+
+			// Quilt + shelves only feature real, themed sets so each
+			// category has actual siblings instead of a 1-item shelf.
+			// The "Default" pseudo-set is reachable via the dedicated
+			// reset pill below — and via the hero, when no custom set
+			// has been committed yet.
+			var realSets = sets.filter( function ( s ) {
+				return s && s.slug && s.slug !== 'none';
+			} );
+
+			var defaultSet = {
 				slug:        'none',
 				label:       'Default',
 				franchise:   'WP Desktop Mode',
 				description: 'Ship the stock Dashicons / WP Desktop Mode icons.',
 				preview:     '',
 				icons:       {},
-			} );
+			};
+			var heroPool = state.cfg.iconSet === 'none'
+				? [ defaultSet ].concat( realSets )
+				: realSets;
 
-			var filtered = filterByQuery( sets, state.query );
+			var filtered = filterByQuery( realSets, state.query );
 
-			if ( filtered.length ) {
-				var featuredSet = pickFeaturedSet( filtered );
+			if ( heroPool.length ) {
+				var featuredSet = pickFeaturedSet( heroPool );
 				if ( featuredSet ) wrap.appendChild( renderIconHero( featuredSet ) );
 			}
+
+			// "Reset to default" pill — only shown when a custom set is
+			// committed. Gives users an obvious way back without
+			// cluttering the catalog with a singleton "Default" shelf.
+			if ( state.cfg.iconSet && state.cfg.iconSet !== 'none' && ! state.query ) {
+				var resetRow = el( 'div', { class: 'odd-shop__reset-row' } );
+				var resetText = el( 'span', { class: 'odd-shop__reset-text' } );
+				resetText.textContent = 'Want the stock WordPress icons back?';
+				var resetBtn = el( 'button', {
+					type: 'button',
+					class: 'odd-shop__reset-btn',
+				} );
+				resetBtn.textContent = 'Reset to default';
+				resetBtn.addEventListener( 'click', function () {
+					previewIconSet( 'none' );
+				} );
+				resetRow.appendChild( resetText );
+				resetRow.appendChild( resetBtn );
+				wrap.appendChild( resetRow );
+			}
+
 			if ( ! state.query ) {
-				wrap.appendChild( renderCategoryQuilt( sets, 'icons' ) );
+				wrap.appendChild( renderCategoryQuilt( realSets, 'icons' ) );
 			}
 
 			if ( ! filtered.length ) {
@@ -1299,7 +1429,7 @@
 				return wrap;
 			}
 
-			var shelves = groupByFranchise( filtered, 'Collection' );
+			var shelves = groupByCategory( filtered, 'icons', 'More' );
 			shelves.forEach( function ( shelf ) {
 				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderIconSetCard, { scope: 'icons' } ) );
 			} );
@@ -2269,15 +2399,29 @@
 			 * fully transparent on the right where the artwork sits.
 			 * Tuned for both bright (Aurora, Origami) and dark scenes;
 			 * the title also carries its own text-shadow as belt + braces. */
-			'.odd-panel.odd-shop .odd-shop__hero-scrim{position:absolute;inset:0;background:linear-gradient(95deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.62) 30%,rgba(0,0,0,.22) 60%,rgba(0,0,0,0) 92%);z-index:-1}',
-			'.odd-panel.odd-shop .odd-shop__hero--icons .odd-shop__hero-scrim,.odd-panel.odd-shop .odd-shop__hero--apps .odd-shop__hero-scrim{background:linear-gradient(95deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,.4) 32%,rgba(0,0,0,.05) 60%,rgba(0,0,0,0) 90%)}',
+			/* Hero scrim is the linchpin of hero readability. Earlier
+			 * passes used a gentle gradient that worked on dark
+			 * backdrops but fell apart on bright editorial art (icons,
+			 * apps banners). This pass anchors the left ~half at near-
+			 * solid black, keeps the title block in solid territory,
+			 * and only releases to transparent past the body content
+			 * so the right edge of the hero still shows the artwork.
+			 * Two stacked layers: a hard left ink panel + a soft
+			 * vertical haze along the bottom for thumbnail bleed. */
+			'.odd-panel.odd-shop .odd-shop__hero-scrim{position:absolute;inset:0;background:linear-gradient(98deg,rgba(0,0,0,.94) 0%,rgba(0,0,0,.92) 36%,rgba(0,0,0,.72) 50%,rgba(0,0,0,.32) 66%,rgba(0,0,0,0) 84%),linear-gradient(180deg,rgba(0,0,0,0) 60%,rgba(0,0,0,.35) 100%);z-index:-1}',
+			'.odd-panel.odd-shop .odd-shop__hero--icons .odd-shop__hero-scrim,.odd-panel.odd-shop .odd-shop__hero--apps .odd-shop__hero-scrim{background:linear-gradient(98deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.88) 36%,rgba(0,0,0,.62) 52%,rgba(0,0,0,.22) 70%,rgba(0,0,0,0) 88%),linear-gradient(180deg,rgba(0,0,0,0) 65%,rgba(0,0,0,.35) 100%)}',
 			/* Apps banner is a pastel sunrise; soften the white text by
 			 * giving it a warm-dark scrim instead of pure black. */
 			'.odd-panel.odd-shop .odd-shop__hero--apps .odd-shop__hero-scrim{background:linear-gradient(95deg,rgba(40,8,28,.7) 0%,rgba(40,8,28,.42) 32%,rgba(40,8,28,.06) 60%,rgba(40,8,28,0) 90%)}',
-			'.odd-panel.odd-shop .odd-shop__hero-body{display:flex;flex-direction:column;gap:10px;max-width:64%;min-width:0}',
-			'.odd-panel.odd-shop .odd-shop__hero-eyebrow{display:inline-block;align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}',
-			'.odd-panel.odd-shop .odd-shop__hero-title{margin:6px 0 0;font-size:40px;font-weight:800;letter-spacing:-.022em;line-height:1.04;text-shadow:0 2px 18px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.25)}',
-			'.odd-panel.odd-shop .odd-shop__hero-sub{margin:0;font-size:15px;line-height:1.5;color:rgba(255,255,255,.94);max-width:48ch;text-shadow:0 1px 6px rgba(0,0,0,.35)}',
+			'.odd-panel.odd-shop .odd-shop__hero-body{display:flex;flex-direction:column;gap:10px;max-width:58%;min-width:0;position:relative;z-index:1}',
+			'.odd-panel.odd-shop .odd-shop__hero-eyebrow{display:inline-block;align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.28);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}',
+			/* Hero title + subtitle ride a stacked text-shadow that
+			 * doubles as a soft halo: a tight 1px shadow nails the
+			 * letterforms; a longer 14px shadow softens the edge so
+			 * we still get separation from any pixel that bleeds
+			 * past the scrim on a really bright preview. */
+			'.odd-panel.odd-shop .odd-shop__hero-title{margin:6px 0 0;font-size:40px;font-weight:800;letter-spacing:-.022em;line-height:1.04;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.85),0 2px 14px rgba(0,0,0,.55)}',
+			'.odd-panel.odd-shop .odd-shop__hero-sub{margin:0;font-size:15px;line-height:1.5;color:#fff;max-width:48ch;text-shadow:0 1px 2px rgba(0,0,0,.7),0 1px 8px rgba(0,0,0,.45)}',
 			'.odd-panel.odd-shop .odd-shop__hero-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}',
 			'.odd-panel.odd-shop .odd-shop__hero-btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.01em;transition:transform .14s ease,box-shadow .14s ease,background .14s ease}',
 			'.odd-panel.odd-shop .odd-shop__hero-btn--primary{background:#fff;color:#1d1d1f}',
@@ -2301,6 +2445,15 @@
 			'.odd-panel.odd-shop .odd-shop__quilt-tile:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:3px}',
 			'.odd-panel.odd-shop .odd-shop__quilt-name{position:relative;z-index:1;font-size:22px;font-weight:800;letter-spacing:-.015em;line-height:1.05;text-shadow:0 2px 8px rgba(0,0,0,.28),0 1px 2px rgba(0,0,0,.18)}',
 			'.odd-panel.odd-shop .odd-shop__quilt-count{position:relative;z-index:1;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 4px rgba(0,0,0,.32),0 1px 1px rgba(0,0,0,.22)}',
+
+			/* "Reset to default" row — only renders when a custom icon
+			 * set is committed. Sits between the hero and the quilt
+			 * so users always have an obvious way back to stock. */
+			'.odd-panel.odd-shop .odd-shop__reset-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 24px;padding:12px 16px;border-radius:var(--odd-shop-radius);background:rgba(0,113,227,.06);border:1px solid rgba(0,113,227,.18)}',
+			'.odd-panel.odd-shop .odd-shop__reset-text{font-size:13px;font-weight:500;color:var(--odd-shop-ink-2)}',
+			'.odd-panel.odd-shop .odd-shop__reset-btn{all:unset;cursor:pointer;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.01em;background:#fff;color:var(--odd-shop-accent);border:1px solid rgba(0,113,227,.32);transition:background .14s ease,border-color .14s ease}',
+			'.odd-panel.odd-shop .odd-shop__reset-btn:hover{background:rgba(0,113,227,.1);border-color:rgba(0,113,227,.5)}',
+			'.odd-panel.odd-shop .odd-shop__reset-btn:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:2px}',
 
 			/* Shelves — franchise row with an anchor-style title + count
 			 * pill and a horizontally-scrolling track beneath. */

@@ -28,10 +28,14 @@ function seedConfig() {
 		restNonce: 'nonce-abc',
 		wallpaper: 'flux',
 		scene:     'flux',
+		// Three slugs, three distinct categories: flux→Forms,
+		// aurora→Skies, circuit-garden→Wilds. Lets us assert the
+		// shelf grouping without depending on the per-franchise
+		// labels that no longer drive layout.
 		scenes: [
-			{ slug: 'flux',    label: 'Flux',    franchise: 'Generative', tags: [], fallbackColor: '#222233' },
-			{ slug: 'aurora',  label: 'Aurora',  franchise: 'Atmosphere', tags: [], fallbackColor: '#112233' },
-			{ slug: 'origami', label: 'Origami', franchise: 'Paper',      tags: [], fallbackColor: '#ccccdd' },
+			{ slug: 'flux',           label: 'Flux',           franchise: 'Generative',    tags: [], fallbackColor: '#222233' },
+			{ slug: 'aurora',         label: 'Aurora',         franchise: 'Atmosphere',    tags: [], fallbackColor: '#112233' },
+			{ slug: 'circuit-garden', label: 'Circuit Garden', franchise: 'ODD Originals', tags: [], fallbackColor: '#0b1a10' },
 		],
 		sets: [
 			{ slug: 'filament', label: 'Filament', franchise: 'Filament', accent: '#ff7a3c', icons: { dashboard: '', fallback: '' } },
@@ -117,8 +121,9 @@ describe( 'ODD Shop', () => {
 			.map( ( n ) => n.textContent.trim() );
 		expect( railLabels ).toEqual( expect.arrayContaining( [ 'Wallpapers', 'Icon Sets', 'About' ] ) );
 
-		// Wallpapers department groups scenes by franchise; with three
-		// unique franchises in seedConfig, we should see three shelves.
+		// Wallpapers department groups scenes by category; with
+		// three slugs that map to three distinct categories
+		// (Forms / Skies / Wilds), we should see three shelves.
 		const shelves = host.querySelectorAll( '.odd-shop__shelf' );
 		expect( shelves.length ).toBe( 3 );
 

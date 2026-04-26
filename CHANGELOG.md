@@ -11,6 +11,22 @@ bodies.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.6.3"></a>
+## [1.6.3] — 2026-04-26
+
+### Changed
+- Hero contrast finally rock-solid. The 1.6.2 scrim faded to ~22% opacity by the title baseline and got eaten alive by bright editorial art (the Icons + Apps banners, especially). Replaced it with a near-solid left ink panel that holds .94→.92 alpha through the first 36% of the hero, eases out at 50%, and only goes transparent past the body content at ~84%. Stacked it with a vertical bottom haze so the floating thumbnail still bleeds in cleanly. Title + subtitle pick up a two-stop text-shadow halo (1px tight + 14px diffuse) and force `color:#fff` so they're legible on any backdrop. Eyebrow pill darkens its shadow stop to match.
+- Categories instead of franchises. The shelving model rolled up by `franchise`, but every icon set declared its own franchise — so the Icons department rendered 17 shelves of one set each. Wallpapers were nearly as bad: 15 of 19 scenes lived under "ODD Originals" alongside three franchise singletons. Both surfaces now bucket items into curated categories with real siblings:
+  - Wallpapers: **Skies** (5 — aurora, rainfall, big-sky, cloud-city, weather-factory), **Wilds** (6 — circuit-garden, tropical-greenhouse, wildflower-meadow, tide-pool, abyssal-aquarium, sun-print), **Places** (5 — iris-observatory, pocket-dimension, balcony-noon, mercado, beach-umbrellas), **Forms** (3 — flux, origami, terrazzo).
+  - Icon Sets: **Playful** (5 — arcade-tokens, lemonade-stand, tiki, stadium, eyeball-avenue), **Crafted** (5 — claymation, cross-stitch, botanical-plate, fold, risograph), **Technical** (5 — blueprint, circuit-bend, hologram, monoline, filament), **Cool** (2 — arctic, brutalist-stencil).
+- Quilt + shelf headers now read "Browse by category" and use category gradients (Skies blue→sky, Wilds forest→leaf, Places terracotta→cream, Forms violet→lilac, Playful magenta→amber, Crafted umber→sand, Technical teal→cyan, Cool slate→ice).
+- "Default" pseudo-set no longer renders as a 1-item shelf. The synthetic "Default" tile is filtered out of both the category quilt and the shelves; instead, when a custom icon set is committed, a dedicated **Reset to default** pill renders between the hero and the quilt with a tertiary-style action that previews `none` so the user can confirm before reloading.
+
+### Internal
+- New `categoryOf( item, kind )` and `compareCategoryNames( a, b )` helpers replace the per-franchise `groupByFranchise` path. Tables live inside the helper functions so they survive `var`-hoist ordering during initial render — same fix pattern as `franchiseGradient` from 1.6.1. Items not yet curated fall back to their declared `franchise` so nothing disappears, just lands at the bottom of the category sort.
+- `franchiseGradient` keeps its name (legacy callers) but the palette gains explicit entries for each new category. Old per-franchise entries stay so any uncurated item renders the same as before.
+- `panel.test.js` fixture now uses three slugs that map to three distinct categories (flux→Forms, aurora→Skies, circuit-garden→Wilds) so the existing 3-shelf assertion still holds; assertion comment updated to reflect category grouping.
+
 <a id="v1.6.2"></a>
 ## [1.6.2] — 2026-04-26
 

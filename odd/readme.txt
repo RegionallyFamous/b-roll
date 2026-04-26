@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.6.2
+Stable tag: 1.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,7 @@ ODD (Outlandish Desktop Decorator) layers on top of the [WP Desktop Mode](https:
 * **Apps.** Install small standalone web apps (HTML/CSS/JS) as windows and desktop icons. Apps run on your WordPress desktop without using or knowing about WordPress — they just open. Browse and install from the ODD Shop.
 * **Iris.** A lightweight mascot/personality layer that reacts to scene changes, app lifecycle events, and time of day.
 
-All three surfaces — wallpaper, icons, apps — are switched from a single native WP Desktop window: the ODD Shop (Mac App Store-style, with franchise shelves).
+All three surfaces — wallpaper, icons, apps — are switched from a single native WP Desktop window: the ODD Shop (Mac App Store-style, with category shelves).
 
 == Installation ==
 
@@ -43,6 +43,12 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.6.3 =
+* Hero contrast fix. The hero scrim was sliding past the title on bright editorial backdrops (Apps, Icon Sets); tightened it to a near-solid left ink panel with a soft vertical haze and stacked text-shadow halos on the title + subtitle, so the body stays legible on any artwork. Eyebrow pill darkens its shadow to match.
+* Categories instead of franchises. Wallpapers and Icon Sets used to show one shelf per `franchise` field, which meant 17 icon shelves of 1 set each — and 15 wallpaper shelves under "ODD Originals" alongside three singletons. Both are now bucketed into broader curated categories with real siblings: **Skies / Wilds / Places / Forms** for scenes, **Playful / Crafted / Technical / Cool** for icon sets. Every shelf has more than one item.
+* "Default" set out of the catalog. The synthetic "Default WP icons" tile no longer appears in any shelf or in the category quilt (it was creating a singleton "Default" shelf that violated the same rule). Instead, when a custom icon set is committed, a dedicated "Reset to default" pill renders between the hero and the quilt.
+* Quilt + shelf headers now read "Browse by category".
 
 = 1.6.2 =
 * Apps copy rewrite. Apps are no longer described as "sandbox bundles" or "sandboxed apps" anywhere user-facing — they're "mini apps that just run on your WordPress desktop without using or knowing about WordPress". The Apps department now ships an editorial hero banner and proper mini-apps department description.
