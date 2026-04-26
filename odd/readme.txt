@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.5
+Stable tag: 1.4.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,10 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.4.6 =
+* Actually fixes the "Still White" app window. 1.4.5 shipped a client-side hydration path that confirmed the window body was being built correctly, but installed apps still painted blank. The `?odd_debug=1` trace added in 1.4.5 showed the server was serving a valid 393-byte `index.html` with a working `<script type="module">` pointing at the Vite bundle — meaning the blank-white was happening after the HTML loaded, inside the iframe, at module-evaluation time. Inspection of the shipped catalog bundles confirmed the actual root cause: every Vite-built app imports `react` / `react-dom` / `react/jsx-runtime` as bare module specifiers, and ODD's import-map redirects those to runtime shims that read React out of `window.parent.wp.element`. But `odd-apps` didn't declare `wp-element` as a script dependency, so on WPDM admin pages that don't otherwise pull in Gutenberg-adjacent code, `window.wp.element` was `undefined` — the shim threw `ODD app runtime: React is unavailable.` inside the iframe's execution context, which doesn't surface in the main-page console without manually switching DevTools scope (hence the "no errors visible" user report). Adding `wp-element` + `wp-dom-ready` as deps of the `odd-apps` handle guarantees React is on the parent page wherever the apps host loads.
+* Visible failure fallback. Even after the dep fix, any future reason an app could mount-and-render-nothing (third-party app, runtime exception in the bundle, broken import map) now surfaces as a diagnostic card inside the window body instead of pure white. Post-`load` the window host peeks at the iframe's `#root` / `body` (same-origin, which our `allow-same-origin` sandbox permits) and, if it's still empty 1.5s later, replaces the loading placeholder with a titled card explaining the most likely cause — and differentiates between "wp-element missing on parent" and "app bundle loaded but rendered nothing." The next regression will be a single right-click-Inspect away, not another week-long diagnostic.
 
 = 1.4.5 =
 * Fixes the "Still White" regression where installed apps opened a completely blank window in Playground — no "Loading…" text, no console errors, no network activity. Root cause was a two-failure-mode combination introduced by the v1.4.4 lazy-loading split: `native-surfaces.php` (which owns the server-rendered `.odd-app-host` `<template>`) was context-gated behind `is_admin() || wp_doing_ajax() || ...`, and on some Playground request shapes that gate evaluated false at `init` priority 20, so the template was never registered. WPDM's client-side `cloneTemplate()` silently catches "no such template" errors and paints an empty window body — which is exactly what users saw. The fix is belt-and-suspenders: (a) always load all four formerly-gated apps submodules (`native-surfaces.php`, `migrate-from-bazaar.php`, `bazaar-compat.php`, `core-controller.php`) — the overhead is one filestat per request, vs. a hard-to-diagnose blank-window regression, and (b) register client-side render callbacks in `window.wpDesktopNativeWindows[id]` for every installed app at boot, so the window body is hydrated by JS regardless of whether the server template exists. The JS path uses a new `appServeUrls` map (pre-signed with a fresh `_wpnonce`) localized into `window.odd`.
@@ -136,6 +140,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.4.6 =
+Actually fixes the "Still White" app window — 1.4.5 fixed half the problem (the window body now builds reliably) but the apps themselves couldn't mount React because wp-element wasn't guaranteed on the parent page. Also ships a visible "App did not render" card instead of pure white for any future mount failure. Recommended immediately if you're on 1.4.4 or 1.4.5.
 
 = 1.4.5 =
 Fixes the "Still White" regression where installed apps opened a blank window in Playground. Also adds gated diag endpoints so the next one is findable from a URL. Recommended for every install that shipped on 1.4.4.

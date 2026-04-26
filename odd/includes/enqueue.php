@@ -167,10 +167,22 @@ add_action(
 		// via ODD_APPS_ENABLED; we still enqueue the listener so that
 		// manually-registered apps (via odd_register_app from another
 		// plugin) work even when uploads are off.
+		//
+		// `wp-element` + `wp-dom-ready` are load-bearing deps: installed
+		// apps' Vite bundles import `react` / `react-dom` /
+		// `react/jsx-runtime` as bare specifiers, and the serve path
+		// injects an import-map that redirects them to shims reading
+		// `window.parent.wp.element`. If the parent page doesn't load
+		// wp-element the shim throws `React is unavailable`, the app
+		// never mounts, and the iframe paints pure white. (The throw
+		// lands in the iframe's console context — not the main page —
+		// which is why it was invisible to users.) Declaring the dep
+		// here guarantees `window.wp.element` is globally installed
+		// wherever this script loads (every WPDM admin page).
 		wp_enqueue_script(
 			'odd-apps',
 			ODD_URL . '/src/apps/window-host.js',
-			array_merge( $foundation_deps, array( 'odd-api' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'wp-element', 'wp-dom-ready' ) ),
 			ODD_VERSION,
 			true
 		);

@@ -55,6 +55,13 @@
  *     emit odd.iframe-error and leave the loading placeholder in
  *     place so the user sees a visible failure rather than a blank
  *     dark rectangle.
+ *   - After iframe `load`, we wait 1500ms and peek at the app's
+ *     `#root` (or `body`) children. If still empty, we replace the
+ *     loading placeholder with a diagnostic card explaining the
+ *     most likely cause (wp.element missing → bare `react` imports
+ *     unresolvable). This is the Phase H5 fix from the v1.4.6
+ *     "Still White" diagnostic — turns a silent failure into a
+ *     user-visible, user-actionable one.
  */
 ( function () {
 	'use strict';
@@ -133,9 +140,72 @@
 		frame.addEventListener( 'load', function () {
 			var loading = mount.querySelector( '.odd-app-host__loading' );
 			if ( loading ) loading.style.display = 'none';
+			// Empty-root watchdog. Most installed apps are Vite/React
+			// bundles with a `<div id="root">` that React mounts into
+			// on startup. If React never mounts (e.g. the importmap
+			// runtime threw "React is unavailable"), `#root` stays
+			// empty and the iframe paints pure white. We detect this
+			// same-origin (our `allow-same-origin` sandbox permits
+			// cross-frame DOM access within the same origin) and
+			// surface a diagnostic card after a short grace period
+			// so the user sees an actionable message instead of a
+			// blank dark rectangle.
+			window.setTimeout( function () {
+				watchdogCheckEmpty( mount, frame );
+			}, 1500 );
 		} );
 		mount.appendChild( frame );
 		return 'mounted';
+	}
+
+	/**
+	 * Post-load empty-root check. Silent no-op on cross-origin
+	 * iframes (we can't peek into those), on iframes that already
+	 * navigated away, and on iframes whose body clearly has content.
+	 */
+	function watchdogCheckEmpty( mount, frame ) {
+		if ( ! frame || ! frame.isConnected ) return;
+		var doc;
+		try { doc = frame.contentDocument; } catch ( e ) { return; }
+		if ( ! doc || ! doc.body ) return;
+
+		// Prefer `#root` (the Vite/React convention every catalog
+		// app uses). Fall back to `body` so this also covers apps
+		// that mount directly onto the body.
+		var mountTarget = doc.getElementById( 'root' ) || doc.body;
+		if ( ! mountTarget ) return;
+		if ( mountTarget.children.length > 0 ) return;
+		if ( ( mountTarget.textContent || '' ).trim().length > 0 ) return;
+
+		// Still empty. Probable cause: runtime importmap shim
+		// couldn't find React in `window.parent.wp.element` and
+		// threw. Replace the (hidden) loading placeholder with a
+		// visible diagnostic card.
+		var loading = mount.querySelector( '.odd-app-host__loading' );
+		if ( ! loading ) return;
+		loading.style.cssText = 'position:absolute;inset:0;display:grid;place-items:center;color:#eaeaf0;background:#1a1420;padding:24px;text-align:center;font:13px/1.5 -apple-system,system-ui,sans-serif;';
+		var parentHasWpElement = !! ( window.wp && window.wp.element );
+		var hint = parentHasWpElement
+			? 'The app loaded but did not render. Open the iframe in DevTools (right-click → Inspect) and check its Console for errors.'
+			: 'The WordPress React runtime (wp-element) is not loaded on this page, so the app\u2019s bare "react" imports cannot resolve. Reload the desktop once; if it persists, file an issue.';
+		loading.innerHTML = '';
+		var card = document.createElement( 'div' );
+		card.style.cssText = 'max-width:460px;display:grid;gap:10px;';
+		var title = document.createElement( 'div' );
+		title.style.cssText = 'font-weight:600;font-size:14px;color:#ffd9a3;';
+		title.textContent = 'App did not render';
+		var body = document.createElement( 'div' );
+		body.style.cssText = 'opacity:.88;';
+		body.textContent = hint;
+		card.appendChild( title );
+		card.appendChild( body );
+		loading.appendChild( card );
+		loading.style.display = 'grid';
+
+		events.emit( events.NAMES.IFRAME_ERROR, {
+			message: 'odd-apps: iframe loaded but app root stayed empty',
+			parentHasWpElement: parentHasWpElement,
+		} );
 	}
 
 	/**
