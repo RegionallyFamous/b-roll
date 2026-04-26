@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.7.0
+Stable tag: 1.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,12 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.7.1 =
+* Polish pass across the ODD Shop. Shared pill language for every button (primary / ghost) from the hero CTAs down to the widget "Add to desktop" tiles, so the interaction vocabulary is one grammar instead of five bespoke variants. Rail active state gets a subtle top-to-bottom gradient + inner highlight, topbar picks up a 1px top inset so it reads as glass instead of matte, shelf count sits in a small rounded chip, and category quilt tiles reveal a "→" on hover or keyboard focus to signal they jump to a shelf.
+* Widget tiles gain depth: an inner shine overlay + drop-shadowed glyph scale up slightly on hover, the "On desktop" chip shows a green status dot, and enabled cards get a soft accent-tinted glow. The widget hero glyph now does a gentle 7-second bob (drops out under `prefers-reduced-motion`) and is clamped to `clamp(130px, 26vw, 240px)` so it never clips on narrow panels.
+* Empty-state and footer polish. The "no results" state gets a 🔍 icon above the headline, the widget footer is now a shared `.odd-shop__tip` row with a 💡 icon in a tinted circle, and the "Reset to default" icon-set row picks up a ↺ glyph in the same circle treatment. Icon-set catalog rows lift 1px on hover. Focus rings added across the rail, hero CTAs, and tile buttons so every interactive element has a visible keyboard state.
+* Shelf entrance now animates a 6px rise on load (`odd-shop-rise`) so switching departments feels live without being flashy.
 
 = 1.7.0 =
 * Widgets department in the ODD Shop. Adds a fourth department between Icon Sets and Apps that browses ODD's desktop widgets (Sticky Note, Magic 8-Ball) with the same Mac App Store chrome as the rest of the Shop: an editorial hero, a shelf of gradient-glyph tiles, and an "Add to desktop" / "Remove" pill on each tile that wires straight into `wp.desktop.widgetLayer`. The hero flips from "Featured widget" to "On your desktop" once a widget is enabled. Enabling or dismissing a widget from its × button on the desktop is picked up live via the `wp-desktop.widget.added` / `.removed` hooks, so the Shop stays in sync either way.

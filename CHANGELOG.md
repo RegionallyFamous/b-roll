@@ -11,6 +11,26 @@ bodies.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.7.1"></a>
+## [1.7.1] — 2026-04-26
+
+### Changed
+- **Polish pass across the ODD Shop.** Consolidates the chrome into a single interaction grammar so every department looks like the same store.
+  - **Shared pill language.** Hero CTAs and widget tile buttons both come from the same `--primary` (accent fill with soft shadow) / `--ghost` (white with border / bordered translucent) pattern, with consistent hover-lift (`translateY(-1px)`), `:active` depress, and `:focus-visible` ring. Replaces the bespoke `.odd-shop__hero-cta` variants used on the Widgets hero.
+  - **Rail + topbar.** Active rail item picks up a subtle top-to-bottom gradient (`#1d8cff → #006cdd`) with an inner highlight, plus a `:focus-visible` ring. Topbar gets a 1px inset top highlight (`rgba(255,255,255,.6)`) so it reads as glass instead of matte paint.
+  - **Shelf + quilt details.** Shelf counts render as small rounded chips (`rgba(60,60,67,.08)` tabular numerals) rather than raw grey text, so they feel like labels instead of afterthoughts. Quilt tiles reveal a soft "→" arrow in the top-right on hover or keyboard focus (hidden baseline, fades in on interaction) to signal they jump to a shelf.
+  - **Shelf entrance.** New `odd-shop-rise` keyframe runs a 6px fade-up on shelf mount so switching departments feels live; respects `prefers-reduced-motion`.
+
+### Polished
+- **Widget tiles get depth.** Inner shine overlay (`radial-gradient + linear-gradient`) on every thumb gives the gradient + emoji combo a molded-sticker feel; glyph scales up to `scale(1.06) translateY(-2px)` on hover with a `.24s cubic-bezier(.2,.8,.2,1)` transition; the "On desktop" chip now shows a green status dot (`#22c55e`) with a soft ring; enabled tiles get an accent-tinted outer glow (`0 18px 36px -24px rgba(0,113,227,.35)`).
+- **Widget hero glyph.** Gentle 7-second vertical bob (`odd-shop-bob`) swaps out under reduced-motion. Font-size clamped to `clamp(130px, 26vw, 240px)` so the glyph never clips on narrow panels — the earlier `min(260px, 42vh)` was hit by tall aspect-ratio heroes and bled past the scrim.
+- **Empty-state + tip + reset row.** The "No results" state now leads with a 🔍 icon above the headline. Widget footer is a shared `.odd-shop__tip` row (13px text, subtle blue gradient background, 💡 icon in a white tinted circle). Icon-set "Reset to default" row gets a matching ↺ icon in the same circle treatment, so the three informational rows read as one visual family.
+- **Icon-set catalog rows.** Pick up a 1px hover lift + softer shadow so the rows read as tappable surfaces; the `is-active` row gains a subtle accent-tinted outer shadow to match the tile active state.
+
+### Accessibility
+- **Focus rings everywhere.** Explicit `:focus-visible` outlines added to rail items, hero buttons (`odd-shop__hero-btn` primary + ghost), and widget tile buttons. Every interactive element in the Shop now has a visible keyboard-focus state.
+- **`aria-pressed`** on widget tile buttons so screen readers announce the current enablement state alongside the label (`Add to desktop` → pressed=false, `Remove` → pressed=true).
+
 <a id="v1.7.0"></a>
 ## [1.7.0] — 2026-04-26
 
