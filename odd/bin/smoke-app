@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+#
+# odd/bin/smoke-app
+#
+# Hits an installed ODD app's cookie-auth serve endpoint and asserts
+# the response is a non-empty HTML document. This is the regression
+# check from the v1.4.5 "Still White" diagnostic plan (Phase 6): it
+# codifies the one-line repro that we'd otherwise type by hand.
+#
+# Usage:
+#
+#   odd/bin/smoke-app <site-url> <slug> <cookie-jar>
+#
+#   <site-url>   Base URL of the WordPress site. Examples:
+#                https://example.com
+#                https://playground.wordpress.net/scope:funny-peaceful-forest
+#
+#   <slug>       App slug to probe (e.g. mosaic, flow, board).
+#
+#   <cookie-jar> Path to a cookie-jar file containing the
+#                wordpress_logged_in_* cookie for a user who has the
+#                app's capability. Create one with:
+#
+#                   curl -c cookies.txt \
+#                        -d "log=admin&pwd=password&wp-submit=Log+In" \
+#                        <site-url>/wp-login.php
+#
+# Exits 0 on success, 1 on any assertion failure, 2 on usage error.
+#
+# Output fields (stderr):
+#   - HTTP status
+#   - Content-Type
+#   - Response body length
+#   - First 80 bytes of body
+#   - PASS / FAIL verdict
+
+set -u
+
+if [[ $# -lt 3 ]]; then
+	echo "usage: $0 <site-url> <slug> <cookie-jar>" >&2
+	exit 2
+fi
+
+SITE_URL="${1%/}"
+SLUG="$2"
+COOKIE_JAR="$3"
+
+if [[ ! -r "$COOKIE_JAR" ]]; then
+	echo "smoke-app: cookie-jar not readable: $COOKIE_JAR" >&2
+	exit 2
+fi
+
+URL="${SITE_URL}/odd-app/${SLUG}/"
+
+# -s silent, -L follow redirects, -o body file, -w for metadata,
+# -b for cookie-jar (read), -c to update (refresh session).
+BODY_FILE="$(mktemp -t odd-smoke-body.XXXXXX)"
+trap 'rm -f "$BODY_FILE"' EXIT
+
+HTTP_META="$(
+	curl -sS -L \
+		-b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+		-H "Accept: text/html" \
+		-o "$BODY_FILE" \
+		-w "%{http_code}\t%{content_type}\t%{size_download}" \
+		"$URL"
+)"
+CURL_EXIT=$?
+
+if [[ $CURL_EXIT -ne 0 ]]; then
+	echo "smoke-app: curl failed with exit $CURL_EXIT for $URL" >&2
+	exit 1
+fi
+
+HTTP_STATUS="$(cut -f1 <<< "$HTTP_META")"
+CONTENT_TYPE="$(cut -f2 <<< "$HTTP_META")"
+SIZE_DOWNLOAD="$(cut -f3 <<< "$HTTP_META")"
+BODY_HEAD="$(head -c 80 "$BODY_FILE" | tr '\n' ' ' | tr -c '[:print:]' '.')"
+
+{
+	echo "URL:          $URL"
+	echo "Status:       $HTTP_STATUS"
+	echo "Content-Type: $CONTENT_TYPE"
+	echo "Body length:  $SIZE_DOWNLOAD bytes"
+	echo "Body head:    $BODY_HEAD"
+} >&2
+
+FAILED=0
+
+if [[ "$HTTP_STATUS" != "200" ]]; then
+	echo "FAIL: expected HTTP 200, got $HTTP_STATUS" >&2
+	FAILED=1
+fi
+
+case "$CONTENT_TYPE" in
+	text/html*)
+		;;
+	*)
+		echo "FAIL: expected Content-Type text/html, got $CONTENT_TYPE" >&2
+		FAILED=1
+		;;
+esac
+
+if [[ -z "$SIZE_DOWNLOAD" || "$SIZE_DOWNLOAD" -lt 64 ]]; then
+	echo "FAIL: body size $SIZE_DOWNLOAD too small — probably a blank-window regression." >&2
+	FAILED=1
+fi
+
+# Head should look like an HTML doc. A server-side redirect to the
+# login page (auth failure) would show up here as `<!DOCTYPE html>
+# <html>...<title>Log In</title>` — fail in that case too.
+if grep -qi 'log.*in.*username' "$BODY_FILE" 2>/dev/null; then
+	echo "FAIL: response contains login form — cookie-jar is probably stale." >&2
+	FAILED=1
+fi
+
+if [[ $FAILED -eq 0 ]]; then
+	echo "PASS" >&2
+	exit 0
+fi
+
+exit 1

@@ -212,6 +212,29 @@ add_action(
 		$installed    = ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? wp_list_pluck( odd_apps_list(), 'slug' ) : array();
 		$has_ext      = function_exists( 'odd_extensions_collect' );
 
+		// Per-slug serve URLs for client-side hydration. We bake one
+		// fresh `_wpnonce` into each URL so the app can, if it wants,
+		// read it back via URLSearchParams and use it for REST calls
+		// back into /wp-json/odd/v1/. The cookie-auth serve path
+		// itself doesn't require the nonce; it's there purely as a
+		// convenience for the app's own fetches.
+		//
+		// Emitted under `appServeUrls` so window-host.js can register
+		// a `wpDesktopNativeWindows[id]` render callback that builds
+		// the iframe directly in JS — independent of any server-
+		// rendered <template> being present in the DOM.
+		$app_serve_urls = array();
+		if ( $apps_enabled && function_exists( 'odd_apps_cookieauth_url_for' ) && is_array( $installed ) ) {
+			foreach ( $installed as $_slug ) {
+				$app_serve_urls[ $_slug ] = esc_url_raw(
+					add_query_arg(
+						array( '_wpnonce' => wp_create_nonce( 'wp_rest' ) ),
+						odd_apps_cookieauth_url_for( $_slug )
+					)
+				);
+			}
+		}
+
 		$config = array(
 			'pluginUrl'        => ODD_URL,
 			'version'          => ODD_VERSION,
@@ -255,6 +278,7 @@ add_action(
 			// JS store stays empty on legacy installs.
 			'appsEnabled'      => $apps_enabled,
 			'apps'             => ( $apps_enabled && $has_ext ) ? odd_extensions_collect( 'apps' ) : array(),
+			'appServeUrls'     => $app_serve_urls,
 			'userApps'         => array(
 				'installed' => $installed,
 				'pinned'    => (array) get_user_meta( $uid, 'odd_apps_pinned', true ),

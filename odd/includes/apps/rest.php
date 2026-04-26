@@ -114,6 +114,28 @@ add_action(
 				'permission_callback' => '__return_true',
 			)
 		);
+
+		// Diagnostic endpoint. Exists so a site admin can reproduce
+		// "app window opens blank white" on any install without
+		// attaching a debugger. Returns a JSON envelope describing
+		// the request context, the install state of the requested
+		// slug, and whether every function our serve path relies on
+		// is actually loaded.
+		//
+		// Always gated on manage_options — its payload includes
+		// filesystem paths and the first 256 bytes of the app's HTML
+		// entry. Never public.
+		register_rest_route(
+			'odd/v1',
+			'/apps/diag/(?P<slug>[a-z0-9-]+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => 'odd_apps_rest_diag',
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			)
+		);
 	}
 );
 
@@ -395,3 +417,158 @@ function odd_apps_mime_for( $path ) {
 	);
 	return isset( $map[ $ext ] ) ? $map[ $ext ] : 'application/octet-stream';
 }
+
+/**
+ * Diagnostic payload for the "why does my app window render blank"
+ * investigation. Walks every known layer between the install record
+ * and the served HTML, surfaces what's wired up, and flags the first
+ * thing that's missing.
+ *
+ * @param WP_REST_Request $req
+ * @return WP_REST_Response|WP_Error
+ */
+function odd_apps_rest_diag( WP_REST_Request $req ) {
+	$slug = sanitize_key( (string) $req['slug'] );
+	if ( '' === $slug ) {
+		return new WP_Error( 'invalid_slug', __( 'Missing slug.', 'odd' ), array( 'status' => 400 ) );
+	}
+
+	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+	$home_url    = home_url( '/' );
+	$home_path   = (string) wp_parse_url( $home_url, PHP_URL_PATH );
+
+	$env = array(
+		'odd_version'        => defined( 'ODD_VERSION' ) ? ODD_VERSION : null,
+		'odd_schema_version' => defined( 'ODD_SCHEMA_VERSION' ) ? ODD_SCHEMA_VERSION : null,
+		'apps_enabled'       => defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED,
+		'is_admin'           => is_admin(),
+		'is_rest'            => defined( 'REST_REQUEST' ) && REST_REQUEST,
+		'is_ajax'            => wp_doing_ajax(),
+		'request_uri'        => $request_uri,
+		'home_url'           => $home_url,
+		'home_path'          => $home_path,
+		'user_id'            => get_current_user_id(),
+		'wp_debug'           => defined( 'WP_DEBUG' ) && WP_DEBUG,
+	);
+
+	// Every function we rely on across the install→render→serve
+	// chain. If any of these is false, that's the failure mode.
+	$loaders = array(
+		'odd_apps_list'                  => function_exists( 'odd_apps_list' ),
+		'odd_apps_index_load'            => function_exists( 'odd_apps_index_load' ),
+		'odd_apps_manifest_load'         => function_exists( 'odd_apps_manifest_load' ),
+		'odd_apps_dir_for'               => function_exists( 'odd_apps_dir_for' ),
+		'odd_apps_register_surfaces'     => function_exists( 'odd_apps_register_surfaces' ),
+		'odd_apps_render_window_template' => function_exists( 'odd_apps_render_window_template' ),
+		'odd_apps_cookieauth_url_for'    => function_exists( 'odd_apps_cookieauth_url_for' ),
+		'odd_apps_cookieauth_maybe_serve' => function_exists( 'odd_apps_cookieauth_maybe_serve' ),
+		'odd_apps_forbidden_extensions'  => function_exists( 'odd_apps_forbidden_extensions' ),
+		'odd_apps_mime_for'              => function_exists( 'odd_apps_mime_for' ),
+		'odd_apps_inject_runtime_importmap' => function_exists( 'odd_apps_inject_runtime_importmap' ),
+		'wp_register_desktop_window'     => function_exists( 'wp_register_desktop_window' ),
+	);
+
+	// Hook priority — is serve-cookieauth actually on init@1?
+	$init_hooks = array();
+	global $wp_filter;
+	if ( isset( $wp_filter['init'] ) && $wp_filter['init'] instanceof WP_Hook ) {
+		foreach ( $wp_filter['init']->callbacks as $priority => $cbs ) {
+			foreach ( $cbs as $cb ) {
+				$name = '';
+				if ( is_string( $cb['function'] ) ) {
+					$name = $cb['function'];
+				} elseif ( $cb['function'] instanceof Closure ) {
+					$name = '(closure)';
+				}
+				if ( false === strpos( $name, 'odd_apps' ) ) {
+					continue;
+				}
+				$init_hooks[] = array( 'priority' => $priority, 'function' => $name );
+			}
+		}
+	}
+
+	$index     = function_exists( 'odd_apps_index_load' ) ? odd_apps_index_load() : array();
+	$row       = isset( $index[ $slug ] ) ? $index[ $slug ] : null;
+	$installed = null !== $row;
+	$enabled   = $installed && ! empty( $row['enabled'] );
+
+	$manifest = function_exists( 'odd_apps_manifest_load' ) ? odd_apps_manifest_load( $slug ) : null;
+
+	$base      = function_exists( 'odd_apps_dir_for' ) ? odd_apps_dir_for( $slug ) : '';
+	$real_base = $base ? realpath( $base ) : false;
+
+	// Resolve what the iframe src would actually request.
+	$entry      = $manifest && ! empty( $manifest['entry'] ) ? (string) $manifest['entry'] : 'index.html';
+	$entry_path = $base ? ( $base . $entry ) : '';
+	$entry_real = $entry_path ? realpath( $entry_path ) : false;
+	$entry_size = ( $entry_real && is_file( $entry_real ) ) ? (int) filesize( $entry_real ) : 0;
+	$entry_head = '';
+	if ( $entry_real && is_readable( $entry_real ) && $entry_size > 0 ) {
+		$entry_head = (string) @file_get_contents( $entry_real, false, null, 0, 256 );
+	}
+
+	$serve_url = '';
+	if ( function_exists( 'odd_apps_cookieauth_url_for' ) ) {
+		$serve_url = odd_apps_cookieauth_url_for( $slug );
+	}
+
+	// Exercise the same regex the cookie-auth matcher uses, against
+	// a simulated path shaped like what the browser would send.
+	$simulated      = '/odd-app/' . $slug . '/';
+	$regex_matches  = (bool) preg_match( '#^/odd-app/([a-z0-9-]+)(?:/(.*))?$#', $simulated );
+
+	// Sanity: would the import-map injection corrupt an empty-head
+	// HTML? Run the actual function on a known-good minimal doc.
+	$importmap_ok = null;
+	if ( function_exists( 'odd_apps_inject_runtime_importmap' ) ) {
+		$sample       = '<!doctype html><html><head></head><body></body></html>';
+		$transformed  = odd_apps_inject_runtime_importmap( $sample );
+		$importmap_ok = is_string( $transformed ) && false !== stripos( $transformed, 'importmap' );
+	}
+
+	// Has the client-side desktop shell template element been
+	// written for this window? We can't see the shell's DOM from
+	// the server, but we can confirm the registry entry exists.
+	$wpdm_registered = null;
+	if ( function_exists( 'wpdm_native_window_registry' ) ) {
+		$wpdm_registered = null !== wpdm_native_window_registry( 'odd-app-' . $slug );
+	}
+
+	$diag = array(
+		'slug'        => $slug,
+		'env'         => $env,
+		'loaders'     => $loaders,
+		'init_hooks'  => $init_hooks,
+		'install'     => array(
+			'installed'  => $installed,
+			'enabled'    => $enabled,
+			'row'        => $row,
+			'manifest'   => $manifest ? array(
+				'name'       => isset( $manifest['name'] ) ? $manifest['name'] : null,
+				'entry'      => $entry,
+				'has_extensions' => ! empty( $manifest['extensions'] ),
+			) : null,
+		),
+		'filesystem'  => array(
+			'base'       => $base,
+			'real_base'  => $real_base,
+			'entry_path' => $entry_path,
+			'entry_real' => $entry_real,
+			'entry_size' => $entry_size,
+			'entry_head' => $entry_head,
+		),
+		'serve'       => array(
+			'url'            => $serve_url,
+			'regex_matches'  => $regex_matches,
+			'importmap_ok'   => $importmap_ok,
+		),
+		'wpdm'        => array(
+			'window_id'             => 'odd-app-' . $slug,
+			'window_registered'     => $wpdm_registered,
+		),
+	);
+
+	return rest_ensure_response( $diag );
+}
+

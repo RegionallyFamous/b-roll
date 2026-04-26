@@ -1,10 +1,23 @@
 /**
  * ODD Apps — window host.
  * ---------------------------------------------------------------
- * Listens to the canonical odd.window-* events. When a window with
- * id `odd-app-{slug}` opens, we find the matching mount-point
- * rendered by the server template and inject a sandboxed <iframe>
- * pointing at the REST serve endpoint for that app.
+ * Owns how an installed app's window body gets populated with a
+ * sandboxed iframe. Supports two render paths, belt-and-suspenders:
+ *
+ *   1. Client-side hydration (PREFERRED) — for every installed app
+ *      we register `window.wpDesktopNativeWindows[ 'odd-app-{slug}' ]`
+ *      at boot. When WPDM opens the window, it invokes our callback
+ *      directly on the body element; we build the mount div and
+ *      iframe with no dependency on any server-rendered <template>.
+ *      This mirrors the ODD Control Panel's working pattern and
+ *      insulates us from template-emission failure modes (closure
+ *      serialization, admin_footer skipped, mid-session install).
+ *
+ *   2. Server template + event (FALLBACK) — the window body may
+ *      already contain a `.odd-app-host` div from the server-side
+ *      `template` closure. We listen to `odd.window-opened` + a
+ *      MutationObserver to catch any host that appears, install the
+ *      iframe, and emit APP_OPENED exactly once per open.
  *
  * Event re-emission:
  *
@@ -21,18 +34,23 @@
  * Security:
  *
  *   - The iframe is `sandbox="allow-scripts allow-forms allow-popups
- *     allow-same-origin"`. allow-same-origin is required so apps can
- *     call fetch() back to /wp-json/odd/v1/ with the session cookie;
- *     the serve endpoint enforces capability on every request.
+ *     allow-same-origin allow-downloads"`. allow-same-origin is
+ *     required so apps can call fetch() back to /wp-json/odd/v1/
+ *     with the session cookie; the serve endpoint enforces
+ *     capability on every request.
  *   - `loading="eager"`, `referrerpolicy="no-referrer"`.
  *   - No cross-document access — the admin shell never scripts into
  *     the app frame.
  *
  * Resilience:
  *
- *   - If the template div is missing (WPDM rendered a different
- *     window body), we no-op. Nothing in ODD depends on the iframe
- *     being present.
+ *   - If the JS hydration path runs, we build the mount ourselves
+ *     and the iframe always appears.
+ *   - If the server template already painted, the MutationObserver
+ *     path finds and hydrates it without double-firing APP_OPENED.
+ *   - If `window.odd.appServeUrls` is missing for a slug, we render
+ *     a visible error card inside the window body instead of leaving
+ *     it blank — never pure white.
  *   - If the iframe `error` or `load`-with-zero-size fires, we
  *     emit odd.iframe-error and leave the loading placeholder in
  *     place so the user sees a visible failure rather than a blank
@@ -45,6 +63,20 @@
 
 	var events = window.__odd.events;
 	var APP_ID_PREFIX = 'odd-app-';
+
+	function cfg() {
+		return ( window.odd && typeof window.odd === 'object' ) ? window.odd : {};
+	}
+	function serveUrlFor( slug ) {
+		var map = cfg().appServeUrls;
+		if ( ! map || typeof map !== 'object' ) return '';
+		return typeof map[ slug ] === 'string' ? map[ slug ] : '';
+	}
+	function installedSlugs() {
+		var ua = cfg().userApps;
+		if ( ! ua || ! Array.isArray( ua.installed ) ) return [];
+		return ua.installed.slice();
+	}
 
 	function slugFromWindowId( id ) {
 		if ( typeof id !== 'string' ) return '';
@@ -80,6 +112,11 @@
 		if ( ! mount ) return 'skipped';
 		if ( mount.querySelector( 'iframe.odd-app-frame' ) ) return 'already';
 		var src = mount.getAttribute( 'data-odd-app-src' );
+		if ( ! src ) {
+			var fallbackSlug = mount.getAttribute( 'data-odd-app-slug' );
+			src = fallbackSlug ? serveUrlFor( fallbackSlug ) : '';
+			if ( src ) mount.setAttribute( 'data-odd-app-src', src );
+		}
 		if ( ! src ) return 'skipped';
 
 		var frame = document.createElement( 'iframe' );
@@ -99,6 +136,41 @@
 		} );
 		mount.appendChild( frame );
 		return 'mounted';
+	}
+
+	/**
+	 * Build a `.odd-app-host` mount div inside an arbitrary body
+	 * element and install the iframe. Used by the JS hydration
+	 * path (wpDesktopNativeWindows callback) so app windows render
+	 * correctly even when the server-side `<template>` was never
+	 * emitted or was dropped before reaching the DOM.
+	 */
+	function buildAndMount( body, slug ) {
+		if ( ! body || ! slug ) return 'skipped';
+		// Reuse any existing host the server may already have
+		// painted (avoids double-mounts on session-restore paths).
+		var existing = body.querySelector( '.odd-app-host[data-odd-app-slug="' + slug + '"]' );
+		if ( existing ) {
+			return installFrame( existing );
+		}
+		var src = serveUrlFor( slug );
+		var host = document.createElement( 'div' );
+		host.className = 'odd-app-host';
+		host.setAttribute( 'data-odd-app', '' );
+		host.setAttribute( 'data-odd-app-slug', slug );
+		if ( src ) host.setAttribute( 'data-odd-app-src', src );
+		host.style.cssText = 'position:absolute;inset:0;background:#101014;';
+
+		var loading = document.createElement( 'div' );
+		loading.className = 'odd-app-host__loading';
+		loading.style.cssText = 'position:absolute;inset:0;display:grid;place-items:center;color:#d0d0e0;font:13px/1.4 -apple-system,system-ui,sans-serif;opacity:.8';
+		loading.textContent = src
+			? ( 'Loading ' + slug + '…' )
+			: ( 'No serve URL registered for "' + slug + '". Reload the desktop to refresh the app list.' );
+		host.appendChild( loading );
+
+		body.appendChild( host );
+		return installFrame( host );
 	}
 
 	function removeFrame( slug ) {
@@ -211,4 +283,55 @@
 	} else {
 		startObserver();
 	}
+
+	/**
+	 * Client-side hydration — register a `wpDesktopNativeWindows`
+	 * render callback for every installed app. WPDM's window
+	 * manager prefers these callbacks over the server `<template>`
+	 * clone path, so even if the template emission failed for any
+	 * reason (closure serialization, admin_footer skipped, mid-
+	 * session install without a page reload), the window body is
+	 * still built correctly.
+	 *
+	 * The callback just delegates to buildAndMount(), which:
+	 *   - dedupes against any pre-existing server-rendered host,
+	 *   - builds a fresh `.odd-app-host` div + loading placeholder,
+	 *   - installs the sandboxed iframe, and
+	 *   - keeps the loading placeholder visible until the iframe
+	 *     fires `load` (so the user always sees SOMETHING).
+	 */
+	function registerWpdmCallbacks() {
+		var reg = window.wpDesktopNativeWindows = window.wpDesktopNativeWindows || {};
+		var slugs = installedSlugs();
+		for ( var i = 0; i < slugs.length; i++ ) {
+			( function ( slug ) {
+				var id = APP_ID_PREFIX + slug;
+				if ( typeof reg[ id ] === 'function' ) return; // Respect any override.
+				reg[ id ] = function ( body ) {
+					var result = buildAndMount( body, slug );
+					if ( result === 'mounted' ) {
+						events.emit( events.NAMES.APP_OPENED, { slug: slug, windowId: id } );
+					}
+				};
+			} )( slugs[ i ] );
+		}
+	}
+
+	// Register eagerly so a session-restored window that opens
+	// before DOMContentLoaded still finds its callback.
+	registerWpdmCallbacks();
+
+	// Re-register after page load in case `window.odd` was
+	// populated by a late inline <script> (some WPDM shell
+	// orderings localize after ODD's scripts enqueue).
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', registerWpdmCallbacks, { once: true } );
+	}
+
+	// Expose for tests + debugging.
+	window.__odd = window.__odd || {};
+	window.__odd.apps = window.__odd.apps || {};
+	window.__odd.apps.buildAndMount = buildAndMount;
+	window.__odd.apps.installFrame = installFrame;
+	window.__odd.apps.registerWpdmCallbacks = registerWpdmCallbacks;
 } )();

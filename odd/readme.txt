@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.4
+Stable tag: 1.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,11 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.4.5 =
+* Fixes the "Still White" regression where installed apps opened a completely blank window in Playground — no "Loading…" text, no console errors, no network activity. Root cause was a two-failure-mode combination introduced by the v1.4.4 lazy-loading split: `native-surfaces.php` (which owns the server-rendered `.odd-app-host` `<template>`) was context-gated behind `is_admin() || wp_doing_ajax() || ...`, and on some Playground request shapes that gate evaluated false at `init` priority 20, so the template was never registered. WPDM's client-side `cloneTemplate()` silently catches "no such template" errors and paints an empty window body — which is exactly what users saw. The fix is belt-and-suspenders: (a) always load all four formerly-gated apps submodules (`native-surfaces.php`, `migrate-from-bazaar.php`, `bazaar-compat.php`, `core-controller.php`) — the overhead is one filestat per request, vs. a hard-to-diagnose blank-window regression, and (b) register client-side render callbacks in `window.wpDesktopNativeWindows[id]` for every installed app at boot, so the window body is hydrated by JS regardless of whether the server template exists. The JS path uses a new `appServeUrls` map (pre-signed with a fresh `_wpnonce`) localized into `window.odd`.
+* Keeps the diagnostic scaffolding: a new readonly `GET /wp-json/odd/v1/apps/diag/{slug}` endpoint (gated on `manage_options`) reports request context, index state, filesystem paths, and loader function availability; the cookie-auth serve path emits a one-shot `?odd_debug=1` JSON trace (also `manage_options`-gated) showing the exact branch taken plus a base64'd body head. Both are cheap, stay shipped, and let the next regression be diagnosed from a single URL instead of another week-long browser-based repro hunt. Also ships `odd/bin/smoke-app`, a curl-based regression check that asserts `/odd-app/<slug>/` returns non-empty `text/html` — the one-line smoke test referenced by this plan.
+* Visible failure: when no serve URL is registered for a slug (e.g. browser tab predates the most recent install), the window body now shows "No serve URL registered for \"<slug>\". Reload the desktop to refresh the app list." instead of pure white.
 
 = 1.4.4 =
 * Speed / reliability / security audit pass. Twelve targeted fixes across three tiers, no feature surface changes.
@@ -131,6 +136,9 @@ See the developer documentation linked from the plugin readme on GitHub — ther
 * Stable release. Apps engine (absorbed Bazaar), Iris personality system, scenes, icon sets, stable extension API, migration system.
 
 == Upgrade Notice ==
+
+= 1.4.5 =
+Fixes the "Still White" regression where installed apps opened a blank window in Playground. Also adds gated diag endpoints so the next one is findable from a URL. Recommended for every install that shipped on 1.4.4.
 
 = 1.4.4 =
 Speed / reliability / security audit pass — fixes a Bazaar-migration data-loss bug, caches the icon registry, hardens the remote-icon path, de-dupes the APP_OPENED event, and ships an uninstall.php. Recommended for every install.
