@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.6.1 =
+* ODD Shop redesigned to look and feel like the Mac App Store: department hero card, franchise category quilt, horizontal-scroll shelves, tile-style cards with inline Preview/Active pills, search pill in the top bar, and a floating preview confirmation bar. No data or REST changes.
 
 = 1.6.0 =
 * The ODD Control Panel is now the **ODD Shop** — a Mac App Store-style browsing surface for ODD's wallpapers, icon sets, and apps. Adds a dedicated top bar ("ODD Shop" with the Outlandish Desktop Decorator byline), a translucent left-rail with department glyphs and taglines (Wallpapers / Icon Sets / Apps / About), and groups every catalog into franchise "shelves" (Generative, Atmosphere, Paper…) on a softer off-white surface. Default window size grew from 820×560 to 960×620 to match the new chrome. All data, REST endpoints, live-swap hooks, and slash commands (`/odd-panel`) are unchanged — only the chrome + copy moved.

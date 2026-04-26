@@ -35,7 +35,14 @@ A taste of what's in there: **Filament** (hair-thin single-stroke line-of-light)
 
 ### The ODD Shop
 
-A native WP Desktop Mode window styled after the Mac App Store — not a settings page, not a modal. Opens from the **ODD** desktop icon or the `/odd-panel` slash command. A translucent left rail lists the departments — Wallpapers, Icon Sets, Apps, About — and every catalog is grouped into franchise "shelves". Everything you'd tweak, in one place — including wallpaper and icon-set previews you can try-before-you-commit, a screensaver with a big clock, audio-reactivity, and a shuffle scheduler.
+A native WP Desktop Mode window styled after the Mac App Store — not a settings page, not a modal. Opens from the **ODD** desktop icon or the `/odd-panel` slash command.
+
+- **Top bar** with ODD wordmark and a live search pill that filters the current department against labels, slugs, franchises, and tags.
+- **Translucent department rail** listing Wallpapers, Icon Sets, Apps, and About with SF-style glyphs and one-line taglines.
+- **Department hero card** featuring the active (or first filtered) title — full-bleed preview art, eyebrow pill, headline, and a Preview / Active action.
+- **"Browse by franchise" category quilt** — gradient tiles that smooth-scroll to the matching shelf.
+- **Franchise shelves** as horizontal-scrolling rows of tile-style cards (preview at top, title + subhead + inline Preview pill, corner `✓ Active` badge on the committed scene).
+- **Floating preview bar** in the lower-right that keeps the App Store–style try-before-you-commit flow for wallpapers and icon sets, plus the screensaver, audio-reactivity, and shuffle scheduler.
 
 ### Desk knickknacks
 

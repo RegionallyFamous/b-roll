@@ -81,6 +81,33 @@
 		brandWrap.appendChild( brandText );
 		topbar.appendChild( brandWrap );
 
+		// Search field — filters the current department's shelves in
+		// place (no REST call; pure client-side title/franchise match).
+		// Mirrors the App Store's "Search" pill but doesn't try to be
+		// a global search — cross-department search would need its own
+		// result surface and is a v2 problem.
+		var searchWrap = el( 'label', { class: 'odd-shop__search', 'aria-label': 'Search' } );
+		var searchGlyph = el( 'span', { class: 'odd-shop__search-glyph', 'aria-hidden': 'true' } );
+		searchGlyph.textContent = '⌕';
+		var searchInput = el( 'input', {
+			type: 'search',
+			class: 'odd-shop__search-input',
+			placeholder: 'Search wallpapers, icons, apps…',
+			'data-odd-search': '1',
+		} );
+		searchInput.addEventListener( 'input', function () {
+			state.query = searchInput.value || '';
+			// Only re-render when the current department actually
+			// pays attention to the filter, so typing never churns
+			// the About hero or the Apps uploader.
+			if ( state.active === 'wallpaper' || state.active === 'icons' ) {
+				renderSection( state.active, { keepQuery: true } );
+			}
+		} );
+		searchWrap.appendChild( searchGlyph );
+		searchWrap.appendChild( searchInput );
+		topbar.appendChild( searchWrap );
+
 		var sidebar = el( 'nav', {
 			'data-odd-sidebar': '1',
 			class: 'odd-shop__rail',
@@ -110,6 +137,11 @@
 			//     reloadOnCommit: bool              // iconSet only
 			//   }
 			preview:       null,
+			// Live client-side filter. Threaded into wallpaper +
+			// icons rendering; cleared on department switch unless
+			// the caller passes `keepQuery: true` (e.g. the search
+			// field re-rendering its own tab).
+			query:         '',
 		};
 		var buttons = {};
 
@@ -163,7 +195,8 @@
 
 		/* --- routing --- */
 
-		function renderSection( id ) {
+		function renderSection( id, opts ) {
+			opts = opts || {};
 			// Abandoning a tab with a pending preview reverts the
 			// live swap — no silent commits because the user clicked
 			// "About" to look at stats.
@@ -171,6 +204,15 @@
 				var sameTab = ( id === 'wallpaper' && state.preview.kind === 'wallpaper' ) ||
 					( id === 'icons' && state.preview.kind === 'iconSet' );
 				if ( ! sameTab ) cancelPreview();
+			}
+
+			// Department switch resets the search query so hopping
+			// into Icons after filtering Wallpapers doesn't greet
+			// the user with a stale "no results" state.
+			if ( state.active !== id && ! opts.keepQuery ) {
+				state.query = '';
+				var input = document.querySelector( '[data-odd-search]' );
+				if ( input && input.value ) input.value = '';
 			}
 
 			state.active = id;
@@ -567,9 +609,27 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--wallpaper' } );
 			wrap.appendChild( sectionHeader(
 				'Wallpapers',
-				'Scenes render live on your desktop. Tap a tile to preview — commit to save, cancel to revert.',
+				'Live generative scenes for your WordPress desktop. Preview before you commit.',
 				{ eyebrow: 'ODD · Living Art' }
 			) );
+
+			var allScenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes.slice() : [];
+			var scenes = filterByQuery( allScenes, state.query );
+
+			// Hero — the currently-active scene, or the first result
+			// if the user has filtered away the active one. No hero
+			// when the filter eliminates everything.
+			if ( scenes.length ) {
+				var featured = pickFeaturedScene( scenes );
+				if ( featured ) wrap.appendChild( renderWallpaperHero( featured ) );
+			}
+
+			// Category quilt — gradient franchise tiles that jump
+			// to their shelf when clicked. Hidden while searching so
+			// the result-focused view stays tight.
+			if ( ! state.query ) {
+				wrap.appendChild( renderCategoryQuilt( allScenes, 'wallpaper' ) );
+			}
 
 			var settings = el( 'div', { class: 'odd-wallpaper-settings' } );
 
@@ -732,13 +792,238 @@
 
 			wrap.appendChild( ssRow );
 
-			var scenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [];
+			if ( ! scenes.length ) {
+				wrap.appendChild( renderEmptyResults( 'No scenes match "' + state.query + '".' ) );
+				return wrap;
+			}
+
 			var shelves = groupByFranchise( scenes, 'Generative' );
 			shelves.forEach( function ( shelf ) {
-				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderSceneCard, 'odd-grid' ) );
+				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderSceneCard, { scope: 'wallpaper' } ) );
 			} );
 
 			return wrap;
+		}
+
+		/**
+		 * Pick the scene to feature in the department hero.
+		 * Prefers the committed-active scene when it's still in the
+		 * filtered pool; otherwise falls back to the first result so
+		 * search queries always show a hero even when the active
+		 * scene was filtered out.
+		 */
+		function pickFeaturedScene( scenes ) {
+			var current = state.cfg.wallpaper || state.cfg.scene;
+			for ( var i = 0; i < scenes.length; i++ ) {
+				if ( scenes[ i ] && scenes[ i ].slug === current ) return scenes[ i ];
+			}
+			return scenes[ 0 ] || null;
+		}
+
+		function renderWallpaperHero( scene ) {
+			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
+			var isActive    = scene.slug === currentSlug;
+			var previewUrl  = ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + scene.slug + '.webp';
+
+			var hero = el( 'div', {
+				class: 'odd-shop__hero',
+				'data-hero-slug': scene.slug,
+				style: 'background-color:' + ( scene.fallbackColor || '#1d1d1f' ),
+			} );
+			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
+			bg.style.backgroundImage = 'url("' + previewUrl + '")';
+			hero.appendChild( bg );
+			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
+
+			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
+			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
+			eyebrow.textContent = isActive ? 'Now playing' : 'Featured scene';
+			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
+			title.textContent = scene.label || scene.slug;
+			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
+			sub.textContent = heroTagline( scene );
+			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
+
+			if ( isActive && ! state.preview ) {
+				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
+				active.textContent = '✓ Active';
+				actions.appendChild( active );
+			} else {
+				var previewBtn = el( 'button', {
+					type: 'button',
+					class: 'odd-shop__hero-btn odd-shop__hero-btn--primary',
+				} );
+				previewBtn.innerHTML = '<span aria-hidden="true">▶</span> Preview';
+				previewBtn.addEventListener( 'click', function ( e ) {
+					e.stopPropagation();
+					previewScene( scene.slug );
+				} );
+				actions.appendChild( previewBtn );
+			}
+
+			inner.appendChild( eyebrow );
+			inner.appendChild( title );
+			inner.appendChild( sub );
+			inner.appendChild( actions );
+			hero.appendChild( inner );
+
+			var thumb = el( 'div', { class: 'odd-shop__hero-thumb', 'aria-hidden': 'true' } );
+			var thumbImg = el( 'img', { src: previewUrl, alt: '', loading: 'lazy' } );
+			thumb.appendChild( thumbImg );
+			hero.appendChild( thumb );
+
+			return hero;
+		}
+
+		/**
+		 * Tagline copy for the hero. Uses the scene's tags where
+		 * available so each franchise hero reads as distinct; falls
+		 * back to a franchise-flavoured line otherwise.
+		 */
+		function heroTagline( scene ) {
+			if ( scene.tagline && typeof scene.tagline === 'string' ) return scene.tagline;
+			if ( Array.isArray( scene.tags ) && scene.tags.length ) {
+				return scene.tags.slice( 0, 3 ).join( ' · ' );
+			}
+			switch ( scene.franchise ) {
+				case 'Atmosphere':    return 'Painterly weather and ambient light.';
+				case 'Paper':         return 'Folded forms drifting through negative space.';
+				case 'ODD Originals': return 'House specials from the ODD studio.';
+				default:              return 'A generative scene that lives on your desktop.';
+			}
+		}
+
+		function renderEmptyResults( message ) {
+			var wrap = el( 'div', { class: 'odd-shop__empty' } );
+			var big = el( 'div', { class: 'odd-shop__empty-title' } );
+			big.textContent = 'No results';
+			var sub = el( 'div', { class: 'odd-shop__empty-sub' } );
+			sub.textContent = message || 'Try a different search term.';
+			wrap.appendChild( big );
+			wrap.appendChild( sub );
+			return wrap;
+		}
+
+		/**
+		 * Client-side filter used by the top-bar search pill. Matches
+		 * against label, slug, franchise, and any tag — everything the
+		 * user can actually see on a card.
+		 */
+		function filterByQuery( items, query ) {
+			if ( ! query ) return items;
+			var q = String( query ).toLowerCase().trim();
+			if ( ! q ) return items;
+			return items.filter( function ( item ) {
+				if ( ! item ) return false;
+				var hay = [
+					item.label,
+					item.slug,
+					item.franchise,
+					item.description,
+				].filter( Boolean ).join( ' ' ).toLowerCase();
+				if ( hay.indexOf( q ) >= 0 ) return true;
+				if ( Array.isArray( item.tags ) ) {
+					for ( var i = 0; i < item.tags.length; i++ ) {
+						if ( String( item.tags[ i ] || '' ).toLowerCase().indexOf( q ) >= 0 ) return true;
+					}
+				}
+				return false;
+			} );
+		}
+
+		/**
+		 * Deterministic gradient for each franchise tile. Looks
+		 * colorful + editorial without pulling in a palette library,
+		 * and a string hash makes new franchises pick a stable color
+		 * without hand-tuning this list every time. Palette tables
+		 * live inside the function so they survive the `var`-hoist
+		 * ordering — `franchiseGradient` gets called during initial
+		 * render before sibling `var`-decl palettes would be assigned.
+		 */
+		function franchiseGradient( name ) {
+			var PALETTE = {
+				'Generative':       'linear-gradient(135deg,#b84df1 0%,#ff68b3 100%)',
+				'Atmosphere':       'linear-gradient(135deg,#00b4db 0%,#2c9afe 100%)',
+				'Paper':            'linear-gradient(135deg,#f6d365 0%,#fda085 100%)',
+				'ODD Originals':    'linear-gradient(135deg,#0c0a1d 0%,#ff1c6a 100%)',
+				'WP Desktop Mode':  'linear-gradient(135deg,#2c3e50 0%,#4ca1af 100%)',
+				'Filament':         'linear-gradient(135deg,#ff9966 0%,#ff5e62 100%)',
+				'Arctic':           'linear-gradient(135deg,#89f7fe 0%,#66a6ff 100%)',
+				'Fold':             'linear-gradient(135deg,#ffb88c 0%,#de6262 100%)',
+			};
+			var FALLBACK = [
+				'linear-gradient(135deg,#8e2de2 0%,#4a00e0 100%)',
+				'linear-gradient(135deg,#11998e 0%,#38ef7d 100%)',
+				'linear-gradient(135deg,#fc5c7d 0%,#6a82fb 100%)',
+				'linear-gradient(135deg,#f7971e 0%,#ffd200 100%)',
+				'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
+			];
+			if ( PALETTE[ name ] ) return PALETTE[ name ];
+			var hash = 0;
+			var key = String( name || '' );
+			for ( var i = 0; i < key.length; i++ ) {
+				hash = ( ( hash << 5 ) - hash + key.charCodeAt( i ) ) | 0;
+			}
+			return FALLBACK[ Math.abs( hash ) % FALLBACK.length ];
+		}
+
+		/**
+		 * Category quilt — a 2-col grid of gradient franchise tiles
+		 * that scroll the content pane to the matching shelf when
+		 * clicked. Purely navigational; no state changes.
+		 */
+		function renderCategoryQuilt( items, scope ) {
+			var counts = {};
+			var order = [];
+			items.forEach( function ( it ) {
+				if ( ! it || ! it.franchise ) return;
+				if ( ! Object.prototype.hasOwnProperty.call( counts, it.franchise ) ) {
+					counts[ it.franchise ] = 0;
+					order.push( it.franchise );
+				}
+				counts[ it.franchise ]++;
+			} );
+			var wrap = el( 'div', { class: 'odd-shop__quilt' } );
+			var head = el( 'div', { class: 'odd-shop__shelf-head' } );
+			var title = el( 'h3', { class: 'odd-shop__shelf-title' } );
+			title.textContent = 'Browse by franchise';
+			head.appendChild( title );
+			wrap.appendChild( head );
+			var grid = el( 'div', { class: 'odd-shop__quilt-grid' } );
+			order.forEach( function ( franchise ) {
+				var tile = el( 'button', {
+					type: 'button',
+					class: 'odd-shop__quilt-tile',
+					style: 'background:' + franchiseGradient( franchise ),
+					'data-franchise-jump': franchise,
+					'data-scope': scope,
+				} );
+				var name = el( 'span', { class: 'odd-shop__quilt-name' } );
+				name.textContent = franchise;
+				var count = el( 'span', { class: 'odd-shop__quilt-count' } );
+				count.textContent = counts[ franchise ] + ( counts[ franchise ] === 1
+					? ( scope === 'wallpaper' ? ' scene' : ' set' )
+					: ( scope === 'wallpaper' ? ' scenes' : ' sets' ) );
+				tile.appendChild( name );
+				tile.appendChild( count );
+				tile.addEventListener( 'click', function () {
+					var target = content.querySelector( '[data-shelf-anchor="' + cssEscape( franchise ) + '"]' );
+					if ( target && typeof target.scrollIntoView === 'function' ) {
+						target.scrollIntoView( { behavior: 'smooth', block: 'start' } );
+					}
+				} );
+				grid.appendChild( tile );
+			} );
+			wrap.appendChild( grid );
+			return wrap;
+		}
+
+		// Narrow CSS.escape shim — jsdom doesn't have it and the
+		// franchise strings we anchor by contain spaces + apostrophes.
+		function cssEscape( s ) {
+			return String( s ).replace( /[^a-zA-Z0-9_-]/g, function ( c ) {
+				return '\\' + c.charCodeAt( 0 ).toString( 16 ) + ' ';
+			} );
 		}
 
 		/**
@@ -765,26 +1050,40 @@
 		}
 
 		/**
-		 * Render a MAS-style shelf: franchise title + count badge
-		 * over a grid of cards built by `cardFn`. `gridClass` picks
-		 * between the wide tile grid used by wallpapers and the
-		 * compact row list used by icon sets.
+		 * Render a MAS-style shelf: franchise title + count anchor
+		 * over a horizontally-scrolling row of cards built by
+		 * `cardFn`. `opts.scope` ("wallpaper" | "icons") swaps the
+		 * card track class so wallpapers get square-ish tile cards
+		 * while icon sets get wide list rows that still wrap on
+		 * narrow widths.
 		 */
-		function renderShelf( franchise, items, cardFn, gridClass ) {
-			var shelf = el( 'div', { class: 'odd-shop__shelf' } );
+		function renderShelf( franchise, items, cardFn, opts ) {
+			opts = opts || {};
+			var scope = opts.scope || 'wallpaper';
+			var shelf = el( 'section', {
+				class: 'odd-shop__shelf',
+				'data-shelf-anchor': franchise,
+			} );
 			var head = el( 'div', { class: 'odd-shop__shelf-head' } );
 			var title = el( 'h3', { class: 'odd-shop__shelf-title' } );
 			title.textContent = franchise;
 			var count = el( 'span', { class: 'odd-shop__shelf-count' } );
-			count.textContent = items.length + ( items.length === 1 ? ' title' : ' titles' );
+			var noun = scope === 'wallpaper'
+				? ( items.length === 1 ? 'scene' : 'scenes' )
+				: ( items.length === 1 ? 'set' : 'sets' );
+			count.textContent = items.length + ' ' + noun;
 			head.appendChild( title );
 			head.appendChild( count );
 			shelf.appendChild( head );
-			var grid = el( 'div', { class: gridClass || 'odd-grid' } );
+
+			var trackClass = scope === 'wallpaper'
+				? 'odd-shop__shelf-track odd-shop__shelf-track--tiles'
+				: 'odd-shop__shelf-track odd-shop__shelf-track--list';
+			var track = el( 'div', { class: trackClass } );
 			items.forEach( function ( item ) {
-				grid.appendChild( cardFn( item ) );
+				track.appendChild( cardFn( item ) );
 			} );
-			shelf.appendChild( grid );
+			shelf.appendChild( track );
 			return shelf;
 		}
 
@@ -793,29 +1092,50 @@
 			var active = scene.slug === currentSlug;
 			var isPreview = state.preview && state.preview.kind === 'wallpaper' && state.preview.slug === scene.slug;
 
+			// Shell is still a button so keyboard activation works the
+			// same way it did in the old grid; the inner Preview pill
+			// stops propagation so its click-through doesn't toggle
+			// preview twice.
 			var card = el( 'button', {
 				type: 'button',
-				class: 'odd-card'
+				class: 'odd-card odd-shop__tile'
 					+ ( active && ! state.preview ? ' is-active' : '' )
 					+ ( isPreview ? ' is-previewing' : '' ),
 				'data-slug': scene.slug,
+				'aria-label': ( scene.label || scene.slug ) + ' — ' + ( scene.franchise || 'scene' ),
 			} );
 
+			var thumb = el( 'div', { class: 'odd-shop__tile-thumb' } );
+			thumb.style.backgroundColor = scene.fallbackColor || '#111';
 			var img = el( 'img', {
 				src: ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + scene.slug + '.webp',
-				alt: scene.label || scene.slug,
+				alt: '',
 				loading: 'lazy',
 			} );
-			img.style.backgroundColor = scene.fallbackColor || '#111';
-			card.appendChild( img );
+			thumb.appendChild( img );
+			if ( active && ! state.preview ) {
+				var badge = el( 'span', { class: 'odd-shop__tile-badge' } );
+				badge.textContent = '✓ Active';
+				thumb.appendChild( badge );
+			}
+			card.appendChild( thumb );
 
-			var meta = el( 'div', { class: 'odd-card__meta' } );
-			var title = el( 'div', { class: 'odd-card__title' } );
+			var meta = el( 'div', { class: 'odd-shop__tile-meta' } );
+			var metaText = el( 'div', { class: 'odd-shop__tile-text' } );
+			var title = el( 'div', { class: 'odd-card__title odd-shop__tile-title' } );
 			title.textContent = scene.label || scene.slug;
-			var sub = el( 'div', { class: 'odd-card__sub' } );
-			sub.textContent = scene.franchise || '';
-			meta.appendChild( title );
-			meta.appendChild( sub );
+			var sub = el( 'div', { class: 'odd-card__sub odd-shop__tile-sub' } );
+			sub.textContent = ( scene.franchise || 'Scene' ) + ' · Scene';
+			metaText.appendChild( title );
+			metaText.appendChild( sub );
+
+			var pill = el( 'span', { class: 'odd-shop__tile-pill' } );
+			if ( isPreview ) pill.textContent = 'Previewing';
+			else if ( active && ! state.preview ) pill.textContent = 'Open';
+			else pill.textContent = 'Preview';
+
+			meta.appendChild( metaText );
+			meta.appendChild( pill );
 			card.appendChild( meta );
 
 			card.addEventListener( 'click', function () {
@@ -880,6 +1200,31 @@
 				c.classList.remove( 'is-active', 'is-previewing' );
 				if ( previewSlug && slug === previewSlug ) c.classList.add( 'is-previewing' );
 				else if ( ! previewSlug && slug === currentSlug ) c.classList.add( 'is-active' );
+
+				// Keep the inline pill label in sync so the shelf
+				// cards mirror the hero state without a full re-render.
+				var pill = c.querySelector( '.odd-shop__tile-pill' );
+				if ( pill ) {
+					if ( previewSlug && slug === previewSlug ) pill.textContent = 'Previewing';
+					else if ( ! previewSlug && slug === currentSlug ) pill.textContent = 'Open';
+					else pill.textContent = 'Preview';
+				}
+				// Badge (top-left "Active" chip) only exists on the
+				// committed card; add / remove as the committed slug
+				// moves so it travels with the live state.
+				var thumb = c.querySelector( '.odd-shop__tile-thumb' );
+				if ( thumb ) {
+					var existingBadge = thumb.querySelector( '.odd-shop__tile-badge' );
+					var shouldBadge   = ! previewSlug && slug === currentSlug;
+					if ( shouldBadge && ! existingBadge ) {
+						var b = document.createElement( 'span' );
+						b.className = 'odd-shop__tile-badge';
+						b.textContent = '✓ Active';
+						thumb.appendChild( b );
+					} else if ( ! shouldBadge && existingBadge ) {
+						existingBadge.remove();
+					}
+				}
 			}
 		}
 
@@ -934,12 +1279,107 @@
 				icons:       {},
 			} );
 
-			var shelves = groupByFranchise( sets, 'Collection' );
+			var filtered = filterByQuery( sets, state.query );
+
+			if ( filtered.length ) {
+				var featuredSet = pickFeaturedSet( filtered );
+				if ( featuredSet ) wrap.appendChild( renderIconHero( featuredSet ) );
+			}
+			if ( ! state.query ) {
+				wrap.appendChild( renderCategoryQuilt( sets, 'icons' ) );
+			}
+
+			if ( ! filtered.length ) {
+				wrap.appendChild( renderEmptyResults( 'No icon sets match "' + state.query + '".' ) );
+				return wrap;
+			}
+
+			var shelves = groupByFranchise( filtered, 'Collection' );
 			shelves.forEach( function ( shelf ) {
-				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderIconSetCard, 'odd-catalog-list' ) );
+				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderIconSetCard, { scope: 'icons' } ) );
 			} );
 
 			return wrap;
+		}
+
+		function pickFeaturedSet( sets ) {
+			var current = state.cfg.iconSet || 'none';
+			for ( var i = 0; i < sets.length; i++ ) {
+				if ( sets[ i ] && sets[ i ].slug === current ) return sets[ i ];
+			}
+			// Prefer an installed, styled set over the synthetic
+			// "Default" row when nothing is active yet — the hero
+			// should show off, not advertise "ship the stock WP
+			// dock as-is".
+			for ( var j = 0; j < sets.length; j++ ) {
+				if ( sets[ j ] && sets[ j ].slug !== 'none' ) return sets[ j ];
+			}
+			return sets[ 0 ] || null;
+		}
+
+		function renderIconHero( set ) {
+			var currentSlug = state.cfg.iconSet || '';
+			var isActive    = ( set.slug === 'none' && ! currentSlug ) || ( set.slug !== 'none' && set.slug === currentSlug );
+			var accent      = set.accent && /^#[0-9a-f]{3,8}$/i.test( set.accent ) ? set.accent : '#0071e3';
+
+			var hero = el( 'div', {
+				class: 'odd-shop__hero odd-shop__hero--icons',
+				'data-hero-slug': set.slug,
+				style: 'background:' + ( franchiseGradient( set.franchise || 'Collection' ) ),
+			} );
+			var scrim = el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } );
+			hero.appendChild( scrim );
+
+			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
+			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
+			eyebrow.textContent = isActive ? 'Active set' : 'Featured set';
+			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
+			title.textContent = set.label || set.slug;
+			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
+			sub.textContent = set.description || 'A themed pack for the WordPress desktop dock.';
+			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
+
+			if ( isActive && ! state.preview ) {
+				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
+				active.textContent = '✓ Active';
+				actions.appendChild( active );
+			} else {
+				var previewBtn = el( 'button', {
+					type: 'button',
+					class: 'odd-shop__hero-btn odd-shop__hero-btn--primary',
+				} );
+				previewBtn.innerHTML = '<span aria-hidden="true">▶</span> Preview';
+				previewBtn.addEventListener( 'click', function ( e ) {
+					e.stopPropagation();
+					previewIconSet( set.slug );
+				} );
+				actions.appendChild( previewBtn );
+			}
+
+			inner.appendChild( eyebrow );
+			inner.appendChild( title );
+			inner.appendChild( sub );
+			inner.appendChild( actions );
+			hero.appendChild( inner );
+
+			// Icon quartet floating bottom-right, mirroring the
+			// scene hero's preview thumbnail.
+			if ( set.icons && typeof set.icons === 'object' ) {
+				var thumb = el( 'div', { class: 'odd-shop__hero-thumb odd-shop__hero-thumb--icons', 'aria-hidden': 'true' } );
+				if ( accent ) thumb.style.background = accent;
+				var quartet = el( 'div', { class: 'odd-shop__hero-quartet' } );
+				[ 'dashboard', 'posts', 'pages', 'media' ].forEach( function ( k ) {
+					if ( set.icons[ k ] ) {
+						quartet.appendChild( el( 'img', { src: set.icons[ k ], alt: '', loading: 'lazy' } ) );
+					}
+				} );
+				if ( quartet.children.length ) {
+					thumb.appendChild( quartet );
+					hero.appendChild( thumb );
+				}
+			}
+
+			return hero;
 		}
 
 		function renderIconSetCard( set ) {
@@ -1720,7 +2160,16 @@
 			'.odd-panel.odd-shop{color:var(--odd-shop-ink)}',
 
 			/* Top bar. Spans columns 1 / -1 so it caps the entire frame. */
-			'.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:14px 22px;min-height:52px;background:linear-gradient(180deg,#fbfbfd 0%,#f1f1f4 100%);border-bottom:1px solid var(--odd-shop-border);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);position:relative;z-index:2}',
+			'.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;display:grid;grid-template-columns:minmax(220px,auto) 1fr minmax(60px,auto);align-items:center;gap:16px;padding:10px 22px;min-height:56px;background:linear-gradient(180deg,#fbfbfd 0%,#f1f1f4 100%);border-bottom:1px solid var(--odd-shop-border);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);position:relative;z-index:2}',
+
+			/* Search pill — centers the text input with an inline
+			 * glyph; re-renders the active department on input. */
+			'.odd-panel.odd-shop .odd-shop__search{display:flex;align-items:center;gap:8px;justify-self:center;width:100%;max-width:360px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 1px 2px rgba(0,0,0,.03);transition:border-color .14s ease,box-shadow .14s ease}',
+			'.odd-panel.odd-shop .odd-shop__search:focus-within{border-color:var(--odd-shop-accent);box-shadow:0 0 0 3px rgba(0,113,227,.16)}',
+			'.odd-panel.odd-shop .odd-shop__search-glyph{color:var(--odd-shop-ink-3);font-size:14px;line-height:1;flex-shrink:0}',
+			'.odd-panel.odd-shop .odd-shop__search-input{flex:1 1 auto;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:13px;color:var(--odd-shop-ink);padding:3px 0}',
+			'.odd-panel.odd-shop .odd-shop__search-input::placeholder{color:var(--odd-shop-ink-3)}',
+			'.odd-panel.odd-shop .odd-shop__search-input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;width:12px;height:12px;background:var(--odd-shop-ink-3);-webkit-mask:radial-gradient(circle,currentColor 55%,transparent 60%);mask:radial-gradient(circle,currentColor 55%,transparent 60%);border-radius:50%;cursor:pointer}',
 			'.odd-panel.odd-shop .odd-shop__brand{display:flex;align-items:center;gap:12px}',
 			'.odd-panel.odd-shop .odd-shop__brand-mark{width:32px;height:32px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;background:linear-gradient(135deg,#ff3d9a 0%,#6a5cff 55%,#00d1b2 100%);color:#fff;box-shadow:0 6px 14px -6px rgba(106,92,255,.6),0 1px 0 rgba(255,255,255,.4) inset}',
 			'.odd-panel.odd-shop .odd-shop__brand-text{display:flex;flex-direction:column;line-height:1.1;min-width:0}',
@@ -1756,19 +2205,86 @@
 			'.odd-panel.odd-shop .odd-section-header h2{font-size:28px;font-weight:700;letter-spacing:-.015em;color:var(--odd-shop-ink);margin:0 0 6px}',
 			'.odd-panel.odd-shop .odd-section-header p{color:var(--odd-shop-ink-2);font-size:14px;line-height:1.5;max-width:62ch}',
 
+			/* Hero — the department's featured item. Full-bleed card
+			 * with a scene preview as background, a dark left-side
+			 * scrim for text legibility, and a floating thumbnail at
+			 * the bottom-right that echoes the App Store's preview. */
+			'.odd-panel.odd-shop .odd-shop__hero{position:relative;overflow:hidden;margin:0 0 28px;min-height:220px;border-radius:var(--odd-shop-radius-lg);color:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:20px;padding:26px 28px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 52px -28px rgba(20,14,40,.35);isolation:isolate;background-color:#1d1d1f}',
+			'.odd-panel.odd-shop .odd-shop__hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:saturate(1.05);z-index:-2}',
+			'.odd-panel.odd-shop .odd-shop__hero-scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.55) 38%,rgba(0,0,0,.08) 100%);z-index:-1}',
+			'.odd-panel.odd-shop .odd-shop__hero--icons .odd-shop__hero-scrim{background:linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.1) 60%,transparent 100%)}',
+			'.odd-panel.odd-shop .odd-shop__hero-body{display:flex;flex-direction:column;gap:8px;max-width:62%;min-width:0}',
+			'.odd-panel.odd-shop .odd-shop__hero-eyebrow{display:inline-block;align-self:flex-start;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff}',
+			'.odd-panel.odd-shop .odd-shop__hero-title{margin:4px 0 0;font-size:36px;font-weight:800;letter-spacing:-.02em;line-height:1.04}',
+			'.odd-panel.odd-shop .odd-shop__hero-sub{margin:0;font-size:14px;line-height:1.45;color:rgba(255,255,255,.82);max-width:46ch}',
+			'.odd-panel.odd-shop .odd-shop__hero-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}',
+			'.odd-panel.odd-shop .odd-shop__hero-btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.01em;transition:transform .14s ease,box-shadow .14s ease,background .14s ease}',
+			'.odd-panel.odd-shop .odd-shop__hero-btn--primary{background:#fff;color:#1d1d1f}',
+			'.odd-panel.odd-shop .odd-shop__hero-btn--primary:hover{transform:translateY(-1px);box-shadow:0 12px 24px -14px rgba(0,0,0,.45)}',
+			'.odd-panel.odd-shop .odd-shop__hero-btn--primary:focus-visible{outline:3px solid rgba(255,255,255,.75);outline-offset:3px}',
+			'.odd-panel.odd-shop .odd-shop__hero-btn span{font-size:10px;line-height:1}',
+			'.odd-panel.odd-shop .odd-shop__hero-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-size:12px;font-weight:700;letter-spacing:.02em;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}',
+			'.odd-panel.odd-shop .odd-shop__hero-thumb{width:150px;height:96px;border-radius:12px;overflow:hidden;box-shadow:0 18px 36px -18px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.22);justify-self:end;align-self:end;background:#222}',
+			'.odd-panel.odd-shop .odd-shop__hero-thumb img{width:100%;height:100%;object-fit:cover;display:block}',
+			'.odd-panel.odd-shop .odd-shop__hero-thumb--icons{display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(255,255,255,.18)}',
+			'.odd-panel.odd-shop .odd-shop__hero-quartet{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;width:100%;height:100%}',
+			'.odd-panel.odd-shop .odd-shop__hero-quartet img{width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,.9);border-radius:8px;padding:6px;box-sizing:border-box}',
+
+			/* Category quilt — gradient franchise tiles that jump
+			 * to their shelf. Two columns on wide, single on narrow. */
+			'.odd-panel.odd-shop .odd-shop__quilt{margin:0 0 32px}',
+			'.odd-panel.odd-shop .odd-shop__quilt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}',
+			'.odd-panel.odd-shop .odd-shop__quilt-tile{all:unset;cursor:pointer;position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:120px;padding:18px 20px;border-radius:var(--odd-shop-radius);color:#fff;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04),0 14px 32px -22px rgba(20,14,40,.38);transition:transform .16s ease,box-shadow .16s ease}',
+			'.odd-panel.odd-shop .odd-shop__quilt-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0) 40%,rgba(0,0,0,.22) 100%);pointer-events:none}',
+			'.odd-panel.odd-shop .odd-shop__quilt-tile:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(0,0,0,.06),0 20px 40px -22px rgba(20,14,40,.45)}',
+			'.odd-panel.odd-shop .odd-shop__quilt-tile:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:3px}',
+			'.odd-panel.odd-shop .odd-shop__quilt-name{position:relative;z-index:1;font-size:22px;font-weight:800;letter-spacing:-.015em;line-height:1.05}',
+			'.odd-panel.odd-shop .odd-shop__quilt-count{position:relative;z-index:1;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.86);font-variant-numeric:tabular-nums}',
+
 			/* Shelves — franchise row with an anchor-style title + count
-			 * pill, a thin divider, then the tile grid beneath. */
-			'.odd-panel.odd-shop .odd-shop__shelf{margin:0 0 32px;padding:20px 22px 22px;background:var(--odd-shop-surface);border:1px solid var(--odd-shop-border);border-radius:var(--odd-shop-radius-lg);box-shadow:0 1px 2px rgba(0,0,0,.03),0 20px 40px -32px rgba(20,14,40,.18)}',
+			 * pill and a horizontally-scrolling track beneath. */
+			'.odd-panel.odd-shop .odd-shop__shelf{margin:0 0 32px;scroll-margin-top:16px}',
 			'.odd-panel.odd-shop .odd-shop__shelf:last-child{margin-bottom:40px}',
 			'.odd-panel.odd-shop .odd-shop__shelf-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 14px}',
 			'.odd-panel.odd-shop .odd-shop__shelf-title{margin:0;font-size:17px;font-weight:700;letter-spacing:-.005em;color:var(--odd-shop-ink)}',
 			'.odd-panel.odd-shop .odd-shop__shelf-count{font-size:12px;color:var(--odd-shop-ink-3);font-weight:600;letter-spacing:.01em;font-variant-numeric:tabular-nums}',
 
-			/* Cards pick up softer radii + a touch more lift. */
+			/* Shelf tracks — horizontal scroller with snap so drag
+			 * gestures stop on a card boundary. Extra right padding
+			 * leaves the last card breathing room against the pane. */
+			'.odd-panel.odd-shop .odd-shop__shelf-track{display:flex;gap:14px;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 4px 14px;margin:-4px -4px 0;scrollbar-width:thin}',
+			'.odd-panel.odd-shop .odd-shop__shelf-track::-webkit-scrollbar{height:8px}',
+			'.odd-panel.odd-shop .odd-shop__shelf-track::-webkit-scrollbar-thumb{background:var(--odd-shop-border-strong);border-radius:999px}',
+			'.odd-panel.odd-shop .odd-shop__shelf-track--tiles > .odd-shop__tile{flex:0 0 224px;scroll-snap-align:start}',
+			'.odd-panel.odd-shop .odd-shop__shelf-track--list > .odd-catalog-row{flex:0 0 320px;max-width:360px;scroll-snap-align:start}',
+
+			/* Tiles — roughly square MAS-style app cards. The button
+			 * role keeps keyboard activation working; the inner pill
+			 * stops propagation so it doesn\'t double-toggle. */
+			'.odd-panel.odd-shop .odd-shop__tile{all:unset;display:flex;flex-direction:column;cursor:pointer;border-radius:var(--odd-shop-radius);background:#fff;border:1px solid var(--odd-shop-border);overflow:hidden;position:relative;transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease}',
+			'.odd-panel.odd-shop .odd-shop__tile:hover{transform:translateY(-2px);border-color:var(--odd-shop-border-strong);box-shadow:0 18px 36px -24px rgba(20,14,40,.4)}',
+			'.odd-panel.odd-shop .odd-shop__tile:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:2px}',
+			'.odd-panel.odd-shop .odd-shop__tile.is-active{border-color:var(--odd-shop-accent);box-shadow:0 0 0 2px var(--odd-shop-accent) inset}',
+			'.odd-panel.odd-shop .odd-shop__tile.is-previewing{border-color:#d97706;box-shadow:0 0 0 2px #f59e0b inset}',
+			'.odd-panel.odd-shop .odd-shop__tile-thumb{position:relative;aspect-ratio:16/10;width:100%;background:#1d1d1f;overflow:hidden}',
+			'.odd-panel.odd-shop .odd-shop__tile-thumb img{width:100%;height:100%;object-fit:cover;display:block}',
+			'.odd-panel.odd-shop .odd-shop__tile-badge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.94);color:var(--odd-shop-accent);font-size:10px;font-weight:700;letter-spacing:.04em;box-shadow:0 4px 10px -4px rgba(0,0,0,.4)}',
+			'.odd-panel.odd-shop .odd-shop__tile-meta{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:12px 14px 14px}',
+			'.odd-panel.odd-shop .odd-shop__tile-text{min-width:0;display:flex;flex-direction:column;gap:2px}',
+			'.odd-panel.odd-shop .odd-shop__tile-title{font-size:14px;font-weight:600;color:var(--odd-shop-ink)}',
+			'.odd-panel.odd-shop .odd-shop__tile-sub{font-size:11px;color:var(--odd-shop-ink-3)}',
+			'.odd-panel.odd-shop .odd-shop__tile-pill{flex-shrink:0;padding:5px 14px;border-radius:999px;background:rgba(0,113,227,.1);color:var(--odd-shop-accent);font-size:11px;font-weight:700;letter-spacing:.01em}',
+			'.odd-panel.odd-shop .odd-shop__tile.is-active .odd-shop__tile-pill{background:var(--odd-shop-accent);color:#fff}',
+			'.odd-panel.odd-shop .odd-shop__tile.is-previewing .odd-shop__tile-pill{background:#fef3c7;color:#92400e}',
+
+			/* Empty-results state used when search filters every item. */
+			'.odd-panel.odd-shop .odd-shop__empty{padding:64px 16px;text-align:center;color:var(--odd-shop-ink-3);border:1px dashed var(--odd-shop-border-strong);border-radius:var(--odd-shop-radius-lg);background:#fff}',
+			'.odd-panel.odd-shop .odd-shop__empty-title{font-size:16px;font-weight:700;color:var(--odd-shop-ink);margin-bottom:6px}',
+			'.odd-panel.odd-shop .odd-shop__empty-sub{font-size:13px}',
+
+			/* Legacy card + catalog rows inherit the old styling when
+			 * they surface outside a shelf (About hero, Apps section). */
 			'.odd-panel.odd-shop .odd-card{border-radius:var(--odd-shop-radius);border-color:var(--odd-shop-border);background:#fff}',
-			'.odd-panel.odd-shop .odd-card:hover{border-color:var(--odd-shop-accent);box-shadow:0 10px 28px -18px rgba(0,113,227,.45),0 2px 4px rgba(0,0,0,.04)}',
-			'.odd-panel.odd-shop .odd-card.is-active{border-color:var(--odd-shop-accent);box-shadow:0 0 0 2px var(--odd-shop-accent) inset}',
-			'.odd-panel.odd-shop .odd-card.is-active::after{background:var(--odd-shop-accent)}',
 			'.odd-panel.odd-shop .odd-card__title{font-size:14px}',
 			'.odd-panel.odd-shop .odd-card__sub{font-size:11px;color:var(--odd-shop-ink-3)}',
 
@@ -1789,9 +2305,18 @@
 			'.odd-panel.odd-shop .odd-apps-btn--primary:hover{background:#0a66cf;border-color:#0a66cf}',
 			'.odd-panel.odd-shop .odd-apps-btn--pill{border-radius:999px;font-weight:600}',
 
-			/* Preview bar — sticks to the content bottom; redraw with a
-			 * store-ish neutral chrome so it reads as a transaction. */
-			'.odd-panel.odd-shop .odd-preview-bar{margin:20px -36px 0;padding:16px 36px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--odd-shop-border);border-bottom:0;box-shadow:0 -14px 30px -18px rgba(20,14,40,.18)}',
+			/* Preview bar — floating pill anchored to the bottom-right
+			 * of the content pane. Compact, rounded, with the eye
+			 * glyph + message text + two pill buttons. Replaces the
+			 * legacy full-width "sticky toolbar" look. */
+			'.odd-panel.odd-shop .odd-preview-bar{position:sticky;bottom:16px;margin:16px 0 0 auto;padding:10px 14px 10px 16px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);border:1px solid var(--odd-shop-border-strong);border-radius:999px;box-shadow:0 18px 40px -22px rgba(20,14,40,.4),0 2px 4px rgba(0,0,0,.04);display:flex;align-items:center;gap:12px;width:fit-content;max-width:min(640px,calc(100% - 16px));z-index:5;animation:odd-shop-preview-in .22s cubic-bezier(.2,.8,.2,1)}',
+			'.odd-panel.odd-shop .odd-preview-bar__eye{width:24px;height:24px;border-radius:999px;background:var(--odd-shop-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}',
+			'.odd-panel.odd-shop .odd-preview-bar__text{font-size:12px;color:var(--odd-shop-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+			'.odd-panel.odd-shop .odd-preview-bar__text em{font-style:normal;font-weight:700;color:var(--odd-shop-ink)}',
+			'.odd-panel.odd-shop .odd-preview-bar__actions{gap:6px}',
+			'.odd-panel.odd-shop .odd-preview-bar .odd-apps-btn{padding:5px 14px;font-size:12px}',
+			'@keyframes odd-shop-preview-in{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}',
+			'@media (prefers-reduced-motion: reduce){.odd-panel.odd-shop .odd-preview-bar{animation:none}}',
 
 			/* About hero gets a bit more breathing room against the new
 			 * content padding. Negative margins stay wired through. */

@@ -11,6 +11,18 @@ bodies.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.6.1"></a>
+## [1.6.1] — 2026-04-26
+
+### Changed
+- ODD Shop now ships a full Mac App Store-style layout pass. Each department (Wallpapers, Icon Sets) gets a full-width **hero card** featuring the active (or filtered-top) title with preview art, blurred scrim, eyebrow pill, and inline Preview / Active actions; a **"Browse by franchise" quilt** of gradient category tiles that smooth-scroll to the matching shelf; **horizontal-scrolling shelves** replacing the flat grids, with scroll-snap, native scrollbar styling, and a count anchor in the head; and **tile-style scene cards** — preview thumbnail on top, title + "Generative · Scene" subhead, inline blue `Preview` / `Open` / `Previewing` pill, corner `✓ Active` badge on the committed scene.
+- Top bar now includes a **search pill** that filters the current department's cards live against label, slug, franchise, and tags. Empty-results state reads "No scenes match …" and preserves the hero-less layout.
+- Preview bar was redesigned as a **floating pill** anchored to the content pane's lower-right (was: full-width sticky toolbar). Retains the eye glyph + `Keep` / `Apply` / `Cancel` actions.
+
+### Internal
+- New helpers in `src/panel/index.js`: `pickFeaturedScene` / `pickFeaturedSet` (hero source-of-truth), `renderWallpaperHero` / `renderIconHero`, `renderCategoryQuilt`, `filterByQuery`, `franchiseGradient` (deterministic hash fallback for unknown franchises), and `cssEscape` shim for franchise scroll anchors. `renderShelf` now takes `{ scope }` and builds a horizontal-scroll track instead of a grid. `redecorateSceneGrid` also syncs the inline pill label and the corner active badge so live swaps match the hero without re-render.
+- No REST, data, or extension-API changes. Internal window id is still `odd`. Back-compat preserved for slash commands, tests, and third-party extensions.
+
 <a id="v1.6.0"></a>
 ## [1.6.0] — 2026-04-26
 
