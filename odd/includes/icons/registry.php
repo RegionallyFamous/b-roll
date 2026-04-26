@@ -181,7 +181,14 @@ function odd_icons_get_sets( $reset = false ) {
 	static $cache = null;
 	if ( $reset ) {
 		$cache = null;
-		return array();
+		// Also wipe the transient so the next scan is fully fresh —
+		// prevents stale persisted data from masking a cache-bust
+		// that happened out-of-band (e.g. a test fixture writing
+		// directly into wp-content/odd-icon-sets/).
+		if ( function_exists( 'delete_transient' ) ) {
+			delete_transient( odd_icons_registry_transient_key() );
+		}
+		// Fall through to rebuild + return fresh.
 	}
 	if ( null !== $cache ) {
 		return $cache;
