@@ -21,36 +21,10 @@ export async function goDesktopShell( page: Page ) {
  * Wallpaper IIFE can’t register scenes until Pixi is present and `mount` runs.
  * This mirrors what panel.spec was polling for, with one explicit contract.
  *
- * Under a fresh `wp server` boot the host shell renders with the user's
- * saved wallpaper but the `odd` wallpaper def doesn't register until
- * ODD's JS bundle parses — so the first `osSettings.apply()` falls back
- * to the built-in default and PIXI never gets requested. Nudge the shell
- * to re-apply once ODD has registered itself.
+ * Dumps a diagnostic snapshot on timeout so future regressions are easy to
+ * triage from CI logs.
  */
 export async function waitForWallpaperScenes( page: Page ) {
-	await page.waitForFunction( () => {
-		const wp = ( window as unknown as {
-			wp?: { desktop?: { registerWallpaper?: unknown } };
-		} ).wp;
-		return !! wp?.desktop && typeof wp.desktop.registerWallpaper === 'function';
-	}, { timeout: 20_000 } );
-	await page.evaluate( () => {
-		const config = ( window as unknown as {
-			wpDesktopConfig?: { osSettings?: { wallpaper?: string } };
-		} ).wpDesktopConfig;
-		if ( config?.osSettings ) {
-			config.osSettings.wallpaper = 'odd';
-		}
-		const ls = window.localStorage;
-		try {
-			const raw = ls.getItem( 'wp-desktop-os-settings' );
-			const parsed = raw ? JSON.parse( raw ) : {};
-			parsed.wallpaper = 'odd';
-			ls.setItem( 'wp-desktop-os-settings', JSON.stringify( parsed ) );
-		} catch ( _e ) {
-			/* localStorage disabled — fine */
-		}
-	} );
 	try {
 		await page.waitForFunction( () => {
 			return typeof ( window as unknown as { PIXI?: object } ).PIXI !== 'undefined';
@@ -58,20 +32,25 @@ export async function waitForWallpaperScenes( page: Page ) {
 	} catch ( err ) {
 		const diag = await page.evaluate( () => {
 			const wp = ( window as unknown as {
-				wp?: { desktop?: { config?: { osSettings?: unknown } } };
+				wp?: { desktop?: Record<string, unknown> };
 			} ).wp;
 			const wallpapers = ( window as unknown as {
 				wpDesktopWallpapers?: Record<string, unknown>;
 			} ).wpDesktopWallpapers;
+			const cfg = ( window as unknown as {
+				wpDesktopConfig?: { osSettings?: { wallpaper?: string } };
+			} ).wpDesktopConfig;
 			const odd = ( window as unknown as {
 				__odd?: { scenes?: Record<string, object>; api?: object };
 			} ).__odd;
 			return {
 				hasWpDesktop: !! wp?.desktop,
-				osSettings: wp?.desktop?.config?.osSettings ?? null,
+				wpDesktopKeys: wp?.desktop ? Object.keys( wp.desktop ).sort() : null,
+				configWallpaper: cfg?.osSettings?.wallpaper ?? null,
 				wallpaperKeys: wallpapers ? Object.keys( wallpapers ) : null,
 				oddScenes: odd?.scenes ? Object.keys( odd.scenes ) : null,
 				oddApi: !! odd?.api,
+				shellVisible: !! document.getElementById( 'wp-desktop-shell' ),
 			};
 		} );
 		// eslint-disable-next-line no-console

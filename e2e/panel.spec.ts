@@ -25,6 +25,18 @@ test.describe( 'ODD admin smoke', () => {
 		// ~3–6m cold CI; one combined flow, not two full boots.
 		test.setTimeout( 150_000 );
 
+		page.on( 'console', ( msg ) => {
+			const type = msg.type();
+			if ( type === 'error' || type === 'warning' ) {
+				// eslint-disable-next-line no-console
+				console.log( `[page:${ type }]`, msg.text() );
+			}
+		} );
+		page.on( 'pageerror', ( err ) => {
+			// eslint-disable-next-line no-console
+			console.log( '[page:pageerror]', err.message );
+		} );
+
 		await login( page );
 		await goDesktopShell( page );
 		await waitForWallpaperScenes( page );
