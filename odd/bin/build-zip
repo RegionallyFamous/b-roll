@@ -25,11 +25,12 @@ REPO_ROOT = PLUGIN_DIR.parent
 DIST = REPO_ROOT / "dist"
 ZIP_NAME = "odd.zip"
 
-# 35 MB budget. The reboot ships under 1 MB total (3 painted backdrops +
-# previews + tiny SVG icon sets), but the cap stays generous so adding
-# a few new scenes / cut-outs / drifters doesn't trip the gate. Trips
-# hard if anything balloons the payload.
-DEFAULT_MAX_BYTES = 35 * 1024 * 1024
+# 2 MB budget. ODD 3.0 ships empty — no bundled wallpapers, icon sets,
+# widgets, or apps. Every piece of user-facing content lives in the
+# remote catalog at odd.regionallyfamous.com/catalog/v1/ and installs
+# on demand. The plugin itself is now JS/PHP/CSS only (~400 KB); this
+# cap catches regressions that slip new binary assets into the zip.
+DEFAULT_MAX_BYTES = 2 * 1024 * 1024
 
 EXCLUDE_DIRS = {
     "bin",

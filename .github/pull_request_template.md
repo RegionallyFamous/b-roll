@@ -9,7 +9,7 @@ doesn't apply can be left unchecked with a note instead of force-checked.
 
 ## Checklist
 
-- [ ] `odd/bin/validate-scenes` + `odd/bin/validate-icon-sets` pass locally.
+- [ ] `python3 _tools/build-catalog.py && odd/bin/validate-catalog` pass locally.
 - [ ] `npm test` passes locally.
 - [ ] `composer phpcs` passes locally (run `composer phpcbf` to auto-fix).
 - [ ] If PHP logic changed, `composer phpunit` passes locally.

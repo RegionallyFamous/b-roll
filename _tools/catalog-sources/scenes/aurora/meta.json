@@ -1,0 +1,16 @@
+{
+  "slug": "aurora",
+  "label": "Aurora",
+  "franchise": "Atmosphere",
+  "tags": [
+    "sky",
+    "stars",
+    "aurora",
+    "cold",
+    "blue"
+  ],
+  "fallbackColor": "#020616",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "description": "Aurora \u2014 a painted ODD wallpaper scene."
+}

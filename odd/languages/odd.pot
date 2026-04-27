@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: odd\n"
 "Report-Msgid-Bugs-To: https://github.com/RegionallyFamous/odd/issues\n"
-"POT-Creation-Date: 2026-04-27 06:01-0500\n"
+"POT-Creation-Date: 2026-04-27 10:23-0500\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,20 +12,12 @@ msgstr ""
 "X-Generator: odd/bin/make-pot\n"
 "X-Domain: odd\n"
 
-#: odd/src/widgets/index.js:337
-msgid "A WordPress-flavored magic 8-ball. Click to shake."
-msgstr ""
-
 #: odd/includes/content/bundle.php:103
 msgid "A bundle named \"%s\" is already installed. Remove it before reinstalling."
 msgstr ""
 
 #: odd/src/panel/index.js:688
 msgid "A bundle with that slug is already installed. Remove the existing one first."
-msgstr ""
-
-#: odd/src/widgets/index.js:323
-msgid "A tilted handwritten note that auto-saves as you type."
 msgstr ""
 
 #: odd/src/panel/index.js:10
@@ -48,7 +40,7 @@ msgstr ""
 msgid "An installation of this bundle is already in progress."
 msgstr ""
 
-#: odd/includes/content/catalog.php:294
+#: odd/includes/content/catalog.php:490
 msgid "An update is available. Pass allow_update=1 to reinstall."
 msgstr ""
 
@@ -68,11 +60,7 @@ msgstr ""
 msgid "App archives must have a .wp extension."
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:314
-msgid "App is already installed."
-msgstr ""
-
-#: odd/includes/apps/core-controller.php:311
+#: odd/includes/apps/core-controller.php:179
 msgid "App is not in the catalog."
 msgstr ""
 
@@ -112,16 +100,12 @@ msgstr ""
 msgid "Bad app path."
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:126
-msgid "Built-in app \"%s\" has an invalid manifest."
+#: odd/includes/apps/core-controller.php:82
+msgid "Built-in apps were retired in ODD 3.0. Install \"%s\" from the remote catalog instead."
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:117
-msgid "Built-in app \"%s\" has no source on disk."
-msgstr ""
-
-#: odd/includes/apps/core-controller.php:121
-msgid "Built-in app \"%s\" is missing manifest.json."
+#: odd/includes/apps/core-controller.php:164
+msgid "Bundle catalog is unavailable. Refresh the page and try again."
 msgstr ""
 
 #: odd/src/panel/index.js:681
@@ -160,7 +144,7 @@ msgstr ""
 msgid "Bundle has too many files. The limit is 2000."
 msgstr ""
 
-#: odd/includes/content/catalog.php:295
+#: odd/includes/content/catalog.php:491
 msgid "Bundle is already installed."
 msgstr ""
 
@@ -184,7 +168,7 @@ msgstr ""
 msgid "Bundle is missing wallpaper.webp."
 msgstr ""
 
-#: odd/includes/content/catalog.php:276
+#: odd/includes/content/catalog.php:477
 msgid "Bundle is not in the catalog."
 msgstr ""
 
@@ -194,6 +178,10 @@ msgstr ""
 
 #: odd/src/panel/index.js:679
 msgid "Bundle is too large. Keep it under 25 MB uncompressed."
+msgstr ""
+
+#: odd/includes/content/catalog.php:598
+msgid "Bundle sha256 mismatch. Expected %1$s, downloaded %2$s."
 msgstr ""
 
 #: odd/src/panel/index.js:687
@@ -216,22 +204,16 @@ msgstr ""
 msgid "Bundles must have a .wp extension."
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:342
-#: odd/includes/content/catalog.php:328
+#: odd/includes/content/catalog.php:550
 msgid "Catalog downloads must use HTTPS."
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:332
-#: odd/includes/content/catalog.php:322
+#: odd/includes/content/catalog.php:544
 msgid "Catalog entry has no download URL."
 msgstr ""
 
-#: odd/includes/content/catalog.php:306
+#: odd/includes/content/catalog.php:502
 msgid "Catalog version is not newer than the installed version."
-msgstr ""
-
-#: odd/src/widgets/index.js:187
-msgid "Click to shake"
 msgstr ""
 
 #: odd/src/panel/index.js:973
@@ -250,14 +232,6 @@ msgstr ""
 msgid "Copy failed"
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:139
-msgid "Could not copy built-in app files."
-msgstr ""
-
-#: odd/includes/apps/core-controller.php:135
-msgid "Could not create app directory."
-msgstr ""
-
 #: odd/includes/content/archive.php:272
 msgid "Could not create bundle directory."
 msgstr ""
@@ -267,8 +241,7 @@ msgstr ""
 msgid "Could not create staging directory."
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:365
-#: odd/includes/content/catalog.php:342
+#: odd/includes/content/catalog.php:564
 msgid "Could not download bundle: %s"
 msgstr ""
 
@@ -374,10 +347,6 @@ msgstr ""
 msgid "Install"
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:298
-msgid "Install crashed: %s"
-msgstr ""
-
 #: odd/src/panel/index.js:485
 msgid "Install failed"
 msgstr ""
@@ -392,10 +361,6 @@ msgstr ""
 
 #: odd/includes/apps/registry.php:89
 msgid "Invalid app slug."
-msgstr ""
-
-#: odd/includes/apps/core-controller.php:109
-msgid "Invalid built-in slug."
 msgstr ""
 
 #: odd/includes/content/bundle.php:155
@@ -426,10 +391,6 @@ msgstr ""
 msgid "Loading ODD Shop…"
 msgstr ""
 
-#: odd/src/widgets/index.js:187
-msgid "Magic 8-ball. Click to shake for a new answer."
-msgstr ""
-
 #: odd/includes/apps/loader.php:174
 msgid "Manifest entry path contains invalid characters or path traversal."
 msgstr ""
@@ -438,9 +399,9 @@ msgstr ""
 msgid "Mini apps that just run"
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:307
+#: odd/includes/apps/core-controller.php:171
 #: odd/includes/apps/rest.php:433
-#: odd/includes/content/catalog.php:265
+#: odd/includes/content/catalog.php:472
 msgid "Missing slug."
 msgstr ""
 
@@ -450,6 +411,10 @@ msgstr ""
 
 #: odd/includes/content/bundle.php:160
 msgid "No bundle with that slug is installed."
+msgstr ""
+
+#: odd/includes/content/catalog.php:135
+msgid "No catalog URL configured."
 msgstr ""
 
 #: odd/includes/apps/rest.php:162
@@ -485,14 +450,6 @@ msgstr ""
 
 #: odd/includes/accents.php:39
 msgid "ODD · %s"
-msgstr ""
-
-#: odd/src/widgets/index.js:336
-msgid "ODD · Magic 8-Ball"
-msgstr ""
-
-#: odd/src/widgets/index.js:322
-msgid "ODD · Sticky Note"
 msgstr ""
 
 #: odd/includes/icons/registry.php:73
@@ -540,10 +497,6 @@ msgstr ""
 msgid "Scene is not installed."
 msgstr ""
 
-#: odd/src/widgets/index.js:97
-msgid "Scribble something…"
-msgstr ""
-
 #: odd/src/panel/index.js:106
 msgid "Search"
 msgstr ""
@@ -557,20 +510,12 @@ msgstr ""
 msgid "Server-executable files are not allowed. Found: %s"
 msgstr ""
 
-#: odd/src/widgets/index.js:228
-msgid "Shaking…"
-msgstr ""
-
 #: odd/src/panel/index.js:1040
 msgid "Show this help"
 msgstr ""
 
 #: odd/includes/content/archive.php:197
 msgid "Slug must contain only lowercase letters, numbers, and hyphens."
-msgstr ""
-
-#: odd/src/widgets/index.js:99
-msgid "Sticky note"
 msgstr ""
 
 #: odd/src/panel/index.js:9
@@ -594,15 +539,15 @@ msgstr ""
 msgid "That file isn\\u2019t a valid ZIP archive."
 msgstr ""
 
+#: odd/includes/apps/core-controller.php:182
+msgid "That slug is not an app."
+msgstr ""
+
 #: odd/includes/content/archive.php:77
 msgid "The PHP ZipArchive extension is required to install ODD bundles."
 msgstr ""
 
-#: odd/includes/apps/core-controller.php:382
-msgid "The downloaded file is not a valid .wp archive (server returned non-ZIP content)."
-msgstr ""
-
-#: odd/includes/content/catalog.php:357
+#: odd/includes/content/catalog.php:577
 msgid "The downloaded file is not a valid .wp archive."
 msgstr ""
 

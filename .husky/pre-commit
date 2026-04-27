@@ -10,11 +10,11 @@ set -e
 echo "→ odd/bin/check-version"
 odd/bin/check-version
 
-echo "→ odd/bin/validate-scenes"
-odd/bin/validate-scenes
+echo "→ _tools/build-catalog.py"
+python3 _tools/build-catalog.py >/dev/null
 
-echo "→ odd/bin/validate-icon-sets"
-odd/bin/validate-icon-sets
+echo "→ odd/bin/validate-catalog"
+odd/bin/validate-catalog
 
 echo "→ vitest (one-shot)"
 npm test --silent -- --run

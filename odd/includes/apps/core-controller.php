@@ -1,86 +1,60 @@
 <?php
 /**
- * ODD Apps — CoreAppsController.
+ * ODD Apps — CoreAppsController (v3.0+ compatibility shim).
  *
- * Loads the curated catalog at odd/apps/catalog/registry.json and
- * exposes two layers:
+ * Pre-v3.0 this file shipped a local catalog bootstrapped from
+ * `odd/apps/catalog/registry.json` plus built-in apps copied out of
+ * the plugin on activation. v3.0 moved every kind of content to the
+ * remote catalog at odd.regionallyfamous.com/catalog/v1/ so this
+ * file now exists only to keep the legacy REST surface and helper
+ * functions alive for third-party code and the panel UI.
  *
- *   1. Built-in apps    — catalog entries marked `builtin: true` are
- *                         auto-installed on first boot (or after a
- *                         migration bump). Their source lives inside
- *                         the plugin at odd/apps/catalog/<slug>/ and
- *                         is copied into wp-content/odd-apps/<slug>/
- *                         so the same serve path works for every app.
+ * The legacy endpoints forward to the unified bundles controller:
  *
- *   2. Catalog          — the full list (builtin + remote) is served
- *                         to the panel so the "Get more apps" tab can
- *                         render a grid with download / install
- *                         buttons.
+ *   GET  /odd/v1/apps/catalog              → /odd/v1/bundles/catalog?type=app
+ *   POST /odd/v1/apps/install-from-catalog → /odd/v1/bundles/install-from-catalog
  *
- * The controller is deliberately tiny: no HTTP fetches happen here —
- * remote apps are installed via /odd/v1/apps/install-from-url which
- * downloads the .wp archive, hands it to odd_apps_install, and is
- * rate-limited by WordPress's standard nonce flow.
+ * and the "built-in" concept is retired — every app ships from the
+ * remote registry, downloads on install, and is SHA256-verified.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! defined( 'ODD_APPS_CATALOG_FILE' ) ) {
-	define( 'ODD_APPS_CATALOG_FILE', ODD_DIR . 'apps/catalog/registry.json' );
-}
-if ( ! defined( 'ODD_APPS_CATALOG_DIR' ) ) {
-	define( 'ODD_APPS_CATALOG_DIR', ODD_DIR . 'apps/catalog/' );
-}
-
 /**
- * Return the parsed catalog as an array of app descriptors.
- *
- * Cached in memory for the request — the file is tiny but read on
- * every REST call to the panel and every boot check, so a static is
- * worth it.
+ * Return the current apps catalog as an array of descriptors shaped
+ * like the pre-v3 rows (slug, name, version, author, description,
+ * icon_url, download_url, tags, builtin=false). Pulled from the
+ * unified remote bundles catalog with `type === 'app'`.
  *
  * @return array<int, array<string, mixed>>
  */
 function odd_apps_catalog() {
-	static $cache = null;
-	if ( null !== $cache ) {
-		return $cache;
-	}
-	$cache = array();
-	if ( ! is_readable( ODD_APPS_CATALOG_FILE ) ) {
-		return $cache;
-	}
-	$raw = file_get_contents( ODD_APPS_CATALOG_FILE );
-	if ( false === $raw ) {
-		return $cache;
-	}
-	$data = json_decode( $raw, true );
-	if ( ! is_array( $data ) || empty( $data['apps'] ) || ! is_array( $data['apps'] ) ) {
-		return $cache;
+	if ( ! function_exists( 'odd_bundle_catalog_for_type' ) ) {
+		return array();
 	}
 	$rows = array();
-	foreach ( $data['apps'] as $entry ) {
-		if ( empty( $entry['slug'] ) || empty( $entry['name'] ) ) {
-			continue;
-		}
+	foreach ( odd_bundle_catalog_for_type( 'app' ) as $entry ) {
 		$rows[] = array(
-			'slug'         => sanitize_key( (string) $entry['slug'] ),
-			'name'         => sanitize_text_field( (string) $entry['name'] ),
-			'version'      => isset( $entry['version'] ) ? sanitize_text_field( (string) $entry['version'] ) : '',
-			'author'       => isset( $entry['author'] ) ? sanitize_text_field( (string) $entry['author'] ) : '',
-			'description'  => isset( $entry['description'] ) ? wp_kses_post( (string) $entry['description'] ) : '',
-			'icon_url'     => isset( $entry['icon_url'] ) ? esc_url_raw( (string) $entry['icon_url'] ) : '',
-			'download_url' => isset( $entry['download_url'] ) ? esc_url_raw( (string) $entry['download_url'] ) : '',
-			'tags'         => isset( $entry['tags'] ) && is_array( $entry['tags'] ) ? array_values( array_filter( array_map( 'sanitize_text_field', $entry['tags'] ) ) ) : array(),
-			'builtin'      => ! empty( $entry['builtin'] ),
+			'slug'         => isset( $entry['slug'] ) ? (string) $entry['slug'] : '',
+			'name'         => isset( $entry['name'] ) ? (string) $entry['name'] : ( isset( $entry['slug'] ) ? (string) $entry['slug'] : '' ),
+			'version'      => isset( $entry['version'] ) ? (string) $entry['version'] : '',
+			'author'       => isset( $entry['author'] ) ? (string) $entry['author'] : '',
+			'description'  => isset( $entry['description'] ) ? (string) $entry['description'] : '',
+			'icon_url'     => isset( $entry['icon_url'] ) ? (string) $entry['icon_url'] : '',
+			'download_url' => isset( $entry['download_url'] ) ? (string) $entry['download_url'] : '',
+			'tags'         => isset( $entry['tags'] ) && is_array( $entry['tags'] ) ? $entry['tags'] : array(),
+			'builtin'      => false,
+			'installed'    => ! empty( $entry['installed'] ),
 		);
 	}
-	$cache = $rows;
-	return $cache;
+	return $rows;
 }
 
 /**
  * Return the catalog entry for a given slug, or null.
+ *
+ * @param string $slug
+ * @return array|null
  */
 function odd_apps_catalog_get( $slug ) {
 	$slug = sanitize_key( (string) $slug );
@@ -96,140 +70,39 @@ function odd_apps_catalog_get( $slug ) {
 }
 
 /**
- * Install a built-in app by copying its on-disk source from the
- * plugin's apps/catalog/<slug>/ directory into wp-content/odd-apps/.
- *
- * Safe to call repeatedly — existing installs are left alone. Returns
- * the manifest on success or a WP_Error on failure (missing source,
- * missing manifest.json, or a filesystem error).
+ * v3.0+: no more built-in apps. This shim stays for third-party code
+ * that may still call it — returns a WP_Error so the caller knows
+ * nothing happened, rather than pretending success.
  */
 function odd_apps_install_builtin( $slug ) {
-	$slug = sanitize_key( (string) $slug );
-	if ( '' === $slug ) {
-		return new WP_Error( 'invalid_slug', __( 'Invalid built-in slug.', 'odd' ) );
-	}
-	if ( odd_apps_exists( $slug ) ) {
-		return odd_apps_manifest_load( $slug );
-	}
-
-	$source = ODD_APPS_CATALOG_DIR . $slug . '/';
-	if ( ! is_dir( $source ) ) {
-		return new WP_Error( 'builtin_missing', sprintf( /* translators: %s slug */ __( 'Built-in app "%s" has no source on disk.', 'odd' ), $slug ) );
-	}
-	$manifest_path = $source . 'manifest.json';
-	if ( ! is_readable( $manifest_path ) ) {
-		return new WP_Error( 'builtin_manifest_missing', sprintf( /* translators: %s slug */ __( 'Built-in app "%s" is missing manifest.json.', 'odd' ), $slug ) );
-	}
-	$raw      = file_get_contents( $manifest_path );
-	$manifest = json_decode( $raw, true );
-	if ( ! is_array( $manifest ) || empty( $manifest['slug'] ) || $manifest['slug'] !== $slug ) {
-		return new WP_Error( 'builtin_manifest_invalid', sprintf( /* translators: %s slug */ __( 'Built-in app "%s" has an invalid manifest.', 'odd' ), $slug ) );
-	}
-
-	odd_apps_ensure_storage();
-	$dest = odd_apps_dir_for( $slug );
-	if ( is_dir( $dest ) ) {
-		odd_apps_rrmdir( $dest );
-	}
-	if ( ! wp_mkdir_p( $dest ) ) {
-		return new WP_Error( 'builtin_mkdir_failed', __( 'Could not create app directory.', 'odd' ) );
-	}
-	if ( ! odd_apps_recursive_copy_dir( rtrim( $source, '/' ), rtrim( $dest, '/' ) ) ) {
-		odd_apps_rrmdir( $dest );
-		return new WP_Error( 'builtin_copy_failed', __( 'Could not copy built-in app files.', 'odd' ) );
-	}
-
-	$index          = odd_apps_index_load();
-	$index[ $slug ] = array(
-		'slug'        => $slug,
-		'name'        => isset( $manifest['name'] ) ? sanitize_text_field( (string) $manifest['name'] ) : $slug,
-		'version'     => isset( $manifest['version'] ) ? sanitize_text_field( (string) $manifest['version'] ) : '0.0.0',
-		'enabled'     => true,
-		'icon'        => isset( $manifest['icon'] ) ? sanitize_text_field( (string) $manifest['icon'] ) : 'icon.svg',
-		'description' => isset( $manifest['description'] ) ? sanitize_text_field( (string) $manifest['description'] ) : '',
-		// Default to `manage_options` so built-in apps are admin-only
-		// unless the manifest explicitly declares a lower bar. Keeps
-		// the default policy consistent with odd_apps_install() in
-		// registry.php (same serve + cookie-auth gates downstream).
-		'capability'  => isset( $manifest['capability'] ) ? sanitize_text_field( (string) $manifest['capability'] ) : 'manage_options',
-		'installed'   => time(),
-		'builtin'     => true,
+	return new WP_Error(
+		'builtin_removed',
+		sprintf(
+			/* translators: %s slug */
+			__( 'Built-in apps were retired in ODD 3.0. Install "%s" from the remote catalog instead.', 'odd' ),
+			(string) $slug
+		)
 	);
-	odd_apps_index_save( $index );
-
-	$manifest['installed'] = $index[ $slug ]['installed'];
-	$manifest['enabled']   = true;
-	$manifest['builtin']   = true;
-	odd_apps_manifest_save( $slug, $manifest );
-	odd_apps_apply_manifest_extensions( $manifest );
-
-	do_action( 'odd_app_installed', $slug, $manifest );
-	return $manifest;
 }
 
 /**
- * Seed all built-in apps. Called from the activation hook and from
- * migration #4 so a fresh install and an upgrade both wind up with
- * the same set of apps pre-installed.
+ * v3.0+: no-op. The starter pack (defined server-side in the remote
+ * catalog) handles first-run app seeding now; see
+ * odd/includes/starter-pack.php.
  */
 function odd_apps_seed_builtins() {
-	foreach ( odd_apps_catalog() as $entry ) {
-		if ( empty( $entry['builtin'] ) ) {
-			continue;
-		}
-		odd_apps_install_builtin( $entry['slug'] );
-	}
+	// Retired in v3.0.0 — kept as an extension point so third-party
+	// activation hooks that still call this don't fatal.
 }
 
 /**
- * Recursive directory copy for the built-in installer. Returns true
- * on total success, false on any failure.
+ * REST route registration. Priority 5 so the literal routes register
+ * BEFORE the generic `/apps/(?P<slug>…)` pattern in
+ * includes/apps/rest.php; WP's REST dispatcher walks routes in
+ * insertion order and returns the first regex match, so a later
+ * registration would be shadowed by the slug wildcard ("catalog"
+ * and "install-from-catalog" both satisfy `[a-z0-9-]+`).
  */
-function odd_apps_recursive_copy_dir( $src, $dst ) {
-	if ( ! is_dir( $src ) ) {
-		return false;
-	}
-	if ( ! is_dir( $dst ) && ! wp_mkdir_p( $dst ) ) {
-		return false;
-	}
-	$items = scandir( $src );
-	if ( false === $items ) {
-		return false;
-	}
-	foreach ( $items as $item ) {
-		if ( '.' === $item || '..' === $item ) {
-			continue;
-		}
-		$s = $src . DIRECTORY_SEPARATOR . $item;
-		$d = $dst . DIRECTORY_SEPARATOR . $item;
-		if ( is_link( $s ) ) {
-			continue;
-		}
-		if ( is_dir( $s ) ) {
-			if ( ! odd_apps_recursive_copy_dir( $s, $d ) ) {
-				return false;
-			}
-		} else {
-			if ( ! @copy( $s, $d ) ) {
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-/**
- * REST: GET /odd/v1/apps/catalog
- * Returns the full curated catalog (built-ins + remote). Each row
- * carries an `installed` flag so the panel can flip a download
- * button straight to "Open".
- */
-// Priority 5 so these literal routes register BEFORE the generic
-// /apps/(?P<slug>…) pattern in includes/apps/rest.php; WP's REST
-// dispatcher walks routes in insertion order and returns the first
-// regex match, so a later-registered literal would be shadowed by
-// the slug wildcard ("catalog" and "install-from-catalog" both
-// satisfy `[a-z0-9-]+`).
 add_action(
 	'rest_api_init',
 	function () {
@@ -259,160 +132,103 @@ add_action(
 	5
 );
 
+/**
+ * GET /odd/v1/apps/catalog — compatibility wrapper over the unified
+ * bundles catalog filtered to `type=app`. Shape mirrors pre-v3:
+ *
+ *   { apps: [ { slug, name, version, …, installed, builtin } ] }
+ *
+ * `builtin` is always false; the field stays for BC with any UI that
+ * still checks it.
+ */
 function odd_apps_rest_catalog() {
-	$installed = array();
-	foreach ( odd_apps_list() as $row ) {
-		$installed[ $row['slug'] ] = true;
-	}
-	$rows = array();
-	foreach ( odd_apps_catalog() as $entry ) {
-		$entry['installed'] = isset( $installed[ $entry['slug'] ] );
-		$rows[]             = $entry;
-	}
 	return rest_ensure_response(
 		array(
-			'apps' => $rows,
+			'apps' => odd_apps_catalog(),
 		)
 	);
 }
 
 /**
- * Install from the catalog by slug. Built-ins are copied from disk;
- * remote entries are downloaded via download_url, validated, and
- * installed through the standard odd_apps_install path.
+ * POST /odd/v1/apps/install-from-catalog — thin wrapper that forwards
+ * to the unified installer so the SHA256 gate, rate limiter, and
+ * download flow stay consolidated in one place.
+ *
+ * @param WP_REST_Request $req
+ * @return WP_REST_Response|WP_Error
  */
 function odd_apps_rest_install_from_catalog( WP_REST_Request $req ) {
-	try {
-		return odd_apps_rest_install_from_catalog_impl( $req );
-	} catch ( Throwable $e ) {
-		// Any uncaught throwable here would otherwise surface as a
-		// bare HTTP 500 with no body, making the install button look
-		// silently broken in the panel. Convert to a WP_Error so the
-		// panel's status line can show the real failure cause.
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( 'ODD apps: install-from-catalog threw ' . get_class( $e ) . ': ' . $e->getMessage() );
-		}
+	if ( ! function_exists( 'odd_bundle_rest_install_from_catalog' ) ) {
 		return new WP_Error(
-			'install_exception',
-			sprintf( /* translators: %s exception message */ __( 'Install crashed: %s', 'odd' ), $e->getMessage() ),
+			'catalog_unavailable',
+			__( 'Bundle catalog is unavailable. Refresh the page and try again.', 'odd' ),
 			array( 'status' => 500 )
 		);
 	}
-}
 
-function odd_apps_rest_install_from_catalog_impl( WP_REST_Request $req ) {
 	$slug = sanitize_key( (string) $req->get_param( 'slug' ) );
 	if ( '' === $slug ) {
 		return new WP_Error( 'invalid_slug', __( 'Missing slug.', 'odd' ), array( 'status' => 400 ) );
 	}
-	$entry = odd_apps_catalog_get( $slug );
-	if ( null === $entry ) {
-		return new WP_Error( 'not_in_catalog', __( 'App is not in the catalog.', 'odd' ), array( 'status' => 404 ) );
-	}
-	if ( odd_apps_exists( $slug ) ) {
-		return new WP_Error( 'already_installed', __( 'App is already installed.', 'odd' ), array( 'status' => 409 ) );
-	}
 
-	if ( ! empty( $entry['builtin'] ) ) {
-		$result = odd_apps_install_builtin( $slug );
-		if ( is_wp_error( $result ) ) {
-			return $result;
+	// Reject non-app slugs up front so a caller to the apps-namespaced
+	// endpoint can't install a scene / icon-set / widget through it.
+	if ( function_exists( 'odd_catalog_row_for' ) ) {
+		$entry = odd_catalog_row_for( $slug );
+		if ( null === $entry ) {
+			return new WP_Error( 'not_in_catalog', __( 'App is not in the catalog.', 'odd' ), array( 'status' => 404 ) );
 		}
-		return rest_ensure_response(
-			array(
-				'installed' => true,
-				'manifest'  => $result,
-			)
-		);
-	}
-
-	$download_url = isset( $entry['download_url'] ) ? (string) $entry['download_url'] : '';
-	if ( '' === $download_url ) {
-		return new WP_Error( 'no_download', __( 'Catalog entry has no download URL.', 'odd' ), array( 'status' => 400 ) );
-	}
-
-	// Enforce HTTPS for remote installs. An HTTP source could be MITM'd
-	// to swap the archive we validate+extract with root-equivalent
-	// capability. Sites that genuinely need HTTP (localhost dev) can
-	// override via the `odd_apps_allow_insecure_catalog` filter.
-	$scheme      = strtolower( (string) wp_parse_url( $download_url, PHP_URL_SCHEME ) );
-	$allow_plain = (bool) apply_filters( 'odd_apps_allow_insecure_catalog', false, $entry );
-	if ( 'https' !== $scheme && ! $allow_plain ) {
-		return new WP_Error( 'insecure_download', __( 'Catalog downloads must use HTTPS.', 'odd' ), array( 'status' => 400 ) );
-	}
-	/**
-	 * Filter the URL before it is fetched. Return a WP_Error to block
-	 * (e.g. enforce a host allow-list in an enterprise deployment).
-	 *
-	 * @param string|WP_Error $url   The download URL.
-	 * @param array           $entry The full catalog row.
-	 */
-	$download_url = apply_filters( 'odd_apps_catalog_download_url', $download_url, $entry );
-	if ( is_wp_error( $download_url ) ) {
-		return $download_url;
-	}
-
-	if ( ! function_exists( 'download_url' ) ) {
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-	}
-	// Bump to 60s: Playground's outbound proxy can be slow on cold
-	// caches and 30s occasionally clips small .wp bundles in transit.
-	$tmp = download_url( $download_url, 60 );
-	if ( is_wp_error( $tmp ) ) {
-		return new WP_Error(
-			'download_failed',
-			sprintf( /* translators: %s error message */ __( 'Could not download bundle: %s', 'odd' ), $tmp->get_error_message() ),
-			array( 'status' => 502 )
-		);
-	}
-
-	// Sanity-check: the outbound proxy might return an HTML error
-	// page (rate limit, captive portal, CORS proxy quirk). Reject
-	// anything that isn't a local ZIP by magic bytes before handing
-	// to the heavier validation path.
-	$fh = @fopen( $tmp, 'rb' );
-	if ( $fh ) {
-		$magic = (string) fread( $fh, 4 );
-		fclose( $fh );
-		if ( 0 !== strncmp( $magic, "PK\x03\x04", 4 ) && 0 !== strncmp( $magic, "PK\x05\x06", 4 ) ) {
-			wp_delete_file( $tmp );
-			return new WP_Error(
-				'not_a_zip',
-				__( 'The downloaded file is not a valid .wp archive (server returned non-ZIP content).', 'odd' ),
-				array( 'status' => 502 )
-			);
+		if ( 'app' !== ( isset( $entry['type'] ) ? $entry['type'] : '' ) ) {
+			return new WP_Error( 'not_an_app', __( 'That slug is not an app.', 'odd' ), array( 'status' => 400 ) );
 		}
 	}
 
-	$filename = wp_parse_url( $download_url, PHP_URL_PATH );
-	$filename = $filename ? basename( $filename ) : $slug . '.wp';
-	$result   = odd_apps_install( $tmp, $filename );
-	wp_delete_file( $tmp );
+	$forwarded = new WP_REST_Request( 'POST', '/odd/v1/bundles/install-from-catalog' );
+	$forwarded->set_param( 'slug', $slug );
+	$result = odd_bundle_rest_install_from_catalog( $forwarded );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
-	return rest_ensure_response(
-		array(
-			'installed' => true,
-			'manifest'  => $result,
-		)
-	);
+
+	// Normalise the response shape to what legacy callers expect:
+	// `{ installed: true, manifest: { … } }`. The unified endpoint
+	// returns `{ installed, slug, version, type }`; we re-load the
+	// manifest from disk so the panel's "Open" button can light up.
+	$data = $result->get_data();
+	if ( function_exists( 'odd_apps_manifest_load' ) ) {
+		$manifest = odd_apps_manifest_load( $slug );
+		if ( ! is_wp_error( $manifest ) ) {
+			return rest_ensure_response(
+				array(
+					'installed' => ! empty( $data['installed'] ),
+					'manifest'  => $manifest,
+				)
+			);
+		}
+	}
+	return $result;
 }
 
 /**
- * Activation + migration hook-up. Built-ins used to seed the Hello ODD
- * demo app; v1.0.5 removes that app, so the seed path stays as an
- * extension point but is a no-op for ODD's own catalog.
+ * Activation hook. No-op seed — the starter pack installer in
+ * odd/includes/starter-pack.php downloads whatever the remote catalog
+ * declares as the first-run set. We still ensure `wp-content/odd-apps/`
+ * exists so the very first install doesn't race on mkdir.
  */
 register_activation_hook(
 	ODD_FILE,
 	function () {
-		odd_apps_ensure_storage();
-		odd_apps_seed_builtins();
+		if ( function_exists( 'odd_apps_ensure_storage' ) ) {
+			odd_apps_ensure_storage();
+		}
 	}
 );
 
+/**
+ * Legacy migration hooks retained as no-ops so the migration runner
+ * doesn't re-execute stale built-in seeding on upgrade. Third-party
+ * filters that append higher-numbered migrations still work.
+ */
 add_filter(
 	'odd_migrations',
 	function ( $migrations ) {
@@ -424,9 +240,8 @@ add_filter(
 
 function odd_migration_4_seed_builtins( $user_id ) {
 	unset( $user_id );
-	if ( function_exists( 'odd_apps_seed_builtins' ) ) {
-		odd_apps_seed_builtins();
-	}
+	// v3.0.0: retired. Built-ins are no longer seeded client-side;
+	// the remote catalog's starter_pack handles first-run content.
 }
 
 function odd_migration_5_remove_hello_odd( $user_id ) {

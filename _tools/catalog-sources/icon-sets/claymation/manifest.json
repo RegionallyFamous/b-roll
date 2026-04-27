@@ -1,0 +1,25 @@
+{
+  "slug": "claymation",
+  "label": "Claymation",
+  "franchise": "Handmade",
+  "accent": "#ffb84d",
+  "preview": "dashboard.svg",
+  "description": "Puffy stop-motion clay sculpts with soft speculars on warm primaries. Feels pressed by hand.",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

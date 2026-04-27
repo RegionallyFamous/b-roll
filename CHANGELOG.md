@@ -16,6 +16,36 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.0.0"></a>
+## [3.0.0] — 2026-04-27
+
+### Changed
+- **The plugin is empty.** Every wallpaper, icon set, widget, and app that used to ship inside the plugin now lives in a remote catalog at [`https://odd.regionallyfamous.com/catalog/v1/registry.json`](https://odd.regionallyfamous.com/catalog/v1/registry.json). The plugin zip drops from ~1 MB to well under 500 KB and ships zero binary content. Adding new scenes / icon sets / widgets / apps no longer requires a plugin release — land them in `_tools/catalog-sources/` on `main` and the next `pages.yml` run publishes them.
+- **Content is installed on demand.** The ODD Shop renders empty "Nothing installed yet" states on a cold boot and pulls catalog entries in as universal `.wp` bundles when you click Install. Downloads are verified against an SHA256 from the registry before extraction, so tampered bundles can't take the site over.
+- **Starter pack on activation.** On plugin activation, ODD schedules a one-off cron that reads `starter_pack` from the remote registry and installs the default scene + icon set (currently `flux` + `filament`). The cron retries with exponential backoff (5 s → 6 h) if the catalog is unreachable, and `admin_init` reschedules missed runs. State is stored in the `odd_starter_state` option; `GET /wp-json/odd/v1/starter` + `POST /wp-json/odd/v1/starter/retry` expose it.
+- **Pending fallback scene.** A single built-in `odd-pending` gradient is registered statically in `src/wallpaper/index.js` so the desktop has something to paint in the window between activation and the first starter-pack install. It's hidden from the Shop catalog.
+- **Unified bundle installer.** The legacy `/odd/v1/apps/catalog` and `/odd/v1/apps/install-from-catalog` endpoints are now thin compatibility shims that forward to `/odd/v1/bundles/catalog?type=app` + `/odd/v1/bundles/install-from-catalog`. `odd_apps_install_builtin()` and `odd_apps_seed_builtins()` are retained as no-ops for older callers but warn that built-in apps are retired.
+- **Filter-driven registries.** `odd_wallpaper_scenes()` no longer reads a bundled `scenes.json` — it returns whatever the `odd_scene_registry` filter provides, which is populated by installed bundles via `includes/content/scenes.php`. `odd_wallpaper_default_scene()` prefers the starter pack's first scene so mid-install admin loads still see a sensible default.
+
+### Added
+- **`_tools/catalog-sources/`.** The new source of truth for every bundle. Each scene / icon set / widget / app lives in its own subdirectory with the files the builder zips into a `.wp`. A `starter-pack.json` at the root lists the slugs the first-run installer should fetch.
+- **`_tools/build-catalog.py`.** Deterministic builder that walks `_tools/catalog-sources/`, produces `.wp` archives + icon SVGs with fixed mtimes and stable compression flags, and writes `site/catalog/v1/registry.json` + `registry.schema.json`. Running it twice on the same source tree produces byte-identical output.
+- **`odd/bin/validate-catalog`.** Rewritten to assert schema validity, bundle file presence, ZIP integrity, manifest consistency, size + SHA256 matches between the registry and the on-disk bundles, starter-pack slug resolution, and — when `ODD_VALIDATE_REBUILD=1` — that a fresh `build-catalog.py` run is byte-identical to the committed output.
+- **Catalog fetch + transient cache.** `odd_catalog_load()` in `includes/content/catalog.php` pulls `registry.json` with `wp_remote_get()`, caches it for 12 hours in the `odd_catalog` transient, and serves stale data on failure. `ODD_CATALOG_URL` + the `odd_catalog_url` filter let vendors point ODD at their own registry. `POST /odd/v1/bundles/refresh` forces a re-fetch.
+- **`ci/smoke/odd-smoke-fixture.php`.** MU-plugin used only by `install-smoke.yml`. It intercepts outbound HTTP to `/catalog/v1/` paths with a `pre_http_request` filter and serves locally-built fixtures from `ODD_SMOKE_FIXTURE_ROOT`, so the smoke suite can prove the starter-pack installer works hermetically without depending on the live Pages deploy.
+
+### Removed
+- **Bundled content.** `odd/src/wallpaper/scenes/**`, `odd/src/wallpaper/scenes.json`, `odd/src/wallpaper/drifters.json`, `odd/assets/wallpapers/**`, `odd/assets/previews/**`, `odd/assets/icons/**`, `odd/apps/catalog/**`, and the stock `odd/src/widgets/index.js` + `style.css` are all gone. The Sticky Note and Magic 8-Ball widgets now live in the remote catalog.
+- **Enqueue of `odd-widgets`.** The plugin no longer emits a stock widgets script/style; installed widget bundles self-enqueue through `includes/content/widgets.php`.
+- **`odd/bin/validate-scenes` + `odd/bin/validate-icon-sets`.** Folded into `odd/bin/validate-catalog`.
+- **`_tools/build-catalog-bundles.py`.** Replaced by `_tools/build-catalog.py`.
+- **`.github/workflows/ci.yml` validate-scenes + validate-icon-sets jobs.** Replaced by `catalog-build-and-validate`.
+
+### Breaking
+- Fresh installs see empty Shop departments for a few seconds until the starter-pack cron fires. Any UI that previously assumed "ODD activation == 19 scenes + 17 icon sets on disk" will see zero of each until the remote install completes.
+- `odd/bin/validate-scenes` and `odd/bin/validate-icon-sets` no longer exist; anything invoking them must switch to `odd/bin/validate-catalog`.
+- The plugin zip budget (`odd/bin/build-zip`) dropped from 35 MB to 2 MB. CI fails a release that accidentally reintroduces bundled content.
+
 <a id="v2.1.0"></a>
 ## [2.1.0] — 2026-04-27
 

@@ -20,13 +20,13 @@
  * whole file still stays under a few seconds in CI on modern hardware.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const SCENES_DIR = resolve( __dirname, '../../src/wallpaper/scenes' );
-const SCENES_JSON = resolve( __dirname, '../../src/wallpaper/scenes.json' );
+// v3.0+: scenes live under _tools/catalog-sources/scenes/<slug>/.
+const SCENES_DIR = resolve( __dirname, '../../../_tools/catalog-sources/scenes' );
 const BASELINE_FILE = resolve( __dirname, 'scene-perf-baseline.json' );
 const BUDGETS_FILE = resolve( __dirname, 'scene-perf-budget.json' );
 
@@ -124,7 +124,7 @@ function median( sortedMs ) {
 
 function sampleScene( slug, tier ) {
 	window.__odd = {}; installHelpers(); window.__odd.scenes = {};
-	const src = readFileSync( resolve( SCENES_DIR, `${ slug }.js` ), 'utf8' );
+	const src = readFileSync( resolve( SCENES_DIR, slug, 'scene.js' ), 'utf8' );
 	const fn = new Function( `${ src }\n//# sourceURL=${ slug }.js` );
 	fn.call( globalThis );
 	const scene = window.__odd.scenes[ slug ];
@@ -149,8 +149,21 @@ function sampleScene( slug, tier ) {
 	};
 }
 
-const manifest = JSON.parse( readFileSync( SCENES_JSON, 'utf8' ) );
-const SCENES = Array.isArray( manifest ) ? manifest : ( manifest && Array.isArray( manifest.scenes ) ? manifest.scenes : [] );
+function readScenes() {
+	if ( ! existsSync( SCENES_DIR ) ) return [];
+	return readdirSync( SCENES_DIR )
+		.filter( ( name ) => statSync( resolve( SCENES_DIR, name ) ).isDirectory() )
+		.map( ( slug ) => {
+			const metaPath = resolve( SCENES_DIR, slug, 'meta.json' );
+			const meta = existsSync( metaPath )
+				? JSON.parse( readFileSync( metaPath, 'utf8' ) )
+				: {};
+			return { slug, ...meta };
+		} )
+		.sort( ( a, b ) => a.slug.localeCompare( b.slug ) );
+}
+
+const SCENES = readScenes();
 
 describe( 'scene perf sampler', () => {
 	const results = {};

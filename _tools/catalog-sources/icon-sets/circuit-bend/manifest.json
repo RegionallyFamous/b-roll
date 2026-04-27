@@ -1,0 +1,25 @@
+{
+  "slug": "circuit-bend",
+  "label": "Circuit Bend",
+  "franchise": "Technical",
+  "accent": "#2fb37a",
+  "preview": "dashboard.svg",
+  "description": "PCB-green tiles with gold traces, solder pads, and a tiny red LED in the corner. Pairs with Circuit Garden.",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

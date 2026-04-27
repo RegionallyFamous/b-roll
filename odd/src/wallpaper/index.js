@@ -132,19 +132,93 @@
 	var PLUGIN_URL = cfg.pluginUrl || '';
 	var VERSION    = cfg.version   || '0';
 	var VER_QS     = VERSION ? '?v=' + encodeURIComponent( VERSION ) : '';
-	var SCENES     = Array.isArray( cfg.scenes ) ? cfg.scenes : [];
+	var SCENES     = Array.isArray( cfg.scenes ) ? cfg.scenes.slice() : [];
+
+	// Always-available built-in fallback. Shown when no scene bundle is
+	// installed yet (e.g. immediately after plugin activation while
+	// the starter pack is still downloading) so the desktop renders a
+	// finished surface instead of a blank Pixi canvas. Also used by
+	// the engine as the safe default when `prefs.scene` points at a
+	// scene that hasn't been installed (removed bundle, fresh user).
+	var PENDING_SLUG = 'odd-pending';
+	var PENDING_DESC = {
+		slug:          PENDING_SLUG,
+		label:         'Setting up ODD…',
+		franchise:     'ODD',
+		tags:          [ 'pending', 'builtin' ],
+		fallbackColor: '#10121a',
+		installed:     true,
+	};
+	if ( ! SCENES.some( function ( s ) { return s && s.slug === PENDING_SLUG; } ) ) {
+		SCENES.push( PENDING_DESC );
+	}
+
 	var SCENE_MAP  = {};
 	for ( var si = 0; si < SCENES.length; si++ ) {
 		SCENE_MAP[ SCENES[ si ].slug ] = SCENES[ si ];
 	}
+
+	// Self-register the pending scene impl. A thin animated gradient:
+	// two soft radial blobs drifting over a dark midnight field. No
+	// assets, no network — works on a fresh install with zero bundles.
+	window.__odd.scenes[ PENDING_SLUG ] = {
+		setup: function ( env ) {
+			var PIXI = env.PIXI;
+			var app  = env.app;
+			var base = new PIXI.Graphics();
+			base.rect( 0, 0, app.renderer.width, app.renderer.height ).fill( 0x10121a );
+			app.stage.addChild( base );
+			var bloom = env.helpers.makeBloomLayer( PIXI, 18 );
+			app.stage.addChild( bloom );
+			function blob( color ) {
+				var g = new PIXI.Graphics();
+				g.circle( 0, 0, 320 ).fill( { color: color, alpha: 0.55 } );
+				bloom.addChild( g );
+				return g;
+			}
+			var b1 = blob( 0x8a5cff );
+			var b2 = blob( 0xffb000 );
+			var t  = 0;
+			return { base: base, b1: b1, b2: b2, t: t };
+		},
+		tick: function ( state, env ) {
+			state.t += env.dt * 0.008;
+			var w = env.app.renderer.width;
+			var h = env.app.renderer.height;
+			state.b1.position.set(
+				w * 0.5 + Math.sin( state.t ) * w * 0.25,
+				h * 0.5 + Math.cos( state.t * 0.7 ) * h * 0.2
+			);
+			state.b2.position.set(
+				w * 0.5 + Math.cos( state.t * 0.6 ) * w * 0.3,
+				h * 0.5 + Math.sin( state.t * 0.9 ) * h * 0.25
+			);
+		},
+		stillFrame: function ( state, env ) {
+			var w = env.app.renderer.width;
+			var h = env.app.renderer.height;
+			state.b1.position.set( w * 0.3, h * 0.4 );
+			state.b2.position.set( w * 0.7, h * 0.6 );
+		},
+		onResize: function ( state, env ) {
+			state.base.clear();
+			state.base.rect( 0, 0, env.app.renderer.width, env.app.renderer.height ).fill( 0x10121a );
+		},
+	};
 
 	function assetUrl( rel ) {
 		return PLUGIN_URL + '/' + rel.replace( /^\/+/, '' ) + VER_QS;
 	}
 
 	function defaultScene() {
-		if ( SCENE_MAP.flux ) return 'flux';
-		return SCENES.length ? SCENES[ 0 ].slug : '';
+		// Prefer any real installed scene over the builtin fallback.
+		for ( var di = 0; di < SCENES.length; di++ ) {
+			var s = SCENES[ di ];
+			if ( s && s.slug && s.slug !== PENDING_SLUG ) {
+				return s.slug;
+			}
+		}
+		return PENDING_SLUG;
 	}
 
 	function previewBg( slug ) {
@@ -307,9 +381,16 @@
 				'transition:opacity .4s ease;opacity:1;pointer-events:none;';
 			container.appendChild( firstPaint );
 			function setFirstPaint( slug ) {
-				var s   = SCENE_MAP[ slug ] || {};
-				var url = s.wallpaperUrl || assetUrl( 'assets/wallpapers/' + slug + '.webp' );
-				firstPaint.style.backgroundImage = 'url("' + url + '")';
+				var s = SCENE_MAP[ slug ] || {};
+				if ( slug === PENDING_SLUG || ! s.wallpaperUrl ) {
+					// Pending fallback + edge cases (no installed bundle
+					// yet) have no static backdrop — fade the Pixi canvas
+					// in over the scene's fallbackColor.
+					firstPaint.style.backgroundImage = '';
+					firstPaint.style.backgroundColor = s.fallbackColor || '#10121a';
+					return;
+				}
+				firstPaint.style.backgroundImage = 'url("' + s.wallpaperUrl + '")';
 			}
 
 			if ( ! window.PIXI ) {
@@ -452,7 +533,8 @@
 			function sampleAccent( slug ) {
 				if ( accentCache[ slug ] ) return Promise.resolve( accentCache[ slug ] );
 				var s   = SCENE_MAP[ slug ] || {};
-				var url = s.wallpaperUrl || assetUrl( 'assets/wallpapers/' + slug + '.webp' );
+				if ( ! s.wallpaperUrl ) return Promise.resolve( null );
+				var url = s.wallpaperUrl;
 				return new Promise( function ( resolve ) {
 					var img = new window.Image();
 					img.onload = function () {

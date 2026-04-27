@@ -1,9 +1,13 @@
 name: install-smoke
 
 # Boots a real WordPress install under MySQL, activates WP Desktop Mode
-# and odd.zip, and asserts that ODD's core entry points are live. Gates
-# the release pipeline: if odd.zip would fatal on a clean install, we
-# want to know BEFORE the GH release goes public.
+# and odd.zip, serves a local fixture catalog via a pre_http_request
+# MU-plugin so the install is hermetic, and asserts that:
+#   1. ODD activates cleanly against a zero-content plugin.
+#   2. The starter-pack installer downloads the fixture bundles and
+#      leaves the site with real content in every registry.
+# Gates the release pipeline: if odd.zip would fatal on a clean install,
+# we want to know BEFORE the GH release goes public.
 
 on:
   workflow_call:
@@ -42,6 +46,10 @@ jobs:
           extensions: mysqli, zip, dom, gd, mbstring, xml, intl
           coverage: none
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Wait for MySQL
         run: |
           for i in $(seq 1 30); do
@@ -58,6 +66,15 @@ jobs:
           chmod +x wp-cli.phar
           sudo mv wp-cli.phar /usr/local/bin/wp
           wp --info
+
+      - name: Build fixture catalog from _tools/catalog-sources/
+        run: |
+          # Build the full catalog — it doubles as a hermetic smoke
+          # fixture. The pre_http_request MU-plugin maps any /catalog/v1/
+          # request onto these files so no network traffic leaks.
+          python3 _tools/build-catalog.py
+          ls -la site/catalog/v1/
+          head -20 site/catalog/v1/registry.json
 
       - name: Build odd.zip if missing
         run: |
@@ -81,6 +98,7 @@ jobs:
           define( 'WP_DEBUG', true );
           define( 'WP_DEBUG_LOG', true );
           define( 'WP_DEBUG_DISPLAY', false );
+          define( 'ODD_SMOKE_FIXTURE_ROOT', WP_CONTENT_DIR . '/odd-smoke-fixture' );
           PHP
           wp core install \
             --url=http://localhost \
@@ -89,6 +107,17 @@ jobs:
             --admin_password=smoke \
             --admin_email=smoke@example.com \
             --skip-email
+
+      - name: Stage fixture catalog + MU-plugin
+        run: |
+          # Mirror the built catalog into wp-content/odd-smoke-fixture/
+          # where the MU-plugin expects to find it.
+          mkdir -p /tmp/wp/wp-content/odd-smoke-fixture
+          cp -R "$GITHUB_WORKSPACE/site/catalog/v1/." /tmp/wp/wp-content/odd-smoke-fixture/
+          mkdir -p /tmp/wp/wp-content/mu-plugins
+          cp "$GITHUB_WORKSPACE/ci/smoke/odd-smoke-fixture.php" /tmp/wp/wp-content/mu-plugins/
+          ls /tmp/wp/wp-content/mu-plugins/
+          ls /tmp/wp/wp-content/odd-smoke-fixture/ | head
 
       - name: Install WP Desktop Mode (host plugin)
         working-directory: /tmp/wp
@@ -107,10 +136,32 @@ jobs:
         run: |
           wp plugin list --status=active --field=name | grep -E '^odd$'
 
-      - name: Assert scene catalog loads
+      - name: Assert plugin ships zero content by default
         working-directory: /tmp/wp
         run: |
-          wp eval 'exit( count( odd_wallpaper_scene_slugs() ) >= 19 ? 0 : 1 );'
+          # ODD 3.0 is empty by design. Before the starter pack runs,
+          # every registry should be empty modulo the runtime pending
+          # scene (which isn't exposed through odd_wallpaper_scenes).
+          wp eval '$n = count( odd_wallpaper_scene_slugs() ); echo "scene slugs: $n\n"; exit( 0 === $n ? 0 : 1 );'
+          wp eval 'if ( ! function_exists( "odd_icons_get_sets" ) ) { exit( 0 ); } $n = count( odd_icons_get_sets() ); echo "icon sets: $n\n"; exit( 0 === $n ? 0 : 1 );'
+
+      - name: Run starter-pack installer synchronously
+        working-directory: /tmp/wp
+        run: |
+          # Short-circuit the cron wait — call the runner directly.
+          # The MU-plugin intercepts the catalog HTTP calls so this is
+          # deterministic and fast.
+          wp eval 'odd_starter_run();'
+          wp eval '$s = odd_starter_get_state(); echo "starter state: " . $s["status"] . " (attempts=" . $s["attempts"] . ")\n"; if ( $s["last_error"] ) { echo "last error: " . $s["last_error"] . "\n"; } exit( "installed" === $s["status"] ? 0 : 1 );'
+
+      - name: Assert starter pack populated the registries
+        working-directory: /tmp/wp
+        run: |
+          # Starter pack ships a non-empty scene + icon set set (see
+          # _tools/catalog-sources/starter-pack.json). After the run
+          # the plugin registries should carry those slugs.
+          wp eval '$n = count( odd_wallpaper_scene_slugs() ); echo "scene slugs after starter: $n\n"; exit( $n >= 1 ? 0 : 1 );'
+          wp eval 'if ( ! function_exists( "odd_icons_get_sets" ) ) { echo "no icons API; skipping\n"; exit( 0 ); } $n = count( odd_icons_get_sets() ); echo "icon sets after starter: $n\n"; exit( $n >= 1 ? 0 : 1 );'
 
       - name: Assert apps API is loaded
         working-directory: /tmp/wp
@@ -121,11 +172,6 @@ jobs:
         working-directory: /tmp/wp
         run: |
           wp eval 'global $wp_filter; exit( isset( $wp_filter["desktop_mode_dock_item"] ) ? 0 : 1 );'
-
-      - name: Assert icon-set registry populated
-        working-directory: /tmp/wp
-        run: |
-          wp eval 'exit( count( odd_icons_get_sets() ) >= 17 ? 0 : 1 );'
 
       - name: Assert widget bundle API loaded
         working-directory: /tmp/wp
@@ -210,6 +256,10 @@ jobs:
           $data = $resp->get_data();
           if ( ! is_array( $data ) || ! isset( $data['bundles'] ) || ! is_array( $data['bundles'] ) ) {
               fwrite( STDERR, "catalog response missing `bundles` array\n" );
+              exit( 1 );
+          }
+          if ( count( $data['bundles'] ) < 1 ) {
+              fwrite( STDERR, "catalog response is empty (MU fixture not wired?)\n" );
               exit( 1 );
           }
           exit( 0 );

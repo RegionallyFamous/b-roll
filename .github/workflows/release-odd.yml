@@ -27,12 +27,14 @@ jobs:
           expected="${tag#v}"
           odd/bin/check-version --expect "$expected"
 
-      - name: Run scene + icon-set + catalog validators
+      - name: Build + validate remote catalog
         run: |
           set -e
-          odd/bin/validate-scenes
-          odd/bin/validate-icon-sets
-          odd/bin/validate-catalog
+          # v3.0+: every piece of ODD content lives in the remote
+          # catalog. Build it first so validate-catalog has
+          # site/catalog/v1/ to point at.
+          python3 _tools/build-catalog.py
+          ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog
 
       - name: Regenerate POT (odd/languages/odd.pot)
         run: |

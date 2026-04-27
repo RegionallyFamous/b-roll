@@ -12,8 +12,8 @@ set, widget, or app to ship as a `.wp` bundle, see
 3. Run the local validation pass:
    ```sh
    odd/bin/check-version && \
-     odd/bin/validate-scenes && \
-     odd/bin/validate-icon-sets && \
+     python3 _tools/build-catalog.py && \
+     ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog && \
      npm test && \
      vendor/bin/phpunit
    ```
@@ -45,7 +45,7 @@ step — plain JS, loaded via `wp_enqueue_script`.
 - **Playwright e2e** (`npm run test:e2e` against a local WP): boots the panel and asserts the canvas renders.
 - **install-smoke** (runs in CI only): full WP install + bundle install + registry assertions.
 
-Adding a new scene? Include a 640×360 preview.webp and 1920×1080 wallpaper.webp, run `odd/bin/validate-scenes`, and drop a row into `odd/src/wallpaper/scenes.json`.
+Adding a new scene? Create `_tools/catalog-sources/scenes/<slug>/` with `scene.js`, `meta.json`, a 640×360 `preview.webp`, and a 1920×1080 `wallpaper.webp`, then run `python3 _tools/build-catalog.py && odd/bin/validate-catalog`. New content ships through the remote catalog (GitHub Pages deploy on push to `main`) — no plugin release needed.
 
 ## Style
 

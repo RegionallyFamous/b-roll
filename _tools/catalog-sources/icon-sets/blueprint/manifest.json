@@ -1,0 +1,25 @@
+{
+  "slug": "blueprint",
+  "label": "Blueprint",
+  "franchise": "Drafting",
+  "accent": "#4da3ff",
+  "preview": "dashboard.svg",
+  "description": "Full-color blueprint tiles: cobalt glass, cyan construction lines, brass labels, and dimensional admin glyphs.",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

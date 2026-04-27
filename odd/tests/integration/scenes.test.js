@@ -1,9 +1,15 @@
 /**
- * scenes.test.js — smoke-test every scene in scenes.json.
+ * scenes.test.js — smoke-test every scene source in the catalog.
  *
- * For each slug:
- *   - The scene JS file exists at odd/src/wallpaper/scenes/<slug>.js.
- *   - Evaluating the file (which is an IIFE) registers the scene onto
+ * v3.0+ the plugin ships no scenes — the source of truth lives in
+ * `_tools/catalog-sources/scenes/<slug>/` (one folder per bundle:
+ * scene.js + meta.json + wallpaper.webp + preview.webp). This test
+ * walks that directory directly so the guarantees survive the move
+ * to a remote catalog:
+ *
+ *   - Each scene folder ships scene.js + meta.json + preview.webp +
+ *     wallpaper.webp on disk.
+ *   - Evaluating scene.js (an IIFE) registers onto
  *     `window.__odd.scenes[slug]`.
  *   - The registered object exposes `setup` + `tick` as functions.
  *   - A safe sync call to setup() with a Proxy-backed PIXI stub
@@ -16,18 +22,28 @@
  * actually hit in the past.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const SCENES_DIR = resolve( __dirname, '../../src/wallpaper/scenes' );
-const SCENES_JSON = resolve( __dirname, '../../src/wallpaper/scenes.json' );
+const SCENES_DIR = resolve( __dirname, '../../../_tools/catalog-sources/scenes' );
 
-const manifest = JSON.parse( readFileSync( SCENES_JSON, 'utf8' ) );
-const SCENES = Array.isArray( manifest )
-	? manifest
-	: ( manifest && Array.isArray( manifest.scenes ) ? manifest.scenes : [] );
+function readScenes() {
+	if ( ! existsSync( SCENES_DIR ) ) return [];
+	return readdirSync( SCENES_DIR )
+		.filter( ( name ) => statSync( resolve( SCENES_DIR, name ) ).isDirectory() )
+		.map( ( slug ) => {
+			const metaPath = resolve( SCENES_DIR, slug, 'meta.json' );
+			const meta = existsSync( metaPath )
+				? JSON.parse( readFileSync( metaPath, 'utf8' ) )
+				: {};
+			return { slug, ...meta };
+		} )
+		.sort( ( a, b ) => a.slug.localeCompare( b.slug ) );
+}
+
+const SCENES = readScenes();
 
 function createPixiStub() {
 	function stubFactory() {
@@ -113,17 +129,19 @@ function makeEnv( PIXI ) {
 	};
 }
 
-describe( 'scenes manifest', () => {
-	it( 'scenes.json contains at least one scene', () => {
+describe( 'scenes catalog sources', () => {
+	it( '_tools/catalog-sources/scenes/ contains at least one scene', () => {
 		expect( SCENES.length ).toBeGreaterThan( 0 );
 	} );
 
 	it.each( SCENES.map( ( s ) => [ s.slug, s ] ) )(
-		'scene %s has JS + preview + wallpaper on disk',
+		'scene %s ships scene.js + meta.json + preview.webp + wallpaper.webp on disk',
 		( slug ) => {
-			expect( existsSync( resolve( SCENES_DIR, `${ slug }.js` ) ) ).toBe( true );
-			expect( existsSync( resolve( __dirname, `../../assets/previews/${ slug }.webp` ) ) ).toBe( true );
-			expect( existsSync( resolve( __dirname, `../../assets/wallpapers/${ slug }.webp` ) ) ).toBe( true );
+			const dir = resolve( SCENES_DIR, slug );
+			expect( existsSync( resolve( dir, 'scene.js' ) ) ).toBe( true );
+			expect( existsSync( resolve( dir, 'meta.json' ) ) ).toBe( true );
+			expect( existsSync( resolve( dir, 'preview.webp' ) ) ).toBe( true );
+			expect( existsSync( resolve( dir, 'wallpaper.webp' ) ) ).toBe( true );
 		}
 	);
 } );
@@ -138,7 +156,7 @@ describe( 'scene registration + surface contract', () => {
 	it.each( SCENES.map( ( s ) => [ s.slug ] ) )(
 		'scene %s loads, registers, exposes setup + tick',
 		( slug ) => {
-			const src = readFileSync( resolve( SCENES_DIR, `${ slug }.js` ), 'utf8' );
+			const src = readFileSync( resolve( SCENES_DIR, slug, 'scene.js' ), 'utf8' );
 			const fn = new Function( `${ src }\n//# sourceURL=${ slug }.js` );
 			expect( () => fn.call( globalThis ) ).not.toThrow();
 
@@ -152,7 +170,7 @@ describe( 'scene registration + surface contract', () => {
 	it.each( SCENES.map( ( s ) => [ s.slug ] ) )(
 		'scene %s setup() does not throw synchronously',
 		( slug ) => {
-			const src = readFileSync( resolve( SCENES_DIR, `${ slug }.js` ), 'utf8' );
+			const src = readFileSync( resolve( SCENES_DIR, slug, 'scene.js' ), 'utf8' );
 			const fn = new Function( `${ src }\n//# sourceURL=${ slug }.js` );
 			fn.call( globalThis );
 

@@ -1,0 +1,25 @@
+{
+  "slug": "monoline",
+  "label": "Monoline",
+  "franchise": "Pop UI",
+  "accent": "#00c2ff",
+  "preview": "dashboard.svg",
+  "description": "No longer monochrome: glossy full-color UI stickers with thick glyphs, candy gradients, and readable dark backing plates.",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

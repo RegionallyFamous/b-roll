@@ -1,9 +1,12 @@
 /**
- * widgets.test.js — smoke-test the two ODD widgets.
+ * widgets.test.js — smoke-test the two stock ODD widget bundles.
  *
- * Captures both `wp.desktop.registerWidget` calls from
- * odd/src/widgets/index.js, then mounts each widget against a
- * detached DOM container and exercises the minimum interactions:
+ * v3.0+ the widgets ship as separate catalog bundles under
+ * `_tools/catalog-sources/widgets/sticky/` and `.../eight-ball/`.
+ * Each bundle self-registers through `wp.desktop.registerWidget`;
+ * this test loads both bundle sources, captures the registration
+ * calls, then mounts each widget against a detached DOM container
+ * and exercises the minimum interactions:
  *
  *   - Sticky: typing saves to localStorage after the debounce window.
  *   - Eight-ball: clicking adds `.is-shaking`, swaps the answer,
@@ -19,8 +22,11 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const WIDGETS_JS  = resolve( __dirname, '../../src/widgets/index.js' );
-const WIDGETS_CSS = resolve( __dirname, '../../src/widgets/style.css' );
+const WIDGETS_ROOT = resolve( __dirname, '../../../_tools/catalog-sources/widgets' );
+const STICKY_JS    = resolve( WIDGETS_ROOT, 'sticky/widget.js' );
+const STICKY_CSS   = resolve( WIDGETS_ROOT, 'sticky/widget.css' );
+const EIGHTBALL_JS  = resolve( WIDGETS_ROOT, 'eight-ball/widget.js' );
+const EIGHTBALL_CSS = resolve( WIDGETS_ROOT, 'eight-ball/widget.css' );
 
 function installWpDesktop() {
 	const calls = [];
@@ -55,7 +61,7 @@ function clearStorage() {
 }
 
 function injectWidgetStyles() {
-	const css = readFileSync( WIDGETS_CSS, 'utf8' );
+	const css = readFileSync( STICKY_CSS, 'utf8' ) + '\n' + readFileSync( EIGHTBALL_CSS, 'utf8' );
 	const style = document.createElement( 'style' );
 	style.id = 'odd-widgets-style';
 	style.textContent = css;
@@ -63,9 +69,14 @@ function injectWidgetStyles() {
 }
 
 function loadWidgets() {
-	const src = readFileSync( WIDGETS_JS, 'utf8' );
-	const fn = new Function( `${ src }\n//# sourceURL=widgets/index.js` );
-	fn.call( globalThis );
+	for ( const [ js, name ] of [
+		[ STICKY_JS,    'widgets/sticky/widget.js' ],
+		[ EIGHTBALL_JS, 'widgets/eight-ball/widget.js' ],
+	] ) {
+		const src = readFileSync( js, 'utf8' );
+		const fn = new Function( `${ src }\n//# sourceURL=${ name }` );
+		fn.call( globalThis );
+	}
 }
 
 describe( 'widgets registration', () => {

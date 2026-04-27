@@ -2,11 +2,12 @@
 /**
  * ODD wallpaper — scene registry.
  *
- * Canonical scene list is shipped on disk as src/wallpaper/scenes.json
- * and hydrated into the browser via wp_localize_script. This file is
- * the single PHP-side reader; both the REST validator and the localized
- * bundle read from these helpers so the disk manifest is the one source
- * of truth for "what scenes exist".
+ * v3.0+: the plugin no longer ships scenes. The registry is fully
+ * filter-driven; installed scene bundles add descriptors via the
+ * `odd_scene_registry` filter (see includes/content/scenes.php). On
+ * a brand-new site with zero bundles this returns an empty list and
+ * the wallpaper runtime falls back to its built-in "pending" scene
+ * until the starter pack installer finishes.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -14,37 +15,30 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Return the active scene registry.
  *
- * The on-disk `src/wallpaper/scenes.json` is the seed; third-party
- * plugins can append or modify entries by adding a filter on
- * `odd_scene_registry` (priority 10 is conventional). See
- * odd/includes/extensions.php for the `odd_register_scene()` helper.
- *
- * Result is memoized per request, so filter callbacks should be
+ * Result is memoised per request, so filter callbacks should be
  * idempotent — they run once per process.
+ *
+ * @return array<int, array<string, mixed>>
  */
 function odd_wallpaper_scenes() {
 	static $cache = null;
 	if ( null === $cache ) {
-		$path = ODD_DIR . 'src/wallpaper/scenes.json';
-		$raw  = is_readable( $path ) ? file_get_contents( $path ) : '';
-		$data = json_decode( $raw, true );
-		if ( ! is_array( $data ) && '' !== $raw ) {
-			odd_registry_report_bad_manifest( $path, json_last_error_msg() );
-		}
-		$from_disk = is_array( $data ) ? $data : array();
 		/**
 		 * Filter the ODD scene registry.
 		 *
 		 * @since 0.14.0
+		 * @since 3.0.0 no longer seeded from a bundled scenes.json —
+		 *              installed scene bundles populate this list
+		 *              through includes/content/scenes.php.
 		 *
 		 * @param array $registry List of scene descriptors. Each descriptor
 		 *                        must have at least a `slug`; ODD also reads
 		 *                        `label`, `franchise`, `tags`, `fallbackColor`,
-		 *                        and `added`.
+		 *                        `previewUrl`, `wallpaperUrl`.
 		 */
-		$cache = apply_filters( 'odd_scene_registry', $from_disk );
+		$cache = apply_filters( 'odd_scene_registry', array() );
 		if ( ! is_array( $cache ) ) {
-			$cache = $from_disk;
+			$cache = array();
 		}
 	}
 	return $cache;
@@ -66,6 +60,19 @@ function odd_wallpaper_scene_slugs() {
 
 function odd_wallpaper_default_scene() {
 	$slugs = odd_wallpaper_scene_slugs();
+	// Prefer the starter pack's first scene (flux by default) so
+	// users hitting a mid-install admin load still get a sensible
+	// default. Falls back to the first installed scene otherwise.
+	if ( function_exists( 'odd_catalog_starter_pack' ) ) {
+		$starter = odd_catalog_starter_pack();
+		if ( ! empty( $starter['scenes'] ) ) {
+			foreach ( (array) $starter['scenes'] as $slug ) {
+				if ( in_array( $slug, $slugs, true ) ) {
+					return (string) $slug;
+				}
+			}
+		}
+	}
 	if ( in_array( 'flux', $slugs, true ) ) {
 		return 'flux';
 	}

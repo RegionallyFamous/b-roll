@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'site/**'
+      - '_tools/catalog-sources/**'
+      - '_tools/build-catalog.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -25,6 +27,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      # Rebuild the remote catalog on every deploy so /catalog/v1/
+      # is always in sync with whatever landed on main. The builder
+      # is deterministic; identical source trees produce identical
+      # bundles + registry, so a no-op content change still produces
+      # the same artifact bytes.
+      - name: Build remote catalog
+        run: |
+          python3 _tools/build-catalog.py
+          ls -la site/catalog/v1/
+          echo 'catalog bundles:' && ls site/catalog/v1/bundles/ | wc -l
+
+      - name: Validate catalog before publishing
+        run: odd/bin/validate-catalog
+
       - uses: actions/configure-pages@v6
         with:
           # Auto-enable Pages on first run so we don't have to click

@@ -5,74 +5,83 @@
 
 ## What this is
 
-ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). It ships three decorators in one plugin:
+ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). **As of v3.0 the plugin ships empty** — every piece of visual content is pulled on demand from a remote catalog. The plugin owns four surfaces:
 
-1. **A canvas wallpaper** — generative PixiJS scenes rendered on top of painted 1920×1080 WebP backdrops, switched from inside the plugin's own control panel.
-2. **Icon sets** — themed SVG packs that re-skin the WP Desktop dock and desktop-shortcut icons via the `desktop_mode_dock_item` + `desktop_mode_icons` filters.
-3. **Apps** — small standalone HTML/CSS/JS programs that get their own desktop icon and native window. They run on the WordPress desktop *without* using or knowing about WordPress; the only WP touchpoint is the install/serve plumbing. (Implementation note: served from a sandboxed iframe with same-origin cookie auth, but that's a hosting detail, not a user-facing framing — describe Apps to users as "mini apps that just run".)
+1. **A canvas wallpaper engine** — a single `registerWallpaper('odd', …)` that hosts generative PixiJS scenes painted on top of 1920×1080 WebP backdrops. Scenes install as `.wp` bundles.
+2. **Icon sets** — themed SVG packs that re-skin the WP Desktop Mode dock and desktop-shortcut icons via the `desktop_mode_dock_item` + `desktop_mode_icons` filters. Install as `.wp` bundles.
+3. **Desktop widgets** — tiles like Sticky Note and Magic 8-Ball that live on the desktop surface. Install as `.wp` bundles.
+4. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that get their own desktop icon and native window. Install as `.wp` bundles.
 
-All four content types (scene, icon set, widget, app) install the same way: a single `.wp` archive with a `manifest.json` declaring `type`, dropped on the ODD Shop (topbar Install pill, dedicated **Install** tab in the sidebar, or Shop-wide drag-and-drop). Under the hood every install routes through `odd_bundle_install()` in `odd/includes/content/bundle.php`. Authors never need to write a companion plugin — see `docs/building-an-app.md`, `docs/building-a-scene.md`, `docs/building-an-icon-set.md`, `docs/building-a-widget.md`, and the universal manifest reference in `docs/wp-manifest.md`. The filter / event / registry surface used by ODD core is documented in `docs/building-on-odd.md` and is aimed at integrators, not content authors.
-
-All three are managed from a single native WP Desktop Mode window (the **ODD Shop** — a Mac App Store-style browsing surface, previously the "ODD Control Panel") opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`. Internally the window id stays `odd` — tests, commands, and the WP Desktop Mode session state still reference it by that id — so "Control Panel" references in `odd_icons_*` helpers, `wp-desktop.wallpaper.visibility` comments, and extension docs describe the same window.
+All four are managed from a single native WP Desktop Mode window (the **ODD Shop** — a Mac App Store-style browsing surface) opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`. Internally the window id stays `odd` — tests, commands, and the WP Desktop Mode session state still reference it by that id — so "Control Panel" references in `odd_icons_*` helpers and extension docs describe the same window.
 
 - **Repo:** `RegionallyFamous/odd`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
-- **Host plugin (required at runtime):** WP Desktop Mode v0.5.1+ (the hook namespace moved to `desktop_mode_*` / `desktop_mode_register_*()` in 0.5.1)
-
-ODD currently ships ~19 scenes across four franchises (Generative / Atmosphere / Paper / ODD Originals) and 17 icon sets. The reboot shipped three of each (Flux / Aurora / Origami and Filament / Arctic / Fold) — every visual is original: painted backdrops generated from neutral atmospheric prompts (now usually via GPT Image 2 for ODD Originals), motion layers built from Pixi primitives, icons rendered programmatically from one shared symbol catalog. Since v1.3.0 the panel has screensaver, click-to-preview (wallpaper + icons), and Rainfall, a collision-aware scene that uses `wp.desktop.getWallpaperSurfaces()`. Since v1.4.0 ODD ships two desktop widgets: `odd/sticky` and `odd/eight-ball`.
+- **Remote catalog:** https://odd.regionallyfamous.com/catalog/v1/registry.json
+- **Host plugin (required at runtime):** WP Desktop Mode v0.5.1+
 
 ## Architecture at a glance
 
 ```
 odd/
-├── odd.php                        bootstrap: ODD_VERSION + require_once list
+├── odd.php bootstrap: ODD_VERSION + require_once list
 ├── includes/
-│   ├── enqueue.php                odd-api, odd, odd-panel, odd-widgets, odd-commands script handles
-│   ├── rest.php                   /odd/v1/prefs (GET+POST)
-│   ├── native-window.php          desktop_mode_register_window('odd', …)
-│   ├── wallpaper/
-│   │   ├── registry.php           scenes.json reader + slug helpers
-│   │   └── prefs.php              odd_wallpaper_* user-meta helpers
-│   └── icons/
-│       ├── registry.php           scans assets/icons/*/manifest.json
-│       └── dock-filter.php        desktop_mode_dock_item + desktop_mode_icons @ priority 20
+│ ├── enqueue.php odd-api, odd, odd-panel, odd-commands script handles
+│ ├── rest.php /odd/v1/prefs (GET+POST)
+│ ├── native-window.php desktop_mode_register_window('odd', …)
+│ ├── starter-pack.php activation cron: installs starter_pack from remote catalog
+│ ├── content/
+│ │ ├── catalog.php wp_remote_get(registry.json) + 12h transient cache
+│ │ ├── scenes.php odd_scene_registry filter from installed bundles
+│ │ ├── iconsets.php odd_icon_sets filter from installed bundles
+│ │ ├── widgets.php widget self-enqueue from installed bundles
+│ │ └── apps.php app registration from installed bundles
+│ ├── wallpaper/
+│ │ ├── registry.php filter-driven odd_wallpaper_scenes()
+│ │ └── prefs.php odd_wallpaper_* user-meta helpers
+│ └── icons/
+│ ├── registry.php scans wp-content/odd-icon-sets/*/manifest.json
+│ └── dock-filter.php desktop_mode_dock_item + desktop_mode_icons @ priority 20
 ├── src/
-│   ├── shared/
-│   │   └── api.js                 window.__odd.api — setScene / setIconSet / shuffle / openPanel / toast
-│   ├── widgets/
-│   │   ├── index.js               registerWidget × 2 (Sticky Note, Magic 8-Ball)
-│   │   └── style.css              scoped widget styles
-│   ├── commands/
-│   │   └── index.js               registerCommand × 4 (/odd, /odd-icons, /shuffle, /odd-panel)
-│   ├── panel/
-│   │   └── index.js               native-window render callback (sidebar + sections)
-│   └── wallpaper/
-│       ├── index.js               registerWallpaper('odd', …) + scene mount runner
-│       ├── picker.js              legacy in-canvas picker (hidden; kept for fallback)
-│       ├── audio.js  easter-eggs.js
-│       ├── scenes.json  drifters.json
-│       └── scenes/
-│           ├── flux.js            ribbon particles in a vector field
-│           ├── aurora.js          stars + procedural aurora curtains
-│           └── origami.js         drifting paper cranes + folds
-├── assets/
-│   ├── wallpapers/  previews/     3 painted backdrops + thumbnails
-│   └── icons/
-│       ├── filament/              manifest.json + 13 SVGs
-│       ├── arctic/                manifest.json + 13 SVGs
-│       └── fold/                  manifest.json + 13 SVGs
+│ ├── shared/
+│ │ └── api.js window.__odd.api — setScene / setIconSet / shuffle / openPanel / toast
+│ ├── commands/
+│ │ └── index.js registerCommand × 4 (/odd, /odd-icons, /shuffle, /odd-panel)
+│ ├── panel/
+│ │ └── index.js native-window render callback (ODD Shop)
+│ └── wallpaper/
+│ ├── index.js registerWallpaper('odd', …) + scene mount runner + odd-pending fallback
+│ └── picker.js legacy in-canvas picker (hidden; kept for fallback)
 └── bin/
-    ├── build-zip                  → dist/odd.zip (~350 KB, 35 MB budget)
-    ├── validate-scenes
-    ├── validate-icon-sets
-    └── check-version
+ ├── build-zip → dist/odd.zip (2 MB budget)
+ ├── validate-catalog assert site/catalog/v1/ schema + hashes + starter-pack
+ └── check-version
+
+_tools/
+├── catalog-sources/ source of truth for every bundle
+│ ├── scenes/{slug}/ scene.js + meta.json + preview.webp + wallpaper.webp
+│ ├── icon-sets/{slug}/ manifest.json + SVGs
+│ ├── widgets/{slug}/ widget.js + widget.css + manifest.json
+│ ├── apps/{slug}/ bundle.wp (pre-built) or manifest.json + assets
+│ └── starter-pack.json slugs to auto-install on activation
+├── build-catalog.py deterministic .wp + registry.json + icons builder
+└── migrate-v3.py one-shot migration script (kept for history)
+
+site/
+└── catalog/v1/ published to odd.regionallyfamous.com by pages.yml
+    ├── registry.json
+    ├── registry.schema.json
+    ├── bundles/{slug}-{type}-{version}.wp
+    └── icons/{slug}.svg
+
+ci/smoke/
+└── odd-smoke-fixture.php MU-plugin: pre_http_request → local fixture
 ```
 
 ### Single-window contract
 
-The desktop icon registered in `includes/native-window.php` and the `/odd-panel` slash command both call `wp.desktop.registerWindow({ id: 'odd', … })` (via `window.__odd.api.openPanel()`). WP Desktop Mode's window manager reuses any window with a matching `baseId`, so there's always at most one Control Panel instance on screen.
+The desktop icon registered in `includes/native-window.php` and the `/odd-panel` slash command both call `wp.desktop.registerWindow({ id: 'odd', … })` (via `window.__odd.api.openPanel()`). WP Desktop Mode's window manager reuses any window with a matching `baseId`, so there's always at most one ODD Shop instance on screen.
 
-The panel body is rendered by `window.wpDesktopNativeWindows.odd = body => { … }` in `src/panel/index.js`. Layout is a fixed-width sidebar (Wallpaper / Icons / About) plus a scrollable content pane. All state flows through REST.
+The panel body is rendered by `window.desktop_mode_native_windows.odd = body => { … }` in `src/panel/index.js`. Layout is a fixed-width sidebar (Wallpapers / Icons / Widgets / Apps / About) plus a scrollable content pane. All state flows through REST. Empty-state messaging covers the window between activation and the first starter-pack install.
 
 ### Single REST namespace
 
@@ -84,9 +93,27 @@ The panel body is rendered by `window.wpDesktopNativeWindows.odd = body => { …
 - `audioReactive` — bool; written to `odd_audio_reactive`.
 - `iconSet` — set slug (or `"none"`); written to `odd_icon_set`.
 
-`GET /wp-json/odd/v1/prefs` returns the current user's prefs plus the catalog of installed scenes and icon sets so the panel can hydrate without re-fetching.
+`GET /wp-json/odd/v1/prefs` returns the current user's prefs plus the registry of installed scenes and icon sets.
 
-Permission callback is `is_user_logged_in`. The panel also ships the same state inlined via `wp_localize_script( 'odd-panel', 'odd', … )` so first paint doesn't wait on a round-trip.
+Bundle endpoints (`/odd/v1/bundles/*`):
+- `GET /bundles/catalog` — remote registry contents (cached 12h + stale-on-failure).
+- `POST /bundles/install-from-catalog` — download + SHA256-verify + install.
+- `POST /bundles/upload` — multipart upload for sideloaded `.wp`.
+- `POST /bundles/refresh` — force re-fetch of remote registry.
+
+Starter-pack endpoints (`/odd/v1/starter/*`):
+- `GET /starter` — installer state (`pending` | `installed` | `failed`, attempts, last error).
+- `POST /starter/retry` — clear backoff and re-run immediately.
+
+Permission callbacks are `is_user_logged_in`. The panel also ships the same state inlined via `wp_localize_script( 'odd-panel', 'odd', … )` so first paint doesn't wait on a round-trip.
+
+### Remote catalog fetch
+
+`includes/content/catalog.php` defines `ODD_CATALOG_URL` (default: `https://odd.regionallyfamous.com/catalog/v1/registry.json`, filterable via `odd_catalog_url`). `odd_catalog_load()` fetches it with `wp_remote_get()` and caches the payload in the `odd_catalog` transient for 12h. On fetch failure it returns the stale transient so the Shop stays usable offline. Downloads verify `sha256` from the registry before calling `odd_bundle_install()`.
+
+### Starter pack
+
+`register_activation_hook` schedules `odd_starter_run` via `wp_schedule_single_event(+5s)`. The runner loads the remote catalog, resolves the slugs listed in the catalog's top-level `starter_pack` (currently `{ scenes: ['flux'], iconSets: ['filament'], widgets: [], apps: [] }`), calls `odd_catalog_install_entry()` for each, and writes initial per-user preferences. State lives in the `odd_starter_state` option. Failures trigger exponential backoff (5 s → 60 s → 5 min → 30 min → 6 h). `admin_init` reschedules overdue crons so a forgotten or cancelled event self-heals.
 
 ### Live scene swaps
 
@@ -97,38 +124,38 @@ Panel clicks fire `wp.hooks.doAction( 'odd/pickScene', slug )` in parallel with 
 Icon-set changes trigger a 180 ms fade + `window.location.reload()` after the POST succeeds. Re-render happens server-side through the two filters in `includes/icons/dock-filter.php`:
 
 - `desktop_mode_dock_item` priority 20, two-arg: per-tile swap keyed by `odd_icons_slug_to_key( $menu_slug )` (e.g. `edit.php` → `posts`). Falls back to the set's `fallback` icon when a set ships no specific match.
-- `desktop_mode_icons` priority 20: re-skins desktop shortcuts by the same key logic, but **skips** the ODD Control Panel icon itself so it stays recognizable regardless of the active set.
+- `desktop_mode_icons` priority 20: re-skins desktop shortcuts by the same key logic, but **skips** the ODD Shop icon itself so it stays recognizable regardless of the active set.
 
 Server-side mapping is canonical; client-side live-swap via JS DOM surgery proved unreliable in earlier iterations and shouldn't be revisited.
 
 ## Scene file contract
 
-Every `odd/src/wallpaper/scenes/<slug>.js` self-registers:
+Every `_tools/catalog-sources/scenes/<slug>/scene.js` self-registers:
 
 ```javascript
 ( function () {
-    'use strict';
-    window.__odd = window.__odd || {};
-    window.__odd.scenes = window.__odd.scenes || {};
-    var h = window.__odd.helpers;
+ 'use strict';
+ window.__odd = window.__odd || {};
+ window.__odd.scenes = window.__odd.scenes || {};
+ var h = window.__odd.helpers;
 
-    window.__odd.scenes[ '<slug>' ] = {
-        setup: function ( env ) { /* required */ },
-        tick: function ( state, env ) { /* required; env.dt clamped to 2.5 */ },
-        onResize: function ( state, env ) { /* optional */ },
-        cleanup: function ( state, env ) { /* optional */ },
-        stillFrame: function ( state, env ) { /* optional — reduced-motion pose */ },
-        transitionOut: function ( state, env, done ) { /* optional */ },
-        transitionIn: function ( state, env ) { /* optional */ },
-        onAudio: function ( state, env ) { /* optional — only when env.audio.enabled */ },
-        onEgg: function ( name, state, env ) { /* 'festival' | 'reveal' | 'peek' */ },
-    };
+ window.__odd.scenes[ '<slug>' ] = {
+ setup: function ( env ) { /* required */ },
+ tick: function ( state, env ) { /* required; env.dt clamped to 2.5 */ },
+ onResize: function ( state, env ) { /* optional */ },
+ cleanup: function ( state, env ) { /* optional */ },
+ stillFrame: function ( state, env ) { /* optional — reduced-motion pose */ },
+ transitionOut: function ( state, env, done ) { /* optional */ },
+ transitionIn: function ( state, env ) { /* optional */ },
+ onAudio: function ( state, env ) { /* optional — only when env.audio.enabled */ },
+ onEgg: function ( name, state, env ) { /* 'festival' | 'reveal' | 'peek' */ },
+ };
 } )();
 ```
 
-`env` carries `{ app, PIXI, ctx, helpers, dt, parallax: {x,y}, reducedMotion, tod, todPhase, season, audio: {enabled, level, bass, mid, high}, perfTier: 'high'|'normal'|'low' }`. Scenes that ignore the new fields are unaffected.
+Scenes should read their wallpaper URL from `window.odd.sceneMap[slug].wallpaperUrl` so installed bundles can point at their own URL. `env` carries `{ app, PIXI, ctx, helpers, dt, parallax: {x,y}, reducedMotion, tod, todPhase, season, audio: {enabled, level, bass, mid, high}, perfTier: 'high'|'normal'|'low' }`. Scenes that ignore the new fields are unaffected.
 
-The shared mount runner in `src/wallpaper/index.js` owns Pixi app creation (`await app.init`, `app.canvas`), the visibility hook (`wp-desktop.wallpaper.visibility`), the `document.visibilitychange` pause, per-minute `env.tod` recompute, the rolling-FPS `env.perfTier` sampler, the chaos-cast overlay (two random `weird: true` drifters from `drifters.json` per swap — currently a no-op since the shared library is empty), the shuffle scheduler (every `odd_shuffle.minutes`), and audio analyser sampling. Scenes don't build their own Pixi app or register visibility listeners.
+The shared mount runner in `src/wallpaper/index.js` owns Pixi app creation (`await app.init`, `app.canvas`), the visibility hook (`desktop-mode.wallpaper.visibility`), the `document.visibilitychange` pause, per-minute `env.tod` recompute, the rolling-FPS `env.perfTier` sampler, the shuffle scheduler (every `odd_shuffle.minutes`), and audio analyser sampling. The runner also registers a built-in `odd-pending` gradient scene so the desktop has something to paint between activation and first starter-pack install.
 
 **Swap-in-place** — the same `PIXI.Application` is reused across scene swaps. `app.stage.removeChildren()` runs between swaps; scenes must tolerate a fresh-but-reused app. Anything allocated outside the Pixi scene graph (timers, `window` listeners) belongs in `cleanup`.
 
@@ -152,55 +179,76 @@ core files — see [docs/building-on-odd.md](docs/building-on-odd.md).
 
 ## Adding content
 
+All new scenes / icon sets / widgets / apps land in `_tools/catalog-sources/` and ship via the remote catalog — **no plugin release required**. `pages.yml` rebuilds + publishes on every push to `main` that touches `_tools/catalog-sources/` or the builder.
+
 ### A new scene
 
-1. Add a row to `odd/src/wallpaper/scenes.json` with `{ slug, label, franchise, tags, fallbackColor, added }`. `franchise` is a free-form category string ("Generative", "Atmosphere", "Paper", etc.), not a brand name.
-2. Drop `odd/src/wallpaper/scenes/<slug>.js` that self-registers.
-3. Drop `odd/assets/previews/<slug>.webp` (~640×360, WebP q80).
-4. Drop `odd/assets/wallpapers/<slug>.webp` (1920×1080, WebP q82).
-5. `odd/bin/validate-scenes` asserts the JS + preview + wallpaper files all exist. CI runs it on every PR.
-
-No `index.js` edit required — the manifest is read at runtime.
+1. Create `_tools/catalog-sources/scenes/<slug>/`.
+2. Add `meta.json` with `{ slug, label, franchise, tags, fallbackColor, previewUrl, wallpaperUrl }` (URLs default to `site/catalog/v1/bundles/<slug>/...` if omitted — the builder fills them in).
+3. Add `scene.js` (self-registering; see above).
+4. Add `preview.webp` (~640×360, WebP q80) and `wallpaper.webp` (1920×1080, WebP q82).
+5. `python3 _tools/build-catalog.py && odd/bin/validate-catalog` locally to confirm it builds.
 
 ### A new icon set
 
-1. Add an entry to `_tools/gen-icon-sets.py` (or hand-author):
-   - manifest with `{ slug, label, franchise, accent (#hex), description?, preview?, icons: { dashboard, posts, pages, media, comments, appearance, plugins, users, tools, settings, profile, links, fallback } }`,
-   - SVGs named in `manifest.icons`, dropped next to the manifest.
-2. Each SVG must parse as well-formed XML, have a `viewBox` or `width+height`, and contain no control bytes outside `\t\n\r`.
-3. `odd/bin/validate-icon-sets` checks JSON + SVG + manifest-disk alignment.
+1. Create `_tools/catalog-sources/icon-sets/<slug>/`.
+2. Add `manifest.json` with `{ slug, label, franchise, accent (#hex), description?, preview?, icons: { dashboard, posts, pages, media, comments, appearance, plugins, users, tools, settings, profile, links, fallback } }`.
+3. Add SVGs named in `manifest.icons`, dropped next to the manifest.
+4. Each SVG must parse as well-formed XML, have a `viewBox` or `width+height`, and contain no control bytes outside `\t\n\r`.
+5. `odd/bin/validate-catalog` checks all of this.
+
+### Including in the starter pack
+
+Edit `_tools/catalog-sources/starter-pack.json`:
+
+```json
+{ "scenes": ["flux"], "iconSets": ["filament"], "widgets": [], "apps": [] }
+```
+
+Slugs here must resolve to a catalog entry — the validator refuses to ship a starter pack that references missing bundles.
 
 ## Workflows
 
 ### Local iteration
 
 1. `git clone` into `wp-content/plugins/odd/` (or symlink).
-2. Activate ODD alongside WP Desktop Mode.
-3. No build step — plain JS, loaded via `wp_enqueue_script`.
-4. For a full validation pass: `odd/bin/check-version && odd/bin/validate-scenes && odd/bin/validate-icon-sets && odd/bin/validate-catalog && odd/bin/build-zip`.
+2. Activate ODD alongside WP Desktop Mode. The starter-pack cron fires 5 s after activation; in dev you can short-circuit it with `wp eval 'odd_starter_run();'`.
+3. Plugin itself is no-build — plain JS loaded via `wp_enqueue_script`. Content bundles are built with `python3 _tools/build-catalog.py`.
+4. For a full validation pass: `odd/bin/check-version && python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog && npm test && odd/bin/build-zip`.
 
 ### Cut a release
 
 1. Bump `Version:` header + `ODD_VERSION` constant in `odd/odd.php`.
 2. `odd/bin/check-version --expect 0.X.Y` to confirm they match.
 3. Commit, push, tag: `git tag v0.X.Y && git push origin v0.X.Y`.
-4. `.github/workflows/release-odd.yml` fires on the tag: version check, scene + icon-set validators, `odd/bin/build-zip`, `gh release create … --latest=true`, and a `releases/latest/download/odd.zip` HTTP probe. Retries the upload once on the 409 "Error creating policy" flake.
+4. `.github/workflows/release-odd.yml` fires on the tag: version check, catalog build + validate, `odd/bin/build-zip`, `gh release create … --latest=true`, and the install-smoke suite against a hermetic MU-plugin fixture.
+
+### Publishing new content
+
+1. Add/modify files in `_tools/catalog-sources/`.
+2. Optionally update `_tools/catalog-sources/starter-pack.json`.
+3. `python3 _tools/build-catalog.py && odd/bin/validate-catalog` to confirm it builds.
+4. Commit + push to `main`. `pages.yml` rebuilds the catalog and publishes to `odd.regionallyfamous.com/catalog/v1/`. No plugin release needed.
 
 ### CI
 
 `.github/workflows/ci.yml` runs on every PR + push to `main`:
-- `validate-scenes` — manifest + assets for every scene.
-- `validate-icon-sets` — manifest + SVGs for every set.
-- `validate-catalog` — every `odd/apps/catalog/registry.json` row points at a real `.wp` + `.svg` on disk, and each `.wp` archive's inner `manifest.json` agrees with the registry row on `slug`, `type`, and `version`. Catches the "added a Discover-shelf row but forgot to check in the bundle" class of bug.
+- `catalog-build-and-validate` — runs `_tools/build-catalog.py` then validates with `ODD_VALIDATE_REBUILD=1` for determinism.
 - `check-version` — header + constant in `odd.php` agree.
-- `json-valid` — `blueprint.json` + scene / drifter / icon manifests all parse.
-- `zip-budget` — `odd/bin/build-zip` with a 35 MB cap; uploads `odd.zip` as a workflow artifact.
+- `json-valid` — `blueprint.json` + every `manifest.json` / `meta.json` under `_tools/catalog-sources/` parses.
+- `vitest` — `npm test`.
+- `phpcs` — WPCS.
+- `phpunit` — PHP unit matrix.
+- `zip-budget` — `odd/bin/build-zip` with a 2 MB cap (down from 35 MB — empty plugin).
+- `site-lint` — `html-validate` over `site/index.html`.
+
+`install-smoke.yml` boots real WordPress, activates ODD + WP Desktop Mode, serves a local catalog via the `ci/smoke/odd-smoke-fixture.php` MU-plugin, runs the starter-pack installer synchronously, and asserts the registries populate.
 
 ## Versioning
 
 Version lives in two places inside `odd/odd.php` — keep them in sync on release:
-- the `Version:` header (`* Version: 0.1.0`)
-- the `ODD_VERSION` constant (`define( 'ODD_VERSION', '0.1.0' );`)
+- the `Version:` header (`* Version: 3.0.0`)
+- the `ODD_VERSION` constant (`define( 'ODD_VERSION', '3.0.0' );`)
 
 All other script/style/REST calls compute their cache-busting version from `ODD_VERSION` at runtime.
 
@@ -208,23 +256,28 @@ All other script/style/REST calls compute their cache-busting version from `ODD_
 
 - **SVG control bytes.** The icon-set validator scans for bytes `< 0x20` outside `\t\n\r`; an em-dash with a stray `\x14` once broke XML parsing in a prior release.
 - **Client-side icon live-swap is a rabbit hole.** `data-menu-slug` on dock DOM is the *sanitized CSS ID* (e.g. `menu-posts`), not the raw menu slug (`edit.php`). The fix is going server-canonical via `desktop_mode_dock_item` + a reload; don't regress.
+- **Catalog determinism.** `_tools/build-catalog.py` must produce byte-identical output on repeat runs. `ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog` enforces this in CI. Non-determinism usually comes from mtimes in zip entries or unsorted iteration.
 - **GitHub release asset uploads** sometimes 409 "Error creating policy" right after release creation. The release workflow retries once after a 3 s pause.
-- **Playground + CORS.** `raw.githubusercontent.com` and `github.com/*/releases/download/…` both serve with `access-control-allow-origin: *`. Other hosts usually don't — check with `curl -H "Origin: https://playground.wordpress.net" -I <url>` before pointing a blueprint at a new URL.
-- **`wp-desktop.wallpaper.visibility` payload shape** is `{ id, state: 'hidden' | 'visible' }` per the recipe example — not documented in the API reference. The `onVis` handler silently no-ops on anything else.
+- **Playground + CORS.** `raw.githubusercontent.com` and `github.com/*/releases/download/…` both serve with `access-control-allow-origin: *`. Other hosts usually don't — check with `curl -H "Origin: https://playground.wordpress.net" -I <url>` before pointing a blueprint at a new URL. `odd.regionallyfamous.com/catalog/v1/` (GitHub Pages) does serve `*`, which is why the remote catalog works from Playground.
+- **Starter-pack cron never fires.** If `wp-cron` is disabled on the host, the starter pack stays in `pending`. `admin_init` reschedules overdue crons, and `POST /odd/v1/starter/retry` forces an immediate run.
+- **`desktop-mode.wallpaper.visibility` payload shape** is `{ id, state: 'hidden' | 'visible' }` per the recipe example. The `onVis` handler silently no-ops on anything else.
 
 ## File layout
 
 ```
 .
-├── odd/                            plugin (see tree above)
+├── odd/ plugin (see tree above)
+├── _tools/catalog-sources/ source of truth for remote catalog
+├── site/ GitHub Pages root (marketing + /catalog/v1/)
 ├── .github/workflows/
-│   ├── ci.yml                      validate-scenes / validate-icon-sets / check-version / json-valid / zip-budget
-│   └── release-odd.yml             v* tag → build odd.zip → release (latest=true)
-├── blueprint.json                  Playground blueprint: installs odd.zip + pre-selects wallpaper='odd'
-├── ci/smoke.blueprint.json         smoke-test blueprint (pluginPath: odd/odd.php)
-├── _tools/                         author-side asset helpers (wallpaper + icon generators)
-├── README.md                       user-facing docs
-├── CLAUDE.md                       this file
-├── LICENSE                         GPLv2
-└── dist/                           build output (gitignored)
+│ ├── ci.yml catalog-build-and-validate + tests
+│ ├── pages.yml build + publish catalog to odd.regionallyfamous.com
+│ ├── install-smoke.yml hermetic starter-pack install against fixture
+│ └── release-odd.yml v* tag → build odd.zip → release (latest=true)
+├── ci/smoke/odd-smoke-fixture.php MU-plugin for hermetic CI tests
+├── blueprint.json Playground blueprint
+├── README.md user-facing docs
+├── CLAUDE.md this file
+├── LICENSE GPLv2
+└── dist/ build output (gitignored)
 ```

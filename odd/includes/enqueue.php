@@ -23,10 +23,10 @@
  *                     Registers the `odd` wallpaper with WP Desktop Mode.
  *   - `odd-panel`     ODD Control Panel native-window render callback,
  *                     declared on `window.wpDesktopNativeWindows.odd`.
- *   - `odd-widgets`   registers two desktop widgets (Sticky Note,
- *                     Magic 8-Ball) via registerWidget(). Community
- *                     widgets installed as .wp bundles register
- *                     separately from wp-content/odd-widgets/.
+ *                     (v3.0+ the stock Sticky Note + Magic 8-Ball
+ *                     widgets ship as remote catalog bundles and
+ *                     self-enqueue from wp-content/odd-widgets/ when
+ *                     installed — the plugin emits no stock widgets.)
  *   - `odd-commands`  registers slash commands (/odd, /odd-icons,
  *                     /shuffle, /odd-panel) via registerCommand().
  *
@@ -144,19 +144,11 @@ add_action(
 			array(),
 			ODD_VERSION
 		);
-		wp_enqueue_script(
-			'odd-widgets',
-			ODD_URL . '/src/widgets/index.js',
-			array_merge( $foundation_deps, array( 'odd-api', 'wp-i18n' ) ),
-			ODD_VERSION,
-			true
-		);
-		wp_enqueue_style(
-			'odd-widgets',
-			ODD_URL . '/src/widgets/style.css',
-			array(),
-			ODD_VERSION
-		);
+		// v3.0+: ODD ships no stock widgets. Sticky Note and Magic
+		// 8-Ball moved to the remote catalog as `widget-sticky` +
+		// `widget-eight-ball`. Installed widget bundles self-enqueue
+		// through content/widgets.php, so there's nothing for the
+		// plugin core to emit here any more.
 		wp_enqueue_script(
 			'odd-commands',
 			ODD_URL . '/src/commands/index.js',

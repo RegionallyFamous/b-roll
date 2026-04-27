@@ -31,7 +31,15 @@ function seedConfig() {
 		restNonce: 'nonce-abc',
 		bundlesUploadUrl: '/wp-json/odd/v1/bundles/upload',
 		canInstall:       true,
-		installedWidgets: [],
+		// v3.0+: widgets are installed as catalog bundles and the
+		// panel renders whatever the server reports in this list.
+		// The two stock widgets live at `_tools/catalog-sources/
+		// widgets/{sticky,eight-ball}/` — seed them here so the
+		// Widgets-department test has cards to click.
+		installedWidgets: [
+			{ id: 'odd/sticky',     slug: 'sticky',     label: 'Sticky Note',    description: 'Tilted handwritten note that auto-saves.' },
+			{ id: 'odd/eight-ball', slug: 'eight-ball', label: 'Magic 8-Ball',   description: 'Shake for definitive-ish WordPress advice.' },
+		],
 		wallpaper: 'flux',
 		scene:     'flux',
 		// Three slugs, three distinct categories: flux→Forms,

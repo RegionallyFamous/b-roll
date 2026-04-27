@@ -1,0 +1,25 @@
+{
+  "slug": "fold",
+  "label": "Fold",
+  "franchise": "Paper Arcade",
+  "accent": "#7c5cff",
+  "preview": "dashboard.svg",
+  "description": "Origami-inspired full-color tiles with folded paper facets, inked role glyphs, and playful dimensional shadows.",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

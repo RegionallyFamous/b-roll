@@ -7,24 +7,6 @@ on:
   workflow_call:
 
 jobs:
-  validate-scenes:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
-      - run: odd/bin/validate-scenes
-
-  validate-icon-sets:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
-      - run: odd/bin/validate-icon-sets
-
   check-version:
     runs-on: ubuntu-latest
     steps:
@@ -34,14 +16,24 @@ jobs:
           python-version: '3.x'
       - run: odd/bin/check-version
 
-  validate-catalog:
+  # Build the remote catalog from _tools/catalog-sources/ and enforce
+  # byte-for-byte determinism, schema validity, SHA256/size matches,
+  # and that every starter-pack slug resolves. Also exercises the
+  # builder so a broken template or missing asset is caught on PR
+  # rather than at publish time.
+  catalog-build-and-validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
-      - run: odd/bin/validate-catalog
+      - name: Build catalog from _tools/catalog-sources/
+        run: python3 _tools/build-catalog.py
+      - name: Validate catalog (determinism + schema + hashes)
+        env:
+          ODD_VALIDATE_REBUILD: '1'
+        run: odd/bin/validate-catalog
 
   json-valid:
     runs-on: ubuntu-latest
@@ -53,8 +45,10 @@ jobs:
       - name: Parse every JSON file
         run: |
           set -e
-          MANIFESTS=$(find odd/assets/icons -name manifest.json -maxdepth 2 -type f)
-          for f in blueprint.json odd/src/wallpaper/scenes.json $MANIFESTS; do
+          # Manifests live with each bundle source in catalog-sources/.
+          MANIFESTS=$(find _tools/catalog-sources -name manifest.json -type f)
+          METAS=$(find _tools/catalog-sources -name meta.json -type f)
+          for f in blueprint.json $MANIFESTS $METAS; do
               echo "  $f"
               python3 -c "import json,sys; json.load(open('$f'))"
           done

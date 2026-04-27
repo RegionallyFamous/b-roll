@@ -1,0 +1,112 @@
+/* ODD widgets — scoped to .odd-widget.* to avoid styling bleed. */
+
+.odd-widget {
+	--odd-accent: #7a8190;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px 16px;
+	color: var( --wp-admin-theme-color-text, #f3f5f8 );
+	font: 400 13px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	height: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+/* =========================================================== */
+/* Sticky Note                                                 */
+/* =========================================================== */
+
+.odd-widget--sticky {
+	padding: 12px;
+	background: transparent;
+	align-items: stretch;
+	justify-content: stretch;
+}
+.odd-sticky__paper {
+	position: relative;
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	padding: 14px 14px 26px;
+	background:
+		linear-gradient( 180deg, #fff6c6 0%, #ffe89a 100% );
+	color: #342a0e;
+	border-radius: 2px;
+	box-shadow:
+		0 1px 0 rgba( 255, 255, 255, 0.5 ) inset,
+		0 10px 22px -12px rgba( 30, 20, 0, 0.45 ),
+		0 2px 6px -2px rgba( 30, 20, 0, 0.25 );
+	transform-origin: 50% 50%;
+	transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.odd-sticky__paper::before {
+	/* Subtle paper grain. */
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background:
+		radial-gradient( 1px 1px at 22% 38%, rgba( 0, 0, 0, 0.05 ) 50%, transparent 51% ),
+		radial-gradient( 1px 1px at 78% 64%, rgba( 0, 0, 0, 0.04 ) 50%, transparent 51% ),
+		radial-gradient( 1px 1px at 42% 82%, rgba( 0, 0, 0, 0.04 ) 50%, transparent 51% );
+	opacity: 0.7;
+	mix-blend-mode: multiply;
+	border-radius: inherit;
+}
+.odd-sticky__peel {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 22px;
+	height: 22px;
+	background: linear-gradient( 135deg, rgba( 255, 255, 255, 0.8 ) 0%, rgba( 255, 238, 160, 0.7 ) 55%, rgba( 180, 150, 40, 0.6 ) 100% );
+	clip-path: polygon( 100% 0, 0 0, 100% 100% );
+	box-shadow: -2px 2px 6px -2px rgba( 30, 20, 0, 0.45 );
+	pointer-events: none;
+}
+.odd-sticky__text {
+	flex: 1 1 auto;
+	width: 100%;
+	background: transparent;
+	border: 0;
+	outline: 0;
+	resize: none;
+	color: inherit;
+	font: 400 15px/1.35 "Bradley Hand", "Chalkboard SE", "Segoe Print", "Marker Felt", sans-serif;
+	letter-spacing: 0.005em;
+	padding: 0;
+	min-height: 0;
+}
+.odd-sticky__text::placeholder {
+	color: rgba( 52, 42, 14, 0.42 );
+	font-style: italic;
+}
+.odd-sticky__text:focus {
+	outline: 0;
+	box-shadow: none;
+}
+.odd-sticky__meta {
+	position: absolute;
+	bottom: 6px;
+	right: 12px;
+	font-size: 10.5px;
+	letter-spacing: 0.06em;
+	color: rgba( 52, 42, 14, 0.48 );
+	pointer-events: none;
+	user-select: none;
+}
+.odd-sticky__paper { transition: none; }
+/* =========================================================== */
+/* Magic 8-Ball                                                */
+/* =========================================================== */
+
+.odd-widget--eight {
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 14px;
+	background: transparent;
+}
+.odd-widget--eight.is-reduced .odd-eight__ball {
+	animation: none;
+}

@@ -10,7 +10,7 @@ Parse `$ARGUMENTS` as `<slug> <label> [franchise]`. The slug is kebab-case and m
 
 Then do all of the following:
 
-## 1. Create `odd/src/wallpaper/scenes/<slug>.js`
+## 1. Create `_tools/catalog-sources/scenes/<slug>/scene.js`
 
 Use this skeleton. Fill in a 1–3 line header comment describing the visual (franchise + what the scene depicts). Match the scene's palette to the theme — dark dramatic for cyberpunk, pastel for cute, etc.
 
@@ -31,7 +31,9 @@ Use this skeleton. Fill in a 1–3 line header comment describing the visual (fr
             var PIXI = env.PIXI, app = env.app;
 
             // Painted backdrop — cover-fit, re-run on resize.
-            var url = window.odd.pluginUrl + '/assets/wallpapers/<slug>.webp?v=' + window.odd.version;
+            var sceneMap = ( window.odd && window.odd.sceneMap ) || {};
+            var descriptor = sceneMap[ '<slug>' ] || {};
+            var url = descriptor.wallpaperUrl || ( ( window.odd && window.odd.pluginUrl ) + '/assets/wallpapers/<slug>.webp?v=' + window.odd.version );
             var tex = await PIXI.Assets.load( url );
             var backdrop = new PIXI.Sprite( tex );
             app.stage.addChild( backdrop );
@@ -60,7 +62,7 @@ Use this skeleton. Fill in a 1–3 line header comment describing the visual (fr
 } )();
 ```
 
-## 2. Append an entry to `odd/src/wallpaper/scenes.json`
+## 2. Drop a `meta.json` next to `scene.js` in `_tools/catalog-sources/scenes/<slug>/`
 
 ```json
 {
@@ -69,16 +71,18 @@ Use this skeleton. Fill in a 1–3 line header comment describing the visual (fr
   "franchise": "<Franchise>",
   "tags": ["tag1", "tag2"],
   "fallbackColor": "#111111",
-  "added": "0.X.Y"
+  "added": "X.Y.Z"
 }
 ```
 
-## 3. Drop the assets
+The builder populates `previewUrl` + `wallpaperUrl` from the files on disk.
 
-- `odd/assets/previews/<slug>.webp` — 1.6:1, ~640 px wide, WebP q82, ~50–100 KB.
-- `odd/assets/wallpapers/<slug>.webp` — 1920×1080, WebP q82, ~300–500 KB.
+## 3. Drop the assets next to `meta.json`
 
-Run `odd/bin/validate-scenes` — it fails if the manifest doesn't have matching JS + preview + wallpaper files on disk.
+- `_tools/catalog-sources/scenes/<slug>/preview.webp` — 1.6:1, ~640 px wide, WebP q82, ~50–100 KB.
+- `_tools/catalog-sources/scenes/<slug>/wallpaper.webp` — 1920×1080, WebP q82, ~300–500 KB.
+
+Run `python3 _tools/build-catalog.py && odd/bin/validate-catalog` — the builder rejects broken source trees and the validator refuses catalogs with missing bundles / hash mismatches / bad manifests.
 
 ## 4. Bump the plugin version in `odd/odd.php`
 

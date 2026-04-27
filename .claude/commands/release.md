@@ -58,7 +58,7 @@ Pushing the tag triggers
 which:
 
 1. Asserts the tag matches `odd/odd.php`'s committed version.
-2. Runs `odd/bin/validate-scenes` + `odd/bin/validate-icon-sets`.
+2. Runs `python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog`.
 3. Runs `odd/bin/build-zip` to produce `dist/odd.zip`.
 4. Calls `gh release create "v<version>" dist/odd.zip --latest=true --generate-notes`
    (auto-generates release notes from commits since the previous tag).

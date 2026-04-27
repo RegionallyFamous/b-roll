@@ -355,7 +355,7 @@
 			catalogHead.textContent = 'Catalog';
 			wrap.appendChild( catalogHead );
 			var catalogNote = el( 'div', { class: 'odd-apps-note' } );
-			catalogNote.textContent = 'Curated ODD apps. Built-ins come with the plugin; remote apps download from the internet on install.';
+			catalogNote.textContent = 'Curated ODD apps from the remote catalog. Each one downloads on install; nothing ships with the plugin itself.';
 			wrap.appendChild( catalogNote );
 			var catalog = el( 'div', { class: 'odd-grid odd-grid--apps', 'data-odd-apps-catalog': '1' } );
 			wrap.appendChild( catalog );
@@ -528,7 +528,7 @@
 			gallery.innerHTML = '';
 			if ( ! apps || ! apps.length ) {
 				var empty = el( 'div', { class: 'odd-apps-empty' } );
-				empty.textContent = 'No apps installed yet. Upload one above.';
+				empty.textContent = 'No apps installed yet — install one from the catalog below, or upload a .wp bundle above.';
 				gallery.appendChild( empty );
 				return;
 			}
@@ -1432,7 +1432,12 @@
 				{ eyebrow: 'ODD · Living Art' }
 			) );
 
-			var allScenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes.slice() : [];
+			// v3.0+: scenes all come from installed bundles (plus the
+			// built-in "pending" fallback exposed by the runtime for
+			// first-boot safety). Filter the pending slug out of the
+			// shop — users shouldn't see or pick it as a real scene.
+			var allScenes = ( Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [] )
+				.filter( function ( s ) { return s && s.slug && s.slug !== 'odd-pending'; } );
 			var scenes = filterByQuery( allScenes, state.query );
 
 			// Hero — the currently-active scene, or the first result
@@ -1612,7 +1617,17 @@
 			wrap.appendChild( ssRow );
 
 			if ( ! scenes.length ) {
-				wrap.appendChild( renderEmptyResults( 'No scenes match "' + state.query + '".' ) );
+				if ( state.query ) {
+					wrap.appendChild( renderEmptyResults( 'No scenes match "' + state.query + '".' ) );
+					return wrap;
+				}
+				wrap.appendChild( renderEmptyDept(
+					'scenes',
+					'Install one from the Discover shelf below — or wait a moment while ODD finishes its first-run setup.',
+					'🎨'
+				) );
+				var discoverEmpty = renderDiscoverShelf( 'scene' );
+				if ( discoverEmpty ) wrap.appendChild( discoverEmpty );
 				return wrap;
 			}
 
@@ -1662,7 +1677,7 @@
 		function renderWallpaperHero( scene ) {
 			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
 			var isActive    = scene.slug === currentSlug;
-			var previewUrl  = ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + scene.slug + '.webp';
+			var previewUrl  = scene.previewUrl || ( ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + scene.slug + '.webp' );
 
 			var hero = el( 'div', {
 				class: 'odd-shop__hero',
@@ -1740,6 +1755,33 @@
 			big.textContent = 'No results';
 			var sub = el( 'div', { class: 'odd-shop__empty-sub' } );
 			sub.textContent = message || 'Try a different search term.';
+			wrap.appendChild( icon );
+			wrap.appendChild( big );
+			wrap.appendChild( sub );
+			return wrap;
+		}
+
+		/**
+		 * Empty-state card shown at the top of a department when the
+		 * user has zero bundles of that type installed. On a fresh
+		 * site this is common — the starter pack is still downloading
+		 * in the background, and the Discover shelf below renders
+		 * remote catalog entries so the user can install manually or
+		 * just wait for the starter pack cron to finish.
+		 *
+		 * @param {string} kind  Friendly plural ("scenes", "icon sets", etc.).
+		 * @param {string} hint  Second-line microcopy.
+		 * @param {string} glyph Emoji or unicode for the decorative badge.
+		 * @return {HTMLElement}
+		 */
+		function renderEmptyDept( kind, hint, glyph ) {
+			var wrap = el( 'div', { class: 'odd-shop__empty odd-shop__empty--dept' } );
+			var icon = el( 'div', { class: 'odd-shop__empty-icon', 'aria-hidden': 'true' } );
+			icon.textContent = glyph || '✨';
+			var big  = el( 'div', { class: 'odd-shop__empty-title' } );
+			big.textContent = 'No ' + kind + ' installed yet';
+			var sub  = el( 'div', { class: 'odd-shop__empty-sub' } );
+			sub.textContent = hint || 'Browse the Discover shelf below to add some.';
 			wrap.appendChild( icon );
 			wrap.appendChild( big );
 			wrap.appendChild( sub );
@@ -2240,7 +2282,7 @@
 			var thumb = el( 'div', { class: 'odd-shop__tile-thumb' } );
 			thumb.style.backgroundColor = scene.fallbackColor || '#111';
 			var img = el( 'img', {
-				src: ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + scene.slug + '.webp',
+				src: scene.previewUrl || ( ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + scene.slug + '.webp' ),
 				alt: '',
 				loading: 'lazy',
 			} );
@@ -2563,7 +2605,17 @@
 			}
 
 			if ( ! filtered.length ) {
-				wrap.appendChild( renderEmptyResults( 'No icon sets match "' + state.query + '".' ) );
+				if ( state.query ) {
+					wrap.appendChild( renderEmptyResults( 'No icon sets match "' + state.query + '".' ) );
+					return wrap;
+				}
+				wrap.appendChild( renderEmptyDept(
+					'icon sets',
+					'Install one from the Discover shelf below to re-skin the dock and desktop shortcuts.',
+					'🎛️'
+				) );
+				var discoverIconsEmpty = renderDiscoverShelf( 'icon-set' );
+				if ( discoverIconsEmpty ) wrap.appendChild( discoverIconsEmpty );
 				return wrap;
 			}
 
@@ -3017,33 +3069,12 @@
 		 */
 
 		function widgetCatalog() {
-			// Keep this list in sync with `src/widgets/index.js`. We
-			// duplicate the metadata here (glyph + gradient + tagline)
-			// rather than pulling it from the registry because the
-			// widget registry doesn't carry editorial copy or palette
-			// — those are a Shop concern, not a runtime concern.
-			var builtIns = [
-				{
-					id:          'odd/sticky',
-					label:       'Sticky Note',
-					glyph:       '📝',
-					accent:      '#f4b93a',
-					gradient:    'linear-gradient(135deg,#ffd84a 0%,#ff9c5b 55%,#ff6a3d 100%)',
-					tagline:     'Tilted handwritten note, auto-saves.',
-					description: 'A pocket-sized scratchpad that picks a different tilt on every load. Scribble a URL, a todo, a reminder — it saves locally as you type, no database round-trip. Drag from the title bar and it\'ll remember wherever you drop it.',
-				},
-				{
-					id:          'odd/eight-ball',
-					label:       'Magic 8-Ball',
-					glyph:       '🎱',
-					accent:      '#3b2fa0',
-					gradient:    'linear-gradient(135deg,#1f1f2d 0%,#3b2fa0 55%,#7a49d6 100%)',
-					tagline:     'Shake for definitive-ish WordPress advice.',
-					description: 'Thirty WordPress-flavoured answers from a mystical plastic sphere. Click the ball to shake. Best consulted before a destructive migration, never during. Reduced-motion mode downgrades the rattle to a quick cross-fade.',
-				},
-			];
-
-			var base   = builtIns.slice();
+			// v3.0+: ODD ships no stock widgets. Every widget — including
+			// Sticky Note and Magic 8-Ball — is an installable bundle
+			// from the remote catalog, so this list is seeded entirely
+			// from `installedWidgets`. The Discover shelf below this
+			// function renders remote widget entries users can add.
+			var base   = [];
 			var extras = Array.isArray( state.cfg.installedWidgets ) ? state.cfg.installedWidgets : [];
 			// Merge installed widgets as their own cards. They don't
 			// ship editorial palette metadata so the Shop synthesises
@@ -3173,7 +3204,17 @@
 			}
 
 			if ( ! filtered.length ) {
-				wrap.appendChild( renderEmptyResults( 'No widgets match "' + state.query + '".' ) );
+				if ( state.query ) {
+					wrap.appendChild( renderEmptyResults( 'No widgets match "' + state.query + '".' ) );
+					return wrap;
+				}
+				wrap.appendChild( renderEmptyDept(
+					'widgets',
+					'Install one from the Discover shelf below to park a little card on your desktop.',
+					'🧩'
+				) );
+				var discoverWidgetsEmpty = renderDiscoverShelf( 'widget' );
+				if ( discoverWidgetsEmpty ) wrap.appendChild( discoverWidgetsEmpty );
 				return wrap;
 			}
 

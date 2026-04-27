@@ -1,0 +1,13 @@
+{
+  "slug": "board",
+  "name": "Board",
+  "description": "Cards. Columns. Drag. Drop. Done. A no-nonsense project board that shows you exactly what's happening, what's stuck, and what you can finally move to \"done.\"",
+  "version": "1.2.0",
+  "author": "Regionally Famous",
+  "tags": [
+    "productivity",
+    "tasks",
+    "kanban",
+    "planning"
+  ]
+}

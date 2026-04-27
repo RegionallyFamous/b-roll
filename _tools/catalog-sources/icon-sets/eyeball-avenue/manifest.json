@@ -1,0 +1,25 @@
+{
+  "slug": "eyeball-avenue",
+  "label": "Eyeball Avenue",
+  "franchise": "ODD Original",
+  "accent": "#b35cff",
+  "preview": "dashboard.svg",
+  "description": "Full-color surreal eyeball tiles: glossy pupils, neon lids, little role props, and enough contrast to stare back from the desktop.",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}
