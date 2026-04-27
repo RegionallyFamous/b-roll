@@ -71,6 +71,8 @@
 .odd-panel .odd-about__link:hover{transform:translateY(-2px);box-shadow:0 14px 30px -16px rgba(106,92,255,.75);background:#1a1533}
 .odd-panel .odd-about__link span{color:#ffd23f;font-size:15px;line-height:1}
 .odd-panel .odd-about__credit{margin:18px auto 0;max-width:52ch;font-size:12px;color:#646970;line-height:1.55}
+.odd-panel .odd-about__diag{margin:22px auto 0;max-width:52ch;padding-top:18px;border-top:1px solid rgba(100,105,112,.18)}
+.odd-panel .odd-about__diag-hint{margin:10px 0 0;font-size:11px;color:#646970;line-height:1.5}
 @keyframes odd-about-spin{to{transform:rotate(360deg)}}
 @keyframes odd-about-bounce{0%,100%{transform:translateY(0) rotate(0);filter:hue-rotate(0deg) saturate(1)}25%{transform:translateY(-6px) rotate(-2.5deg)}50%{transform:translateY(0) rotate(0);filter:hue-rotate(24deg) saturate(1.1)}75%{transform:translateY(-4px) rotate(2.5deg)}}
 @keyframes odd-about-whee{0%{transform:scale(1) rotate(0);filter:hue-rotate(0deg)}45%{transform:scale(1.18) rotate(-8deg);filter:hue-rotate(220deg) saturate(1.4)}100%{transform:scale(1) rotate(0);filter:hue-rotate(0deg)}}
@@ -344,6 +346,12 @@
 .odd-panel.odd-shop .odd-shop__tile-thumb{position:relative;aspect-ratio:16/10;width:100%;background:#1d1d1f;overflow:hidden}
 .odd-panel.odd-shop .odd-shop__tile-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .odd-panel.odd-shop .odd-shop__tile-badge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.94);color:var(--odd-shop-accent);font-size:10px;font-weight:700;letter-spacing:.04em;box-shadow:0 4px 10px -4px rgba(0,0,0,.4)}
+.odd-panel.odd-shop .odd-shop__iris-sticker{position:absolute;bottom:8px;right:8px;width:36px;height:36px;border-radius:10px;overflow:hidden;box-shadow:0 6px 16px -4px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.4);transform:rotate(-7deg);pointer-events:none;z-index:2;animation:odd-shop__iris-bob 4.6s ease-in-out infinite}
+.odd-panel.odd-shop .odd-shop__iris-sticker svg{display:block;width:100%;height:100%}
+.odd-panel.odd-shop .odd-shop__iris-blinker{transform-box:fill-box;transform-origin:50% 50%;animation:odd-shop__iris-blink 11s ease-in-out infinite}
+@keyframes odd-shop__iris-blink{0%,86%,90%,100%{transform:scaleY(1)}88%{transform:scaleY(0.05)}}
+@keyframes odd-shop__iris-bob{0%,100%{transform:rotate(-7deg) translateY(0)}50%{transform:rotate(-3deg) translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.odd-panel.odd-shop .odd-shop__iris-sticker,.odd-panel.odd-shop .odd-shop__iris-blinker{animation:none}}
 .odd-panel.odd-shop .odd-shop__fav{position:absolute;top:8px;right:8px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:rgba(0,0,0,.42);color:rgba(255,255,255,.72);cursor:pointer;transition:background .14s ease,color .14s ease,transform .14s ease;z-index:2}
 .odd-panel.odd-shop .odd-shop__fav:hover{background:rgba(0,0,0,.6);color:#fff;transform:scale(1.06)}
 .odd-panel.odd-shop .odd-shop__fav.is-on{background:rgba(255,255,255,.94);color:#f59e0b}

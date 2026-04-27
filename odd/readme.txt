@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, pixi, canvas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.8.2
+Stable tag: 1.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,10 @@ WP Desktop Mode itself is a desktop metaphor, so ODD targets desktop browsers. S
 See the developer documentation linked from the plugin readme on GitHub — there is a stable PHP + JS extension API (registries, event bus, store).
 
 == Changelog ==
+
+= 1.10.0 =
+* Active wallpaper tile in the ODD Shop now wears a small "Iris is watching" sticker — the same eye glyph used by the marketing site's brand mark and the favicon, with a synced blink animation. Reduced motion is honored.
+* Marketing site polish pass: animated mini Control Panel preview (pulsing tab strip, 2x2 morphing wallpaper grid, icon-set ribbon, paired stickers), a 6-sticker family scattered across the page margins with a 3-sticker fallback at narrow viewports, per-card animated illustrations on each feature card (kanban hop, wallpaper morph, search-bar typing caret) with hover lift + accent glow, app cards gain a tilt + lift + INSTALL sticker on hover, and the brand mark is now a unified blinking iris SVG that matches the favicon and the OG card.
 
 = 1.8.2 =
 * Fix: `odd_icons_get_sets( true )` now actually rebuilds the registry and returns the fresh list. Before this, passing `true` to force a refresh wiped the static cache but short-circuited with `[]` — so callers (including the bundle-install round-trip test added in 1.8.0) got an empty set back even when installed icon packs existed on disk. The install/uninstall flow itself is unchanged; this is a read-side cache semantics fix.

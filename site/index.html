@@ -27,7 +27,7 @@
 	<meta name="twitter:description" content="Install apps with one click and decorate your desktop, all without leaving WordPress.">
 	<meta name="twitter:image" content="https://odd.regionallyfamous.com/og.png">
 	<meta name="twitter:image:alt" content="ODD — the app store for WP Desktop Mode. A playful eye logo next to the ODD wordmark on a deep purple background.">
-	<link rel="stylesheet" href="/styles.css?v=3">
+	<link rel="stylesheet" href="/styles.css?v=4">
 	<script src="/wild.js" defer></script>
 </head>
 <body>
@@ -43,13 +43,38 @@
 		<svg class="confetti-shape conf-spiral" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M30 30 m-2 0 a 2 2 0 1 1 4 0 a 6 6 0 1 1 -12 0 a 10 10 0 1 1 20 0 a 14 14 0 1 1 -28 0 a 18 18 0 1 1 36 0"/></svg>
 		<svg class="confetti-shape conf-plus" viewBox="0 0 40 40" fill="currentColor"><rect x="16" y="2" width="8" height="36" rx="3"/><rect x="2" y="16" width="36" height="8" rx="3"/></svg>
 		<svg class="confetti-shape conf-triangle" viewBox="0 0 48 44" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"><path d="M24 4 L44 40 L4 40 Z"/></svg>
-		<svg class="confetti-shape conf-eye" viewBox="0 0 70 44" fill="currentColor"><ellipse cx="35" cy="22" rx="33" ry="20" fill="#fdfaf2" stroke="#130826" stroke-width="3"/><circle cx="35" cy="22" r="10" fill="#091425"/><circle cx="38" cy="19" r="3" fill="#fdfaf2"/></svg>
+		<svg class="confetti-shape conf-eye" viewBox="0 0 70 44" fill="currentColor"><g class="iris-blinker"><ellipse cx="35" cy="22" rx="33" ry="20" fill="#fdfaf2" stroke="#130826" stroke-width="3"/><circle cx="35" cy="22" r="10" fill="#1e7ac9"/><circle cx="35" cy="22" r="5" fill="#091425"/><circle cx="32" cy="19" r="2" fill="#fdfaf2"/></g></svg>
 		<svg class="confetti-shape conf-cross" viewBox="0 0 30 30" fill="currentColor"><rect x="12" y="0" width="6" height="30" rx="2" transform="rotate(45 15 15)"/><rect x="0" y="12" width="30" height="6" rx="2" transform="rotate(45 15 15)"/></svg>
 		<svg class="confetti-shape conf-arc" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"><path d="M10 70 Q 40 0, 70 70"/></svg>
 		<svg class="confetti-shape conf-ring" viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="6"><circle cx="25" cy="25" r="20" stroke-dasharray="4 8"/></svg>
 	</div>
 	<header class="shell nav">
-		<a class="brand" href="/" aria-label="ODD home"><span class="eye"></span><span>ODD</span></a>
+		<a class="brand" href="/" aria-label="ODD home">
+			<span class="brand-eye iris-tile" aria-hidden="true">
+				<svg class="iris-svg" viewBox="0 0 64 64">
+					<defs>
+						<linearGradient id="brand-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+							<stop offset="0%" stop-color="#ff4fa8"/>
+							<stop offset="55%" stop-color="#9d6bff"/>
+							<stop offset="100%" stop-color="#5a35d6"/>
+						</linearGradient>
+						<radialGradient id="brand-iris" cx="42%" cy="38%" r="68%">
+							<stop offset="0%" stop-color="#c6fbff"/>
+							<stop offset="45%" stop-color="#70f5ff"/>
+							<stop offset="100%" stop-color="#1e7ac9"/>
+						</radialGradient>
+					</defs>
+					<rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="url(#brand-bg)"/>
+					<g class="iris-blinker">
+						<circle cx="32" cy="32" r="20" fill="#fdfaf2" stroke="#130826" stroke-width="3"/>
+						<circle cx="32" cy="32" r="13" fill="url(#brand-iris)"/>
+						<circle class="iris-pupil" cx="32" cy="32" r="6" fill="#091425"/>
+						<circle cx="29" cy="29" r="2.4" fill="#ffffff"/>
+					</g>
+				</svg>
+			</span>
+			<span>ODD</span>
+		</a>
 		<nav class="navlinks" aria-label="Primary">
 			<a href="/playground/">Try it</a>
 			<a href="https://github.com/RegionallyFamous/odd/releases/latest">Download</a>
@@ -60,6 +85,8 @@
 
 	<main class="shell">
 		<section class="hero">
+			<span class="sticker sticker-1" aria-hidden="true">One click</span>
+			<span class="sticker sticker-2" aria-hidden="true">Free forever</span>
 			<div>
 				<div class="kicker wobble-text">WP Desktop Mode is the desktop</div>
 				<h1>ODD is the app store it was missing.</h1>
@@ -72,17 +99,35 @@
 				<p class="note">The demo boots WordPress Playground, loads WP Desktop Mode, then opens the ODD Control Panel automatically.</p>
 			</div>
 			<div class="preview tilt-card" role="img" aria-label="Stylized ODD desktop preview">
+				<span class="pair-sticker" aria-hidden="true">Always live</span>
 				<div class="desktop">
 					<div class="rainbow-road" aria-hidden="true"></div>
 					<div class="portal-hole" aria-hidden="true"></div>
 					<div class="window">
-						<h2>ODD Control Panel</h2>
-						<p class="note">Wallpaper · Icons · Apps · About</p>
+						<div class="window-bar" aria-hidden="true">
+							<span class="dot dot-r"></span>
+							<span class="dot dot-y"></span>
+							<span class="dot dot-g"></span>
+							<span class="window-title">ODD Control Panel</span>
+						</div>
+						<div class="window-tabs" aria-hidden="true">
+							<span class="window-tab is-active">Wallpaper</span>
+							<span class="window-tab">Icons</span>
+							<span class="window-tab">Apps</span>
+							<span class="window-tab">About</span>
+						</div>
 						<div class="tiles" aria-hidden="true">
-							<div class="tile"></div>
-							<div class="tile"></div>
-							<div class="tile"></div>
-							<div class="tile"></div>
+							<div class="tile tile-1"><span class="tile-check"></span></div>
+							<div class="tile tile-2"></div>
+							<div class="tile tile-3"></div>
+							<div class="tile tile-4"></div>
+						</div>
+						<div class="icon-ribbon" aria-hidden="true">
+							<span class="ico ico-1"></span>
+							<span class="ico ico-2"></span>
+							<span class="ico ico-3"></span>
+							<span class="ico ico-4"></span>
+							<span class="ico ico-5"></span>
 						</div>
 					</div>
 					<div class="dock" aria-hidden="true">
@@ -118,80 +163,113 @@
 		</div>
 
 		<section class="grid" aria-label="What you can do">
-			<article class="card wild-card">
+			<article class="card wild-card card-do" style="--card-accent:#ff4fa8;">
+				<div class="card-art kanban-art" aria-hidden="true">
+					<span class="kanban-col"></span>
+					<span class="kanban-col"></span>
+					<span class="kanban-col"></span>
+					<span class="kanban-head"></span>
+					<span class="kanban-task k-1"></span>
+					<span class="kanban-task k-2"></span>
+					<span class="kanban-task k-3"></span>
+					<span class="kanban-task k-4"></span>
+				</div>
 				<h3>Actually do the work &mdash; from inside WordPress.</h3>
 				<p>Move tasks across kanban columns. Send a client invoice. Run a focused Pomodoro. Write your team's wiki. Design a color system, a pixel icon, a synth patch. One click each to install, then they're just there on your desktop &mdash; no admin page detour, no tab graveyard.</p>
 			</article>
-			<article class="card wild-card">
+			<article class="card wild-card card-deck" style="--card-accent:#70f5ff;">
+				<div class="card-art wallpaper-art" aria-hidden="true">
+					<span class="wp-frame"></span>
+					<span class="wp-cycle"></span>
+					<span class="wp-dots"><i></i><i></i><i></i></span>
+				</div>
 				<h3>Make the desktop a place you want to open.</h3>
 				<p>Pick a wallpaper that paints itself live. Re-skin every dock and shortcut icon in a single click. Drop a handwritten sticky note or a Magic 8-Ball wherever feels right. Small delights compound &mdash; the admin stops feeling like homework.</p>
 			</article>
-			<article class="card wild-card">
+			<article class="card wild-card card-try" style="--card-accent:#ffe08a;">
+				<div class="card-art search-art" aria-hidden="true">
+					<span class="search-bar">
+						<span class="search-mag"></span>
+						<span class="search-text"></span>
+						<span class="search-caret"></span>
+					</span>
+					<span class="search-result r-1"></span>
+					<span class="search-result r-2"></span>
+				</div>
 				<h3>Try things before you commit.</h3>
 				<p>Every scene and icon pack previews instantly. Wander the Shop, let a wallpaper run for a minute, keep it or roll back. It's Mac App Store&ndash;style browsing &mdash; search, category shelves, hero cards &mdash; for your own desktop.</p>
 			</article>
 		</section>
 
 		<section class="apps" aria-label="ODD app catalog">
+			<span class="sticker sticker-3" aria-hidden="true">No SaaS</span>
+			<span class="sticker sticker-4" aria-hidden="true">Open source</span>
 			<header class="apps-head">
 				<div class="kicker wobble-text">Apps for the things you actually do</div>
 				<h2>Seven in the catalog today. One click each.</h2>
 				<p class="lede">Pick a job. Install the app. Get back to work.</p>
 			</header>
 			<div class="app-grid">
-				<article class="app-card tilt-card" style="--app-a:#ff4fa8;--app-b:#64f4ff;">
+				<article class="app-card tilt-card" tabindex="0" style="--app-a:#ff4fa8;--app-b:#64f4ff;--tilt:-0.8deg;">
 					<div class="app-icon" aria-hidden="true">
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="6" y="6" width="14" height="14" rx="2" fill="#ff4fa8"/><rect x="22" y="6" width="14" height="14" rx="2" fill="#64f4ff"/><rect x="38" y="6" width="14" height="14" rx="2" fill="#ffd64b"/><rect x="6" y="22" width="14" height="14" rx="2" fill="#64f4ff"/><rect x="22" y="22" width="14" height="14" rx="2" fill="#b04be1"/><rect x="38" y="22" width="14" height="14" rx="2" fill="#ff4fa8"/><rect x="6" y="38" width="14" height="14" rx="2" fill="#ffd64b"/><rect x="22" y="38" width="14" height="14" rx="2" fill="#5a35d6"/><rect x="38" y="38" width="14" height="14" rx="2" fill="#64f4ff"/></svg>
 					</div>
 					<h3>Mosaic</h3>
+					<span class="install-sticker" aria-hidden="true">Install</span>
 					<p>Paint a 32&times;32 icon, sprite, or favicon with real drawing tools &mdash; fills, undo, the works &mdash; then ship it as a PNG.</p>
 					<div class="app-tags"><span>creative</span><span>editor</span></div>
 				</article>
-				<article class="app-card tilt-card" style="--app-a:#64f4ff;--app-b:#ffd64b;">
+				<article class="app-card tilt-card" tabindex="0" style="--app-a:#64f4ff;--app-b:#ffd64b;--tilt:1.1deg;">
 					<div class="app-icon" aria-hidden="true">
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M20 14 L20 32 L44 32 L44 50" stroke="#b04be1" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="14" r="8" fill="#ff4fa8"/><circle cx="44" cy="32" r="8" fill="#64f4ff"/><circle cx="20" cy="50" r="8" fill="#ffd64b"/><circle cx="44" cy="50" r="8" fill="#5a35d6"/><path d="M20 50 L44 50" stroke="#b04be1" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
 					</div>
 					<h3>Flow</h3>
+					<span class="install-sticker" aria-hidden="true">Install</span>
 					<p>Run focused work sessions with ambient sound and a per-session task list. Watch a heatmap grow for the days you actually showed up.</p>
 					<div class="app-tags"><span>productivity</span><span>focus</span></div>
 				</article>
-				<article class="app-card tilt-card" style="--app-a:#ffd64b;--app-b:#ff4fa8;">
+				<article class="app-card tilt-card" tabindex="0" style="--app-a:#ffd64b;--app-b:#ff4fa8;--tilt:-1.2deg;">
 					<div class="app-icon" aria-hidden="true">
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><g transform="rotate(-6 20 22)"><rect x="7" y="10" width="24" height="24" rx="2" fill="#ffd64b"/><rect x="11" y="16" width="16" height="2.4" rx="1.2" fill="#1a0d32" opacity=".55"/><rect x="11" y="22" width="12" height="2.4" rx="1.2" fill="#1a0d32" opacity=".55"/></g><g transform="rotate(7 44 22)"><rect x="33" y="8" width="24" height="24" rx="2" fill="#ff4fa8"/><rect x="37" y="14" width="14" height="2.4" rx="1.2" fill="#1a0d32" opacity=".5"/><rect x="37" y="20" width="16" height="2.4" rx="1.2" fill="#1a0d32" opacity=".5"/></g><g transform="rotate(-3 30 46)"><rect x="18" y="32" width="26" height="26" rx="2" fill="#64f4ff"/><rect x="22" y="40" width="18" height="2.4" rx="1.2" fill="#1a0d32" opacity=".55"/><rect x="22" y="46" width="14" height="2.4" rx="1.2" fill="#1a0d32" opacity=".55"/></g></svg>
 					</div>
 					<h3>Board</h3>
+					<span class="install-sticker" aria-hidden="true">Install</span>
 					<p>Move work across columns. See at a glance what's moving, what's stuck, and what's shipped. No accounts, no SaaS, no setup.</p>
 					<div class="app-tags"><span>productivity</span><span>kanban</span></div>
 				</article>
-				<article class="app-card tilt-card" style="--app-a:#b04be1;--app-b:#64f4ff;">
+				<article class="app-card tilt-card" tabindex="0" style="--app-a:#b04be1;--app-b:#64f4ff;--tilt:0.6deg;">
 					<div class="app-icon" aria-hidden="true">
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="10" y="40" width="10" height="18" rx="2" fill="#64f4ff"/><rect x="22" y="28" width="10" height="30" rx="2" fill="#ff4fa8"/><rect x="34" y="18" width="10" height="40" rx="2" fill="#b04be1"/><rect x="46" y="8" width="10" height="50" rx="2" fill="#ffd64b"/><path d="M8 10 L54 10" stroke="#1a0d32" stroke-width="3" stroke-linecap="round"/><circle cx="8" cy="10" r="3" fill="#1a0d32"/></svg>
 					</div>
 					<h3>Ledger</h3>
+					<span class="install-sticker" aria-hidden="true">Install</span>
 					<p>Track clients, send polished invoices, log payments. Get paid &mdash; without leaving WordPress, without buying another SaaS seat.</p>
 					<div class="app-tags"><span>business</span><span>invoicing</span></div>
 				</article>
-				<article class="app-card tilt-card" style="--app-a:#ff94ce;--app-b:#9d6bff;">
+				<article class="app-card tilt-card" tabindex="0" style="--app-a:#ff94ce;--app-b:#9d6bff;--tilt:-0.4deg;">
 					<div class="app-icon" aria-hidden="true">
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="20" cy="20" r="10" fill="#ff4fa8"/><circle cx="44" cy="20" r="10" fill="#ffd64b"/><circle cx="20" cy="44" r="10" fill="#64f4ff"/><circle cx="44" cy="44" r="10" fill="#b04be1"/><circle cx="32" cy="32" r="7" fill="#fdfaf2"/></svg>
 					</div>
 					<h3>Swatch</h3>
+					<span class="install-sticker" aria-hidden="true">Install</span>
 					<p>Build a color system with harmony rules and WCAG contrast checks, then export it to CSS, Tailwind, or SVG in a click.</p>
 					<div class="app-tags"><span>design</span><span>palette</span></div>
 				</article>
-				<article class="app-card tilt-card" style="--app-a:#9d6bff;--app-b:#ff4fa8;">
+				<article class="app-card tilt-card" tabindex="0" style="--app-a:#9d6bff;--app-b:#ff4fa8;--tilt:1.2deg;">
 					<div class="app-icon" aria-hidden="true">
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M4 32 Q 16 8, 24 32 T 44 32 T 60 32" fill="none" stroke="#b04be1" stroke-width="5" stroke-linecap="round"/><path d="M4 32 Q 16 8, 24 32 T 44 32 T 60 32" fill="none" stroke="#ff4fa8" stroke-width="5" stroke-linecap="round" opacity=".35"/><circle cx="24" cy="32" r="5" fill="#64f4ff"/><circle cx="44" cy="32" r="5" fill="#ffd64b"/></svg>
 					</div>
 					<h3>Sine</h3>
+					<span class="install-sticker" aria-hidden="true">Install</span>
 					<p>Play actual sounds. Four waveforms, an ADSR envelope, a resonant filter, and a step sequencer &mdash; a real synth, in a browser window.</p>
 					<div class="app-tags"><span>music</span><span>synth</span></div>
 				</article>
-				<article class="app-card tilt-card" style="--app-a:#ff4fa8;--app-b:#9d6bff;">
+				<article class="app-card tilt-card" tabindex="0" style="--app-a:#ff4fa8;--app-b:#9d6bff;--tilt:-0.9deg;">
 					<div class="app-icon" aria-hidden="true">
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M6 12 L30 16 L30 54 L6 50 Z" fill="#b04be1"/><path d="M58 12 L34 16 L34 54 L58 50 Z" fill="#ff4fa8"/><path d="M30 16 L34 16 L34 54 L30 54 Z" fill="#1a0d32"/><path d="M10 22 L26 24" stroke="#fdfaf2" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M10 30 L24 31.5" stroke="#fdfaf2" stroke-width="2" stroke-linecap="round" opacity=".75"/><path d="M10 38 L26 39" stroke="#fdfaf2" stroke-width="2" stroke-linecap="round" opacity=".65"/><path d="M38 22 L54 20" stroke="#fdfaf2" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M38 30 L52 28.5" stroke="#fdfaf2" stroke-width="2" stroke-linecap="round" opacity=".75"/><path d="M38 38 L54 36" stroke="#fdfaf2" stroke-width="2" stroke-linecap="round" opacity=".65"/></svg>
 					</div>
 					<h3>Tome</h3>
+					<span class="install-sticker" aria-hidden="true">Install</span>
 					<p>Write your team's knowledge in markdown, organize it into pages, and find anything instantly. Close one more SaaS tab.</p>
 					<div class="app-tags"><span>wiki</span><span>markdown</span></div>
 				</article>
@@ -200,6 +278,7 @@
 		</section>
 
 		<section class="scene-strip" aria-label="ODD moods">
+			<span class="sticker sticker-5" aria-hidden="true">GPL v2</span>
 			<div class="scene-pill">Abyssal Aquarium</div>
 			<div class="scene-pill">Circuit Garden</div>
 			<div class="scene-pill">Pocket Dimension</div>
@@ -209,6 +288,7 @@
 	</main>
 
 	<footer class="shell">
+		<span class="sticker sticker-6" aria-hidden="true">Built in public</span>
 		ODD is GPLv2+ and built for <a href="https://github.com/WordPress/desktop-mode">WP Desktop Mode</a>.
 	</footer>
 </body>

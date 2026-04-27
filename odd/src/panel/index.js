@@ -2036,6 +2036,38 @@
 				var badge = el( 'span', { class: 'odd-shop__tile-badge' } );
 				badge.textContent = '✓ Active';
 				thumb.appendChild( badge );
+
+				// Iris "watching" sticker — ties the active wallpaper
+				// pick to the same eye glyph used by the marketing
+				// site, the favicon, and the brand mark.
+				var iris = el( 'span', {
+					class: 'odd-shop__iris-sticker',
+					'aria-hidden': 'true',
+					title: 'Iris is watching',
+				} );
+				iris.innerHTML =
+					'<svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">'
+						+ '<defs>'
+							+ '<linearGradient id="oddIrisBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">'
+								+ '<stop offset="0%" stop-color="#ff4fa8"/>'
+								+ '<stop offset="55%" stop-color="#9d6bff"/>'
+								+ '<stop offset="100%" stop-color="#5a35d6"/>'
+							+ '</linearGradient>'
+							+ '<radialGradient id="oddIrisIris" cx="42%" cy="38%" r="68%">'
+								+ '<stop offset="0%" stop-color="#c6fbff"/>'
+								+ '<stop offset="45%" stop-color="#70f5ff"/>'
+								+ '<stop offset="100%" stop-color="#1e7ac9"/>'
+							+ '</radialGradient>'
+						+ '</defs>'
+						+ '<rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="url(#oddIrisBg)"/>'
+						+ '<g class="odd-shop__iris-blinker">'
+							+ '<circle cx="32" cy="32" r="20" fill="#fdfaf2" stroke="#130826" stroke-width="3"/>'
+							+ '<circle cx="32" cy="32" r="13" fill="url(#oddIrisIris)"/>'
+							+ '<circle cx="32" cy="32" r="6" fill="#091425"/>'
+							+ '<circle cx="29" cy="29" r="2.4" fill="#ffffff"/>'
+						+ '</g>'
+					+ '</svg>';
+				thumb.appendChild( iris );
 			}
 			card.appendChild( thumb );
 
@@ -3225,6 +3257,40 @@
 			var credit = el( 'p', { class: 'odd-about__credit' } );
 			credit.textContent = 'Painted backdrops, scripted motion, mini apps that mind their business. Built on WP Desktop Mode. Use responsibly. Or don\'t.';
 			foot.appendChild( credit );
+
+			// Diagnostics: bundle environment + recent log entries into
+			// the clipboard for bug reports. Zero server-side telemetry;
+			// the entire payload is assembled on this machine and only
+			// leaves the browser when the user pastes it somewhere.
+			var diagRow = el( 'div', { class: 'odd-about__diag' } );
+			var diagBtn = el( 'button', {
+				type: 'button',
+				class: 'odd-apps-btn odd-apps-btn--pill',
+				'data-odd-copy-diagnostics': '1',
+			} );
+			diagBtn.textContent = 'Copy diagnostics';
+			diagBtn.addEventListener( 'click', function () {
+				var d = window.__odd && window.__odd.diagnostics;
+				if ( ! d || typeof d.copy !== 'function' ) {
+					diagBtn.textContent = 'Diagnostics unavailable';
+					return;
+				}
+				diagBtn.disabled = true;
+				d.copy().then( function ( ok ) {
+					diagBtn.textContent = ok ? 'Copied — paste into GitHub' : 'Copy failed';
+					setTimeout( function () {
+						diagBtn.disabled = false;
+						diagBtn.textContent = 'Copy diagnostics';
+					}, 2400 );
+				} );
+			} );
+			diagRow.appendChild( diagBtn );
+
+			var diagHint = el( 'p', { class: 'odd-about__diag-hint' } );
+			diagHint.textContent = 'Assembles ODD version, environment, recent errors, and registry counts into the clipboard. Nothing is sent anywhere — paste it into an issue if something\'s broken.';
+			diagRow.appendChild( diagHint );
+			foot.appendChild( diagRow );
+
 			wrap.appendChild( foot );
 
 			return wrap;
