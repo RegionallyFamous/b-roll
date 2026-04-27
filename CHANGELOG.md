@@ -16,6 +16,50 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.0.1"></a>
+## [3.0.1] — 2026-04-27
+
+### Fixed
+- **Installed scenes couldn't find their backdrop.** The localized
+  `window.odd` config exposed `scenes` (array) but not `sceneMap` (dict),
+  so installed scene bundles fell through to the hard-coded
+  `pluginUrl + /assets/wallpapers/<slug>.webp` fallback — which no
+  longer exists in the empty 3.0 plugin and 404'd on every swap. Added
+  `sceneMap` to the localized blob so `cfg.sceneMap[slug].wallpaperUrl`
+  resolves to the real `/wp-content/odd-scenes/<slug>/wallpaper.webp`.
+- **ODD Shop window didn't render via the JS API.** `api.openPanel()`
+  was calling `wp.desktop.registerWindow({ id: 'odd' })`, which opens
+  an unthemed shell and bypasses the server-side template. The canonical
+  call for server-registered native windows is
+  `wp.desktop.openWindow('odd')`; openPanel now prefers that and falls
+  back to `registerWindow` only on older shells.
+- **Shop a11y regressions.** Three WCAG violations flagged by axe:
+  - The favorite star was a `<span role="button">` nested inside the
+    card `<button>` (nested-interactive, serious). Tiles now wrap the
+    card and star as siblings inside an `.odd-shop__tile-wrap`.
+  - The shuffle-interval and screensaver-idle inputs had no accessible
+    name (label, critical). Both now carry explicit `aria-label`s.
+  - The department eyebrow used `--odd-shop-accent` (#0071e3) on the
+    near-white background, failing AA contrast at 11px (color-contrast,
+    serious). Darkened the eyebrow to `#0050a6` (~5.9:1) without
+    touching the rest of the accent-coloured UI.
+
+### CI
+- **e2e: install WP Desktop Mode from its release zip.** `trunk.zip`
+  ships TypeScript sources only, so `desktop.min.js` + `pixi.min.js`
+  404'd at runtime and Playwright hung waiting for `window.PIXI`. The
+  workflow now installs `desktop-mode.zip` from the latest GitHub
+  release (which includes the built assets).
+- **e2e: force synchronous starter-pack install.** `wp server` doesn't
+  tick cron reliably, so the scheduled starter install never ran and
+  `__odd.scenes` stayed empty. CI now runs
+  `wp eval 'odd_starter_install_now();'` up-front.
+- **e2e: assert on the mounted scene instead of pixel reads.** PIXI v8
+  creates canvases with `preserveDrawingBuffer: false`, so
+  `gl.readPixels` outside a render pass flaked. Poll
+  `window.__odd.runtime.activeScene` — only set after `impl.setup()`
+  resolves — instead.
+
 <a id="v3.0.0"></a>
 ## [3.0.0] — 2026-04-27
 
