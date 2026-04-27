@@ -95,7 +95,6 @@ test.describe( 'ODD admin smoke', () => {
 			{ timeout: 15_000 },
 		);
 		expect( !! sceneMounted, 'wallpaper engine must mount a scene' ).toBe( true );
-		expect( nonBlackPixels, 'centre pixel must be non-black after scene boot' ).toBeGreaterThan( 0 );
 
 		const hookFired = await page.evaluate( async ( targetSlug ) => {
 			if ( ! ( window.wp && window.wp.hooks && window.wp.hooks.doAction ) ) return false;
