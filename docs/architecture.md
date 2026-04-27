@@ -158,26 +158,37 @@ entry before extraction. A mismatch aborts the install with
 
 ## Starter pack
 
-`includes/starter-pack.php`:
+`includes/starter-pack.php` — **no cron, install inline**:
 
 ```php
 register_activation_hook( ODD_PLUGIN_FILE, 'odd_activate_install_starter' );
-// ↓ schedules wp_schedule_single_event( time(), 'odd_starter_run' )
+// ↓ synchronously runs odd_starter_ensure_installed( force=true )
 
-function odd_starter_run() {
-    $pack = odd_catalog_starter_pack(); // { scenes:[…], iconSets:[…], widgets:[…], apps:[…] }
-    foreach ( $pack as $type => $slugs ) {
-        foreach ( $slugs as $slug ) odd_catalog_install_entry( $slug );
-    }
-    // Set default wallpaper + iconSet for every existing user.
-    // Mark state as 'installed'; reschedule with exponential backoff on failure.
+add_action( 'init', 'odd_starter_safety_net', 20 );
+// ↓ on every request, privileged users retry pending installs inline
+
+function odd_starter_ensure_installed( $force = false ) {
+    // No-op fast if: already installed, another request is running
+    // (lock auto-expires after 240 s), or we're inside the backoff
+    // window ($force=true skips the last check).
+    // Otherwise: take the lock, run odd_starter_install_now(),
+    // persist state=installed|failed, release the lock.
 }
 ```
 
-Retry schedule (`odd_starter_state` option): 5 s, 30 s, 2 min, 10 min,
-1 h, 6 h. `admin_init` reschedules the event if WordPress dropped it.
-`GET /odd/v1/starter` exposes the current state; `POST /starter/retry`
-forces a synchronous re-run.
+Retry is inline, not scheduled. State lives in `odd_starter_state`:
+`{ status, attempts, last_attempt, last_error, installed, prefs_set }`.
+Backoff on failure (attempts 1→6): immediate, 30 s, 2 min, 10 min, 1 h,
+6 h — enforced against `last_attempt` at the start of each safety-net
+run. `GET /odd/v1/starter` exposes the current state; `POST
+/starter/retry` forces a synchronous re-run that bypasses backoff.
+
+Why no cron: WP-Cron only ticks when someone hits the site, and
+`DISABLE_WP_CRON` is common in production. A freshly-activated site
+whose admin lands straight on the frontend desktop could sit
+`pending` forever. The inline model runs during activation (the admin
+is already there) and on any subsequent privileged page load, so the
+install heals itself without depending on external schedulers.
 
 ## Live scene swaps
 
@@ -431,10 +442,11 @@ download a bundle, serves a locally-built fixture from
 `ODD_SMOKE_FIXTURE_ROOT` instead of reaching the live GitHub Pages
 deploy.
 
-The workflow then invokes `wp eval 'odd_starter_run();'`
-synchronously (bypassing cron scheduling) and asserts the registries
-populated. Determinism of the catalog build is enforced by
-`ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog`.
+Activation itself runs `odd_starter_ensure_installed( true )` inline,
+so by the time `wp plugin activate odd` returns the starter pack is
+already installed. The workflow then reads `odd_starter_get_state()`
+and asserts `status === 'installed'`. Determinism of the catalog
+build is enforced by `ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog`.
 
 ## Migration from b-roll / b-roll-icons
 

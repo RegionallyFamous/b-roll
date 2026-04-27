@@ -16,14 +16,8 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
-<a id="v3.0.3"></a>
-## [3.0.3] — 2026-04-27
-
-### Changed
-- **Settings moved into their own Shop tab.** The Shuffle / Audio-reactive / Screensaver cards used to sit on top of the Wallpapers shelf, where they cluttered scene browsing and hid preferences behind a department that wasn't really about preferences. They now live in a dedicated **Settings** entry in the Shop sidebar. All three controls still write through the same `/odd/v1/prefs` endpoint (`shuffle`, `audioReactive`, `screensaver`) and the live module hooks (`window.__odd.screensaver.applyPrefs`, `odd.screensaver-prefs-changed`) are unchanged, so the REST contract and integrator surface are untouched.
-
-<a id="v3.0.3"></a>
-## [3.0.3] — 2026-04-27
+<a id="v3.0.4"></a>
+## [3.0.4] — 2026-04-27
 
 ### Changed
 - **Starter pack is now cron-free — installs always happen inline.**
@@ -33,7 +27,7 @@ tag history is the full record of every shipped version.
   blocked, or a freshly-activated site whose admin landed on the
   frontend desktop without ever visiting wp-admin), the starter pack
   would sit `pending` indefinitely — empty shop, no wallpaper
-  defaults. 3.0.2 removes the scheduler entirely:
+  defaults. 3.0.4 removes the scheduler entirely:
 
   - The activation hook runs `odd_starter_ensure_installed( true )`
     inline. The admin is already on a privileged request; we use it.
@@ -52,6 +46,15 @@ tag history is the full record of every shipped version.
   response returns. `POST /odd/v1/starter/retry` still exists for
   manual kicks.
 
+<a id="v3.0.3"></a>
+## [3.0.3] — 2026-04-27
+
+### Changed
+- **Settings moved into their own Shop tab.** The Shuffle / Audio-reactive / Screensaver cards used to sit on top of the Wallpapers shelf, where they cluttered scene browsing and hid preferences behind a department that wasn't really about preferences. They now live in a dedicated **Settings** entry in the Shop sidebar. All three controls still write through the same `/odd/v1/prefs` endpoint (`shuffle`, `audioReactive`, `screensaver`) and the live module hooks (`window.__odd.screensaver.applyPrefs`, `odd.screensaver-prefs-changed`) are unchanged, so the REST contract and integrator surface are untouched.
+
+<a id="v3.0.2"></a>
+## [3.0.2] — 2026-04-27
+
 ### Changed
 - **Discover shelf — real artwork, roomier rows.** Catalog scene tiles
   used to be generated SVGs (a single letter on a flat swatch), which
@@ -61,6 +64,11 @@ tag history is the full record of every shipped version.
   Row layout got more breathing room too — bigger 84 px tiles, 20 px
   gaps, 18 px vertical padding, tighter typography — so a Discover
   card reads as a real preview instead of a dense list row.
+- **First pass at starter-pack self-heal** (fully superseded by the
+  cron removal in 3.0.4). Added `spawn_cron()` on activation and
+  moved the safety-net retry from `admin_init` to `init` so frontend
+  page loads could also trigger it. Helped on sites where WP-Cron
+  could still tick; didn't fully fix `DISABLE_WP_CRON` installs.
 
 <a id="v3.0.1"></a>
 ## [3.0.1] — 2026-04-27

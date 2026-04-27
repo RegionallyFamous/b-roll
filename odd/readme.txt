@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.0.3
+Stable tag: 3.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,11 +76,11 @@ See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.m
 
 == Upgrade Notice ==
 
-= 3.0.3 =
-Moves the Shuffle / Audio-reactive / Screensaver controls off the Wallpapers shelf and into a dedicated **Settings** sidebar tab, so scene browsing is no longer half preferences panel. REST + stored keys (`shuffle`, `audioReactive`, `screensaver`) are unchanged.
+= 3.0.4 =
+Starter pack is now cron-free — installs always happen inline, during the activation hook itself and via an `init`-level safety net on subsequent privileged page loads. Fixes the "empty shop" failure mode on sites where WP-Cron couldn't tick (DISABLE_WP_CRON, blocked loopback, or an admin who never visits wp-admin). Any scheduled event from older installs is cleaned up on upgrade.
 
 = 3.0.3 =
-Starter pack is now cron-free — installs always happen inline, during the activation hook itself and via an `init`-level safety net on subsequent privileged page loads. Fixes the "empty shop" failure mode on sites where WP-Cron couldn't tick (DISABLE_WP_CRON, blocked loopback, or an admin who never visits wp-admin). Also: Discover tiles now use the painted scene preview artwork instead of a generic letter badge, and catalog rows get a roomier layout with bigger previews.
+Moves the Shuffle / Audio-reactive / Screensaver controls off the Wallpapers shelf and into a dedicated **Settings** sidebar tab, so scene browsing is no longer half preferences panel. REST + stored keys (`shuffle`, `audioReactive`, `screensaver`) are unchanged. Also: Discover tiles now use the painted scene preview artwork instead of a generic letter badge, and catalog rows get a roomier layout with bigger previews.
 
 = 3.0.1 =
 Post-3.0.0 fixes: installed scene bundles can now find their painted backdrop again (the localized `sceneMap` was missing, so every scene fell back to a 404'd plugin-assets URL), the ODD Shop window opens reliably via `wp.desktop.openWindow` instead of the bare `registerWindow` shortcut, and three a11y violations in the Shop (nested interactive on the favorite star, unlabeled shuffle/screensaver inputs, low-contrast department eyebrow) are resolved. Zero content changes.

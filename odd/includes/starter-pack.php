@@ -1,13 +1,34 @@
 <?php
 /**
- * ODD — starter pack runner.
+ * ODD — starter pack runner (cron-free).
  *
- * The plugin ships empty. On activation we schedule a one-off cron
- * that fetches the remote registry, installs every bundle listed in
- * `starter_pack`, and sets the initial user prefs (default scene +
- * icon set) so the desktop looks finished on first load.
+ * The plugin ships empty. The starter pack (a handful of scenes + icon
+ * sets + widgets pulled from the remote catalog) has to land on every
+ * new install so the desktop doesn't boot into a blank, unselectable
+ * state. Historically this ran through a one-shot WP-Cron event
+ * scheduled on activation. That's fragile: cron only ticks when
+ * someone hits the site, DISABLE_WP_CRON is common in production, and
+ * a freshly-activated site that never receives a visitor can sit
+ * "pending" forever.
  *
- * State is persisted in the `odd_starter_state` option:
+ * So: no cron. Install attempts happen synchronously on two hooks:
+ *
+ *   1. `register_activation_hook` — the user clicked "Activate" in
+ *      wp-admin, so we're already in a privileged admin request.
+ *      Run the installer inline. If it fails (catalog down, loopback
+ *      blocked, whatever), we capture the error into state and fall
+ *      through to the safety net below — we never block activation.
+ *
+ *   2. `init` — on every subsequent page load (admin *or* frontend),
+ *      if the state isn't `installed` and the backoff window has
+ *      elapsed, run the installer inline for privileged users.
+ *      Anonymous/readonly visitors never trigger network I/O.
+ *
+ * A status=running lock (auto-expires after 120s) keeps concurrent
+ * admin tabs from racing each other. A per-request in-memory guard
+ * keeps the safety net from firing twice on a single request.
+ *
+ * State shape, persisted to the `odd_starter_state` option:
  *
  *   {
  *     "status":       "pending" | "running" | "installed" | "failed",
@@ -18,16 +39,8 @@
  *     "prefs_set":    bool
  *   }
  *
- * Retry behaviour (because the catalog host can be down or the site
- * can be offline on first boot):
- *   - Attempt 1 at activation + ~5s.
- *   - Failure 1 → schedule attempt 2 at +1 min.
- *   - Failure 2 → +5 min. Failure 3 → +30 min. Failure 4+ → +6 hr.
- *   - On every admin page load, if status != 'installed' and
- *     enough time has passed since the last attempt, reschedule cron.
- *
- * Users can kick a retry from the Shop panel via
- * POST /odd/v1/starter/retry, which runs the installer inline.
+ * The Shop exposes state via GET /odd/v1/starter and can force an
+ * immediate retry (bypassing backoff) via POST /odd/v1/starter/retry.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -35,35 +48,36 @@ defined( 'ABSPATH' ) || exit;
 if ( ! defined( 'ODD_STARTER_OPTION' ) ) {
 	define( 'ODD_STARTER_OPTION', 'odd_starter_state' );
 }
-if ( ! defined( 'ODD_STARTER_CRON_HOOK' ) ) {
-	define( 'ODD_STARTER_CRON_HOOK', 'odd_install_starter_pack' );
+
+/**
+ * Max wall-clock we allow a single running state to sit before we
+ * consider the lock stale and retry. Sized for a slow catalog host +
+ * a few bundle downloads (~3 × 60s default download_url timeout).
+ */
+if ( ! defined( 'ODD_STARTER_LOCK_TTL' ) ) {
+	define( 'ODD_STARTER_LOCK_TTL', 240 );
 }
 
 /**
  * Exponential backoff schedule (in seconds) indexed by attempt count
- * (1-based). Anything past the last slot uses the last value.
+ * (1-based). Used to gate the `init` safety net so a chronically
+ * failing catalog host doesn't hammer every page load.
  */
 function odd_starter_backoff_seconds() {
 	return array(
-		1 => 5,        // first attempt: 5s after activation
-		2 => 60,       // 1 min
-		3 => 5 * 60,   // 5 min
-		4 => 30 * 60,  // 30 min
-		5 => 6 * HOUR_IN_SECONDS,
+		1 => 0,               // first attempt: immediate
+		2 => 30,              // 30s
+		3 => 2 * MINUTE_IN_SECONDS,
+		4 => 10 * MINUTE_IN_SECONDS,
+		5 => HOUR_IN_SECONDS,
+		6 => 6 * HOUR_IN_SECONDS,
 	);
 }
 
 function odd_starter_get_state() {
 	$state = get_option( ODD_STARTER_OPTION, null );
 	if ( ! is_array( $state ) ) {
-		$state = array(
-			'status'       => 'pending',
-			'attempts'     => 0,
-			'last_attempt' => 0,
-			'last_error'   => '',
-			'installed'    => array(),
-			'prefs_set'    => false,
-		);
+		$state = array();
 	}
 	return wp_parse_args(
 		$state,
@@ -87,94 +101,129 @@ function odd_starter_reset() {
 }
 
 /**
- * Activation hook. Called once when someone activates ODD from the
- * plugins screen.
+ * Activation hook. Runs in an admin request with the activating user
+ * on the line. We try to install the starter pack inline right now
+ * so the Shop has content on first open — if the catalog host is
+ * slow/unreachable the error is captured to state and the `init`
+ * safety net retries on the next page load.
  */
 function odd_activate_install_starter() {
 	$state = odd_starter_get_state();
-	// Don't clobber state if the user reactivates after a successful
-	// install — they already have the starter pack, no need to
-	// re-download. If they've disabled + reset it'll stay 'pending'.
-	if ( 'installed' !== $state['status'] ) {
-		$state['status']       = 'pending';
-		$state['attempts']     = 0;
-		$state['last_attempt'] = 0;
-		$state['last_error']   = '';
-		odd_starter_save_state( $state );
+	// Reactivations on an already-installed site are no-ops.
+	if ( 'installed' === $state['status'] ) {
+		return;
 	}
-	odd_starter_schedule_run( 1 );
 
-	// The scheduled event normally fires on the next page load that
-	// triggers `wp_cron`. On sites where the activator lands straight
-	// on the desktop (no wp-admin visit) the starter pack could sit
-	// pending until a visitor happens by — poke cron now so we don't
-	// have to wait. `spawn_cron()` fires an async, non-blocking HTTP
-	// request to wp-cron.php; the `init` safety net below handles the
-	// DISABLE_WP_CRON / no-loopback case.
-	if ( function_exists( 'spawn_cron' ) ) {
-		spawn_cron();
+	// Reset counters on a fresh activation so attempt #1 gets a
+	// clean slate.
+	$state['status']       = 'pending';
+	$state['attempts']     = 0;
+	$state['last_attempt'] = 0;
+	$state['last_error']   = '';
+	odd_starter_save_state( $state );
+
+	// Give the installer a generous runtime budget. Some hosts cap
+	// the activation request at 30s; bumping the ceiling when the
+	// function is available is free when it works and silently
+	// ignored when safe_mode / disable_functions prevents it.
+	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- disabled function throws a warning we don't care about.
+	if ( function_exists( 'set_time_limit' ) ) {
+		@set_time_limit( 180 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 	}
+
+	odd_starter_ensure_installed( true );
 }
 register_activation_hook( ODD_FILE, 'odd_activate_install_starter' );
 
 /**
- * Schedule the next run. Called on activation and after every failed
- * attempt. Uses a one-off cron event with a unique hook so double
- * schedules collapse to one entry.
+ * Core entry point: bring the site to a fully-installed starter-pack
+ * state. Safe to call from anywhere; no-ops fast if we already
+ * succeeded, are already running, or are inside the backoff window.
+ *
+ * @param bool $force If true, ignore backoff (activation / manual
+ *                    retry path). Still respects the running-lock so
+ *                    concurrent tabs don't double-install.
+ * @return array{installed:string[],prefs_set:bool}|WP_Error|null
+ *         array when we ran and succeeded, WP_Error when we ran and
+ *         failed, null when we didn't run (locked or backoff).
  */
-function odd_starter_schedule_run( $next_attempt ) {
-	$backoff = odd_starter_backoff_seconds();
-	$delay   = isset( $backoff[ $next_attempt ] )
-		? $backoff[ $next_attempt ]
-		: end( $backoff );
-	$when    = time() + (int) $delay;
-	// Clear any stale scheduled events so we don't get two installers
-	// racing against each other.
-	wp_clear_scheduled_hook( ODD_STARTER_CRON_HOOK );
-	wp_schedule_single_event( $when, ODD_STARTER_CRON_HOOK );
-}
+function odd_starter_ensure_installed( $force = false ) {
+	static $ran_this_request = false;
+	if ( $ran_this_request ) {
+		return null;
+	}
 
-/**
- * Cron target: try to install the starter pack right now.
- */
-function odd_starter_run() {
 	$state = odd_starter_get_state();
 	if ( 'installed' === $state['status'] ) {
-		return;
+		return null;
 	}
+
+	$now = time();
+
+	// Running-lock: another request is mid-install. Treat the lock
+	// as stale after ODD_STARTER_LOCK_TTL seconds (a hung PHP worker
+	// or a killed activation can leave status=running behind).
 	if ( 'running' === $state['status'] ) {
-		// Another process is already working. Reschedule a conservative
-		// check in 60s so we don't lose visibility if it hung.
-		return;
+		$age = $now - (int) $state['last_attempt'];
+		if ( $age < ODD_STARTER_LOCK_TTL ) {
+			return null;
+		}
 	}
+
+	// Backoff: only enforced in the non-forced path. The activation
+	// hook and the REST retry endpoint both pass $force=true.
+	if ( ! $force && 'failed' === $state['status'] ) {
+		$backoff = odd_starter_backoff_seconds();
+		$want    = max( 1, (int) $state['attempts'] + 1 );
+		$delay   = isset( $backoff[ $want ] ) ? $backoff[ $want ] : end( $backoff );
+		if ( $now - (int) $state['last_attempt'] < (int) $delay ) {
+			return null;
+		}
+	}
+
+	$ran_this_request = true;
+
+	// Take the lock.
 	$state['status']       = 'running';
-	$state['attempts']    += 1;
-	$state['last_attempt'] = time();
+	$state['attempts']     = (int) $state['attempts'] + 1;
+	$state['last_attempt'] = $now;
 	odd_starter_save_state( $state );
 
 	$result = odd_starter_install_now();
-	$state  = odd_starter_get_state();
+
+	// Refetch in case another request stomped state while we ran.
+	$after = odd_starter_get_state();
 
 	if ( is_wp_error( $result ) ) {
-		$state['status']     = 'failed';
-		$state['last_error'] = $result->get_error_message();
-		odd_starter_save_state( $state );
-		odd_starter_schedule_run( $state['attempts'] + 1 );
-		return;
+		$after['status']     = 'failed';
+		$after['last_error'] = $result->get_error_message();
+		odd_starter_save_state( $after );
+		return $result;
 	}
 
-	$state['status']     = 'installed';
-	$state['last_error'] = '';
-	$state['installed']  = $result['installed'];
-	$state['prefs_set']  = (bool) $result['prefs_set'];
-	odd_starter_save_state( $state );
+	$after['status']     = 'installed';
+	$after['last_error'] = '';
+	$after['installed']  = $result['installed'];
+	$after['prefs_set']  = (bool) $result['prefs_set'];
+	odd_starter_save_state( $after );
+	return $result;
 }
-add_action( ODD_STARTER_CRON_HOOK, 'odd_starter_run' );
+
+/**
+ * Back-compat alias. Older code and CI shims call `odd_starter_run()`.
+ * Keep it as a thin forwarder so nothing downstream breaks.
+ */
+function odd_starter_run() {
+	odd_starter_ensure_installed( false );
+}
 
 /**
  * The actual installer. Walks the starter pack from the loaded
  * catalog, calls odd_catalog_install_entry() for each bundle, and
  * sets initial user prefs.
+ *
+ * Idempotent: already-installed slugs are skipped, so partial
+ * failures resume naturally on the next attempt.
  *
  * @return array{installed:string[],prefs_set:bool}|WP_Error
  */
@@ -285,56 +334,51 @@ function odd_starter_apply_prefs( array $starter ) {
 }
 
 /**
- * Safety net: on every page load (admin *or* frontend) poke the
- * starter pack state. If the initial cron never fired (WP-Cron
- * disabled, loopback blocked, freshly-activated site with no
- * visitors) or a retry is overdue, run the installer inline on the
- * next page load that a logged-in admin hits.
+ * Safety net: on every request, if the starter pack isn't installed
+ * yet and the caller is privileged, run the installer inline.
  *
- * We attach to `init` rather than `admin_init` because WP Desktop
- * Mode users typically land on the frontend, never visiting wp-admin.
- * The inline run happens for privileged users only (activation
- * capability) so anonymous frontend traffic can't trigger network I/O.
+ * We attach to `init` (rather than `admin_init`) because WP Desktop
+ * Mode users typically land on the frontend and never visit wp-admin.
+ * Privilege check (`activate_plugins` / `manage_options`) keeps
+ * anonymous frontend traffic from triggering network I/O. Backoff is
+ * enforced by `odd_starter_ensure_installed()` so a chronically
+ * failing catalog doesn't run on every request.
  */
 function odd_starter_safety_net() {
-	// Bail early in CLI/CRON/AJAX — dedicated paths handle those.
-	if ( ( defined( 'DOING_CRON' ) && DOING_CRON ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+	if ( ( defined( 'DOING_CRON' ) && DOING_CRON ) || ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) ) {
 		return;
 	}
 	$state = odd_starter_get_state();
-	if ( 'installed' === $state['status'] || 'running' === $state['status'] ) {
+	if ( 'installed' === $state['status'] ) {
 		return;
 	}
-
-	$backoff   = odd_starter_backoff_seconds();
-	$want      = max( 1, $state['attempts'] + 1 );
-	$delay     = isset( $backoff[ $want ] ) ? $backoff[ $want ] : end( $backoff );
-	$overdue   = 0 === (int) $state['last_attempt']
-		|| ( time() - (int) $state['last_attempt'] ) > (int) $delay;
-	$scheduled = (bool) wp_next_scheduled( ODD_STARTER_CRON_HOOK );
-
-	if ( $scheduled && ! $overdue ) {
-		// A pending event is still in its backoff window — let cron
-		// handle it when the time comes.
+	if ( ! is_user_logged_in() ) {
 		return;
 	}
-
-	// Only run the installer inline for privileged users. That keeps
-	// random frontend traffic from triggering network I/O while still
-	// making sure the first admin visit recovers from a missing cron.
-	$can_run_inline = current_user_can( 'activate_plugins' ) || current_user_can( 'manage_options' );
-	if ( ! $can_run_inline ) {
-		if ( ! $scheduled ) {
-			odd_starter_schedule_run( $want );
-		}
+	if ( ! current_user_can( 'activate_plugins' ) && ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
-
-	// Clear any stale scheduled event so we don't double-install.
-	wp_clear_scheduled_hook( ODD_STARTER_CRON_HOOK );
-	odd_starter_run();
+	odd_starter_ensure_installed( false );
 }
 add_action( 'init', 'odd_starter_safety_net', 20 );
+
+/**
+ * Clean up any cron events from pre-3.0.2 installs that might still
+ * be floating in wp_options. No-op on sites that never had one.
+ */
+add_action(
+	'init',
+	function () {
+		if ( get_option( 'odd_starter_cron_cleaned', '' ) === ODD_VERSION ) {
+			return;
+		}
+		if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+			wp_clear_scheduled_hook( 'odd_install_starter_pack' );
+		}
+		update_option( 'odd_starter_cron_cleaned', ODD_VERSION, false );
+	},
+	5
+);
 
 /**
  * REST: GET the current starter-pack state so the Shop can render
@@ -360,14 +404,9 @@ add_action(
 			array(
 				'methods'             => 'POST',
 				'callback'            => function () {
-					$result = odd_starter_install_now();
+					$result = odd_starter_ensure_installed( true );
 					$state  = odd_starter_get_state();
 					if ( is_wp_error( $result ) ) {
-						$state['status']      = 'failed';
-						$state['attempts']   += 1;
-						$state['last_error']  = $result->get_error_message();
-						$state['last_attempt'] = time();
-						odd_starter_save_state( $state );
 						return new WP_Error(
 							'starter_failed',
 							$result->get_error_message(),
@@ -377,13 +416,6 @@ add_action(
 							)
 						);
 					}
-					$state['status']       = 'installed';
-					$state['attempts']    += 1;
-					$state['last_error']   = '';
-					$state['last_attempt'] = time();
-					$state['installed']    = $result['installed'];
-					$state['prefs_set']    = (bool) $result['prefs_set'];
-					odd_starter_save_state( $state );
 					return rest_ensure_response( $state );
 				},
 				'permission_callback' => function () {

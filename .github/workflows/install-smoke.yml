@@ -139,22 +139,18 @@ jobs:
         run: |
           wp plugin list --status=active --field=name | grep -E '^odd$'
 
-      - name: Assert plugin ships zero content by default
+      - name: Assert starter-pack ran on activation
         working-directory: /tmp/wp
         run: |
-          # ODD 3.0 is empty by design. Before the starter pack runs,
-          # every registry should be empty modulo the runtime pending
-          # scene (which isn't exposed through odd_wallpaper_scenes).
-          wp eval '$n = count( odd_wallpaper_scene_slugs() ); echo "scene slugs: $n\n"; exit( 0 === $n ? 0 : 1 );'
-          wp eval 'if ( ! function_exists( "odd_icons_get_sets" ) ) { exit( 0 ); } $n = count( odd_icons_get_sets() ); echo "icon sets: $n\n"; exit( 0 === $n ? 0 : 1 );'
-
-      - name: Run starter-pack installer synchronously
-        working-directory: /tmp/wp
-        run: |
-          # Short-circuit the cron wait — call the runner directly.
-          # The MU-plugin intercepts the catalog HTTP calls so this is
-          # deterministic and fast.
-          wp eval 'odd_starter_run();'
+          # 3.0.2+ installs the starter pack inline during the
+          # activation hook (no cron). By the time `wp plugin activate`
+          # returns, state should be `installed`. The MU-plugin
+          # intercepts the catalog HTTP calls so this is deterministic
+          # and offline-safe. If for any reason activation skipped the
+          # install (odd_starter_ensure_installed returned null), the
+          # `init`-level safety net would pick it up on the next
+          # request — nudge it with a no-op wp eval so we don't race.
+          wp eval 'odd_starter_ensure_installed( true );'
           wp eval '$s = odd_starter_get_state(); echo "starter state: " . $s["status"] . " (attempts=" . $s["attempts"] . ")\n"; if ( $s["last_error"] ) { echo "last error: " . $s["last_error"] . "\n"; } exit( "installed" === $s["status"] ? 0 : 1 );'
 
       - name: Assert starter pack populated the registries

@@ -113,7 +113,7 @@ Permission callbacks are `is_user_logged_in`. The panel also ships the same stat
 
 ### Starter pack
 
-`register_activation_hook` schedules `odd_starter_run` via `wp_schedule_single_event(+5s)`. The runner loads the remote catalog, resolves the slugs listed in the catalog's top-level `starter_pack` (currently `{ scenes: ['flux'], iconSets: ['filament'], widgets: [], apps: [] }`), calls `odd_catalog_install_entry()` for each, and writes initial per-user preferences. State lives in the `odd_starter_state` option. Failures trigger exponential backoff (5 s → 60 s → 5 min → 30 min → 6 h). `admin_init` reschedules overdue crons so a forgotten or cancelled event self-heals.
+`register_activation_hook` runs `odd_starter_ensure_installed( true )` inline. No cron — the activating admin is already on a privileged page, so the installer downloads + extracts the starter-pack bundles right there. The runner loads the remote catalog, resolves the slugs listed in the catalog's top-level `starter_pack` (currently `{ scenes: ['flux'], iconSets: ['filament'], widgets: [], apps: [] }`), calls `odd_catalog_install_entry()` for each, and writes initial per-user preferences. State lives in the `odd_starter_state` option. If activation fails (catalog down, loopback blocked), a safety-net hook on `init` runs the installer inline on the next privileged page load — gated by exponential backoff (0s → 30s → 2 min → 10 min → 1 h → 6 h) against `last_attempt` so it doesn't thrash a chronically-failing catalog. The running state acts as a lock (auto-expires after 240 s) so concurrent admin tabs don't double-install.
 
 ### Live scene swaps
 
@@ -212,7 +212,7 @@ Slugs here must resolve to a catalog entry — the validator refuses to ship a s
 ### Local iteration
 
 1. `git clone` into `wp-content/plugins/odd/` (or symlink).
-2. Activate ODD alongside WP Desktop Mode. The starter-pack cron fires 5 s after activation; in dev you can short-circuit it with `wp eval 'odd_starter_run();'`.
+2. Activate ODD alongside WP Desktop Mode. The starter pack installs inline during the activation hook (no cron); if it failed you can force a retry with `wp eval 'odd_starter_ensure_installed( true );'`.
 3. Plugin itself is no-build — plain JS loaded via `wp_enqueue_script`. Content bundles are built with `python3 _tools/build-catalog.py`.
 4. For a full validation pass: `odd/bin/check-version && python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog && npm test && odd/bin/build-zip`.
 
