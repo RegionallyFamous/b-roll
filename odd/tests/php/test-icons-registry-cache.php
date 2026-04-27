@@ -45,17 +45,20 @@ class Test_Icons_Registry_Cache extends WP_UnitTestCase {
 
 	public function test_reset_clears_version_keyed_transient() {
 		odd_icons_get_sets();
-		// At this point the transient should be populated (on hosts
-		// where transients persist — CI's default memory-only store
-		// also supports get/set/delete, so the assertion is universal).
-		set_transient( odd_icons_registry_transient_key(), array( 'stale' => true ), HOUR_IN_SECONDS );
-		$this->assertNotFalse( get_transient( odd_icons_registry_transient_key() ) );
+		// Poison the transient. If `reset=true` delegated to a stale
+		// transient read, we'd get the sentinel back; the fix must
+		// delete + rebuild, so the rebuilt registry is what comes out
+		// and the stale sentinel never reaches a caller.
+		set_transient( odd_icons_registry_transient_key(), array( 'stale' => array( 'slug' => 'stale' ) ), HOUR_IN_SECONDS );
 
-		odd_icons_get_sets( true );
-		$this->assertFalse(
-			get_transient( odd_icons_registry_transient_key() ),
-			'reset=true must delete the transient so the next scan is fully fresh'
+		$fresh = odd_icons_get_sets( true );
+		$this->assertIsArray( $fresh );
+		$this->assertArrayNotHasKey(
+			'stale',
+			$fresh,
+			'reset=true must bypass a poisoned transient and rebuild from disk'
 		);
+		$this->assertArrayHasKey( 'filament', $fresh, 'rebuild must re-register built-in sets' );
 	}
 
 	public function test_subsequent_calls_hit_static_cache() {
