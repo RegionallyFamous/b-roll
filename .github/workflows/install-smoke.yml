@@ -98,7 +98,10 @@ jobs:
           define( 'WP_DEBUG', true );
           define( 'WP_DEBUG_LOG', true );
           define( 'WP_DEBUG_DISPLAY', false );
-          define( 'ODD_SMOKE_FIXTURE_ROOT', WP_CONTENT_DIR . '/odd-smoke-fixture' );
+          // WP_CONTENT_DIR isn't defined yet when this extra-php runs —
+          // it's set by wp-settings.php later. Use the default layout
+          // relative to wp-config.php instead.
+          define( 'ODD_SMOKE_FIXTURE_ROOT', __DIR__ . '/wp-content/odd-smoke-fixture' );
           PHP
           wp core install \
             --url=http://localhost \
