@@ -211,7 +211,10 @@
 * matching the App Store department pages ("Apps We Love"). */
 .odd-panel.odd-shop .odd-shop__dept{padding-bottom:36px}
 .odd-panel.odd-shop .odd-shop__dept-header{margin:0 0 26px}
-.odd-panel.odd-shop .odd-shop__dept-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--odd-shop-accent);margin-bottom:8px}
+/* Accent blue (#0071e3) on the near-white shop background falls
+   below WCAG 4.5:1 for small text. Use a darker accent only for
+   the eyebrow so the rest of the UI keeps the stock accent. */
+.odd-panel.odd-shop .odd-shop__dept-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#0050a6;margin-bottom:8px}
 .odd-panel.odd-shop .odd-section-header h2{font-size:30px;font-weight:700;letter-spacing:-.018em;color:var(--odd-shop-ink);margin:0 0 8px}
 .odd-panel.odd-shop .odd-section-header p{color:var(--odd-shop-ink-2);font-size:14px;line-height:1.5;max-width:64ch}
 

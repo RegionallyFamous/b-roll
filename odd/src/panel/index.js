@@ -1469,7 +1469,13 @@
 			shuffleHint.textContent = 'Rotate scenes automatically while the desktop is open.';
 			shuffleText.appendChild( shuffleLabel );
 			shuffleText.appendChild( shuffleHint );
-			var minutes = el( 'input', { type: 'number', min: '1', max: '240', class: 'odd-minutes' } );
+			var minutes = el( 'input', {
+				type:         'number',
+				min:          '1',
+				max:          '240',
+				class:        'odd-minutes',
+				'aria-label': 'Shuffle interval (minutes)',
+			} );
 			minutes.value = String( ( state.cfg.shuffle && state.cfg.shuffle.minutes ) || 15 );
 			var shuffleControls = el( 'div', { class: 'odd-setting-card__controls' } );
 			var minutesPrefix = el( 'span' );
@@ -1540,7 +1546,13 @@
 			ssText.appendChild( ssLbl );
 			ssText.appendChild( ssHint );
 			var ssControls = el( 'div', { class: 'odd-setting-card__controls odd-setting-card__controls--screensaver' } );
-			var ssMins = el( 'input', { type: 'number', min: '1', max: '120', class: 'odd-minutes' } );
+			var ssMins = el( 'input', {
+				type:         'number',
+				min:          '1',
+				max:          '120',
+				class:        'odd-minutes',
+				'aria-label': 'Screensaver idle timeout (minutes)',
+			} );
 			ssMins.value = String( Math.max( 1, Math.min( 120, ( ss.minutes | 0 ) || 5 ) ) );
 			var ssMinsLbl = el( 'span' );
 			ssMinsLbl.textContent = 'minutes idle';
