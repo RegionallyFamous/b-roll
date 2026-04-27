@@ -8,6 +8,15 @@
 
 class Test_REST_Prefs extends ODD_REST_Test_Case {
 
+	public function set_up() {
+		parent::set_up();
+		// The plugin ships no scenes / icon sets of its own in v3.0.
+		// Seed a fixture scene + icon set so the prefs controller has
+		// a non-empty catalog to serialize and validate against.
+		ODD_Registry_Fixtures::install_scene( 'flux' );
+		ODD_Registry_Fixtures::install_iconset( 'filament' );
+	}
+
 	public function test_get_requires_login() {
 		$this->log_out();
 		$res = $this->dispatch_json( 'GET', '/odd/v1/prefs' );

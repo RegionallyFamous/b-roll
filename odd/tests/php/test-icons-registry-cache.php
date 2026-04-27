@@ -19,14 +19,22 @@ class Test_Icons_Registry_Cache extends WP_UnitTestCase {
 		// static inside the function and the version-keyed transient.
 		odd_icons_get_sets( true );
 		delete_transient( odd_icons_registry_transient_key() );
+
+		// v3.0+: the plugin ships no icon sets. Install a fixture so
+		// the registry has something in it for the "returns populated
+		// sets / survives poisoned transient / rebuild re-registers"
+		// assertions. The fixture hooks the `odd_icon_set_registry`
+		// filter which runs on every build, so it's immune to the
+		// transient-poisoning test.
+		ODD_Registry_Fixtures::install_iconset( 'filament' );
 	}
 
-	public function test_fresh_call_returns_builtin_sets() {
+	public function test_fresh_call_returns_registered_sets() {
 		$sets = odd_icons_get_sets();
 		$this->assertIsArray( $sets );
-		$this->assertNotEmpty( $sets, 'plugin ships built-in icon sets — registry must be non-empty' );
+		$this->assertNotEmpty( $sets, 'registered icon sets must be non-empty' );
 		$slugs = wp_list_pluck( $sets, 'slug' );
-		$this->assertContains( 'filament', $slugs, 'filament set is built-in and must always register' );
+		$this->assertContains( 'filament', $slugs, 'fixture set must register' );
 	}
 
 	public function test_reset_returns_fresh_rebuild_in_same_call() {
@@ -58,7 +66,7 @@ class Test_Icons_Registry_Cache extends WP_UnitTestCase {
 			$fresh,
 			'reset=true must bypass a poisoned transient and rebuild from disk'
 		);
-		$this->assertArrayHasKey( 'filament', $fresh, 'rebuild must re-register built-in sets' );
+		$this->assertArrayHasKey( 'filament', $fresh, 'rebuild must re-register fixture sets' );
 	}
 
 	public function test_subsequent_calls_hit_static_cache() {

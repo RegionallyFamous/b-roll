@@ -95,6 +95,16 @@ jobs:
         working-directory: /tmp/wp
         run: wp user meta update 1 desktop_mode_mode 1
 
+      - name: Install starter pack from remote catalog
+        working-directory: /tmp/wp
+        # ODD 3.0 ships no content — on activation a cron event
+        # schedules the starter-pack installer, but `wp server` is a
+        # single-threaded PHP built-in that doesn't tick cron. Call
+        # the installer directly so the starter scene + icon set land
+        # on disk before Playwright boots the browser.
+        run: |
+          wp eval '$r = odd_starter_install_now(); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message() . "\n"); exit(1); } var_export($r);'
+
       - name: Start WP server
         working-directory: /tmp/wp
         run: |

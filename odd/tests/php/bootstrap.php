@@ -44,3 +44,4 @@ require $_tests_dir . '/includes/bootstrap.php';
  * Shared test helpers for ODD tests.
  */
 require_once __DIR__ . '/includes/class-odd-rest-test-case.php';
+require_once __DIR__ . '/includes/class-odd-registry-fixtures.php';

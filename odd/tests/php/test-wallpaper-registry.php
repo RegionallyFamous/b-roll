@@ -55,6 +55,7 @@ class Test_Wallpaper_Registry extends WP_UnitTestCase {
 		// installed bundles the registry starts empty; the built-in
 		// "pending" fallback lives entirely in JS for first-paint.
 		remove_all_filters( 'odd_scene_registry' );
+		odd_wallpaper_scenes_reset();
 		$scenes = odd_wallpaper_scenes();
 		$this->assertIsArray( $scenes );
 		$this->assertCount( 0, $scenes, 'Empty plugin should ship zero scenes.' );
@@ -77,6 +78,7 @@ class Test_Wallpaper_Registry extends WP_UnitTestCase {
 				return $scenes;
 			}
 		);
+		odd_wallpaper_scenes_reset();
 
 		$slugs = odd_wallpaper_scene_slugs();
 		$this->assertContains( 'sample', $slugs );

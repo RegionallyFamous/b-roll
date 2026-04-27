@@ -20,8 +20,25 @@ defined( 'ABSPATH' ) || exit;
  *
  * @return array<int, array<string, mixed>>
  */
-function odd_wallpaper_scenes() {
+/**
+ * Reset the per-request memoisation caches in this file. Exposed so
+ * tests (and any extension that mutates `odd_scene_registry` filters
+ * mid-request) can force a fresh rebuild.
+ *
+ * @since 3.0.0
+ *
+ * @return void
+ */
+function odd_wallpaper_scenes_reset() {
+	odd_wallpaper_scenes( true );
+	odd_wallpaper_scene_slugs( true );
+}
+
+function odd_wallpaper_scenes( $reset = false ) {
 	static $cache = null;
+	if ( $reset ) {
+		$cache = null;
+	}
 	if ( null === $cache ) {
 		/**
 		 * Filter the ODD scene registry.
@@ -44,8 +61,11 @@ function odd_wallpaper_scenes() {
 	return $cache;
 }
 
-function odd_wallpaper_scene_slugs() {
+function odd_wallpaper_scene_slugs( $reset = false ) {
 	static $slugs = null;
+	if ( $reset ) {
+		$slugs = null;
+	}
 	if ( null !== $slugs ) {
 		return $slugs;
 	}
