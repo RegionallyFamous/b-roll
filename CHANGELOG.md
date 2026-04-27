@@ -16,6 +16,21 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+### Fixed
+- **Fresh installs paint the host's built-in wallpaper instead of an
+  ODD scene.** The starter pack was seeding `odd_wallpaper` (which
+  scene renders *inside* ODD's wallpaper card) but never pointing WP
+  Desktop Mode's *outer* wallpaper selection at `"odd"`, so the host
+  kept its hardcoded `"dark"` default and ODD's card never mounted.
+  `odd_starter_apply_prefs()` now also calls a new
+  `odd_starter_seed_host_wallpaper()` helper that reads the user's
+  current `desktop_mode_os_settings` via `desktop_mode_get_os_settings()`,
+  flips `wallpaper` to `"odd"` only when the user is still on the host
+  default, and writes the full shape back through
+  `desktop_mode_save_os_settings()` so accent / dockSize / AI prefs
+  are preserved. Users who already picked a different wallpaper aren't
+  touched.
+
 <a id="v3.1.2"></a>
 ## [3.1.2] — 2026-04-27
 

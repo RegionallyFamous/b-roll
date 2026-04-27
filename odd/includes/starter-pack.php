@@ -294,6 +294,23 @@ function odd_starter_install_now() {
  * existing user (so the desktop picks a wallpaper on first boot
  * without asking). Returns true if any pref was written.
  *
+ * Two layers get seeded:
+ *
+ *   1. ODD's *inner* prefs — `odd_wallpaper` (which scene renders
+ *      inside ODD's card) and `odd_icon_set` (which dock re-skin is
+ *      active). These are pure user meta.
+ *
+ *   2. WP Desktop Mode's *outer* wallpaper selection — the host
+ *      plugin's `desktop_mode_os_settings.wallpaper` key, which
+ *      decides which registered wallpaper card mounts at all. If
+ *      that's left at the host default (`"dark"`), ODD's card never
+ *      runs and the user sees the host's built-in gradient instead
+ *      of whatever ODD installed. Point it at `"odd"` so our
+ *      wallpaper engine actually gets a chance to paint. We only do
+ *      this for users who haven't already picked something else
+ *      explicitly, so people who set e.g. `"image"` or a third-party
+ *      wallpaper aren't silently switched.
+ *
  * We write at the user-meta level so individual users can still pick
  * something else later; this just seeds the initial state.
  */
@@ -304,8 +321,6 @@ function odd_starter_apply_prefs( array $starter ) {
 		return false;
 	}
 
-	// Only seed fresh sites. If a user already has a wallpaper
-	// preference, don't overwrite it.
 	$wrote = false;
 	$users = get_users(
 		array(
@@ -321,6 +336,9 @@ function odd_starter_apply_prefs( array $starter ) {
 				update_user_meta( $uid, 'odd_wallpaper', $default_scene );
 				$wrote = true;
 			}
+			if ( odd_starter_seed_host_wallpaper( $uid ) ) {
+				$wrote = true;
+			}
 		}
 		if ( '' !== $default_iconset ) {
 			$current = get_user_meta( $uid, 'odd_icon_set', true );
@@ -331,6 +349,62 @@ function odd_starter_apply_prefs( array $starter ) {
 		}
 	}
 	return $wrote;
+}
+
+/**
+ * Point WP Desktop Mode's outer wallpaper selection at `"odd"` for a
+ * single user — but only if they haven't picked something non-default
+ * already.
+ *
+ * Desktop Mode stores its settings as a single JSON-ish array in user
+ * meta `desktop_mode_os_settings` (key exposed as
+ * `DESKTOP_MODE_OS_SETTINGS_META_KEY`). Its sanitizer rebuilds the
+ * entire shape on write, so we can't just merge — we read the current
+ * full shape through `desktop_mode_get_os_settings()`, flip
+ * `wallpaper`, and hand the complete array back to
+ * `desktop_mode_save_os_settings()`. That preserves accent / dockSize
+ * / AI settings / etc.
+ *
+ * Returns true when a write occurred, false otherwise (already seeded,
+ * user picked something else, or host plugin not loaded yet).
+ *
+ * @param int $user_id
+ * @return bool
+ */
+function odd_starter_seed_host_wallpaper( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+	if ( ! function_exists( 'desktop_mode_get_os_settings' )
+		|| ! function_exists( 'desktop_mode_save_os_settings' )
+		|| ! function_exists( 'desktop_mode_default_os_settings' ) ) {
+		return false;
+	}
+
+	$defaults = desktop_mode_default_os_settings();
+	$current  = desktop_mode_get_os_settings( $user_id );
+	if ( ! is_array( $current ) ) {
+		return false;
+	}
+
+	$current_wallpaper = isset( $current['wallpaper'] ) ? (string) $current['wallpaper'] : '';
+	$default_wallpaper = isset( $defaults['wallpaper'] ) ? (string) $defaults['wallpaper'] : 'dark';
+
+	// Already on ODD — nothing to do.
+	if ( 'odd' === $current_wallpaper ) {
+		return false;
+	}
+	// User (or another plugin) picked something other than the host
+	// default. Respect that choice; don't silently switch them.
+	if ( '' !== $current_wallpaper && $current_wallpaper !== $default_wallpaper ) {
+		return false;
+	}
+
+	$next              = $current;
+	$next['wallpaper'] = 'odd';
+
+	return (bool) desktop_mode_save_os_settings( $user_id, $next );
 }
 
 /**
