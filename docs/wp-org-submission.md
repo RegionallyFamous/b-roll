@@ -9,9 +9,10 @@ This doc records the steps and the current state of ODD's submission to https://
 - [x] Plugin header fields are complete and match the readme (verified by `odd/bin/check-version`)
 - [x] Text domain declared and wired to `load_plugin_textdomain` + `wp_set_script_translations`
 - [x] `languages/odd.pot` regenerated at release time
-- [x] Zero external runtime dependencies shipped in the zip beyond Pixi (loaded from CDN by scenes, not bundled)
-- [x] Licensing of every bundled asset recorded in [`LICENSES.md`](../LICENSES.md), all CC0-1.0 or GPL-compatible
+- [x] Zero runtime dependencies shipped in the zip. Scenes load Pixi via CDN at runtime; installed bundles carry their own assets (see [ADR 0005](adr/0005-remote-catalog-empty-plugin.md)).
+- [x] Licensing of every first-party catalog asset recorded in [`LICENSES.md`](../LICENSES.md), all CC0-1.0 or GPL-compatible
 - [x] No server-side telemetry ([ADR 0004](adr/0004-zero-server-side-telemetry.md))
+- [x] Remote catalog is a single HTTPS JSON fetch to a static GitHub Pages URL, configurable via `ODD_CATALOG_URL` for enterprise mirrors ([ADR 0005](adr/0005-remote-catalog-empty-plugin.md))
 - [ ] Submitted to the plugin directory for review (manual step, done via https://wordpress.org/plugins/developers/add/)
 - [ ] SVN trunk seeded once the submission is approved (manual, see below)
 - [ ] Screenshots captured and uploaded to `assets/` in SVN (5 screenshots listed in readme.txt)
@@ -22,10 +23,10 @@ Screenshots live in `/assets/` on the SVN side (sibling of `/trunk/`, `/tags/`, 
 
 | File                  | Size             | What it shows                                          |
 |-----------------------|------------------|--------------------------------------------------------|
-| `screenshot-1.png`    | 1280×720 (or 1544×500) | ODD Control Panel — Wallpaper tab                |
-| `screenshot-2.png`    | 1280×720         | ODD Shop — tiles with hero graphics                     |
-| `screenshot-3.png`    | 1280×720         | Aurora + Hologram icon combination                      |
-| `screenshot-4.png`    | 1280×720         | Origami + Fold icon combination                         |
+| `screenshot-1.png`    | 1280×720 (or 1544×500) | ODD Shop — Discover tile view                    |
+| `screenshot-2.png`    | 1280×720         | ODD Shop — Wallpaper department with detail sheet       |
+| `screenshot-3.png`    | 1280×720         | Aurora + Hologram icon combination on the live desktop  |
+| `screenshot-4.png`    | 1280×720         | Origami + Fold icon combination on the live desktop     |
 | `screenshot-5.png`    | 1280×720         | Rainfall scene avoiding desktop icons                   |
 | `banner-1544x500.png` | 1544×500         | Directory header banner                                 |
 | `banner-772x250.png`  | 772×250          | Low-DPI banner fallback                                 |
@@ -79,10 +80,10 @@ Automating this would require a WP.org-specific workflow and secrets; we keep it
 
 Common feedback from the WP.org plugin review team + how ODD answers it:
 
-- **"Don't bundle frameworks you load from CDN."** We don't bundle Pixi; scenes load it via `wp_enqueue_script` against jsdelivr, and the plugin zip is ~350 KB, well under the 35 MB `zip-budget` cap.
+- **"Don't bundle frameworks you load from CDN."** We don't bundle Pixi; scenes load it via `wp_enqueue_script` against jsdelivr, and the plugin zip is ~400 KB, well under the 2 MB `zip-budget` cap (dropped from 35 MB in v3.0 now that the plugin is content-free).
 - **"Escape everything."** See PHPCS-enforced WordPress-Extra ruleset in `phpcs.xml`; the `phpcs` CI job blocks unescaped output.
-- **"Call `load_plugin_textdomain` on `init` and pass the `languages/` folder."** Added in 1.10.0; see `odd/odd.php`.
-- **"No opaque remote calls."** We make none. The only outbound HTTP from ODD is triggered by the user uploading a `.wp` — and even then it's on their own server.
+- **"Call `load_plugin_textdomain` on `init` and pass the `languages/` folder."** See `odd/odd.php`.
+- **"No opaque remote calls."** ODD makes exactly one kind of remote call: `wp_remote_get( ODD_CATALOG_URL )` to load the content catalog (a static JSON file at `odd.regionallyfamous.com/catalog/v1/registry.json`), and subsequent `download_url()` calls for bundles the user chooses to install from the Shop. Every URL, the transient cache window, and an opt-out (`define( 'ODD_CATALOG_URL', false )` or filter) are documented in `odd/readme.txt`.
 
 ## After approval
 

@@ -183,18 +183,27 @@ so the first tick after a pause won't jump.
   the canvas. Designed for subtlety — most of the motion should come
   from the scene, not the still layer.
 
-Both files are served from `wp-content/odd-scenes/<slug>/` via
-`content_url()` and are public (same privacy posture as
-`odd/assets/wallpapers/` built-ins).
+Installed bundles live at `wp-content/odd-scenes/<slug>/` and are
+served publicly via `content_url()` (no admin auth required for the
+`.webp` files themselves). First-party scenes published through the
+remote catalog live at `https://odd.regionallyfamous.com/catalog/v1/bundles/scene-<slug>.wp`;
+when ODD installs one it extracts to the same `wp-content/odd-scenes/<slug>/`
+path so runtime addressing is identical regardless of source.
 
 ### Regenerating previews automatically
 
-ODD core ships `odd/bin/build-previews` (runnable as `npm run build:previews`) which boots Chromium headless, evaluates your scene against a real Pixi v8, samples a frame ~2 s in, and writes a 640×360 WebP. For third-party bundles, clone this repo, symlink your scene into `odd/src/wallpaper/scenes/<slug>.js`, add a stub row to `scenes.json`, and run the script — or copy the [`odd/bin/build-previews`](../odd/bin/build-previews) source into your own toolchain. Flags:
+If you're contributing a scene back to the first-party catalog, clone
+this repo and drop your scene under `_tools/catalog-sources/scenes/<slug>/{scene.js,meta.json,wallpaper.webp}`.
+Then `npm run build:previews` boots Chromium headless, evaluates your
+scene against a real Pixi v8, samples a frame ~2 s in, and writes
+`preview.webp` back into the same directory. For fully third-party
+bundles, copy [`odd/bin/build-previews`](../odd/bin/build-previews)
+into your own toolchain — it's a standalone Node script. Flags:
 
 ```sh
 npm run build:previews                 # rebuild all previews
 npm run build:previews -- --only flux  # one scene
-npm run build:previews -- --diff       # only scenes whose .js is newer than their preview
+npm run build:previews -- --diff       # only scenes whose scene.js is newer than preview.webp
 ```
 
 ## Ship it
@@ -206,8 +215,12 @@ npm run build:previews -- --diff       # only scenes whose .js is newer than the
     zip -r ../my-scene.wp manifest.json scene.js preview.webp wallpaper.webp
     ```
 
-2. Open the ODD Control Panel → click **Install** in the topbar (or
-   drop the `.wp` anywhere on the Shop).
+2. Open the ODD Shop → **Upload** (or drop the `.wp` anywhere on the
+   Shop). Alternatively, submit it to the first-party catalog by
+   opening a PR that drops the source folder into
+   `_tools/catalog-sources/scenes/<slug>/` — the next Pages deploy
+   publishes it to `https://odd.regionallyfamous.com/catalog/v1/` and
+   any ODD install world-wide can browse + install it from Discover.
 3. Confirm the JavaScript-execution prompt. Scenes ship JS that runs
    in your admin session, so ODD asks once per session before
    installing a scene or widget. Consent is remembered on

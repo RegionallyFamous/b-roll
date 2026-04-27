@@ -105,7 +105,9 @@ one of 13 stable logical keys via `odd_icons_slug_to_key()`:
 | `fallback`    | Anything unmapped                         |
 
 If the active set can't provide one of the logical keys, ODD reaches
-for `fallback`, then finally the built-in "Default" set.
+for the set's own `fallback`, then for whatever WP Desktop Mode served
+before icon swapping kicked in. There is no plugin-bundled "Default"
+set any more — ODD 3.0+ ships empty.
 
 ## SVG rules
 
@@ -165,8 +167,12 @@ the `dashboard` icon stands in. A preview image usually works best as:
     zip -r ../my-icons.wp manifest.json preview.svg icons/
     ```
 
-2. Open the ODD Control Panel, click **Install** in the topbar (or
-   drop the `.wp` anywhere on the Shop).
+2. Open the ODD Shop → **Upload** (or drop the `.wp` anywhere on the
+   Shop). Or submit it to the first-party catalog by opening a PR
+   that drops your source folder into
+   `_tools/catalog-sources/icon-sets/<slug>/` — the next Pages deploy
+   publishes it to `https://odd.regionallyfamous.com/catalog/v1/`
+   where every ODD install can install it from Discover.
 3. The Shop jumps to Icon Sets and flashes your new set's tile.
    Click **Preview** on the tile — the dock swaps in place. Click
    **Keep** to commit; ODD does a 180 ms fade and reloads so the

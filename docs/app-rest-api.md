@@ -38,12 +38,15 @@ Permission shorthand used below:
 | `POST`   | `/apps/{slug}/toggle`                        | admin         | Enable or disable an installed app.        |
 | `GET`    | `/apps/serve/{slug}/{path...}`               | per-app cap   | Serve a file from the app bundle.          |
 | `GET`    | `/apps/icon/{slug}`                          | public        | Serve the app's declared icon file.        |
-| `GET`    | `/apps/catalog`                              | login         | Curated catalog of installable apps.       |
-| `POST`   | `/apps/install-from-catalog`                 | admin         | Install by catalog slug.                   |
+| `GET`    | `/apps/catalog`                              | login         | Compat shim — forwards to `/bundles/catalog?type=app`. |
+| `POST`   | `/apps/install-from-catalog`                 | admin         | Compat shim — forwards to `/bundles/install-from-catalog`. |
 | `POST`   | `/bundles/upload`                            | admin         | Install any `.wp` bundle (app, icon set, scene, widget). |
 | `DELETE` | `/bundles/{slug}`                            | admin         | Uninstall any bundle regardless of type.   |
-| `GET`    | `/bundles/catalog`                           | login         | Curated catalog of non-app bundles.        |
-| `POST`   | `/bundles/install-from-catalog`              | admin         | Install a catalog bundle by slug.          |
+| `GET`    | `/bundles/catalog`                           | login         | Browse the remote catalog (all bundle types). |
+| `POST`   | `/bundles/install-from-catalog`              | admin         | Install a catalog bundle by slug, verified via SHA256. |
+| `POST`   | `/bundles/refresh`                           | admin         | Force-refresh the remote catalog transient. |
+| `GET`    | `/starter`                                   | admin         | Read the starter-pack runner state.        |
+| `POST`   | `/starter/retry`                             | admin         | Force a synchronous starter-pack retry.    |
 
 ---
 
@@ -68,8 +71,7 @@ List all installed apps.
             "icon":        "icon.svg",
             "description": "Get paid. Track clients, generate invoices.",
             "capability":  "manage_options",
-            "installed":   1713996000,
-            "builtin":     false
+            "installed":   1713996000
         }
     ]
 }
@@ -307,13 +309,18 @@ never honored, so there's no traversal surface.
 
 ### `GET /apps/catalog`
 
-Return the curated app catalog, with an `installed` flag per entry so
-UIs can flip "Install" buttons straight to "Open".
+> **Compatibility shim (v3.0+).** This endpoint now forwards to
+> `/bundles/catalog?type=app`. It is retained so pre-v3.0 callers keep
+> working. New code should call `/bundles/catalog` directly.
 
-The catalog ships in `odd/apps/catalog/registry.json` and is cached in
-memory for the request. Entries marked `"builtin": true` are available
-for in-place install from plugin-bundled sources; the rest download an
-external `.wp` archive via `install-from-catalog`.
+Return the app subset of the remote catalog, with an `installed` flag
+per entry so UIs can flip "Install" buttons straight to "Open".
+
+The catalog is fetched from
+`https://odd.regionallyfamous.com/catalog/v1/registry.json` via
+`wp_remote_get()`, cached in the `odd_catalog` transient for 12
+hours, and served stale-on-failure. No entries are "built-in" — every
+app downloads a remote `.wp` archive through `install-from-catalog`.
 
 **Auth:** login
 
@@ -331,7 +338,8 @@ external `.wp` archive via `install-from-catalog`.
             "icon_url":     "https://…/icon.svg",
             "download_url": "https://…/ledger.wp",
             "tags":         [ "business", "invoicing" ],
-            "builtin":      false,
+            "sha256":       "a1b2c3…",
+            "size":         48241,
             "installed":    false
         }
     ]
@@ -342,10 +350,12 @@ external `.wp` archive via `install-from-catalog`.
 
 ### `POST /apps/install-from-catalog`
 
-Install a catalog entry by slug. For `builtin: true` entries ODD
-copies files in-place from `odd/apps/catalog/<slug>/`; for remote
-entries it downloads `download_url`, validates it, and feeds it to
-`odd_apps_install()`.
+> **Compatibility shim (v3.0+).** This endpoint forwards to
+> `/bundles/install-from-catalog`.
+
+Install a catalog entry by slug. ODD downloads the bundle from
+`download_url`, verifies the SHA256 against the registry entry,
+validates the archive, and feeds it to `odd_apps_install()`.
 
 **Auth:** admin
 **Content-Type:** `application/json`
@@ -370,12 +380,82 @@ entries it downloads `download_url`, validates it, and feeds it to
 | Status | Code                  | Meaning                                                 |
 |--------|-----------------------|---------------------------------------------------------|
 | 400    | `invalid_slug`        | Missing or empty `slug` in body.                        |
-| 404    | `not_in_catalog`      | Slug is not in `catalog/registry.json`.                 |
+| 404    | `not_in_catalog`      | Slug is not in the remote registry.                     |
 | 409    | `already_installed`   | Something with that slug is already installed.          |
 | 400    | `no_download`         | Catalog row has no `download_url`.                      |
 | 400    | `insecure_download`   | `download_url` is not HTTPS. Override with the `odd_apps_allow_insecure_catalog` filter on dev hosts. |
+| 400    | `checksum_mismatch`   | Downloaded bundle's SHA256 didn't match the registry.   |
+| 502    | `catalog_fetch_failed` | The registry could not be loaded and no cached copy exists. |
 | *varies* | (download errors)   | Any `WP_Error` from `download_url()` is passed through. |
 | *varies* | (install errors)    | Any validation error from `POST /apps/upload` applies.  |
+
+---
+
+### `POST /bundles/refresh`
+
+Force-refresh the remote-catalog transient. Use after publishing a
+new bundle to skip the 12-hour cache. Returns the freshly-fetched
+registry payload.
+
+**Auth:** admin
+
+**Response** — `200 OK`:
+
+```json
+{
+    "refreshed":   true,
+    "fetched_at":  1766428800,
+    "entries":     42
+}
+```
+
+**Errors:**
+
+| Status | Code                   | Meaning                                                   |
+|--------|------------------------|-----------------------------------------------------------|
+| 502    | `catalog_fetch_failed` | `wp_remote_get` failed and no cached copy was available.  |
+
+---
+
+### `GET /starter`
+
+Return the current state of the starter-pack runner. Useful for the
+activation UI to show "installing starter pack…" / "retrying in Xs".
+
+**Auth:** admin
+
+**Response** — `200 OK`:
+
+```json
+{
+    "status":          "installed",
+    "attempts":        1,
+    "last_attempt_at": 1766428800,
+    "next_attempt_at": 0,
+    "last_error":      null,
+    "installed":       {
+        "scenes":    [ "flux" ],
+        "iconSets":  [ "filament" ],
+        "widgets":   [],
+        "apps":      []
+    }
+}
+```
+
+Possible `status` values: `"scheduled"`, `"running"`, `"installed"`,
+`"failed_retrying"`, `"failed_backoff"`.
+
+---
+
+### `POST /starter/retry`
+
+Force a synchronous retry of the starter-pack install. Bypasses the
+exponential backoff schedule. Useful for admins triggering a manual
+retry from the Shop's About panel after a catalog outage.
+
+**Auth:** admin
+
+**Response** — `200 OK` mirrors `GET /starter` after the run.
 
 ---
 

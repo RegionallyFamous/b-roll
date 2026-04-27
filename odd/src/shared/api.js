@@ -240,7 +240,7 @@
 	// bump this when the surface described in the docstring above
 	// changes in a way extensions can observe. See
 	// docs/api-versioning.md for the contract.
-	var API_VERSION = '2.0.0';
+	var API_VERSION = '2.1.0';
 
 	window.__odd.api = {
 		version:         API_VERSION,

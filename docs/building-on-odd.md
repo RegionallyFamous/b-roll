@@ -53,10 +53,13 @@ add_action( 'plugins_loaded', function () {
 } );
 ```
 
-Ship the matching `my-scene.js`, `assets/previews/my-scene.webp`, and
-`assets/wallpapers/my-scene.webp` alongside the registration, enqueue
-the scene module after `odd` using `wp_enqueue_script`, and ODD will
-pick it up on the next page load.
+Ship the matching `my-scene.js` + preview/wallpaper assets from your
+own plugin, point `previewUrl` / `wallpaperUrl` in the descriptor at
+URLs you serve, enqueue the scene module after `odd` using
+`wp_enqueue_script`, and ODD will pick it up on the next page load.
+The preferred authoring path is still a `.wp` bundle installed from
+the remote catalog or sideloaded on the Shop page — see
+[building-a-scene.md](building-a-scene.md).
 
 ## Lifecycle phases
 
@@ -351,15 +354,21 @@ Three new booleans live under `store.user`, written via
 
 ## Apps
 
-> Added in v0.16.0 (uploads), expanded in v0.17.0 (built-in catalog).
-> Replaces the standalone Bazaar plugin — a one-shot migration moves
-> existing wares into ODD on first admin login after upgrade.
+> Added in v0.16.0 (uploads), expanded in v0.17.0 (built-in catalog),
+> reworked in v3.0.0 (remote catalog).
 
 ODD apps are self-contained static bundles (HTML + CSS + JS + assets)
 that run inside a sandboxed iframe, get their own desktop icon, and
 appear in their own WP Desktop Mode native window. Every app looks
-the same to the host, whether it ships pre-installed, arrives from
-the curated catalog, or is uploaded as a `.odd` / `.wp` archive.
+the same to the host whether it arrives from the remote catalog
+(`https://odd.regionallyfamous.com/catalog/v1/`), is sideloaded as a
+`.wp` archive, or is registered programmatically by a companion plugin.
+
+As of v3.0 the plugin ships **zero** built-in apps — the previous
+"seed on activation" path is retired. Apps install from the catalog
+on demand via `POST /odd/v1/bundles/install-from-catalog` (or the
+legacy `/odd/v1/apps/install-from-catalog` shim, which forwards to
+the unified bundle installer).
 
 App authoring is documented in three dedicated pages:
 

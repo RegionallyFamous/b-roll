@@ -14,10 +14,11 @@
  *     - odd_scenes_index               installed scene catalog (.wp-installed)
  *     - odd_icon_sets_index            installed icon-set catalog (.wp-installed)
  *     - odd_widgets_index              installed widget catalog (.wp-installed)
- *     - odd_apps_bazaar_migration      Bazaar → ODD migration report
- *     - odd_apps_bazaar_notice         one-time admin notice flag
+ *     - odd_apps_bazaar_migration      Bazaar → ODD migration report (legacy)
+ *     - odd_apps_bazaar_notice         one-time admin notice flag (legacy)
  *     - odd_apps_bazaar_migration_lock legacy add_option lock (pre-1.3.3)
  *     - odd_apps_shared_secret         signed-URL shared secret
+ *     - odd_starter_state              v3.0+ starter-pack runner state
  *     - odd_app_{slug}                 one row per installed app
  *     - odd_scene_{slug} / odd_icon_set_{slug} / odd_widget_{slug}
  *                                      one row per installed bundle
@@ -26,6 +27,7 @@
  *   Site transients
  *     - _transient_odd_apps_bazaar_migration_lock  (1.3.3+ lock)
  *     - _transient_odd_icon_registry_v{version}    icon registry cache
+ *     - _transient_odd_catalog                     v3.0+ remote catalog cache
  *     - timeout rows for the above
  *
  *   User meta (all users)
@@ -72,6 +74,7 @@ $odd_known_options = array(
 	'odd_apps_bazaar_notice',
 	'odd_apps_bazaar_migration_lock',
 	'odd_apps_shared_secret',
+	'odd_starter_state',
 );
 foreach ( $odd_known_options as $opt ) {
 	delete_option( $opt );

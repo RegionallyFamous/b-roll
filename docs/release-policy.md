@@ -11,16 +11,18 @@ they track different numbers on different cadences.
 | `ODD_VERSION` (plugin) | `odd/odd.php` header + constant (kept in sync by `odd/bin/check-version`) | Any release — new scene, new icon set, bug fix, API change, anything at all. |
 | `window.__odd.api.version` (extension surface) | `API_VERSION` constant in `odd/src/shared/api.js` | Only when the surface described in [api-versioning.md](api-versioning.md) changes. |
 
-A minor plugin release that only adds scenes doesn't touch
-`api.version`. A plugin release that adds a new `window.__odd.api`
-method bumps both — plugin minor (new feature) and API minor (new
-surface).
+Since v3.0, shipping new scenes / icon sets / widgets / apps doesn't
+touch either number — content lives in the remote catalog and
+updates on the next `pages.yml` deploy (see
+[ADR 0005](adr/0005-remote-catalog-empty-plugin.md)). A plugin
+release that adds a new `window.__odd.api` method bumps both — plugin
+minor (new feature) and API minor (new surface).
 
 ## Plugin SemVer rules
 
-- **Patch** (`1.9.0` → `1.9.1`): bug fixes, internal refactors, docs. No new scenes, no new icon sets, no new APIs.
-- **Minor** (`1.9.0` → `1.10.0`): new scenes, new icon sets, new widgets, new Shop tiles, new panel features, new API methods (also bumps `api.version` minor). No breaking changes.
-- **Major** (`1.9.0` → `2.0.0`): removes or renames anything downstream can observe. Always accompanied by a major bump in `api.version`.
+- **Patch** (`3.0.0` → `3.0.1`): bug fixes, internal refactors, docs. No runtime behavior changes that downstream can observe.
+- **Minor** (`3.0.0` → `3.1.0`): new panel features, new plugin-level features, new `window.__odd.api` methods (also bumps `api.version` minor). **Not** triggered by new scenes / icon sets / widgets / apps — those land in the remote catalog without a plugin release.
+- **Major** (`3.0.0` → `4.0.0`): removes or renames anything downstream can observe — REST endpoint shape, `window.__odd.api` method, content-on-disk layout, catalog `registry.json` schema. Usually accompanied by a major bump in `api.version`.
 
 Prereleases follow `1.10.0-rc.1`, `1.10.0-rc.2`, etc. They're tagged and attached to a GitHub release marked **pre-release** but `latest=false`.
 
@@ -40,7 +42,9 @@ git tag v1.10.0
 git push origin main v1.10.0
 ```
 
-The `.github/workflows/release-odd.yml` workflow fires on the tag: runs `check-version`, the scene/icon-set validators, `odd/bin/build-zip`, and `gh release create --latest=true` with a post-upload HTTP probe. Retries the upload once on the 409 "Error creating policy" flake.
+The `.github/workflows/release-odd.yml` workflow fires on the tag: runs `check-version`, builds + validates the remote catalog (`python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog`), regenerates `odd/languages/odd.pot`, runs `odd/bin/build-zip`, and `gh release create --latest=true` with a post-upload HTTP probe. Retries the upload once on the 409 "Error creating policy" flake.
+
+The `.github/workflows/pages.yml` workflow runs independently on any push to `main` that touches `site/`, `_tools/catalog-sources/`, or `_tools/build-catalog.py` — it rebuilds the catalog, validates it, and publishes `site/` (marketing + catalog) to GitHub Pages. Content releases (a new scene / icon set / widget / app) ship through Pages, not through the plugin release flow.
 
 ## CHANGELOG
 
@@ -48,8 +52,9 @@ We maintain `CHANGELOG.md` in the keep-a-changelog format. Each release entry ca
 
 - Breaking changes at the top.
 - `api.version` bumps (if any) and which methods/events/routes moved.
-- New content (scenes / icon sets / widgets) with thumbnail captions.
 - Bug fixes.
+
+Content releases (new scenes / icon sets / widgets / apps) don't land in the plugin `CHANGELOG.md`. They're noted in the catalog's own commit log and surface in the Shop's "New" shelf automatically.
 
 Keep the change-log user-readable. Don't list every "fix typo" commit — summarise.
 

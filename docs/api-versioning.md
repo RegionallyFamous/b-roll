@@ -6,7 +6,11 @@ the plugin you just installed — plugin releases and API releases
 evolve on their own SemVer tracks so a bug-fix plugin release never
 silently changes what third-party extensions can rely on.
 
-Today: **`2.0.0`**.
+Today: **`2.1.0`** — shipped alongside plugin `3.0.0`. The bump is a
+minor: v3.0.0 added the `/odd/v1/bundles/*` REST surface and the
+`/odd/v1/starter` pair, without removing or reshaping anything in the
+2.0.x surface. The `window.__odd.api` JS surface is byte-identical to
+2.0.0.
 
 ## What counts as the API surface
 
@@ -68,11 +72,13 @@ var api = window.__odd && window.__odd.api;
 if ( ! api || typeof api.version !== 'string' ) {
     return;
 }
-var major = parseInt( api.version.split( '.' )[ 0 ], 10 );
+var [ major, minor ] = api.version.split( '.' ).map( function ( n ) { return parseInt( n, 10 ); } );
 if ( major !== 2 ) {
     console.warn( '[my-extension] unsupported ODD API major:', api.version );
     return;
 }
+// Feature-detect endpoints added in minor bumps.
+var hasBundles = minor >= 1;   // /odd/v1/bundles/* landed in API 2.1.0
 // safe to call anything listed for the 2.x surface
 ```
 

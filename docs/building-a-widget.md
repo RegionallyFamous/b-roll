@@ -172,8 +172,13 @@ need to integrate cleanly:
     zip -r ../my-widget.wp manifest.json widget.js icon.svg preview.webp
     ```
 
-2. Open the ODD Control Panel, click **Install** in the topbar (or
-   drop the `.wp` anywhere on the Shop).
+2. Open the ODD Shop → **Upload** (or drop the `.wp` anywhere on the
+   Shop). To ship it to every ODD install world-wide, open a PR that
+   adds your source folder at
+   `_tools/catalog-sources/widgets/<slug>/` — the next Pages deploy
+   publishes the bundle at
+   `https://odd.regionallyfamous.com/catalog/v1/`, where the Shop's
+   Discover shelf picks it up on next refresh.
 3. Confirm the JavaScript-execution prompt on the first widget or
    scene install of the session.
 4. On success, the Shop jumps to Widgets and flashes your widget's

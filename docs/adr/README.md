@@ -10,6 +10,7 @@ consequences, and alternatives considered. Newest first.
 | 0002 | [Universal `.wp` bundle format](0002-universal-wp-bundle-format.md) | 2025-xx-xx | Accepted |
 | 0003 | [API versioning separate from plugin releases](0003-api-version-tracks-separately.md) | 2026-04 | Accepted |
 | 0004 | [Zero server-side telemetry](0004-zero-server-side-telemetry.md) | 2026-04 | Accepted |
+| 0005 | [Empty plugin, remote catalog](0005-remote-catalog-empty-plugin.md) | 2026-04 | Accepted |
 
 ## How to write a new ADR
 

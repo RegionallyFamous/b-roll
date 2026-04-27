@@ -158,10 +158,17 @@ The fastest path to a working app. No tools, no npm, no bundler.
 zip hello-odd.wp manifest.json index.html icon.svg
 ```
 
-Then open the ODD Control Panel (via the desktop shortcut or
-`/odd-panel`), click **Install** in the topbar, and pick
-`hello-odd.wp` — or drop it anywhere on the Shop. A **Hello ODD** icon
-appears on the desktop. Double-click to open.
+Then open the ODD Shop (via the desktop shortcut or `/odd-panel`),
+click **Upload** in the topbar, and pick `hello-odd.wp` — or drop it
+anywhere on the Shop. A **Hello ODD** icon appears on the desktop.
+Double-click to open.
+
+If you want your app discoverable from every ODD install world-wide,
+open a PR against the plugin repo with your source folder dropped
+into `_tools/catalog-sources/apps/<slug>/` (plus a prebuilt `.wp`
+committed into that folder). The next GitHub Pages deploy publishes
+it at `https://odd.regionallyfamous.com/catalog/v1/` and the Shop's
+Discover shelf lists it on next refresh — no plugin release required.
 
 That's the whole workflow.
 
@@ -463,8 +470,8 @@ subscription to cover apps + scenes + icon sets + widgets.
 
 ### The ODD Shop (recommended)
 
-Open the Control Panel, click **Install** in the topbar (or drop the
-`.wp` anywhere on the Shop), and ODD handles the rest:
+Open the ODD Shop, click **Upload** in the topbar (or drop the `.wp`
+anywhere on the Shop), and ODD handles the rest:
 
 1. The Shop extracts + validates the archive.
 2. On success, it jumps to the Apps department and flashes your new

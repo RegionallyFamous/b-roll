@@ -2,9 +2,12 @@
 
 > Scope: every code path that returns file bytes from `wp-content/odd-*/`
 > on an authenticated or public request. Last reviewed after the
-> universal `.wp` refactor (v1.9.x).
+> remote-catalog refactor (v3.0.0). The on-disk layout and serve paths
+> are unchanged from v1.9.x; only the **source** of the content moved
+> from bundled plugin assets to the remote catalog + SHA256-verified
+> `.wp` downloads.
 
-The universal `.wp` installer added three new per-type subtrees under
+The universal `.wp` installer populates four per-type subtrees under
 `wp-content/`:
 
 | Subtree                          | Source              | Contents                       |
@@ -13,6 +16,13 @@ The universal `.wp` installer added three new per-type subtrees under
 | `wp-content/odd-icon-sets/<slug>/` | v1.8.0            | SVG icons + `manifest.json`    |
 | `wp-content/odd-scenes/<slug>/`  | v1.8.0              | JS scene + preview + wallpaper |
 | `wp-content/odd-widgets/<slug>/` | v1.8.0              | JS/CSS widget + `manifest.json`|
+
+Under v3.0.0 every bundle that lands in these subtrees is either (a)
+uploaded by a logged-in admin through `POST /odd/v1/bundles/upload`
+or (b) downloaded from the remote catalog at
+`https://odd.regionallyfamous.com/catalog/v1/` and verified against
+the registry's declared SHA256 before extraction. A byte mismatch
+aborts the install — the archive is never written to disk.
 
 Only `odd-apps/` has a bespoke serve endpoint (`serve-cookieauth.php`).
 The other three are served through standard WordPress infrastructure —
