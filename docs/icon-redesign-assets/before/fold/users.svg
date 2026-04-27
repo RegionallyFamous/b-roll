@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Fold Users">
+<title>Fold Users</title>
+<defs>
+  <linearGradient id="bg-fold-users" x1="10" y1="8" x2="58" y2="60" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ff9f7a"/><stop offset="0.46" stop-color="#7c5cff"/><stop offset="1" stop-color="#20133f"/></linearGradient>
+  <radialGradient id="glow-fold-users" cx="22" cy="16" r="44" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff7ec" stop-opacity="0.85"/><stop offset="0.52" stop-color="#8ef0ff" stop-opacity="0.35"/><stop offset="1" stop-color="#20133f" stop-opacity="0"/></radialGradient>
+  <linearGradient id="glyph-fold-users" x1="14" y1="14" x2="50" y2="54" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff7ec"/><stop offset="0.48" stop-color="#8ef0ff"/><stop offset="1" stop-color="#ffcf5a"/></linearGradient>
+  <filter id="shadow-fold-users" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.45"/></filter>
+</defs>
+<rect x="4" y="4" width="56" height="56" rx="16" fill="url(#bg-fold-users)"/>
+<circle cx="20" cy="16" r="30" fill="url(#glow-fold-users)"/>
+<path d="M10 50 C20 58 42 58 54 42 L54 56 L10 56 Z" fill="#000" opacity="0.18"/>
+<path d="M12 10 H42 C50 10 54 15 54 23" fill="none" stroke="#fff" stroke-opacity="0.30" stroke-width="1.4" stroke-linecap="round"/>
+<circle cx="51" cy="13" r="3" fill="#ffcf5a" opacity="0.95"/>
+<circle cx="13" cy="51" r="2.4" fill="#8ef0ff" opacity="0.85"/>
+<g filter="url(#shadow-fold-users)"><circle cx="32" cy="24" r="10" fill="#fff7ec"/><circle cx="20" cy="30" r="7" fill="#8ef0ff"/><circle cx="44" cy="30" r="7" fill="#ffcf5a"/><path d="M14 51c2-11 34-11 36 0z" fill="url(#glyph-fold-users)"/><path d="M21 51c2-7 20-7 22 0" fill="#09101a" opacity=".20"/></g>
+</svg>

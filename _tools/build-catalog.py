@@ -39,8 +39,10 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
 import shutil
 import sys
+import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
@@ -54,6 +56,77 @@ OUT_ICONS = OUT_ROOT / "icons"
 FIXED_DATE = (2025, 1, 1, 0, 0, 0)
 CATALOG_BASE = "https://odd.regionallyfamous.com/catalog/v1"
 SCHEMA_URL = f"{CATALOG_BASE}/registry.schema.json"
+
+# The iOS-style icons must all carry this exact squircle path (see
+# `_tools/icon-style-guide.md` and `_tools/icon-sets/_base.svg.tmpl`).
+# The validator matches on a normalized whitespace-collapsed version
+# so authors can wrap the path onto multiple lines without failing.
+ICON_SQUIRCLE_PATH = (
+    "M 350.06 0 L 673.94 0 C 774.74 0 825.13 0 879.39 17.15 "
+    "L 879.39 17.15 C 938.62 38.71 985.29 85.38 1006.85 144.61 "
+    "C 1024 198.87 1024 249.26 1024 350.06 L 1024 673.94 "
+    "C 1024 774.74 1024 825.13 1006.85 879.39 L 1006.85 879.39 "
+    "C 985.29 938.62 938.62 985.29 879.39 1006.85 "
+    "C 825.13 1024 774.74 1024 673.94 1024 L 350.06 1024 "
+    "C 249.26 1024 198.87 1024 144.61 1006.85 L 144.61 1006.85 "
+    "C 85.38 985.29 38.71 938.62 17.15 879.39 "
+    "C 0 825.13 0 774.74 0 673.94 L 0 350.06 "
+    "C 0 249.26 0 198.87 17.15 144.61 L 17.15 144.61 "
+    "C 38.71 85.38 85.38 38.71 144.61 17.15 "
+    "C 198.87 0 249.26 0 350.06 0 Z"
+)
+ICON_SIZE_BUDGET = 10240  # bytes per SVG
+
+_ICON_CTRL = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+_ICON_WS = re.compile(r"\s+")
+
+
+def _validate_icon_svg(slug: str, rel: str, data: bytes) -> None:
+    """Fail-loud check applied to every icon-set SVG before zipping.
+
+    Enforces the iOS-app-icon contract spec'd in
+    `_tools/icon-style-guide.md`:
+    - viewBox="0 0 1024 1024"
+    - contains the canonical squircle clipPath verbatim
+    - root <g> (or descendant) carries clip-path="url(#sq)"
+    - ≤ 10 KB uncompressed
+    - no forbidden tags (<image>, <script>, <foreignObject>)
+    - no control bytes outside \t \n \r
+    """
+    label = f"icon-set {slug}: {rel}"
+
+    if len(data) > ICON_SIZE_BUDGET:
+        raise SystemExit(
+            f"{label}: {len(data)} bytes exceeds {ICON_SIZE_BUDGET} budget"
+        )
+    if _ICON_CTRL.search(data):
+        raise SystemExit(f"{label}: SVG contains forbidden control bytes")
+
+    text = data.decode("utf-8", errors="replace")
+    for tag in ("<image", "<script", "<foreignObject"):
+        if tag in text:
+            raise SystemExit(f"{label}: contains forbidden element {tag!r}")
+    if 'clip-path="url(#sq)"' not in text:
+        raise SystemExit(
+            f"{label}: missing clip-path=\"url(#sq)\" wrapper"
+        )
+    normalized = _ICON_WS.sub(" ", text)
+    if ICON_SQUIRCLE_PATH not in normalized:
+        raise SystemExit(
+            f"{label}: missing canonical iOS squircle <clipPath id=\"sq\">"
+        )
+
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as exc:
+        raise SystemExit(f"{label}: invalid XML: {exc}")
+    if root.tag != "{http://www.w3.org/2000/svg}svg":
+        raise SystemExit(f"{label}: root element is not <svg>")
+    viewbox = (root.attrib.get("viewBox") or "").strip()
+    if viewbox != "0 0 1024 1024":
+        raise SystemExit(
+            f"{label}: viewBox must be \"0 0 1024 1024\", got {viewbox!r}"
+        )
 
 
 # ---------------------------------------------------------------- #
@@ -232,7 +305,9 @@ def build_iconset(slug: str, src_dir: Path) -> dict:
         svg_path = src_dir / rel
         if not svg_path.is_file():
             raise SystemExit(f"icon-set {slug}: missing {rel}")
-        files[rel] = svg_path.read_bytes()
+        data = svg_path.read_bytes()
+        _validate_icon_svg(slug, rel, data)
+        files[rel] = data
 
     bundle = OUT_BUNDLES / f"iconset-{slug}.wp"
     write_zip(bundle, files)

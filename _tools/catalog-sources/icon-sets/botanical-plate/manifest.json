@@ -5,7 +5,7 @@
   "accent": "#6a8f3b",
   "preview": "dashboard.svg",
   "description": "Copperplate ink + soft green watercolor wash on aged paper, like a naturalist's field guide.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.svg",

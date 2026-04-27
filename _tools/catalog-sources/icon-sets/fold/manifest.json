@@ -5,7 +5,7 @@
   "accent": "#7c5cff",
   "preview": "dashboard.svg",
   "description": "Origami-inspired full-color tiles with folded paper facets, inked role glyphs, and playful dimensional shadows.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.svg",

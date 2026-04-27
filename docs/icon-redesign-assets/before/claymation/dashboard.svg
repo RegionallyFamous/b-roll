@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="0" y="0" width="64" height="64" fill="#ffd8a3" />
+  <g transform="translate(1.2, 1.8)" opacity="0.85"><rect x="12" y="12" width="16.0" height="16.0" rx="6" fill="#c25a18" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <rect x="36.0" y="12" width="16.0" height="16.0" rx="6" fill="#c25a18" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <rect x="12" y="36.0" width="16.0" height="16.0" rx="6" fill="#c25a18" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <rect x="36.0" y="36.0" width="16.0" height="16.0" rx="6" fill="#c25a18" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" /></g>
+  <rect x="12" y="12" width="16.0" height="16.0" rx="6" fill="#ffb04a" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="36.0" y="12" width="16.0" height="16.0" rx="6" fill="#ffb04a" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="12" y="36.0" width="16.0" height="16.0" rx="6" fill="#ffb04a" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="36.0" y="36.0" width="16.0" height="16.0" rx="6" fill="#ffb04a" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <g transform="translate(-1, -1.3)"><rect x="12" y="12" width="16.0" height="16.0" rx="6" fill="none" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <rect x="36.0" y="12" width="16.0" height="16.0" rx="6" fill="none" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <rect x="12" y="36.0" width="16.0" height="16.0" rx="6" fill="none" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <rect x="36.0" y="36.0" width="16.0" height="16.0" rx="6" fill="none" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" /></g>
+</svg>

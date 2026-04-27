@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="0" y="0" width="64" height="64" fill="#ffd8a3" />
+  <g transform="translate(1.2, 1.8)" opacity="0.85"><polygon points="16 12 42 12 52 22 52 52 16 52" fill="#c25a18" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <polygon points="42 12 42 22 52 22" fill="#c25a18" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <line x1="22" y1="30" x2="44" y2="30" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <line x1="22" y1="38" x2="44" y2="38" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" />
+  <line x1="22" y1="46" x2="38" y2="46" stroke="#c25a18" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" /></g>
+  <polygon points="16 12 42 12 52 22 52 52 16 52" fill="#ffb04a" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <polygon points="42 12 42 22 52 22" fill="#ffb04a" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="22" y1="30" x2="44" y2="30" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="22" y1="38" x2="44" y2="38" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="22" y1="46" x2="38" y2="46" stroke="#ffb04a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <g transform="translate(-1, -1.3)"><polygon points="16 12 42 12 52 22 52 52 16 52" fill="none" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <polygon points="42 12 42 22 52 22" fill="none" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <line x1="22" y1="30" x2="44" y2="30" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <line x1="22" y1="38" x2="44" y2="38" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <line x1="22" y1="46" x2="38" y2="46" stroke="#fff3d2" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" /></g>
+</svg>
