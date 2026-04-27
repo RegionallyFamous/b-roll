@@ -103,6 +103,17 @@ function odd_activate_install_starter() {
 		odd_starter_save_state( $state );
 	}
 	odd_starter_schedule_run( 1 );
+
+	// The scheduled event normally fires on the next page load that
+	// triggers `wp_cron`. On sites where the activator lands straight
+	// on the desktop (no wp-admin visit) the starter pack could sit
+	// pending until a visitor happens by — poke cron now so we don't
+	// have to wait. `spawn_cron()` fires an async, non-blocking HTTP
+	// request to wp-cron.php; the `init` safety net below handles the
+	// DISABLE_WP_CRON / no-loopback case.
+	if ( function_exists( 'spawn_cron' ) ) {
+		spawn_cron();
+	}
 }
 register_activation_hook( ODD_FILE, 'odd_activate_install_starter' );
 
@@ -274,31 +285,56 @@ function odd_starter_apply_prefs( array $starter ) {
 }
 
 /**
- * On every admin page load, poke the starter pack state. If the
- * initial cron never fired (e.g. WP-Cron disabled in wp-config) or a
- * retry is overdue, fire it inline via a non-blocking spawn.
+ * Safety net: on every page load (admin *or* frontend) poke the
+ * starter pack state. If the initial cron never fired (WP-Cron
+ * disabled, loopback blocked, freshly-activated site with no
+ * visitors) or a retry is overdue, run the installer inline on the
+ * next page load that a logged-in admin hits.
+ *
+ * We attach to `init` rather than `admin_init` because WP Desktop
+ * Mode users typically land on the frontend, never visiting wp-admin.
+ * The inline run happens for privileged users only (activation
+ * capability) so anonymous frontend traffic can't trigger network I/O.
  */
-add_action(
-	'admin_init',
-	function () {
-		$state = odd_starter_get_state();
-		if ( 'installed' === $state['status'] ) {
-			return;
-		}
-		// If there's already a scheduled event, let it run.
-		if ( false !== wp_next_scheduled( ODD_STARTER_CRON_HOOK ) ) {
-			return;
-		}
-		$backoff = odd_starter_backoff_seconds();
-		$want    = $state['attempts'] + 1;
-		$delay   = isset( $backoff[ $want ] ) ? $backoff[ $want ] : end( $backoff );
-		$overdue = ( time() - (int) $state['last_attempt'] ) > (int) $delay;
-		if ( $state['attempts'] === 0 || $overdue ) {
+function odd_starter_safety_net() {
+	// Bail early in CLI/CRON/AJAX — dedicated paths handle those.
+	if ( ( defined( 'DOING_CRON' ) && DOING_CRON ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+		return;
+	}
+	$state = odd_starter_get_state();
+	if ( 'installed' === $state['status'] || 'running' === $state['status'] ) {
+		return;
+	}
+
+	$backoff   = odd_starter_backoff_seconds();
+	$want      = max( 1, $state['attempts'] + 1 );
+	$delay     = isset( $backoff[ $want ] ) ? $backoff[ $want ] : end( $backoff );
+	$overdue   = 0 === (int) $state['last_attempt']
+		|| ( time() - (int) $state['last_attempt'] ) > (int) $delay;
+	$scheduled = (bool) wp_next_scheduled( ODD_STARTER_CRON_HOOK );
+
+	if ( $scheduled && ! $overdue ) {
+		// A pending event is still in its backoff window — let cron
+		// handle it when the time comes.
+		return;
+	}
+
+	// Only run the installer inline for privileged users. That keeps
+	// random frontend traffic from triggering network I/O while still
+	// making sure the first admin visit recovers from a missing cron.
+	$can_run_inline = current_user_can( 'activate_plugins' ) || current_user_can( 'manage_options' );
+	if ( ! $can_run_inline ) {
+		if ( ! $scheduled ) {
 			odd_starter_schedule_run( $want );
 		}
-	},
-	20
-);
+		return;
+	}
+
+	// Clear any stale scheduled event so we don't double-install.
+	wp_clear_scheduled_hook( ODD_STARTER_CRON_HOOK );
+	odd_starter_run();
+}
+add_action( 'init', 'odd_starter_safety_net', 20 );
 
 /**
  * REST: GET the current starter-pack state so the Shop can render

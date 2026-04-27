@@ -180,10 +180,18 @@ def build_scene(slug: str, src_dir: Path) -> dict:
         },
     )
 
-    icon_name = f"scene-{slug}.svg"
-    (OUT_ICONS / icon_name).write_text(
+    # Use the painted preview.webp as the Discover tile. The generated
+    # "first initial on a flat swatch" SVG fallback looked identical
+    # for every scene whose label started with the same letter — and
+    # we already ship the real art. Still emit the SVG fallback on
+    # disk for legacy clients / validators but point `icon_url` at the
+    # webp so the Shop renders the actual scene imagery.
+    icon_svg_name = f"scene-{slug}.svg"
+    (OUT_ICONS / icon_svg_name).write_text(
         scene_tile(slug, meta["label"], meta.get("fallbackColor", "#111"))
     )
+    icon_webp_name = f"scene-{slug}.webp"
+    (OUT_ICONS / icon_webp_name).write_bytes(preview)
 
     return {
         "type": "scene",
@@ -194,7 +202,7 @@ def build_scene(slug: str, src_dir: Path) -> dict:
         "description": manifest["description"],
         "franchise": manifest["franchise"],
         "tags": manifest["tags"],
-        "icon_url": f"{CATALOG_BASE}/icons/{icon_name}",
+        "icon_url": f"{CATALOG_BASE}/icons/{icon_webp_name}",
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,

@@ -16,6 +16,32 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.0.2"></a>
+## [3.0.2] — 2026-04-27
+
+### Fixed
+- **Starter pack could get stuck on "pending" on fresh installs.** The
+  post-activation cron event only fires when WP-Cron ticks, which never
+  happens if the site has no visitors and the admin goes straight to
+  the frontend desktop (no wp-admin request). The safety-net retry was
+  also hooked on `admin_init` only, so frontend page loads never woke
+  it up. The net effect: diagnostics showing `scenes: 0 / iconSets: 0`
+  with a `pending` starter state indefinitely. Fix: `spawn_cron()` is
+  called on activation to kick the first attempt immediately, and the
+  safety net moved to `init` (frontend + admin), where it runs the
+  installer **inline** for privileged users when a run is overdue —
+  instead of just rescheduling a cron that might not fire.
+
+### Changed
+- **Discover shelf — real artwork, roomier rows.** Catalog scene tiles
+  used to be generated SVGs (a single letter on a flat swatch), which
+  meant every scene whose label started with the same letter looked
+  identical. The builder now publishes each scene's painted
+  `preview.webp` as its Discover tile and points `icon_url` at that.
+  Row layout got more breathing room too — bigger 84 px tiles, 20 px
+  gaps, 18 px vertical padding, tighter typography — so a Discover
+  card reads as a real preview instead of a dense list row.
+
 <a id="v3.0.1"></a>
 ## [3.0.1] — 2026-04-27
 

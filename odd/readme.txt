@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.0.1
+Stable tag: 3.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,9 @@ The ODD Shop → About tab has a **Copy diagnostics** button. Paste the markdown
 See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.md) for the full history. Version headings follow SemVer; API versioning is tracked separately (see [docs/api-versioning.md](https://github.com/RegionallyFamous/odd/blob/main/docs/api-versioning.md)).
 
 == Upgrade Notice ==
+
+= 3.0.2 =
+Fixes the "empty shop" failure mode when WP-Cron can't fire on a freshly-activated site — the starter pack installer now runs inline on the next admin page load if it's still pending, instead of waiting for a cron tick that may never happen. Scene tiles in the Discover shelf now use the painted preview artwork instead of a generic letter badge, and catalog rows get a roomier layout with bigger previews.
 
 = 3.0.1 =
 Post-3.0.0 fixes: installed scene bundles can now find their painted backdrop again (the localized `sceneMap` was missing, so every scene fell back to a 404'd plugin-assets URL), the ODD Shop window opens reliably via `wp.desktop.openWindow` instead of the bare `registerWindow` shortcut, and three a11y violations in the Shop (nested interactive on the favorite star, unlabeled shuffle/screensaver inputs, low-contrast department eyebrow) are resolved. Zero content changes.
