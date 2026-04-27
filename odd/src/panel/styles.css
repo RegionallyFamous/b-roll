@@ -315,7 +315,13 @@
 * leaves the last card breathing room against the pane. */
 .odd-panel.odd-shop .odd-shop__shelf-track{display:flex;gap:14px;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 4px 14px;margin:-4px -4px 0;scrollbar-width:none}
 .odd-panel.odd-shop .odd-shop__shelf-track::-webkit-scrollbar{height:0;display:none}
-.odd-panel.odd-shop .odd-shop__shelf-track--tiles > .odd-shop__tile{flex:0 0 224px;scroll-snap-align:start}
+.odd-panel.odd-shop .odd-shop__shelf-track--tiles > .odd-shop__tile,
+.odd-panel.odd-shop .odd-shop__shelf-track--tiles > .odd-shop__tile-wrap{flex:0 0 224px;scroll-snap-align:start}
+/* Star lives as a sibling of the card button so axe's nested-
+   interactive rule is happy. The wrap anchors the star's absolute
+   position the way the thumb used to. */
+.odd-panel.odd-shop .odd-shop__tile-wrap{position:relative;display:flex}
+.odd-panel.odd-shop .odd-shop__tile-wrap > .odd-shop__tile{flex:1 1 auto;width:100%}
 .odd-panel.odd-shop .odd-shop__shelf-track--list > .odd-catalog-row{flex:0 0 320px;max-width:360px;scroll-snap-align:start}
 
 /* Slider shell — relative box that anchors the prev/next

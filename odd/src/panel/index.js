@@ -2348,7 +2348,10 @@
 					toggleFavorite( scene.slug );
 				}
 			} );
-			thumb.appendChild( star );
+			// Intentionally NOT appended to `thumb` — nesting an
+			// interactive widget inside a <button> trips axe's
+			// nested-interactive rule. The star moves to the
+			// `tile-wrap` sibling at the bottom of this fn.
 
 			var meta = el( 'div', { class: 'odd-shop__tile-meta' } );
 			var metaText = el( 'div', { class: 'odd-shop__tile-text' } );
@@ -2384,7 +2387,16 @@
 				previewScene( scene.slug );
 			} );
 
-			return card;
+			// Wrap so the interactive card <button> and the favorite
+			// star can live as siblings rather than parent/child —
+			// axe flags nested interactive controls as serious.
+			var wrap = el( 'div', {
+				class: 'odd-shop__tile-wrap',
+				'data-slug': scene.slug,
+			} );
+			wrap.appendChild( card );
+			wrap.appendChild( star );
+			return wrap;
 		}
 
 		function isFavorite( slug ) {
@@ -2479,8 +2491,11 @@
 				}
 				// Sync the favorite star's on-state so flipping a
 				// favorite on one tile updates that tile without a
-				// full re-render.
-				var star = c.querySelector( '.odd-shop__fav' );
+				// full re-render. The star lives as a *sibling* of
+				// the card (nested interactive = axe violation), so
+				// hop up to the tile-wrap to find it.
+				var tileWrap = c.closest( '.odd-shop__tile-wrap' );
+				var star = ( tileWrap || c ).querySelector( '.odd-shop__fav' );
 				if ( star ) {
 					var favOn = isFavorite( slug );
 					star.classList.toggle( 'is-on', favOn );
