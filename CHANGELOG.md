@@ -16,6 +16,30 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.1.0"></a>
+## [3.1.0] — 2026-04-27
+
+### Added
+- **Apps can now surface on the Desktop Mode taskbar as well as the
+  desktop.** Each installed ODD App has independent per-user toggles
+  in the ODD Shop for "Desktop icon" and "Taskbar pill" — you can
+  have one, both, or neither. Neither still keeps the app reachable
+  from `/odd-slash` commands, the Shop's Open button, and any sibling
+  plugin that calls `wp.desktop.openWindow( 'odd-app-<slug>' )`. The
+  taskbar path is implemented by forwarding the existing
+  `desktop_mode_register_window( …, placement: 'taskbar' )` argument
+  — Desktop Mode paints the pill and wires its click to the window
+  manager natively; no JS click handler on ODD's side.
+- **Manifest authors can declare install-time defaults** via a new
+  top-level `surfaces: { desktop: bool, taskbar: bool }` object in
+  `manifest.json`. Missing keys default to `{ desktop: true, taskbar:
+  false }` — the historical behavior — so existing apps continue to
+  install exactly as before. Users can override per-install after
+  the fact in the Shop.
+- **`odd_app_surfaces_changed` action** fires after a successful
+  `POST /odd/v1/apps/{slug}/toggle` call that included a `surfaces`
+  object. Handlers receive `( string $slug, array $surfaces )`.
+
 <a id="v3.0.4"></a>
 ## [3.0.4] — 2026-04-27
 

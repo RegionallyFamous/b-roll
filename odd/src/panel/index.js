@@ -569,6 +569,87 @@
 			meta.appendChild( sub );
 			card.appendChild( meta );
 
+			// Surface toggles — Desktop icon + Taskbar pill.
+			//
+			// Desktop Mode registers the chosen surface(s) on `init`
+			// from odd_apps_row_surfaces(), so flipping a checkbox
+			// soft-reloads the page. Greyed out when the app is
+			// disabled — a disabled app isn't registered at all.
+			var rowSurfaces = ( app.surfaces && typeof app.surfaces === 'object' )
+				? app.surfaces
+				: { desktop: true, taskbar: false };
+			var surfacesRow = el( 'div', {
+				class: 'odd-card__surfaces',
+				'aria-label': __( 'App surfaces' ),
+			} );
+			if ( ! app.enabled ) {
+				surfacesRow.setAttribute( 'aria-disabled', 'true' );
+				surfacesRow.classList.add( 'is-disabled' );
+			}
+
+			function makeSurfaceToggle( key, label, hint ) {
+				var wrapLbl = el( 'label', { class: 'odd-card__surface' } );
+				var box     = el( 'input', { type: 'checkbox' } );
+				box.checked = !! rowSurfaces[ key ];
+				box.disabled = ! app.enabled;
+				var text = el( 'span', { class: 'odd-card__surface-text' } );
+				var name = el( 'strong' );
+				name.textContent = label;
+				var tail = el( 'span', { class: 'odd-card__surface-hint' } );
+				tail.textContent = hint;
+				text.appendChild( name );
+				text.appendChild( tail );
+				wrapLbl.appendChild( box );
+				wrapLbl.appendChild( text );
+
+				box.addEventListener( 'change', function () {
+					if ( ! app.enabled ) return;
+					var payload      = {};
+					payload[ key ]   = !! box.checked;
+					rowSurfaces[ key ] = !! box.checked;
+					box.disabled = true;
+					setAppSurfaces( app.slug, payload ).then( function ( res ) {
+						if ( res && res.surfaces ) {
+							setAppsStatus(
+								wrap,
+								__( 'Updated — reloading…' ),
+								'ok'
+							);
+							setTimeout( function () {
+								try { window.location.reload(); } catch ( e ) {}
+							}, 180 );
+							return;
+						}
+						box.checked  = ! box.checked;
+						box.disabled = false;
+						rowSurfaces[ key ] = !! box.checked;
+						setAppsStatus(
+							wrap,
+							__( 'Could not update surfaces.' ),
+							'error'
+						);
+					} );
+				} );
+
+				return wrapLbl;
+			}
+
+			surfacesRow.appendChild(
+				makeSurfaceToggle(
+					'desktop',
+					__( 'Desktop icon' ),
+					__( 'Show a shortcut on the desktop.' )
+				)
+			);
+			surfacesRow.appendChild(
+				makeSurfaceToggle(
+					'taskbar',
+					__( 'Taskbar pill' ),
+					__( 'Pin a launcher to the bottom taskbar.' )
+				)
+			);
+			card.appendChild( surfacesRow );
+
 			var actions = el( 'div', { class: 'odd-card__actions' } );
 
 			var open = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary' } );
@@ -1588,6 +1669,29 @@
 				},
 				body: JSON.stringify( { enabled: !! enabled } ),
 			} ).then( function ( r ) { return r.ok; } ).catch( function () { return false; } );
+		}
+		/**
+		 * POST a partial surfaces update (one or both of
+		 * { desktop, taskbar }) to the same /toggle route and
+		 * return the new, server-normalized shape.
+		 *
+		 * Native-window + desktop-icon registration happens on
+		 * `init`, so the result is only visible after a soft reload
+		 * — callers are expected to schedule one (see the 180 ms
+		 * timer in renderAppCard).
+		 */
+		function setAppSurfaces( slug, surfaces ) {
+			return fetch( appsBaseUrl() + '/' + encodeURIComponent( slug ) + '/toggle', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce':   state.cfg.restNonce || '',
+				},
+				body: JSON.stringify( { surfaces: surfaces } ),
+			} ).then( function ( r ) {
+				return r.ok ? r.json() : null;
+			} ).catch( function () { return null; } );
 		}
 		function deleteApp( slug ) {
 			return fetch( appsBaseUrl() + '/' + encodeURIComponent( slug ), {

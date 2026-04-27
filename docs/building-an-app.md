@@ -111,9 +111,21 @@ The fastest path to a working app. No tools, no npm, no bundler.
     "icon":        "icon.svg",
     "entry":       "index.html",
     "capability":  "read",
-    "window":      { "width": 520, "height": 360 }
+    "window":      { "width": 520, "height": 360 },
+    "surfaces":    { "desktop": true, "taskbar": false }
 }
 ```
+
+The `surfaces` object is optional. It sets the **install-time
+defaults** for whether ODD registers a desktop icon and/or a Desktop
+Mode taskbar pill for your app. Both default to the historical
+behavior (`desktop: true`, `taskbar: false`), so omitting the key is
+equivalent to "desktop icon only." Users can flip either independently
+from the **ODD Shop → Apps** card after install — the manifest value
+only controls what the app looks like the moment it lands. Regardless
+of the visible surfaces, the app is always reachable via
+`wp.desktop.openWindow( 'odd-app-{slug}' )`, the ODD Shop's **Open**
+button, and slash commands.
 
 ### 2. `index.html`
 

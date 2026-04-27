@@ -10,7 +10,7 @@ ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top 
 1. **A canvas wallpaper engine** — a single `registerWallpaper('odd', …)` that hosts generative PixiJS scenes painted on top of 1920×1080 WebP backdrops. Scenes install as `.wp` bundles.
 2. **Icon sets** — themed SVG packs that re-skin the WP Desktop Mode dock and desktop-shortcut icons via the `desktop_mode_dock_item` + `desktop_mode_icons` filters. Install as `.wp` bundles.
 3. **Desktop widgets** — tiles like Sticky Note and Magic 8-Ball that live on the desktop surface. Install as `.wp` bundles.
-4. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that get their own desktop icon and native window. Install as `.wp` bundles.
+4. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that open in their own native window. Each app can surface as a desktop icon, a Desktop Mode taskbar pill, both, or neither — per-user preference in the ODD Shop. Install as `.wp` bundles.
 
 All four are managed from a single native WP Desktop Mode window (the **ODD Shop** — a Mac App Store-style browsing surface) opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`. Internally the window id stays `odd` — tests, commands, and the WP Desktop Mode session state still reference it by that id — so "Control Panel" references in `odd_icons_*` helpers and extension docs describe the same window.
 

@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.0.4
+Stable tag: 3.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,9 @@ The ODD Shop → About tab has a **Copy diagnostics** button. Paste the markdown
 See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.md) for the full history. Version headings follow SemVer; API versioning is tracked separately (see [docs/api-versioning.md](https://github.com/RegionallyFamous/odd/blob/main/docs/api-versioning.md)).
 
 == Upgrade Notice ==
+
+= 3.1.0 =
+Apps can now surface on the Desktop Mode taskbar as well as on the desktop. Each installed app gets two independent checkboxes in the Shop — **Desktop icon** and **Taskbar pill** — and you can enable either, both, or neither. "Neither" still leaves the app reachable via slash commands, the Shop's Open button, and any sibling plugin that calls `wp.desktop.openWindow('odd-app-<slug>')`. Manifest authors can ship `surfaces: { desktop, taskbar }` defaults in `manifest.json`; missing keys default to the historical `{ desktop: true, taskbar: false }` so existing apps upgrade cleanly.
 
 = 3.0.4 =
 Starter pack is now cron-free — installs always happen inline, during the activation hook itself and via an `init`-level safety net on subsequent privileged page loads. Fixes the "empty shop" failure mode on sites where WP-Cron couldn't tick (DISABLE_WP_CRON, blocked loopback, or an admin who never visits wp-admin). Any scheduled event from older installs is cleaned up on upgrade.

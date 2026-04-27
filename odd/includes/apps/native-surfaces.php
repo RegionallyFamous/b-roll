@@ -2,17 +2,30 @@
 /**
  * ODD Apps — WP Desktop native-window + desktop-icon registration.
  *
- * For every enabled installed app we register:
+ * For every enabled installed app we unconditionally register:
  *
  *   desktop_mode_register_window( 'odd-app-{slug}', [...] )
  *     Title bar reads the manifest's name; content renders through
  *     odd_apps_render_window_template() which injects a sandboxed
- *     iframe pointing at /wp-json/odd/v1/apps/serve/{slug}/.
+ *     iframe pointing at /wp-json/odd/v1/apps/serve/{slug}/. The
+ *     window is always registered so that `wp.desktop.openWindow(
+ *     'odd-app-{slug}' )` (from the Shop, slash commands, or a
+ *     sibling plugin) always opens it — even when both visible
+ *     surfaces below are off.
  *
- *   desktop_mode_register_icon( 'odd-app-{slug}', [...] )
- *     Paired desktop tile that opens the matching window. Label and
- *     position come from manifest.desktopIcon when present, falling
- *     back to the app name.
+ * The visible surfaces are opt-in per app and per user, via the
+ * row's `surfaces` shape (see odd_apps_row_surfaces()):
+ *
+ *   surfaces.taskbar → forwarded to register_window() as
+ *     `placement => 'taskbar'`; Desktop Mode renders the pill via
+ *     its internal `rail.appendSystemItem({ onOpen: … })` path so
+ *     no JS click handler is needed on our side. When false we
+ *     pass `placement => 'none'` (window registered, no tile).
+ *
+ *   surfaces.desktop → gates register_icon() entirely. When false
+ *     the paired desktop shortcut is not created and the user
+ *     launches the window via the taskbar pill (or any other
+ *     entry point listed above).
  *
  * Both IDs are prefixed `odd-app-` so the dock-filter can ignore
  * them when re-skinning icon sets (ODD-native chrome, not WP admin
@@ -47,6 +60,7 @@ function odd_apps_register_surfaces( $row ) {
 		return;
 	}
 	$manifest = odd_apps_manifest_load( $slug );
+	$surfaces = odd_apps_row_surfaces( $row );
 
 	$window_id = 'odd-app-' . $slug;
 	$icon_url  = odd_apps_icon_url( $slug, $manifest );
@@ -63,7 +77,12 @@ function odd_apps_register_surfaces( $row ) {
 		'height'     => 600,
 		'min_width'  => 420,
 		'min_height' => 320,
-		'placement'  => 'none',
+		// 'taskbar' → Desktop Mode appends a system tile on the
+		// bottom pill; its onOpen handler calls the window manager
+		// directly so we don't need a JS click interceptor. 'none'
+		// registers the window but leaves both rails untouched —
+		// the app is still reachable from `wp.desktop.openWindow()`.
+		'placement'  => $surfaces['taskbar'] ? 'taskbar' : 'none',
 	);
 
 	if ( isset( $manifest['window'] ) && is_array( $manifest['window'] ) ) {
@@ -79,6 +98,13 @@ function odd_apps_register_surfaces( $row ) {
 	}
 
 	desktop_mode_register_window( $window_id, $window_defaults );
+
+	if ( ! $surfaces['desktop'] ) {
+		// User opted out of a desktop shortcut for this app — the
+		// taskbar pill (or any wp.desktop.openWindow() caller)
+		// remains the launch path. Nothing to register.
+		return;
+	}
 
 	$icon_defaults = array(
 		'title'    => $name,

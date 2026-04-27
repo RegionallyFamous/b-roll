@@ -103,6 +103,15 @@
 			"type": "string",
 			"maxLength": 2048,
 			"description": "App bundles only. Optional extra Content-Security-Policy directives, sanitized and appended after the default policy on /odd-app/ HTML responses."
+		},
+		"surfaces": {
+			"type": "object",
+			"description": "App manifests only. Install-time defaults for which Desktop Mode launch surfaces ODD should register. Both keys default to the historical behaviour (desktop: true, taskbar: false) when missing. Users override per install from the ODD Shop.",
+			"additionalProperties": false,
+			"properties": {
+				"desktop": { "type": "boolean", "description": "Render a desktop shortcut icon for this app." },
+				"taskbar": { "type": "boolean", "description": "Pin a pill to the bottom Desktop Mode taskbar. Clicking it opens the app's native window." }
+			}
 		}
 	},
 	"allOf": [

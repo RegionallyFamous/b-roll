@@ -1,0 +1,392 @@
+<?php
+/**
+ * Tests for the per-app `surfaces` preference — which of Desktop
+ * Mode's launch affordances (desktop icon, taskbar pill) an app
+ * registers.
+ *
+ * Covers the helper API (`odd_apps_set_surfaces`,
+ * `odd_apps_row_surfaces`), the REST toggle route extension, and
+ * the `odd_apps_register_surfaces()` dispatcher's forwarding into
+ * `desktop_mode_register_window()` / `desktop_mode_register_icon()`.
+ *
+ * The Desktop Mode functions are stubbed at runtime via
+ * `uopz_set_return` when available, and otherwise re-declared as
+ * no-op capture shims in a pre-setup hook — same pattern used by
+ * other ODD tests that exercise host-plugin surfaces.
+ */
+
+class Test_Apps_Surfaces extends ODD_REST_Test_Case {
+
+	/**
+	 * @var string[] Slugs installed during a test, drained on tear_down.
+	 */
+	protected $installed = array();
+
+	/**
+	 * @var array Captured desktop_mode_register_* calls for assertion.
+	 *            Shape: [ [ 'fn' => 'window'|'icon', 'id' => string, 'args' => array ] ].
+	 */
+	public static $calls = array();
+
+	public function set_up() {
+		parent::set_up();
+		self::$calls = array();
+	}
+
+	public function tear_down() {
+		foreach ( $this->installed as $slug ) {
+			odd_apps_uninstall( $slug );
+		}
+		$this->installed = array();
+		self::$calls     = array();
+		parent::tear_down();
+	}
+
+	/**
+	 * Minimal .wp fixture: delegates to the standard install helper
+	 * from Test_Apps_Install but without pulling the whole class in
+	 * as a dependency (duplicates are cheap, coupling is not).
+	 */
+	protected function install_fixture( $slug, array $manifest_overrides = array() ) {
+		$manifest = array_merge(
+			array(
+				'name'    => 'Surfaces ' . $slug,
+				'slug'    => $slug,
+				'version' => '0.0.1',
+				'entry'   => 'index.html',
+			),
+			$manifest_overrides
+		);
+		$path     = tempnam( sys_get_temp_dir(), 'oddapp_' ) . '.wp';
+		$zip      = new ZipArchive();
+		$zip->open( $path, ZipArchive::CREATE | ZipArchive::OVERWRITE );
+		$zip->addFromString( 'manifest.json', wp_json_encode( $manifest ) );
+		$zip->addFromString( 'index.html', '<!doctype html><h1>hi</h1>' );
+		$zip->close();
+		$res = odd_apps_install( $path, $slug . '.wp' );
+		@unlink( $path );
+		$this->installed[] = $slug;
+		return $res;
+	}
+
+	public function test_row_surfaces_defaults_when_missing_are_back_compat() {
+		$s = odd_apps_row_surfaces( array( 'slug' => 'legacy' ) );
+		$this->assertTrue( $s['desktop'], 'Pre-upgrade rows keep the desktop icon.' );
+		$this->assertFalse( $s['taskbar'], 'Pre-upgrade rows do NOT sprout a taskbar pill.' );
+	}
+
+	public function test_row_surfaces_coerces_truthy_values_to_bool() {
+		$s = odd_apps_row_surfaces(
+			array(
+				'surfaces' => array(
+					'desktop' => 1,
+					'taskbar' => '1',
+				),
+			)
+		);
+		$this->assertSame( true, $s['desktop'] );
+		$this->assertSame( true, $s['taskbar'] );
+	}
+
+	public function test_install_defaults_surfaces_when_manifest_is_silent() {
+		$manifest = $this->install_fixture( 'surfaces-default' );
+		$this->assertIsArray( $manifest );
+
+		$row = $this->find_row( 'surfaces-default' );
+		$this->assertSame(
+			array(
+				'desktop' => true,
+				'taskbar' => false,
+			),
+			$row['surfaces']
+		);
+	}
+
+	public function test_install_honors_manifest_surfaces_opt_in() {
+		$this->install_fixture(
+			'surfaces-manifest',
+			array(
+				'surfaces' => array(
+					'desktop' => false,
+					'taskbar' => true,
+				),
+			)
+		);
+		$row = $this->find_row( 'surfaces-manifest' );
+		$this->assertFalse( $row['surfaces']['desktop'] );
+		$this->assertTrue( $row['surfaces']['taskbar'] );
+	}
+
+	public function test_set_surfaces_merges_partial_payload() {
+		$this->install_fixture( 'surfaces-partial' );
+
+		// Only taskbar → desktop preserved from default.
+		$this->assertTrue( odd_apps_set_surfaces( 'surfaces-partial', array( 'taskbar' => true ) ) );
+		$row = $this->find_row( 'surfaces-partial' );
+		$this->assertTrue( $row['surfaces']['desktop'] );
+		$this->assertTrue( $row['surfaces']['taskbar'] );
+
+		// Only desktop → taskbar preserved.
+		$this->assertTrue( odd_apps_set_surfaces( 'surfaces-partial', array( 'desktop' => false ) ) );
+		$row = $this->find_row( 'surfaces-partial' );
+		$this->assertFalse( $row['surfaces']['desktop'] );
+		$this->assertTrue( $row['surfaces']['taskbar'] );
+	}
+
+	public function test_set_surfaces_rejects_unknown_slug() {
+		$res = odd_apps_set_surfaces( 'no-such-app', array( 'desktop' => false ) );
+		$this->assertWPError( $res );
+		$this->assertSame( 'not_installed', $res->get_error_code() );
+	}
+
+	public function test_set_surfaces_rejects_non_array() {
+		$this->install_fixture( 'surfaces-bad-payload' );
+		$res = odd_apps_set_surfaces( 'surfaces-bad-payload', 'not-an-array' );
+		$this->assertWPError( $res );
+		$this->assertSame( 'invalid_surfaces', $res->get_error_code() );
+	}
+
+	public function test_set_surfaces_fires_odd_app_surfaces_changed_action() {
+		$this->install_fixture( 'surfaces-action' );
+
+		$captured = array();
+		add_action(
+			'odd_app_surfaces_changed',
+			function ( $slug, $surfaces ) use ( &$captured ) {
+				$captured[] = array(
+					'slug'     => $slug,
+					'surfaces' => $surfaces,
+				);
+			},
+			10,
+			2
+		);
+
+		odd_apps_set_surfaces( 'surfaces-action', array( 'taskbar' => true ) );
+
+		$this->assertCount( 1, $captured );
+		$this->assertSame( 'surfaces-action', $captured[0]['slug'] );
+		$this->assertTrue( $captured[0]['surfaces']['taskbar'] );
+	}
+
+	public function test_rest_toggle_accepts_surfaces_payload() {
+		$this->login_as();
+		$this->install_fixture( 'rest-surfaces' );
+
+		$res = $this->dispatch_json(
+			'POST',
+			'/odd/v1/apps/rest-surfaces/toggle',
+			array( 'surfaces' => array( 'taskbar' => true ) )
+		);
+		$this->assertSame( 200, $res->get_status() );
+		$data = $res->get_data();
+		$this->assertArrayHasKey( 'surfaces', $data );
+		$this->assertTrue( $data['surfaces']['taskbar'] );
+		$this->assertTrue( $data['surfaces']['desktop'], 'Partial payload should leave desktop untouched.' );
+		$this->assertTrue( $data['enabled'] );
+	}
+
+	public function test_rest_toggle_rejects_non_object_surfaces() {
+		$this->login_as();
+		$this->install_fixture( 'rest-surfaces-bad' );
+
+		$res = $this->dispatch_json(
+			'POST',
+			'/odd/v1/apps/rest-surfaces-bad/toggle',
+			array( 'surfaces' => 'nope' )
+		);
+		$this->assertSame( 400, $res->get_status() );
+	}
+
+	public function test_rest_toggle_can_update_enabled_and_surfaces_in_one_call() {
+		$this->login_as();
+		$this->install_fixture( 'rest-surfaces-combo' );
+
+		$res = $this->dispatch_json(
+			'POST',
+			'/odd/v1/apps/rest-surfaces-combo/toggle',
+			array(
+				'enabled'  => false,
+				'surfaces' => array( 'taskbar' => true ),
+			)
+		);
+		$this->assertSame( 200, $res->get_status() );
+		$data = $res->get_data();
+		$this->assertFalse( $data['enabled'] );
+		$this->assertTrue( $data['surfaces']['taskbar'] );
+	}
+
+	public function test_apps_list_backfills_surfaces_for_legacy_rows() {
+		// Inject a row directly — bypass the installer — to simulate
+		// what a row persisted BEFORE the `surfaces` field existed
+		// looks like.
+		$index               = odd_apps_index_load();
+		$index['legacy-row'] = array(
+			'slug'      => 'legacy-row',
+			'name'      => 'Legacy Row',
+			'version'   => '0.0.1',
+			'enabled'   => true,
+			'installed' => time(),
+		);
+		odd_apps_index_save( $index );
+
+		$rows    = odd_apps_list();
+		$matched = null;
+		foreach ( $rows as $r ) {
+			if ( 'legacy-row' === $r['slug'] ) {
+				$matched = $r;
+				break;
+			}
+		}
+		$this->assertNotNull( $matched );
+		$this->assertArrayHasKey( 'surfaces', $matched );
+		$this->assertTrue( $matched['surfaces']['desktop'] );
+		$this->assertFalse( $matched['surfaces']['taskbar'] );
+
+		// Tidy.
+		unset( $index['legacy-row'] );
+		odd_apps_index_save( $index );
+	}
+
+	public function test_register_surfaces_forwards_taskbar_placement_and_skips_icon_when_desktop_off() {
+		$this->require_desktop_mode_stubs();
+
+		$manifest = $this->install_fixture(
+			'register-tbar-no-desk',
+			array(
+				'surfaces' => array(
+					'desktop' => false,
+					'taskbar' => true,
+				),
+			)
+		);
+
+		self::$calls = array();
+		odd_apps_register_surfaces( $this->find_row( 'register-tbar-no-desk' ) );
+
+		$window = $this->find_call( 'window', 'odd-app-register-tbar-no-desk' );
+		$this->assertNotNull( $window, 'register_window was not called.' );
+		$this->assertSame( 'taskbar', $window['args']['placement'] );
+
+		$icon = $this->find_call( 'icon', 'odd-app-register-tbar-no-desk' );
+		$this->assertNull( $icon, 'register_icon must be skipped when surfaces.desktop is false.' );
+	}
+
+	public function test_register_surfaces_forwards_placement_none_when_taskbar_off() {
+		$this->require_desktop_mode_stubs();
+		$this->install_fixture(
+			'register-desk-only',
+			array(
+				'surfaces' => array(
+					'desktop' => true,
+					'taskbar' => false,
+				),
+			)
+		);
+
+		self::$calls = array();
+		odd_apps_register_surfaces( $this->find_row( 'register-desk-only' ) );
+
+		$window = $this->find_call( 'window', 'odd-app-register-desk-only' );
+		$this->assertNotNull( $window );
+		$this->assertSame( 'none', $window['args']['placement'] );
+
+		$icon = $this->find_call( 'icon', 'odd-app-register-desk-only' );
+		$this->assertNotNull( $icon, 'register_icon must run when surfaces.desktop is true.' );
+	}
+
+	public function test_register_surfaces_registers_both_when_both_surfaces_on() {
+		$this->require_desktop_mode_stubs();
+		$this->install_fixture(
+			'register-both',
+			array(
+				'surfaces' => array(
+					'desktop' => true,
+					'taskbar' => true,
+				),
+			)
+		);
+
+		self::$calls = array();
+		odd_apps_register_surfaces( $this->find_row( 'register-both' ) );
+
+		$window = $this->find_call( 'window', 'odd-app-register-both' );
+		$icon   = $this->find_call( 'icon', 'odd-app-register-both' );
+
+		$this->assertNotNull( $window );
+		$this->assertNotNull( $icon );
+		$this->assertSame( 'taskbar', $window['args']['placement'] );
+	}
+
+	public function test_register_surfaces_legacy_row_without_field_keeps_current_behavior() {
+		$this->require_desktop_mode_stubs();
+		$row = array(
+			'slug'    => 'legacy-register',
+			'name'    => 'Legacy Register',
+			'enabled' => true,
+			// No 'surfaces' key at all.
+		);
+
+		self::$calls = array();
+		odd_apps_register_surfaces( $row );
+
+		$window = $this->find_call( 'window', 'odd-app-legacy-register' );
+		$icon   = $this->find_call( 'icon', 'odd-app-legacy-register' );
+
+		$this->assertNotNull( $window );
+		$this->assertSame( 'none', $window['args']['placement'], 'Default surfaces: no taskbar pill.' );
+		$this->assertNotNull( $icon, 'Default surfaces: desktop icon on.' );
+	}
+
+	/**
+	 * Helpers ---------------------------------------------------- */
+
+	protected function find_row( $slug ) {
+		$index = odd_apps_index_load();
+		return isset( $index[ $slug ] ) ? $index[ $slug ] : null;
+	}
+
+	protected function find_call( $fn_name, $id ) {
+		foreach ( self::$calls as $call ) {
+			if ( $call['fn'] === $fn_name && $call['id'] === $id ) {
+				return $call;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Desktop Mode's register helpers are normally provided by the
+	 * host plugin. In the ODD PHPUnit matrix the host isn't loaded,
+	 * so we define our own capturing shims the first time a test
+	 * asks for them, and skip the test if something else already
+	 * defined them with real behavior.
+	 */
+	protected function require_desktop_mode_stubs() {
+		// Stubs are defined once per PHP process — the first test
+		// that asks for them installs capturing shims under the
+		// host-plugin names. Later tests reuse them. If `ODD_TEST_DM_STUBS`
+		// is not defined but the real functions exist, the host is
+		// loaded and we skip rather than overwrite its contracts.
+		if ( defined( 'ODD_TEST_DM_STUBS' ) ) {
+			return;
+		}
+		if ( function_exists( 'desktop_mode_register_window' ) || function_exists( 'desktop_mode_register_icon' ) ) {
+			$this->markTestSkipped( 'Host Desktop Mode plugin is loaded — placement forwarding is covered by its own tests.' );
+			return;
+		}
+		define( 'ODD_TEST_DM_STUBS', 1 );
+		// phpcs:disable
+		eval(
+			'function desktop_mode_register_window( $id, $args = array() ) {' .
+			'  Test_Apps_Surfaces::$calls[] = array( "fn" => "window", "id" => $id, "args" => $args );' .
+			'  return true;' .
+			'}' .
+			'function desktop_mode_register_icon( $id, $args = array() ) {' .
+			'  Test_Apps_Surfaces::$calls[] = array( "fn" => "icon", "id" => $id, "args" => $args );' .
+			'  return true;' .
+			'}'
+		);
+		// phpcs:enable
+	}
+}

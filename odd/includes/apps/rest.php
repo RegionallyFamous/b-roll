@@ -189,17 +189,44 @@ function odd_apps_rest_delete( WP_REST_Request $req ) {
 }
 
 function odd_apps_rest_toggle( WP_REST_Request $req ) {
-	$slug    = sanitize_key( $req['slug'] );
-	$enabled = $req->get_param( 'enabled' );
-	if ( null === $enabled ) {
+	$slug     = sanitize_key( $req['slug'] );
+	$enabled  = $req->get_param( 'enabled' );
+	$surfaces = $req->get_param( 'surfaces' );
+
+	// Back-compat: a bare POST with no body still toggles `enabled`,
+	// matching the original contract. A payload can now ALSO carry
+	// a `surfaces` object; either field alone (or both) is valid.
+	if ( null === $enabled && null === $surfaces ) {
 		$index   = odd_apps_index_load();
 		$enabled = ! ( isset( $index[ $slug ]['enabled'] ) && $index[ $slug ]['enabled'] );
 	}
-	$result = odd_apps_set_enabled( $slug, (bool) $enabled );
-	if ( is_wp_error( $result ) ) {
-		return $result;
+
+	if ( null !== $enabled ) {
+		$result = odd_apps_set_enabled( $slug, (bool) $enabled );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
 	}
-	return rest_ensure_response( array( 'enabled' => (bool) $enabled ) );
+
+	if ( null !== $surfaces ) {
+		if ( ! is_array( $surfaces ) ) {
+			return new WP_Error( 'invalid_surfaces', __( 'surfaces must be an object.', 'odd' ), array( 'status' => 400 ) );
+		}
+		$result = odd_apps_set_surfaces( $slug, $surfaces );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+	}
+
+	$index = odd_apps_index_load();
+	$row   = isset( $index[ $slug ] ) ? $index[ $slug ] : array();
+
+	return rest_ensure_response(
+		array(
+			'enabled'  => isset( $row['enabled'] ) ? (bool) $row['enabled'] : (bool) $enabled,
+			'surfaces' => odd_apps_row_surfaces( $row ),
+		)
+	);
 }
 
 /**

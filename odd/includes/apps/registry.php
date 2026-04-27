@@ -7,6 +7,8 @@
  *   odd_apps_install( $tmp_path, $filename )  → manifest | WP_Error
  *   odd_apps_uninstall( $slug )               → true | WP_Error
  *   odd_apps_set_enabled( $slug, $bool )      → true | WP_Error
+ *   odd_apps_set_surfaces( $slug, $arr )      → true | WP_Error
+ *   odd_apps_row_surfaces( $row )             → { desktop: bool, taskbar: bool }
  *   odd_apps_list()                           → array of index rows
  *   odd_apps_get( $slug )                     → full manifest or array()
  *
@@ -49,6 +51,15 @@ function odd_apps_install( $tmp_path, $filename ) {
 		return $extracted;
 	}
 
+	// Manifest authors can declare the default surfaces (desktop
+	// icon + taskbar pill) per app; users can override after install.
+	// Defaults favor the historical behavior — desktop icon on,
+	// taskbar off — so upgrades don't sprout new pills unsolicited.
+	$surfaces = array(
+		'desktop' => isset( $manifest['surfaces']['desktop'] ) ? (bool) $manifest['surfaces']['desktop'] : true,
+		'taskbar' => isset( $manifest['surfaces']['taskbar'] ) ? (bool) $manifest['surfaces']['taskbar'] : false,
+	);
+
 	$index          = odd_apps_index_load();
 	$index[ $slug ] = array(
 		'slug'        => $slug,
@@ -58,6 +69,7 @@ function odd_apps_install( $tmp_path, $filename ) {
 		'icon'        => isset( $manifest['icon'] ) ? sanitize_text_field( (string) $manifest['icon'] ) : '',
 		'description' => isset( $manifest['description'] ) ? sanitize_text_field( (string) $manifest['description'] ) : '',
 		'capability'  => isset( $manifest['capability'] ) ? sanitize_text_field( (string) $manifest['capability'] ) : 'manage_options',
+		'surfaces'    => $surfaces,
 		'installed'   => time(),
 	);
 	odd_apps_index_save( $index );
@@ -124,6 +136,82 @@ function odd_apps_set_enabled( $slug, $enabled ) {
 }
 
 /**
+ * Update the per-app `surfaces` preference — which of the two Desktop
+ * Mode launch affordances (the desktop icon, the taskbar pill) this
+ * app should register on the next shell paint.
+ *
+ * The row is the source of truth; `odd_apps_register_surfaces()` reads
+ * it on every `init` and forwards `surfaces.taskbar` into the
+ * `placement` argument of `desktop_mode_register_window()`, and skips
+ * `desktop_mode_register_icon()` entirely when `surfaces.desktop` is
+ * false. Callers in the Shop POST the new shape; live apply is a soft
+ * page reload (mirrors icon-set swap) because native-window
+ * registration runs once per request.
+ *
+ * @param string $slug
+ * @param array  $surfaces { desktop?: bool, taskbar?: bool }
+ * @return true|WP_Error
+ */
+function odd_apps_set_surfaces( $slug, $surfaces ) {
+	$slug = sanitize_key( (string) $slug );
+	if ( '' === $slug ) {
+		return new WP_Error( 'invalid_slug', __( 'Invalid app slug.', 'odd' ) );
+	}
+	$index = odd_apps_index_load();
+	if ( ! isset( $index[ $slug ] ) ) {
+		return new WP_Error( 'not_installed', __( 'App is not installed.', 'odd' ) );
+	}
+	if ( ! is_array( $surfaces ) ) {
+		return new WP_Error( 'invalid_surfaces', __( 'Invalid surfaces payload.', 'odd' ) );
+	}
+
+	// Merge onto the existing (or defaulted) surfaces so a partial
+	// payload like { taskbar: true } leaves `desktop` untouched — the
+	// Shop checkboxes are independent and shouldn't clobber each other.
+	$current                    = odd_apps_row_surfaces( $index[ $slug ] );
+	$clean                      = array(
+		'desktop' => isset( $surfaces['desktop'] ) ? ! empty( $surfaces['desktop'] ) : $current['desktop'],
+		'taskbar' => isset( $surfaces['taskbar'] ) ? ! empty( $surfaces['taskbar'] ) : $current['taskbar'],
+	);
+	$index[ $slug ]['surfaces'] = $clean;
+	odd_apps_index_save( $index );
+
+	$manifest = odd_apps_manifest_load( $slug );
+	if ( $manifest ) {
+		$manifest['surfaces'] = $clean;
+		odd_apps_manifest_save( $slug, $manifest );
+	}
+
+	/**
+	 * Fires after an app's surface preferences change.
+	 *
+	 * @param string $slug
+	 * @param array  $surfaces { desktop: bool, taskbar: bool }
+	 */
+	do_action( 'odd_app_surfaces_changed', $slug, $clean );
+
+	return true;
+}
+
+/**
+ * Normalize the `surfaces` field on an app index row, filling any
+ * missing keys with the back-compat defaults. Pre-upgrade rows that
+ * lack the field entirely behave as if `{ desktop: true, taskbar:
+ * false }` was persisted — identical to the historical register_icon
+ * + placement: 'none' behavior.
+ *
+ * @param array $row
+ * @return array { desktop: bool, taskbar: bool }
+ */
+function odd_apps_row_surfaces( $row ) {
+	$s = isset( $row['surfaces'] ) && is_array( $row['surfaces'] ) ? $row['surfaces'] : array();
+	return array(
+		'desktop' => isset( $s['desktop'] ) ? (bool) $s['desktop'] : true,
+		'taskbar' => isset( $s['taskbar'] ) ? (bool) $s['taskbar'] : false,
+	);
+}
+
+/**
  * Flat list of installed apps, sorted alphabetically by name. Each
  * entry is the row from the index. The enqueue layer ships this same
  * list to the JS store as `registries.apps`.
@@ -131,6 +219,13 @@ function odd_apps_set_enabled( $slug, $enabled ) {
 function odd_apps_list() {
 	$index = odd_apps_index_load();
 	$rows  = array_values( $index );
+	foreach ( $rows as &$row ) {
+		// Backfill surfaces so the REST response (and, by extension,
+		// the Shop panel's JS) always sees the full shape, even for
+		// rows installed before the `surfaces` field existed.
+		$row['surfaces'] = odd_apps_row_surfaces( $row );
+	}
+	unset( $row );
 	usort(
 		$rows,
 		function ( $a, $b ) {

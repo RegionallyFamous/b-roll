@@ -454,18 +454,60 @@ an `appOpen.<slug>` voice line — per-slug overrides live in the app's
 ### PHP helpers
 
 ```php
-$result  = odd_apps_install( $tmp_path, $filename );  // array|WP_Error
-$done    = odd_apps_uninstall( $slug );               // true|WP_Error
-$ok      = odd_apps_set_enabled( $slug, $bool );      // true|WP_Error
-$rows    = odd_apps_list();                           // array of index rows
-$m       = odd_apps_get( $slug );                     // full manifest|[]
-$is      = odd_apps_exists( $slug );                  // bool
+$result  = odd_apps_install( $tmp_path, $filename );       // array|WP_Error
+$done    = odd_apps_uninstall( $slug );                    // true|WP_Error
+$ok      = odd_apps_set_enabled( $slug, $bool );           // true|WP_Error
+$ok      = odd_apps_set_surfaces( $slug, $surfaces );      // true|WP_Error
+$s       = odd_apps_row_surfaces( $row );                  // { desktop: bool, taskbar: bool }
+$rows    = odd_apps_list();                                // array of index rows (surfaces backfilled)
+$m       = odd_apps_get( $slug );                          // full manifest|[]
+$is      = odd_apps_exists( $slug );                       // bool
 ```
 
 All writers fire the matching `odd_app_*` WP action (`odd_app_installed`,
-`odd_app_uninstalled`, `odd_app_enabled`, `odd_app_disabled`) in
-addition to the JS bus events above. Third-party registrations can
-also be injected directly via the `odd_app_registry` filter.
+`odd_app_uninstalled`, `odd_app_enabled`, `odd_app_disabled`,
+`odd_app_surfaces_changed`) in addition to the JS bus events above.
+Third-party registrations can also be injected directly via the
+`odd_app_registry` filter.
+
+### App surfaces
+
+Each installed app has two **visible** launch surfaces — the desktop
+shortcut icon and the Desktop Mode taskbar pill — plus an always-on
+**invisible** surface (the registered native window, reachable from
+`wp.desktop.openWindow( 'odd-app-<slug>' )` regardless of the two
+visible ones).
+
+The visible pair is controlled by a per-app `surfaces` object on each
+index row:
+
+```php
+array(
+    'desktop' => true,   // render a desktop icon
+    'taskbar' => false,  // pin a taskbar pill
+)
+```
+
+Manifest authors set the install-time defaults via
+`manifest.surfaces.{desktop,taskbar}`; users override per install from
+the **ODD Shop → Apps** card. Missing keys default to
+`{ desktop: true, taskbar: false }` — the pre-v3.1 behavior — so
+older rows keep working untouched.
+
+Under the hood this forwards into Desktop Mode's stable
+`desktop_mode_register_window( id, [ 'placement' =>
+'taskbar'|'none', ... ] )` argument and conditionally skips
+`desktop_mode_register_icon()` when `surfaces.desktop` is false. ODD
+registers no custom dock filters and no click handlers — Desktop Mode
+paints the pill and wires its `onOpen` call to the window manager.
+
+`odd_app_surfaces_changed` fires after a successful
+`odd_apps_set_surfaces()` call. Handlers receive
+`( string $slug, array $surfaces )` where `$surfaces` is the clean,
+normalized `{ desktop: bool, taskbar: bool }` shape. The REST route
+that the Shop calls (`POST /odd/v1/apps/{slug}/toggle` with a
+`surfaces` body) goes through the same helper, so PHP listeners see
+both user edits and direct helper calls on the same hook.
 
 ### Sandboxing
 
