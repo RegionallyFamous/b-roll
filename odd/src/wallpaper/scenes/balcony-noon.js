@@ -139,10 +139,6 @@
 					.fill( { color: 0xfff3c0, alpha: p.alpha * ( 0.8 + high * 0.3 ) } );
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( px * 6 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( py * 3 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onRipple: function ( opts, state ) {

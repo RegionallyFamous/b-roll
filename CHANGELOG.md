@@ -16,6 +16,12 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v2.0.2"></a>
+## [2.0.2] — 2026-04-27
+
+### Changed
+- **Painted-backdrop parallax drift is gone.** The 14 GPT-painted scenes (Aurora, Balcony Noon, Big Sky, Circuit Garden, Cloud City, Flux, Iris Observatory, Origami, Pocket Dimension, Tide Pool, Tropical Greenhouse, Weather Factory, Wildflower Meadow, Abyssal Aquarium) each nudged their backdrop sprite a few pixels toward the cursor every frame. It read as "a second image on top sliding around" — distracting rather than atmospheric. Backdrops now sit perfectly still; only the foreground motion layer (rain, cranes, aurora curtains, fish, mote drift, etc.) reacts to the cursor.
+
 <a id="v2.0.1"></a>
 ## [2.0.1] — 2026-04-27
 

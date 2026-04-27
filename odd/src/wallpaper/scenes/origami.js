@@ -275,11 +275,6 @@
 				drawCrane( cg, { face: cr.face, shadow: cr.shadow }, cr.x, cr.y + by, cr.scale, flapY );
 			}
 
-			// Painting parallax.
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( env.parallax.x * 6 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( env.parallax.y * 3 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onAudio: function ( state, env ) {

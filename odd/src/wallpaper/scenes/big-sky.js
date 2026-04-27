@@ -173,10 +173,6 @@
 					.stroke( { color: 0x2a1c10, width: 2.2, alpha: 0.85, cap: 'round' } );
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( px * 12 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( py * 5 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onRipple: function ( opts, state ) {

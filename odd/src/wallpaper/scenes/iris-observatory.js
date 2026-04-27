@@ -185,10 +185,6 @@
 				alpha: 0.04 + Math.sin( state.time * 0.006 ) * 0.012 + state.glitch * 0.04,
 			} );
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( env.parallax.x * 8 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( env.parallax.y * 4 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onRipple: function ( opts, state ) {

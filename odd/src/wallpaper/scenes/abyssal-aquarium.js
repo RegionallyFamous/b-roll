@@ -96,10 +96,6 @@
 				bg.circle( x, p.y, p.r ).stroke( { color: 0xb8fff8, width: 0.8, alpha: p.alpha + state.ripple * 0.12 } );
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( env.parallax.x * 7 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( env.parallax.y * 4 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 		onRipple: function ( opts, state ) {
 			state.ripple = Math.min( 1, state.ripple + ( ( opts && opts.intensity ) || 0.5 ) );
@@ -414,10 +410,6 @@
 			vg.clear();
 			vg.rect( 0, 0, w, hh ).fill( { color: 0x001218, alpha: 0.04 } );
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( px * 10 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( py * 5 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onRipple: function ( opts, state ) {

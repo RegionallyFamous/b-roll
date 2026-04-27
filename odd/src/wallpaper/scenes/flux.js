@@ -251,11 +251,6 @@
 				state.particles = ps.filter( function ( q ) { return ! q.koi || q.age < q.life; } );
 			}
 
-			// Slight parallax for the painting.
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( env.parallax.x * 14 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( env.parallax.y *  8 - state.backdrop.y % 1 ) * 0.02;
-			}
 			void perfHigh;
 		},
 

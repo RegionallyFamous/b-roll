@@ -168,10 +168,6 @@
 				pg.circle( fx + 8, fy - 1, 2 ).fill( { color: 0x1a0d32, alpha: 0.8 } );
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( px * 8 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( py * 4 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onRipple: function ( opts, state ) {

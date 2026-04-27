@@ -168,10 +168,6 @@
 				fg.rect( xx - 0.6, yy - bf.size * 0.5, 1.2, bf.size ).fill( { color: 0x1e0f18, alpha: 0.95 } );
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( px * 6 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( py * 3 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onRipple: function ( opts, state ) {

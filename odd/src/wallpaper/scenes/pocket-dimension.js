@@ -96,10 +96,6 @@
 				mg.circle( x, y, p.r ).fill( { color: 0xffd8a8, alpha: p.alpha * ( 0.7 + Math.sin( p.phase * 1.5 ) * 0.3 ) } );
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( env.parallax.x * 10 - state.backdrop.x % 1 ) * 0.018;
-				state.backdrop.y += ( env.parallax.y * 5 - state.backdrop.y % 1 ) * 0.018;
-			}
 		},
 		onRipple: function ( opts, state ) {
 			state.ripple = Math.min( 1, state.ripple + ( ( opts && opts.intensity ) || 0.55 ) );
@@ -375,10 +371,6 @@
 				}
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( px * 14 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( py * 7 - state.backdrop.y % 1 ) * 0.02;
-			}
 
 			if ( high > 0.6 && state.flare < 0.2 ) {
 				state.flare = 0.6;

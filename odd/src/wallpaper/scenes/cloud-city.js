@@ -174,10 +174,6 @@
 				lg.circle( lx - 1, ly - 1, L.r * 0.35 ).fill( { color: 0xffffff, alpha: 0.35 + bass * 0.2 + state.pulse * 0.3 } );
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( px * 10 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( py * 5 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onRipple: function ( opts, state ) {

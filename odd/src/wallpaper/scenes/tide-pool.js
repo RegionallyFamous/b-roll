@@ -160,10 +160,6 @@
 				sg.circle( p.x, p.y, p.r ).fill( { color: 0xffffff, alpha: a } );
 			}
 
-			if ( ! env.reducedMotion && env.parallax ) {
-				state.backdrop.x += ( px * 6 - state.backdrop.x % 1 ) * 0.02;
-				state.backdrop.y += ( py * 4 - state.backdrop.y % 1 ) * 0.02;
-			}
 		},
 
 		onRipple: function ( opts, state ) {
