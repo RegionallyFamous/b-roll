@@ -84,7 +84,10 @@ jobs:
 
       - name: Install WP Desktop Mode (host plugin)
         working-directory: /tmp/wp
-        run: wp plugin install https://github.com/WordPress/desktop-mode/archive/refs/heads/trunk.zip --activate
+        # Use the built release zip (includes compiled assets/js/desktop.min.js
+        # and assets/vendor/pixi.min.js) rather than the trunk tarball, which
+        # ships only the TypeScript sources and 404s desktop.min.js at runtime.
+        run: wp plugin install https://github.com/WordPress/desktop-mode/releases/latest/download/desktop-mode.zip --activate
 
       - name: Link ODD into wp-content/plugins
         run: |
