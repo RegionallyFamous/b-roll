@@ -48,7 +48,6 @@ if ( ! defined( 'ODD_SMOKE_FIXTURE_ROOT' ) ) {
 add_filter(
 	'pre_http_request',
 	function ( $preempt, $args, $url ) {
-		unset( $args );
 		if ( false !== $preempt ) {
 			// Some other filter already claimed this request. Don't
 			// fight them — let the first interceptor win.
@@ -71,13 +70,13 @@ add_filter(
 		// Catalog registry.
 		if ( false !== strpos( $path, '/catalog/v1/registry.json' ) ) {
 			$file = $root . '/registry.json';
-			return odd_smoke_serve_file( $file, 'application/json' );
+			return odd_smoke_serve_file( $file, 'application/json', $args );
 		}
 
 		// Catalog bundle (.wp).
 		if ( preg_match( '#/catalog/v1/bundles/([^/]+\.wp)$#', $path, $m ) ) {
 			$file = $root . '/bundles/' . $m[1];
-			return odd_smoke_serve_file( $file, 'application/zip' );
+			return odd_smoke_serve_file( $file, 'application/zip', $args );
 		}
 
 		// Catalog icon (optional — nothing in the installer reads these
@@ -85,7 +84,7 @@ add_filter(
 		if ( preg_match( '#/catalog/v1/icons/(.+)$#', $path, $m ) ) {
 			$file = $root . '/icons/' . $m[1];
 			if ( is_readable( $file ) ) {
-				return odd_smoke_serve_file( $file, 'image/svg+xml' );
+				return odd_smoke_serve_file( $file, 'image/svg+xml', $args );
 			}
 		}
 
@@ -99,8 +98,14 @@ add_filter(
  * Build a WP_HTTP-shaped response array from a local file. Returns a
  * `404` response when the file is missing so the caller sees a well-
  * formed failure it can log, rather than a passthrough to the network.
+ *
+ * When the request uses streaming mode (`download_url()` does —
+ * `stream => true` + a `filename`), short-circuiting via
+ * `pre_http_request` skips the transport entirely, so *we* must honour
+ * the `filename` contract and write the body to that path. Without this
+ * the caller sees an empty tempfile and fails the magic-byte check.
  */
-function odd_smoke_serve_file( $file, $content_type ) {
+function odd_smoke_serve_file( $file, $content_type, $args = array() ) {
 	if ( ! is_readable( $file ) ) {
 		return array(
 			'headers'  => array(),
@@ -120,9 +125,25 @@ function odd_smoke_serve_file( $file, $content_type ) {
 		'content-length' => (string) strlen( $body ),
 	);
 
-	// `download_url()` calls `wp_remote_get()` which does not honour
-	// `filename` in the default transport — it writes the body to a
-	// tempfile itself and hands us a 200. No-op here.
+	$stream   = ! empty( $args['stream'] );
+	$filename = isset( $args['filename'] ) ? (string) $args['filename'] : '';
+	if ( $stream && '' !== $filename ) {
+		// Mirror what the real transport would do with stream=true:
+		// write the body to the caller's tempfile and return an empty
+		// body so consumers (download_url) read off disk.
+		@file_put_contents( $filename, $body );
+		return array(
+			'headers'  => $headers,
+			'body'     => '',
+			'response' => array(
+				'code'    => 200,
+				'message' => 'OK',
+			),
+			'cookies'  => array(),
+			'filename' => $filename,
+		);
+	}
+
 	return array(
 		'headers'  => $headers,
 		'body'     => $body,
