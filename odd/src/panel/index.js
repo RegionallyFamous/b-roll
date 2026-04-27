@@ -52,6 +52,7 @@
 		{ id: 'widgets',   label: __( 'Widgets' ),    icon: '🧷', tagline: __( 'Desktop companions' ) },
 		{ id: 'apps',      label: __( 'Apps' ),       icon: '📦', tagline: __( 'Mini apps that just run' ), gated: 'appsEnabled' },
 		{ id: 'install',   label: __( 'Install' ),  icon: '⇪', tagline: __( 'Add a .wp bundle' ),        gated: 'canInstall' },
+		{ id: 'settings',  label: __( 'Settings' ),  icon: '⚙', tagline: __( 'Shuffle, audio, screensaver' ) },
 		{ id: 'about',     label: __( 'About' ),     icon: '👁', tagline: __( 'Credits & chaos' ) },
 	];
 
@@ -304,6 +305,8 @@
 				content.appendChild( renderApps() );
 			} else if ( id === 'install' ) {
 				content.appendChild( renderInstall() );
+			} else if ( id === 'settings' ) {
+				content.appendChild( renderSettings() );
 			} else {
 				content.appendChild( renderAbout() );
 			}
@@ -1366,6 +1369,201 @@
 			return wrap;
 		}
 
+		/**
+		 * Dedicated Settings department — Shuffle + Audio-reactive +
+		 * Screensaver used to sit on top of the Wallpapers shelf,
+		 * which cluttered scene browsing and hid preferences behind a
+		 * department that wasn't really about preferences. They all
+		 * live here now. All three continue to write through the same
+		 * /odd/v1/prefs endpoint (`shuffle`, `audioReactive`,
+		 * `screensaver`), so the REST contract is unchanged.
+		 */
+		function renderSettings() {
+			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--settings' } );
+			wrap.appendChild( sectionHeader(
+				'Settings',
+				'Tweak how the ODD desktop behaves — rotate scenes automatically, react to sound, or dim into a full-screen screensaver when you step away.',
+				{ eyebrow: 'ODD · Preferences' }
+			) );
+
+			var settings = el( 'div', { class: 'odd-wallpaper-settings' } );
+
+			// Shuffle — rotates the wallpaper every N minutes while
+			// the desktop window is open. `state.cfg.shuffle` is the
+			// committed value from REST; we mirror writes back onto
+			// it so a re-render stays in sync.
+			var shuffleCard = el( 'div', { class: 'odd-setting-card odd-setting-card--shuffle' } );
+			var shuffleRow = el( 'label', { class: 'odd-switch-row' } );
+			var shuffleBox = el( 'input', { type: 'checkbox' } );
+			shuffleBox.checked = !! ( state.cfg.shuffle && state.cfg.shuffle.enabled );
+			var shuffleKnob = el( 'span', { class: 'odd-switch' } );
+			var shuffleText = el( 'span', { class: 'odd-setting-card__text' } );
+			var shuffleLabel = el( 'strong' );
+			shuffleLabel.textContent = __( 'Shuffle every' );
+			var shuffleHint = el( 'span' );
+			shuffleHint.textContent = __( 'Rotate scenes automatically while the desktop is open.' );
+			shuffleText.appendChild( shuffleLabel );
+			shuffleText.appendChild( shuffleHint );
+			var minutes = el( 'input', {
+				type:         'number',
+				min:          '1',
+				max:          '240',
+				class:        'odd-minutes',
+				'aria-label': __( 'Shuffle interval (minutes)' ),
+			} );
+			minutes.value = String( ( state.cfg.shuffle && state.cfg.shuffle.minutes ) || 15 );
+			var shuffleControls = el( 'div', { class: 'odd-setting-card__controls' } );
+			var minutesPrefix = el( 'span' );
+			minutesPrefix.textContent = __( 'Every' );
+			var minutesSuffix = el( 'span' );
+			minutesSuffix.textContent = __( 'minutes' );
+			shuffleRow.appendChild( shuffleBox );
+			shuffleRow.appendChild( shuffleKnob );
+			shuffleRow.appendChild( shuffleText );
+			shuffleControls.appendChild( minutesPrefix );
+			shuffleControls.appendChild( minutes );
+			shuffleControls.appendChild( minutesSuffix );
+			shuffleCard.appendChild( shuffleRow );
+			shuffleCard.appendChild( shuffleControls );
+			settings.appendChild( shuffleCard );
+
+			function pushShuffle() {
+				var m = parseInt( minutes.value, 10 );
+				if ( isNaN( m ) ) { m = 15; }
+				if ( m < 1 ) m = 1;
+				if ( m > 240 ) m = 240;
+				minutes.value = String( m );
+				savePrefs( { shuffle: { enabled: shuffleBox.checked, minutes: m } }, function ( data ) {
+					if ( data && data.shuffle ) state.cfg.shuffle = data.shuffle;
+				} );
+			}
+			shuffleBox.addEventListener( 'change', pushShuffle );
+			minutes.addEventListener( 'change', pushShuffle );
+
+			// Audio-reactive — opt-in hook that lets scenes sample
+			// the system audio analyser in tick(). Off by default
+			// because mic/tab capture requires a user gesture.
+			var audioRow = el( 'label', { class: 'odd-setting-card odd-setting-card--audio odd-switch-row' } );
+			var audioBox = el( 'input', { type: 'checkbox' } );
+			audioBox.checked = !! state.cfg.audioReactive;
+			var audioKnob = el( 'span', { class: 'odd-switch' } );
+			var audioText = el( 'span', { class: 'odd-setting-card__text' } );
+			var audioLbl = el( 'strong' );
+			audioLbl.textContent = __( 'Audio-reactive' );
+			var audioHint = el( 'span' );
+			audioHint.textContent = __( 'Let scenes pulse subtly with sound when supported.' );
+			audioText.appendChild( audioLbl );
+			audioText.appendChild( audioHint );
+			audioRow.appendChild( audioBox );
+			audioRow.appendChild( audioKnob );
+			audioRow.appendChild( audioText );
+			settings.appendChild( audioRow );
+			audioBox.addEventListener( 'change', function () {
+				savePrefs( { audioReactive: audioBox.checked }, function ( data ) {
+					if ( data ) state.cfg.audioReactive = !! data.audioReactive;
+				} );
+			} );
+
+			wrap.appendChild( settings );
+
+			// Screensaver — dims into a full-screen scene after N
+			// minutes of admin idleness. The scene selector reads
+			// the current scene list off state.cfg.scenes so it
+			// always reflects whatever is installed.
+			var ss = state.cfg.screensaver || { enabled: false, minutes: 5, scene: 'current' };
+			var ssRow = el( 'div', { class: 'odd-setting-card odd-setting-card--screensaver' } );
+
+			var ssToggle = el( 'label', { class: 'odd-switch-row' } );
+			var ssBox = el( 'input', { type: 'checkbox' } );
+			ssBox.checked = !! ss.enabled;
+			var ssKnob = el( 'span', { class: 'odd-switch' } );
+			var ssText = el( 'span', { class: 'odd-setting-card__text' } );
+			var ssLbl = el( 'strong' );
+			ssLbl.textContent = __( 'Screensaver after' );
+			var ssHint = el( 'span' );
+			ssHint.textContent = __( 'Dim into a full-screen scene when the admin sits idle.' );
+			ssText.appendChild( ssLbl );
+			ssText.appendChild( ssHint );
+			var ssControls = el( 'div', { class: 'odd-setting-card__controls odd-setting-card__controls--screensaver' } );
+			var ssMins = el( 'input', {
+				type:         'number',
+				min:          '1',
+				max:          '120',
+				class:        'odd-minutes',
+				'aria-label': __( 'Screensaver idle timeout (minutes)' ),
+			} );
+			ssMins.value = String( Math.max( 1, Math.min( 120, ( ss.minutes | 0 ) || 5 ) ) );
+			var ssMinsLbl = el( 'span' );
+			ssMinsLbl.textContent = __( 'minutes idle' );
+			ssToggle.appendChild( ssBox );
+			ssToggle.appendChild( ssKnob );
+			ssToggle.appendChild( ssText );
+			ssRow.appendChild( ssToggle );
+			ssControls.appendChild( ssMins );
+			ssControls.appendChild( ssMinsLbl );
+
+			var ssSceneWrap = el( 'label', { class: 'odd-setting-field' } );
+			var ssSceneLbl = el( 'span' );
+			ssSceneLbl.textContent = __( 'Play' );
+			var ssSceneSel = el( 'select', { class: 'odd-select' } );
+			var ssChoices = [
+				{ value: 'current', label: __( 'current scene' ) },
+				{ value: 'random',  label: __( 'a random scene' ) },
+			];
+			( state.cfg.scenes || [] ).forEach( function ( s ) {
+				ssChoices.push( { value: s.slug, label: s.label || s.slug } );
+			} );
+			ssChoices.forEach( function ( opt ) {
+				var o = el( 'option', { value: opt.value } );
+				o.textContent = opt.label;
+				ssSceneSel.appendChild( o );
+			} );
+			ssSceneSel.value = ss.scene || 'current';
+			ssSceneWrap.appendChild( ssSceneLbl );
+			ssSceneWrap.appendChild( ssSceneSel );
+			ssControls.appendChild( ssSceneWrap );
+
+			var ssPreview = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-setting-preview' } );
+			ssPreview.textContent = __( 'Preview' );
+			ssPreview.addEventListener( 'click', function () {
+				var ssApi = window.__odd && window.__odd.screensaver;
+				if ( ssApi && typeof ssApi.show === 'function' ) ssApi.show();
+			} );
+			ssControls.appendChild( ssPreview );
+			ssRow.appendChild( ssControls );
+
+			function pushScreensaver() {
+				var m = parseInt( ssMins.value, 10 );
+				if ( isNaN( m ) ) m = 5;
+				if ( m < 1 ) m = 1;
+				if ( m > 120 ) m = 120;
+				ssMins.value = String( m );
+				var patch = {
+					screensaver: {
+						enabled: ssBox.checked,
+						minutes: m,
+						scene:   ssSceneSel.value || 'current',
+					},
+				};
+				savePrefs( patch, function ( data ) {
+					if ( data && data.screensaver ) {
+						state.cfg.screensaver = data.screensaver;
+						var ssApi = window.__odd && window.__odd.screensaver;
+						if ( ssApi && typeof ssApi.applyPrefs === 'function' ) ssApi.applyPrefs( data.screensaver );
+						var events = window.__odd && window.__odd.events;
+						if ( events ) { try { events.emit( 'odd.screensaver-prefs-changed', data.screensaver ); } catch ( e ) {} }
+					}
+				} );
+			}
+			ssBox.addEventListener( 'change', pushScreensaver );
+			ssMins.addEventListener( 'change', pushScreensaver );
+			ssSceneSel.addEventListener( 'change', pushScreensaver );
+
+			wrap.appendChild( ssRow );
+
+			return wrap;
+		}
+
 		function appsBaseUrl() {
 			// cfg.restUrl is the /odd/v1/prefs endpoint; swap the tail
 			// for /apps to get the apps namespace.
@@ -1454,179 +1652,6 @@
 			if ( ! state.query ) {
 				wrap.appendChild( renderCategoryQuilt( allScenes, 'wallpaper' ) );
 			}
-
-			var settings = el( 'div', { class: 'odd-wallpaper-settings' } );
-
-			var shuffleCard = el( 'div', { class: 'odd-setting-card odd-setting-card--shuffle' } );
-			var shuffleRow = el( 'label', { class: 'odd-switch-row' } );
-			var shuffleBox = el( 'input', { type: 'checkbox' } );
-			shuffleBox.checked = !! ( state.cfg.shuffle && state.cfg.shuffle.enabled );
-			var shuffleKnob = el( 'span', { class: 'odd-switch' } );
-			var shuffleText = el( 'span', { class: 'odd-setting-card__text' } );
-			var shuffleLabel = el( 'strong' );
-			shuffleLabel.textContent = 'Shuffle every';
-			var shuffleHint = el( 'span' );
-			shuffleHint.textContent = 'Rotate scenes automatically while the desktop is open.';
-			shuffleText.appendChild( shuffleLabel );
-			shuffleText.appendChild( shuffleHint );
-			var minutes = el( 'input', {
-				type:         'number',
-				min:          '1',
-				max:          '240',
-				class:        'odd-minutes',
-				'aria-label': 'Shuffle interval (minutes)',
-			} );
-			minutes.value = String( ( state.cfg.shuffle && state.cfg.shuffle.minutes ) || 15 );
-			var shuffleControls = el( 'div', { class: 'odd-setting-card__controls' } );
-			var minutesPrefix = el( 'span' );
-			minutesPrefix.textContent = 'Every';
-			var minutesSuffix = el( 'span' );
-			minutesSuffix.textContent = 'minutes';
-			shuffleRow.appendChild( shuffleBox );
-			shuffleRow.appendChild( shuffleKnob );
-			shuffleRow.appendChild( shuffleText );
-			shuffleControls.appendChild( minutesPrefix );
-			shuffleControls.appendChild( minutes );
-			shuffleControls.appendChild( minutesSuffix );
-			shuffleCard.appendChild( shuffleRow );
-			shuffleCard.appendChild( shuffleControls );
-			settings.appendChild( shuffleCard );
-
-			function pushShuffle() {
-				var m = parseInt( minutes.value, 10 );
-				if ( isNaN( m ) ) { m = 15; }
-				if ( m < 1 ) m = 1;
-				if ( m > 240 ) m = 240;
-				minutes.value = String( m );
-				savePrefs( { shuffle: { enabled: shuffleBox.checked, minutes: m } }, function ( data ) {
-					if ( data && data.shuffle ) state.cfg.shuffle = data.shuffle;
-				} );
-			}
-			shuffleBox.addEventListener( 'change', pushShuffle );
-			minutes.addEventListener( 'change', pushShuffle );
-
-			var audioRow = el( 'label', { class: 'odd-setting-card odd-setting-card--audio odd-switch-row' } );
-			var audioBox = el( 'input', { type: 'checkbox' } );
-			audioBox.checked = !! state.cfg.audioReactive;
-			var audioKnob = el( 'span', { class: 'odd-switch' } );
-			var audioText = el( 'span', { class: 'odd-setting-card__text' } );
-			var audioLbl = el( 'strong' );
-			audioLbl.textContent = 'Audio-reactive';
-			var audioHint = el( 'span' );
-			audioHint.textContent = 'Let scenes pulse subtly with sound when supported.';
-			audioText.appendChild( audioLbl );
-			audioText.appendChild( audioHint );
-			audioRow.appendChild( audioBox );
-			audioRow.appendChild( audioKnob );
-			audioRow.appendChild( audioText );
-			settings.appendChild( audioRow );
-			audioBox.addEventListener( 'change', function () {
-				savePrefs( { audioReactive: audioBox.checked }, function ( data ) {
-					if ( data ) state.cfg.audioReactive = !! data.audioReactive;
-				} );
-			} );
-
-			wrap.appendChild( settings );
-
-			// Screensaver controls row — a second toolbar beneath the
-			// shuffle row, grouped because the options are only
-			// meaningful when the checkbox is on.
-			var ss = state.cfg.screensaver || { enabled: false, minutes: 5, scene: 'current' };
-			var ssRow = el( 'div', { class: 'odd-setting-card odd-setting-card--screensaver' } );
-
-			var ssToggle = el( 'label', { class: 'odd-switch-row' } );
-			var ssBox = el( 'input', { type: 'checkbox' } );
-			ssBox.checked = !! ss.enabled;
-			var ssKnob = el( 'span', { class: 'odd-switch' } );
-			var ssText = el( 'span', { class: 'odd-setting-card__text' } );
-			var ssLbl = el( 'strong' );
-			ssLbl.textContent = 'Screensaver after';
-			var ssHint = el( 'span' );
-			ssHint.textContent = 'Dim into a full-screen scene when the admin sits idle.';
-			ssText.appendChild( ssLbl );
-			ssText.appendChild( ssHint );
-			var ssControls = el( 'div', { class: 'odd-setting-card__controls odd-setting-card__controls--screensaver' } );
-			var ssMins = el( 'input', {
-				type:         'number',
-				min:          '1',
-				max:          '120',
-				class:        'odd-minutes',
-				'aria-label': 'Screensaver idle timeout (minutes)',
-			} );
-			ssMins.value = String( Math.max( 1, Math.min( 120, ( ss.minutes | 0 ) || 5 ) ) );
-			var ssMinsLbl = el( 'span' );
-			ssMinsLbl.textContent = 'minutes idle';
-			ssToggle.appendChild( ssBox );
-			ssToggle.appendChild( ssKnob );
-			ssToggle.appendChild( ssText );
-			ssRow.appendChild( ssToggle );
-			ssControls.appendChild( ssMins );
-			ssControls.appendChild( ssMinsLbl );
-
-			// Scene choice for the screensaver. "Current" = whatever
-			// is active when the timer fires. "Random" = pick a new
-			// one each time. Explicit slugs pick that scene every
-			// time it fires.
-			var ssSceneWrap = el( 'label', { class: 'odd-setting-field' } );
-			var ssSceneLbl = el( 'span' );
-			ssSceneLbl.textContent = 'Play';
-			var ssSceneSel = el( 'select', { class: 'odd-select' } );
-			var ssChoices = [
-				{ value: 'current', label: 'current scene' },
-				{ value: 'random',  label: 'a random scene' },
-			];
-			( state.cfg.scenes || [] ).forEach( function ( s ) {
-				ssChoices.push( { value: s.slug, label: s.label || s.slug } );
-			} );
-			ssChoices.forEach( function ( opt ) {
-				var o = el( 'option', { value: opt.value } );
-				o.textContent = opt.label;
-				ssSceneSel.appendChild( o );
-			} );
-			ssSceneSel.value = ss.scene || 'current';
-			ssSceneWrap.appendChild( ssSceneLbl );
-			ssSceneWrap.appendChild( ssSceneSel );
-			ssControls.appendChild( ssSceneWrap );
-
-			var ssPreview = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-setting-preview' } );
-			ssPreview.textContent = 'Preview';
-			ssPreview.addEventListener( 'click', function () {
-				var ssApi = window.__odd && window.__odd.screensaver;
-				if ( ssApi && typeof ssApi.show === 'function' ) ssApi.show();
-			} );
-			ssControls.appendChild( ssPreview );
-			ssRow.appendChild( ssControls );
-
-			function pushScreensaver() {
-				var m = parseInt( ssMins.value, 10 );
-				if ( isNaN( m ) ) m = 5;
-				if ( m < 1 ) m = 1;
-				if ( m > 120 ) m = 120;
-				ssMins.value = String( m );
-				var patch = {
-					screensaver: {
-						enabled: ssBox.checked,
-						minutes: m,
-						scene:   ssSceneSel.value || 'current',
-					},
-				};
-				savePrefs( patch, function ( data ) {
-					if ( data && data.screensaver ) {
-						state.cfg.screensaver = data.screensaver;
-						// Push to the live module so the idle timer
-						// picks up new values without reload.
-						var ssApi = window.__odd && window.__odd.screensaver;
-						if ( ssApi && typeof ssApi.applyPrefs === 'function' ) ssApi.applyPrefs( data.screensaver );
-						var events = window.__odd && window.__odd.events;
-						if ( events ) { try { events.emit( 'odd.screensaver-prefs-changed', data.screensaver ); } catch ( e ) {} }
-					}
-				} );
-			}
-			ssBox.addEventListener( 'change', pushScreensaver );
-			ssMins.addEventListener( 'change', pushScreensaver );
-			ssSceneSel.addEventListener( 'change', pushScreensaver );
-
-			wrap.appendChild( ssRow );
 
 			if ( ! scenes.length ) {
 				if ( state.query ) {

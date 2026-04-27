@@ -16,21 +16,41 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
-<a id="v3.0.2"></a>
-## [3.0.2] — 2026-04-27
+<a id="v3.0.3"></a>
+## [3.0.3] — 2026-04-27
 
-### Fixed
-- **Starter pack could get stuck on "pending" on fresh installs.** The
-  post-activation cron event only fires when WP-Cron ticks, which never
-  happens if the site has no visitors and the admin goes straight to
-  the frontend desktop (no wp-admin request). The safety-net retry was
-  also hooked on `admin_init` only, so frontend page loads never woke
-  it up. The net effect: diagnostics showing `scenes: 0 / iconSets: 0`
-  with a `pending` starter state indefinitely. Fix: `spawn_cron()` is
-  called on activation to kick the first attempt immediately, and the
-  safety net moved to `init` (frontend + admin), where it runs the
-  installer **inline** for privileged users when a run is overdue —
-  instead of just rescheduling a cron that might not fire.
+### Changed
+- **Settings moved into their own Shop tab.** The Shuffle / Audio-reactive / Screensaver cards used to sit on top of the Wallpapers shelf, where they cluttered scene browsing and hid preferences behind a department that wasn't really about preferences. They now live in a dedicated **Settings** entry in the Shop sidebar. All three controls still write through the same `/odd/v1/prefs` endpoint (`shuffle`, `audioReactive`, `screensaver`) and the live module hooks (`window.__odd.screensaver.applyPrefs`, `odd.screensaver-prefs-changed`) are unchanged, so the REST contract and integrator surface are untouched.
+
+<a id="v3.0.3"></a>
+## [3.0.3] — 2026-04-27
+
+### Changed
+- **Starter pack is now cron-free — installs always happen inline.**
+  Previously a one-shot WP-Cron event scheduled from the activation
+  hook drove the first install, with `admin_init` as a safety net. On
+  any site where WP-Cron couldn't tick (DISABLE_WP_CRON set, loopback
+  blocked, or a freshly-activated site whose admin landed on the
+  frontend desktop without ever visiting wp-admin), the starter pack
+  would sit `pending` indefinitely — empty shop, no wallpaper
+  defaults. 3.0.2 removes the scheduler entirely:
+
+  - The activation hook runs `odd_starter_ensure_installed( true )`
+    inline. The admin is already on a privileged request; we use it.
+  - A safety-net `init` hook retries inline on any subsequent
+    privileged page load (frontend or admin), gated by exponential
+    backoff (0s → 30s → 2min → 10min → 1h → 6h) against
+    `last_attempt` so a chronically-failing catalog doesn't thrash.
+  - A running-lock (status=running, auto-expires after 240s) keeps
+    concurrent admin tabs from double-installing.
+  - Any pre-existing cron event from older installs is cleaned up on
+    upgrade via a one-shot `wp_clear_scheduled_hook` migration.
+
+  Net effect: freshly-activated sites are rock-solid. The same admin
+  request that activates the plugin also downloads and extracts the
+  starter pack, so the shop is populated before the activation
+  response returns. `POST /odd/v1/starter/retry` still exists for
+  manual kicks.
 
 ### Changed
 - **Discover shelf — real artwork, roomier rows.** Catalog scene tiles
