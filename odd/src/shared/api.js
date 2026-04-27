@@ -218,20 +218,35 @@
 	}
 
 	function openPanel() {
-		if ( ! ( window.wp && window.wp.desktop && typeof window.wp.desktop.registerWindow === 'function' ) ) return false;
+		var d = window.wp && window.wp.desktop;
+		if ( ! d ) return false;
+		// WP Desktop Mode exposes two ways to surface a window. For
+		// server-registered native windows (ours — see
+		// `desktop_mode_register_window('odd', ...)`) the canonical call
+		// is `openWindow(id)`, which hydrates the server's template +
+		// script handle. `registerWindow({ id })` is a JS-side shortcut
+		// that bypasses the server registry and opens an unthemed shell
+		// — good for widgets but wrong for our Shop window.
 		return !! safeCall( function () {
-			var c = cfg();
-			window.wp.desktop.registerWindow( {
-				id: 'odd',
-				title: 'ODD Control Panel',
-				icon: ( c.pluginUrl || '' ) + '/assets/odd-eye.svg',
-				width: 820,
-				height: 560,
-				minWidth: 640,
-				minHeight: 440,
-				initialState: 'normal',
-			} );
-			return true;
+			if ( typeof d.openWindow === 'function' ) {
+				d.openWindow( 'odd' );
+				return true;
+			}
+			if ( typeof d.registerWindow === 'function' ) {
+				var c = cfg();
+				d.registerWindow( {
+					id:           'odd',
+					title:        'ODD Shop',
+					icon:         ( c.pluginUrl || '' ) + '/assets/odd-eye.svg',
+					width:        960,
+					height:       620,
+					minWidth:     720,
+					minHeight:    480,
+					initialState: 'normal',
+				} );
+				return true;
+			}
+			return false;
 		}, 'api.openPanel' );
 	}
 

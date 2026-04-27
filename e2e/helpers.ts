@@ -77,8 +77,18 @@ export async function openOddShop( page: Page ) {
 			if ( api && typeof api.openPanel === 'function' && api.openPanel() ) {
 				return true;
 			}
-			const d = ( window as unknown as { wp?: { desktop?: { registerWindow?: ( o: { id: string } ) => void } } } )
-				.wp?.desktop;
+			const d = ( window as unknown as { wp?: { desktop?: {
+				openWindow?: ( id: string ) => boolean | void;
+				registerWindow?: ( o: { id: string } ) => void;
+			} } } ).wp?.desktop;
+			if ( d && typeof d.openWindow === 'function' ) {
+				try {
+					d.openWindow( 'odd' );
+					return true;
+				} catch ( e ) {
+					/* keep polling */
+				}
+			}
 			if ( d && typeof d.registerWindow === 'function' ) {
 				try {
 					d.registerWindow( { id: 'odd' } );
