@@ -4,8 +4,8 @@
  *
  * All handles share a single localized `window.odd` config blob.
  *
- * Foundation modules (Cut 1, v0.14.0) — no user-visible behavior,
- * but every feature shipped on top of ODD should read through them:
+ * Foundation modules — no user-visible behavior, but every feature
+ * shipped on top of ODD should read through them:
  *
  *   - `odd-store`      window.__odd.store — typed state container
  *   - `odd-events`     window.__odd.events — typed event bus on wp.hooks
@@ -23,8 +23,10 @@
  *                     Registers the `odd` wallpaper with WP Desktop Mode.
  *   - `odd-panel`     ODD Control Panel native-window render callback,
  *                     declared on `window.wpDesktopNativeWindows.odd`.
- *   - `odd-widgets`   registers four desktop widgets (Now Playing,
- *                     Picker, Postcard, Clock) via registerWidget().
+ *   - `odd-widgets`   registers two desktop widgets (Sticky Note,
+ *                     Magic 8-Ball) via registerWidget(). Community
+ *                     widgets installed as .wp bundles register
+ *                     separately from wp-content/odd-widgets/.
  *   - `odd-commands`  registers slash commands (/odd, /odd-icons,
  *                     /shuffle, /odd-panel) via registerCommand().
  *
@@ -122,6 +124,18 @@ add_action(
 			ODD_VERSION,
 			true
 		);
+		// Extracted from the 500-line `injectStyles()` string that used
+		// to live in odd/src/panel/index.js. Ships as a real
+		// stylesheet now so the browser can cache it and editors
+		// can highlight it. The JS still lazy-loads a `<link>` in
+		// contexts where `wp_enqueue_style` didn't run (tests,
+		// standalone), keyed off `window.odd.pluginUrl`.
+		wp_enqueue_style(
+			'odd-panel-style',
+			ODD_URL . '/src/panel/styles.css',
+			array(),
+			ODD_VERSION
+		);
 		wp_enqueue_script(
 			'odd-widgets',
 			ODD_URL . '/src/widgets/index.js',
@@ -159,7 +173,7 @@ add_action(
 			ODD_VERSION
 		);
 
-		// ---- Apps (Cut 4, v0.16.0) ---- //
+		// ---- Apps ---- //
 		//
 		// Single JS handle `odd-apps` hosts the sandboxed iframe for
 		// every installed app. Listens to odd.window-* and re-emits
@@ -182,20 +196,40 @@ add_action(
 			true
 		);
 
-		// ---- Iris personality (Cut 3, v0.15.0) ---- //
+		// ---- Iris personality ---- //
 		//
 		// Five small modules, each strict IIFE, each registering a
 		// muse / motion / ritual / reactivity / eye layer. Order
 		// matters only inasmuch as muse + motion must install
-		// before the reactivity + rituals start emitting. The
-		// first-run onboarding card was retired in v1.0.3 — the
-		// panel now opens directly on the Wallpaper section.
-		$iris_deps = array_merge( $foundation_deps, array( 'odd-api' ) );
-		wp_enqueue_script( 'odd-iris-muse', ODD_URL . '/src/iris/muse.js', $iris_deps, ODD_VERSION, true );
-		wp_enqueue_script( 'odd-iris-motion', ODD_URL . '/src/iris/motion.js', $iris_deps, ODD_VERSION, true );
-		wp_enqueue_script( 'odd-iris-rituals', ODD_URL . '/src/iris/rituals.js', array_merge( $iris_deps, array( 'odd-iris-muse', 'odd-iris-motion' ) ), ODD_VERSION, true );
-		wp_enqueue_script( 'odd-iris-reactivity', ODD_URL . '/src/iris/reactivity.js', array_merge( $iris_deps, array( 'odd-iris-muse', 'odd-iris-motion' ) ), ODD_VERSION, true );
-		wp_enqueue_script( 'odd-iris-eye', ODD_URL . '/src/iris/eye.js', array_merge( $iris_deps, array( 'odd-iris-motion' ) ), ODD_VERSION, true );
+		// before reactivity + rituals start emitting. The first-run
+		// onboarding card was retired in v1.0.3 — the panel now
+		// opens directly on the Wallpaper section.
+		//
+		// Historically we shipped five `wp_enqueue_script` handles
+		// (`odd-iris-muse`, -motion, -rituals, -reactivity, -eye).
+		// That was five round trips per admin page. We now concat
+		// the module bodies into a single inline script attached
+		// to one `odd-iris` handle — zero additional requests on
+		// admin pages, same visible behavior. Source files stay on
+		// disk so each module can still be edited / reviewed as a
+		// standalone IIFE.
+		$iris_deps     = array_merge( $foundation_deps, array( 'odd-api' ) );
+		$iris_modules  = array( 'muse.js', 'motion.js', 'rituals.js', 'reactivity.js', 'eye.js' );
+		$iris_combined = "/* ODD Iris — concatenated muse + motion + rituals + reactivity + eye */\n";
+		foreach ( $iris_modules as $mod ) {
+			$path = ODD_DIR . 'src/iris/' . $mod;
+			$src  = is_readable( $path ) ? file_get_contents( $path ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			if ( is_string( $src ) && '' !== $src ) {
+				$iris_combined .= "\n/* --- " . $mod . " --- */\n" . $src . "\n";
+			}
+		}
+		// Register an empty handle so WordPress emits one `<script>`
+		// tag; the inline chunk below carries the actual Iris body.
+		// The `data` position attaches before, so nothing else on
+		// the page runs until Iris's IIFEs have self-registered.
+		wp_register_script( 'odd-iris', false, $iris_deps, ODD_VERSION, true );
+		wp_enqueue_script( 'odd-iris' );
+		wp_add_inline_script( 'odd-iris', $iris_combined, 'after' );
 
 		$uid = get_current_user_id();
 
@@ -259,7 +293,7 @@ add_action(
 			'screensaver'      => odd_wallpaper_get_user_screensaver( $uid ),
 			'audioReactive'    => odd_wallpaper_get_user_audio_reactive( $uid ),
 
-			// Iris personality prefs (Cut 3).
+			// Iris personality prefs.
 			'initiated'        => (bool) get_user_meta( $uid, 'odd_initiated', true ),
 			'mascotQuiet'      => (bool) get_user_meta( $uid, 'odd_mascot_quiet', true ),
 			'winkUnlocked'     => (bool) get_user_meta( $uid, 'odd_wink_unlocked', true ),
@@ -268,14 +302,14 @@ add_action(
 			'iconSets'         => $sets,
 			'iconSet'          => odd_icons_get_active_slug( $uid ),
 
-			// Registries reserved for Cut 1 consumers. Ship empty in
-			// this release; third-party plugins fill them by adding
-			// filters on the matching odd_*_registry names.
-			'muses'            => $has_ext ? odd_extensions_collect( 'muses' ) : array(),
-			'commands'         => $has_ext ? odd_extensions_collect( 'commands' ) : array(),
-			'widgets'          => $has_ext ? odd_extensions_collect( 'widgets' ) : array(),
-			'rituals'          => $has_ext ? odd_extensions_collect( 'rituals' ) : array(),
-			'motionPrimitives' => $has_ext ? odd_extensions_collect( 'motionPrimitives' ) : array(),
+			// Registries for extension authors. Keys are *only* emitted
+			// when a third-party plugin has actually filtered them to
+			// non-empty; otherwise they're omitted from the localized
+			// blob entirely and `window.odd.<name>` is undefined.
+			// shared/store.js already normalizes `undefined` to `[]`,
+			// so surfaces that depend on the registry still behave. The
+			// `$registry_slices` list below is appended to `$config`
+			// after the base array is assembled (see below).
 
 			// Apps (v0.16.0). `apps` is the installed + enabled list
 			// filtered through odd_app_registry. `userApps` is the
@@ -316,7 +350,31 @@ add_action(
 			// whether to render install affordances.
 			'canInstall'       => current_user_can( 'manage_options' ),
 			'bundlesUploadUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/upload' ) ),
+			'bundleCatalogUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/catalog' ) ),
+			'bundleInstallUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/install-from-catalog' ) ),
+			// Pre-compute the Discover shelves by type so the panel
+			// can render the catalog without a REST round-trip on
+			// first paint. The `installed` flag is annotated so the
+			// "Install" → "Installed" toggle is decided server-side.
+			'bundleCatalog'    => function_exists( 'odd_bundle_catalog' ) ? array(
+				'scene'   => odd_bundle_catalog_for_type( 'scene' ),
+				'iconSet' => odd_bundle_catalog_for_type( 'icon-set' ),
+				'widget'  => odd_bundle_catalog_for_type( 'widget' ),
+			) : array(),
 		);
+
+		// Only ship registry slices that a third-party plugin has
+		// filled. Every empty one used to cost ~60 bytes of JSON even
+		// when no extensions were active; in a default install that
+		// was ~5 fields × every admin pageload.
+		if ( $has_ext ) {
+			foreach ( array( 'muses', 'commands', 'widgets', 'rituals', 'motionPrimitives' ) as $_slice ) {
+				$entries = odd_extensions_collect( $_slice );
+				if ( ! empty( $entries ) ) {
+					$config[ $_slice ] = $entries;
+				}
+			}
+		}
 
 		// The store and the feature surfaces read from the same
 		// `window.odd` global. Localizing once on `odd-store` puts

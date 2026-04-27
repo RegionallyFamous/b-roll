@@ -1,10 +1,11 @@
-# Apps REST API
+# ODD REST API
 
-> Status: v1.0.8. Mirrored to the
+> Status: v1.9+. Covers the `/apps/*` and `/bundles/*` surfaces.
+> Mirrored to the
 > [Apps REST API](https://github.com/RegionallyFamous/odd/wiki/Apps-REST-API)
 > wiki page.
 
-All ODD Apps endpoints live under the `odd/v1` namespace.
+All ODD endpoints live under the `odd/v1` namespace.
 
 Base URL: `https://your-site.com/wp-json/odd/v1/`
 
@@ -39,6 +40,10 @@ Permission shorthand used below:
 | `GET`    | `/apps/icon/{slug}`                          | public        | Serve the app's declared icon file.        |
 | `GET`    | `/apps/catalog`                              | login         | Curated catalog of installable apps.       |
 | `POST`   | `/apps/install-from-catalog`                 | admin         | Install by catalog slug.                   |
+| `POST`   | `/bundles/upload`                            | admin         | Install any `.wp` bundle (app, icon set, scene, widget). |
+| `DELETE` | `/bundles/{slug}`                            | admin         | Uninstall any bundle regardless of type.   |
+| `GET`    | `/bundles/catalog`                           | login         | Curated catalog of non-app bundles.        |
+| `POST`   | `/bundles/install-from-catalog`              | admin         | Install a catalog bundle by slug.          |
 
 ---
 
@@ -404,63 +409,8 @@ equivalents.
 
 ---
 
-## Bazaar compatibility shim
-
-While `ODD_BAZAAR_COMPAT` is true (the default), the following Bazaar
-routes forward to their ODD equivalents. The handlers re-dispatch the
-request through the WP REST server, so capability checks, nonces, and
-edge cases resolve in exactly one place.
-
-| Bazaar route                                        | Forwards to                                       |
-|-----------------------------------------------------|---------------------------------------------------|
-| `GET    /wp-json/bazaar/v1/wares`                   | `GET    /wp-json/odd/v1/apps`                     |
-| `GET    /wp-json/bazaar/v1/wares/{slug}`            | `GET    /wp-json/odd/v1/apps/{slug}`              |
-| `POST   /wp-json/bazaar/v1/upload`                  | `POST   /wp-json/odd/v1/apps/upload`              |
-| `DELETE /wp-json/bazaar/v1/wares/{slug}`            | `DELETE /wp-json/odd/v1/apps/{slug}`              |
-| `POST   /wp-json/bazaar/v1/wares/{slug}/toggle`     | `POST   /wp-json/odd/v1/apps/{slug}/toggle`       |
-| `GET    /wp-json/bazaar/v1/serve/{slug}/{path...}`  | `GET    /wp-json/odd/v1/apps/serve/{slug}/{path...}` |
-
-The `POST /bazaar/v1/upload` shim also accepts the old `ware` field
-name in addition to `file`. Everything else behaves identically to
-the `odd/v1/apps/*` route it forwards to.
-
-Disable the shim globally with:
-
-```php
-// wp-config.php
-define( 'ODD_BAZAAR_COMPAT', false );
-```
-
-…or via the `odd_apps_bazaar_compat` filter.
-
----
-
-## Endpoints intentionally not in this API
-
-If you're coming from Bazaar and looking for them, ODD does not
-currently ship:
-
-- `GET /index` (compact index)
-- `GET|PATCH|DELETE /config/{slug}` (per-app config schema)
-- `GET /health`, `GET /health/{slug}` (health polling)
-- `POST|GET /analytics*` (page-view tracking)
-- `GET /audit*` (audit log)
-- `GET|POST|DELETE /badges*` (notification badges)
-- `GET|PATCH|DELETE /csp/{slug}` (per-app CSP management)
-- `GET|POST|DELETE /errors*` (client error reporting)
-- `GET /jobs/{slug}`, `POST /jobs/{slug}/{job_id}` (WP-Cron jobs)
-- `GET /nonce` (nonce refresh — see `_wpnonce` in the iframe URL instead)
-- `GET|PUT|DELETE /store/{slug}/{key}` (server-side K/V storage)
-- `GET /stream` (SSE event stream)
-- `GET|POST|DELETE /webhooks*` (outbound webhooks)
-- `GET /sw` (zero-trust service worker)
-
-Some of these may land in future releases; none are promised.
-
----
-
 ## See also
 
 - [Building an App](building-an-app.md) — authoring guide.
-- [App Manifest Reference](app-manifest.md) — every `manifest.json` field.
+- [`.wp` Manifest Reference](wp-manifest.md) — every `manifest.json` field across every bundle type.
 - [Building on ODD](building-on-odd.md) — the extension API apps can tap via `manifest.extensions`.

@@ -54,7 +54,7 @@ paths. The tree above is the convention ODD's built-ins follow.
 | `name`          | yes      | Display name in the Shop quilt + hero.                                         |
 | `label`         | no       | Falls back to `name` when absent.                                              |
 | `version`       | yes      | Semver-ish string; shown in the tile + debug inspector.                        |
-| `franchise`     | yes      | Free-form bucket ("Generative", "Atmosphere", "Paper", "ODD Originals", …).    |
+| `franchise`     | no       | Soft historical label. Shop shelves are now categorized by slug — include it if you like, but omitting it is fine. |
 | `tags`          | yes      | Array of short strings; used for search + muse mood.                           |
 | `fallbackColor` | yes      | `#hex` painted behind the canvas before the first frame draws.                 |
 | `added`         | yes      | `YYYY-MM-DD`; used for "new" badges and sort-by-freshness.                     |

@@ -24,3 +24,4 @@ require_once ODD_DIR . 'includes/content/iconsets.php';
 require_once ODD_DIR . 'includes/content/scenes.php';
 require_once ODD_DIR . 'includes/content/widgets.php';
 require_once ODD_DIR . 'includes/content/rest.php';
+require_once ODD_DIR . 'includes/content/catalog.php';

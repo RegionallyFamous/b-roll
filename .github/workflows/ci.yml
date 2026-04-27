@@ -57,7 +57,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '20'
-      - run: npm install --no-audit --no-fund
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
       - run: npm test
 
   phpcs:
@@ -73,7 +74,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: vendor
-          key: composer-${{ hashFiles('composer.json') }}
+          key: composer-${{ hashFiles('composer.lock', 'composer.json') }}
           restore-keys: composer-
       - run: composer install --no-progress --no-interaction --prefer-dist
       - run: composer phpcs
@@ -116,7 +117,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: vendor
-          key: composer-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock', 'composer.json') }}
           restore-keys: composer-${{ matrix.php }}-
       - name: Wait for MySQL
         run: |
@@ -134,6 +135,21 @@ jobs:
         run: |
           bash odd/tests/php/install-wp-tests.sh wordpress_test root root 127.0.0.1:3306 "$WP_VERSION"
       - run: composer phpunit
+
+  site-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      # `html-validate` via npx keeps us off a second lockfile; the
+      # site is one static page so a fresh install per CI run is
+      # cheap. Rules are tuned in .htmlvalidate.json at the repo
+      # root (we keep WCAG h30 + inline-style off; everything else
+      # is the html-validate recommended baseline).
+      - name: Validate site/index.html
+        run: npx --yes html-validate@latest site/index.html
 
   zip-budget:
     runs-on: ubuntu-latest

@@ -29,7 +29,6 @@ odd/
 │       ├── rest.php                 /odd/v1/apps/* routes
 │       ├── native-surfaces.php      per-app desktop icon + native window registration
 │       ├── core-controller.php      curated catalog + install-from-catalog
-│       ├── bazaar-compat.php        bazaar/v1/* → odd/v1/apps/* forwarder
 │       └── migrate-from-bazaar.php  one-shot Bazaar → ODD migration
 ├── src/
 │   ├── gear.js                      floating gear pill (bottom-left) → opens 'odd' window
@@ -366,15 +365,6 @@ Remote downloads are HTTPS-only by default (override for dev hosts with
 the `odd_apps_allow_insecure_catalog` filter) and every URL goes
 through the `odd_apps_catalog_download_url` filter so enterprise
 deployments can enforce a host allowlist.
-
-### Bazaar compat shim
-
-When `ODD_BAZAAR_COMPAT` is true (default),
-`includes/apps/bazaar-compat.php` registers `bazaar/v1/*` routes that
-repackage the request and dispatch a nested `WP_REST_Request` at the
-matching `odd/v1/apps/*` route — so capability checks, nonces, and
-edge cases all resolve in exactly one place. See the
-[compatibility table in the REST docs](app-rest-api.md#bazaar-compatibility-shim).
 
 ### Bazaar migration (one-shot)
 

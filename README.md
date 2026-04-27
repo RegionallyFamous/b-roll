@@ -4,7 +4,7 @@
 
 [WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes your WordPress admin feel like a real desktop. ODD gives that desktop somewhere to go.
 
-### [▶ Try it live in WordPress Playground](https://odd.regionallyfamous.com/playground/)
+### [Try it live in WordPress Playground](https://odd.regionallyfamous.com/playground/)
 
 No install, no signup, nothing to uninstall. Boots ODD + WP Desktop Mode in your browser in ~20–30 seconds.
 
@@ -63,6 +63,14 @@ Anyone can ship a scene, icon set, widget, or app as a single `.wp` file and han
 - [Building an Icon Set](docs/building-an-icon-set.md)
 - [Building a Widget](docs/building-a-widget.md)
 - [`.wp` Manifest Reference](docs/wp-manifest.md)
+
+## Repo layout
+
+- `odd/` — the plugin itself (what ships in `odd.zip`).
+- `docs/` — authoring guides and reference docs.
+- `site/` — the [odd.regionallyfamous.com](https://odd.regionallyfamous.com) marketing site, deployed to GitHub Pages.
+- `_tools/` — author-side asset generators (wallpaper painters, icon-set scripts). Not shipped to users.
+- `bin/` → see `odd/bin/` — `validate-scenes`, `validate-icon-sets`, `check-version`, `build-zip`.
 
 ## License
 

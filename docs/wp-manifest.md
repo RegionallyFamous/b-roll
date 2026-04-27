@@ -110,7 +110,7 @@ Covered in full by [Building an Icon Set](building-an-icon-set.md).
 
 | Field       | Required | Notes                                                                    |
 |-------------|----------|--------------------------------------------------------------------------|
-| `franchise` | yes      | Free-form bucket label used on the Shop shelves.                         |
+| `franchise` | no       | Soft historical label. The Shop now derives the shelf category from the slug — `franchise` is kept for third-party tooling that may still read it. |
 | `accent`    | yes      | `#hex`. Paints the tile, quilt gradient, and hover states.               |
 | `preview`   | no       | Relative path to a hero SVG/PNG/WebP. Falls back to `icons.dashboard`.   |
 | `icons`     | yes      | Map of 13 required keys (see guide) → relative SVG paths.                |
@@ -141,7 +141,7 @@ Covered in full by [Building a Scene](building-a-scene.md).
 
 | Field           | Required | Notes                                                                |
 |-----------------|----------|----------------------------------------------------------------------|
-| `franchise`     | yes      | Free-form bucket for the Shop quilt ("Generative", "Paper", …).      |
+| `franchise`     | no       | Soft historical label. Shop shelves are categorized by slug — `franchise` is retained for backwards compatibility. |
 | `tags`          | yes      | Array of short strings. Drives search + muse tone selection.         |
 | `fallbackColor` | yes      | `#hex` painted under the canvas before the first frame draws.        |
 | `added`         | yes      | `YYYY-MM-DD`. Used for "new" badges + sort-by-freshness.             |

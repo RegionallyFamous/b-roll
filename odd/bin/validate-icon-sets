@@ -5,7 +5,8 @@ Run before every release:
     odd/bin/validate-icon-sets
 
 Checks per set:
-  - manifest.json parses + has slug, label, franchise, accent, icons dict
+  - manifest.json parses + has slug, label, icons dict
+    (franchise + accent are optional; see docs/wp-manifest.md)
   - every icon referenced in manifest.json#icons exists on disk
   - every on-disk *.svg parses as well-formed XML
   - svg root element is <svg ...> with width/height or viewBox
@@ -66,7 +67,7 @@ def validate_set(set_dir: Path) -> list[str]:
     # should omit the key rather than pick an arbitrary one. Monoline
     # sets that rely on `currentColor` + a themed hover still benefit
     # from setting it, so the format check stays — but only if present.
-    for key in ("slug", "label", "franchise", "icons"):
+    for key in ("slug", "label", "icons"):
         if key not in manifest:
             errs.append(f"{slug}: manifest.json missing required key '{key}'")
     if manifest.get("slug") != slug:

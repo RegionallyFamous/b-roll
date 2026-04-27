@@ -72,5 +72,40 @@
       "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/tome.wp",
       "tags":         ["wiki", "notes", "markdown", "productivity"]
     }
+  ],
+  "bundles": [
+    {
+      "type":         "scene",
+      "slug":         "rainfall-remote",
+      "name":         "Rainfall (Discover)",
+      "description":  "A collision-aware rain scene that respects wallpaper surfaces. Ships as a remote .wp to demonstrate cross-type catalog installs.",
+      "version":      "1.0.0",
+      "author":       "Regionally Famous",
+      "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/icons/scene-rainfall.svg",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/scene-rainfall.wp",
+      "tags":         ["scene", "atmosphere", "rain"]
+    },
+    {
+      "type":         "icon-set",
+      "slug":         "origami-remote",
+      "name":         "Origami (Discover)",
+      "description":  "Paper-fold icon pack for the WordPress dock. Demonstrates remote icon-set installation from the Discover shelf.",
+      "version":      "1.0.0",
+      "author":       "Regionally Famous",
+      "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/icons/iconset-origami.svg",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/iconset-origami.wp",
+      "tags":         ["icon-set", "dock", "paper"]
+    },
+    {
+      "type":         "widget",
+      "slug":         "confetti-remote",
+      "name":         "Confetti (Discover)",
+      "description":  "A tiny desktop widget that throws confetti when you click it. First remote widget example.",
+      "version":      "1.0.0",
+      "author":       "Regionally Famous",
+      "icon_url":     "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/icons/widget-confetti.svg",
+      "download_url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/odd/apps/catalog/bundles/widget-confetti.wp",
+      "tags":         ["widget", "fun"]
+    }
   ]
 }

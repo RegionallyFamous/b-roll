@@ -20,7 +20,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PLUGIN_DIR = HERE.parent
 MANIFEST = PLUGIN_DIR / "src" / "wallpaper" / "scenes.json"
-REQUIRED_KEYS = ("slug", "label", "franchise", "tags", "fallbackColor", "added")
+REQUIRED_KEYS = ("slug", "label", "tags", "fallbackColor", "added")
 
 
 def main() -> int:

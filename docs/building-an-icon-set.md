@@ -77,7 +77,7 @@ Paths inside `icons/` can be anything — the manifest maps the
 | `name`        | yes      | Display name in the Shop quilt + hero.                                     |
 | `label`       | no       | Falls back to `name`.                                                      |
 | `version`     | yes      | Semver-ish string.                                                         |
-| `franchise`   | yes      | Free-form bucket that groups sets on the shelves.                          |
+| `franchise`   | no       | Soft historical label. Shelves are categorized by slug — the field is retained for third-party tooling that may still read it. |
 | `accent`      | yes      | `#hex` used behind the tile, under the quilt gradient, and in hover states.|
 | `description` | no       | Longer copy shown on the detail sheet.                                     |
 | `preview`     | no       | Relative path to an SVG/PNG/WebP hero (falls back to the `dashboard` icon).|

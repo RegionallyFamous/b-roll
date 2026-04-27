@@ -7,9 +7,22 @@
  * each migration bumps it by one. No-op migrations are cheap and
  * exercise the runner so problems surface early.
  *
- * Migrations ship as `migration_<n>_<label>()` callables in this file.
- * Keep the list append-only: never edit a past migration, only add a
- * new one at the tail.
+ * Migrations ship as `migration_<n>_<label>()` callables. Core
+ * migrations live in this file; feature submodules register their own
+ * by appending to the `odd_migrations` filter. Keep the list append-
+ * only: never edit a past migration, only add a new one at the tail.
+ *
+ * Index of every core-shipped migration (source of truth — ODD_SCHEMA_VERSION
+ * below must equal the highest entry here):
+ *
+ *   1  baseline            odd/includes/migrations.php
+ *   2  apps_baseline       odd/includes/migrations.php
+ *   3  bazaar_migration    odd/includes/apps/migrate-from-bazaar.php
+ *   4  seed_builtins       odd/includes/apps/core-controller.php
+ *   5  remove_hello_odd    odd/includes/apps/core-controller.php
+ *
+ * Third-party plugins can register higher-numbered migrations via
+ * `add_filter( 'odd_migrations', … )`; see docs/building-on-odd.md.
  */
 
 defined( 'ABSPATH' ) || exit;

@@ -17,17 +17,17 @@
  *
  * is the single gate for the whole feature. The constant is also
  * re-derivable through the `odd_apps_enabled` filter so test harnesses
- * can toggle without editing wp-config.php.
- *
- * The flag ships **off by default** in the initial v0.16.0 release.
- * It flips on by default in v0.16.2 (see PR C in the apps plan).
+ * can toggle without editing wp-config.php. The flag ships ON; the
+ * constant exists so a host can hard-disable apps without editing
+ * plugin files.
  */
 
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'ODD_APPS_ENABLED' ) ) {
-	// Flipped ON by default in v0.16.2. Third-party code or wp-config
-	// can still set the constant explicitly to false to disable.
+	// Ships ON. Third-party code or wp-config can still set the
+	// constant explicitly to false to disable the apps engine
+	// across the whole install.
 	define( 'ODD_APPS_ENABLED', (bool) apply_filters( 'odd_apps_enabled', true ) );
 }
 
@@ -35,16 +35,16 @@ if ( ! defined( 'ODD_APPS_ENABLED' ) ) {
 //
 // Every submodule is required on every request. An earlier split in
 // v1.4.4 lazy-loaded `native-surfaces.php` / `migrate-from-bazaar.php`
-// / `bazaar-compat.php` / `core-controller.php` behind an
-// is_admin/REST/ajax gate. That saved ~90 lines of include cost on
-// public /odd-app/ asset sub-requests — but it also opened a failure
-// mode where the window-registration hook wasn't wired up for
-// request shapes we didn't predict (asset sub-requests, odd cron
-// context, Playground's early-init paths), leaving installed apps
-// "registered but never templated" and painting blank-white windows.
+// / `core-controller.php` behind an is_admin/REST/ajax gate. That
+// saved ~90 lines of include cost on public /odd-app/ asset
+// sub-requests — but it also opened a failure mode where the
+// window-registration hook wasn't wired up for request shapes we
+// didn't predict (asset sub-requests, odd cron context, Playground's
+// early-init paths), leaving installed apps "registered but never
+// templated" and painting blank-white windows.
 //
-// The cost of always requiring these four files is one filestat and
-// one compile per request — negligible compared to the cost of a
+// The cost of always requiring these files is one filestat and one
+// compile per request — negligible compared to the cost of a
 // hard-to-diagnose blank-window regression.
 require_once ODD_DIR . 'includes/apps/storage.php';
 require_once ODD_DIR . 'includes/apps/registry.php';
@@ -53,5 +53,4 @@ require_once ODD_DIR . 'includes/apps/rest.php';
 require_once ODD_DIR . 'includes/apps/serve-cookieauth.php';
 require_once ODD_DIR . 'includes/apps/native-surfaces.php';
 require_once ODD_DIR . 'includes/apps/migrate-from-bazaar.php';
-require_once ODD_DIR . 'includes/apps/bazaar-compat.php';
 require_once ODD_DIR . 'includes/apps/core-controller.php';
