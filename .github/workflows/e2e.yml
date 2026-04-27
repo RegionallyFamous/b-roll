@@ -4,10 +4,8 @@ name: e2e
 # activated. Picks up JS regressions that install-smoke misses
 # because install-smoke never loads a browser.
 #
-# Flake budget: Playwright runs with retries: 1 (see
-# playwright.config.ts), and the spec itself waits up to 200×100ms for
-# each DOM milestone. If a run fails consistently, download the
-# `playwright-report` artifact to get trace + video.
+# One combined smoke test (see e2e/panel.spec.ts) — no duplicate login/shell
+# boot. `playwright-report` artifact on failure.
 
 on:
   pull_request:
@@ -17,9 +15,8 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    # Provisioning + Playwright can exceed 15m when specs use 3–4m waits
-    # (PIXI, scenes, panel) × retries — keep headroom for cold runners.
-    timeout-minutes: 30
+    # One ~2.5m test + setup; 20m is plenty; avoids hanging the queue.
+    timeout-minutes: 20
     services:
       mysql:
         image: mysql:8.0

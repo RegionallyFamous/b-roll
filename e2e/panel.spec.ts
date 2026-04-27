@@ -1,21 +1,13 @@
 /**
- * End-to-end: boot WP admin → desktop mode loads → open ODD Control
- * Panel → swap to a different scene → assert the wallpaper canvas
- * actually rendered pixels (not just mounted an empty node).
+ * End-to-end: one browser session — login → desktop shell → wallpaper
+ * scenes + canvas pixel check → optional scene hook → ODD Shop + axe.
  *
- * Why: install-smoke only checks that PHP activates without fatal. It
- * never loads a browser, so JS-side regressions (missing localized
- * `window.odd` fields, scene IIFE that throws on the real DOM, broken
- * single-window registration) slip through its net. This file fills
- * that gap with one headful-in-CI Chromium run.
- *
- * The assertion pattern: we read a raw pixel from the WebGL canvas via
- * `gl.readPixels`, sum the channels, and require at least one
- * non-black pixel. A scene that silently errors inside `setup` leaves
- * a cleared canvas — that's the regression we want to catch.
+ * Kept in a *single* test so CI does not pay login/shell/PIXI waits twice
+ * (that was the main driver of 15m+ job times).
  */
 import { test, expect } from '@playwright/test';
-import { goDesktopShell, waitForWallpaperScenes } from './helpers';
+import AxeBuilder from '@axe-core/playwright';
+import { goDesktopShell, openOddShop, waitForWallpaperScenes } from './helpers';
 
 const ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.WP_ADMIN_PASS || 'password';
@@ -28,9 +20,10 @@ async function login( page ) {
 	await page.waitForURL( /\/wp-admin\/?/ );
 }
 
-test.describe( 'ODD panel', () => {
-	test( 'loads, renders a scene, and survives a scene swap', async ( { page } ) => {
-		test.setTimeout( 240_000 );
+test.describe( 'ODD admin smoke', () => {
+	test( 'wallpaper + scene hook, then shop has no serious/critical axe issues', async ( { page } ) => {
+		// ~3–6m cold CI; one combined flow, not two full boots.
+		test.setTimeout( 150_000 );
 
 		await login( page );
 		await goDesktopShell( page );
@@ -40,14 +33,14 @@ test.describe( 'ODD panel', () => {
 			const list = window.__odd && window.__odd.scenes;
 			return list ? Object.keys( list ) : [];
 		} );
-		expect( registeredScenes.length, 'at least one scene must register on admin load' ).toBeGreaterThan( 0 );
+		expect( registeredScenes.length, 'at least one scene must register' ).toBeGreaterThan( 0 );
 
 		const canvasState = await page.evaluate( async () => {
-			for ( let i = 0; i < 200; i++ ) {
+			for ( let i = 0; i < 60; i++ ) {
 				const canvases = Array.from( document.querySelectorAll( 'canvas' ) );
-				const canvas = canvases.find( ( c ) => c.width >= 320 && c.height >= 180 );
-				if ( canvas ) {
-					return { found: true, width: canvas.width, height: canvas.height };
+				const c = canvases.find( ( el ) => el.width >= 320 && el.height >= 180 );
+				if ( c ) {
+					return { found: true, width: c.width, height: c.height };
 				}
 				await new Promise( ( r ) => setTimeout( r, 100 ) );
 			}
@@ -56,7 +49,7 @@ test.describe( 'ODD panel', () => {
 		expect( canvasState.found, 'a wallpaper canvas should exist at >=320x180' ).toBe( true );
 
 		const nonBlackPixels = await page.evaluate( async () => {
-			await new Promise( ( r ) => setTimeout( r, 2000 ) );
+			await new Promise( ( r ) => setTimeout( r, 800 ) );
 			const canvas = Array.from( document.querySelectorAll( 'canvas' ) ).find(
 				( c ) => c.width >= 320 && c.height >= 180,
 			);
@@ -77,9 +70,19 @@ test.describe( 'ODD panel', () => {
 		const hookFired = await page.evaluate( async ( targetSlug ) => {
 			if ( ! ( window.wp && window.wp.hooks && window.wp.hooks.doAction ) ) return false;
 			window.wp.hooks.doAction( 'odd/pickScene', targetSlug );
-			await new Promise( ( r ) => setTimeout( r, 1500 ) );
+			await new Promise( ( r ) => setTimeout( r, 800 ) );
 			return true;
 		}, registeredScenes[ 0 ] );
-		expect( hookFired, 'wp.hooks.doAction must be available to fire odd/pickScene' ).toBe( true );
+		expect( hookFired, 'wp.hooks must fire odd/pickScene' ).toBe( true );
+
+		await openOddShop( page );
+		const results = await new AxeBuilder( { page } )
+			.include( '.odd-panel' )
+			.withTags( [ 'wcag2a', 'wcag2aa' ] )
+			.analyze();
+		const bad = results.violations.filter(
+			( v ) => v.impact === 'critical' || v.impact === 'serious',
+		);
+		expect( bad, JSON.stringify( bad, null, 2 ) ).toEqual( [] );
 	} );
 } );

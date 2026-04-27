@@ -18,10 +18,12 @@ export default defineConfig( {
 	testDir: './e2e',
 	fullyParallel: false,
 	forbidOnly: !! process.env.CI,
-	retries: process.env.CI ? 1 : 0,
+	// Retries double CI wall time on failure; prefer one fast run (install-smoke
+	// and vitest still gate the repo).
+	retries: 0,
 	workers: 1,
 	reporter: process.env.CI ? [ [ 'github' ], [ 'list' ] ] : 'list',
-	timeout: 60_000,
+	timeout: 150_000,
 	expect: { timeout: 15_000 },
 	use: {
 		baseURL: BASE_URL,

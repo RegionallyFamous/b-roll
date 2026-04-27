@@ -8,15 +8,13 @@ import { expect } from '@playwright/test';
  * The `/wp-desktop/` portal redirects into `wp-admin` with the shell.
  */
 export async function goDesktopShell( page: Page ) {
-	await page.goto( '/wp-desktop/', { waitUntil: 'load', timeout: 60_000 } );
-	await page.waitForURL( /\/wp-admin/, { timeout: 60_000 } );
-	await expect( page.locator( '#wp-desktop-shell' ) ).toBeVisible( { timeout: 30_000 } );
-	// Avoid `networkidle` — WordPress admin heartbeat / polling can prevent it
-	// from ever settling. odd-store is enough to know ODD’s PHP enqueue ran.
+	await page.goto( '/wp-desktop/', { waitUntil: 'load', timeout: 45_000 } );
+	await page.waitForURL( /\/wp-admin/, { timeout: 45_000 } );
+	await expect( page.locator( '#wp-desktop-shell' ) ).toBeVisible( { timeout: 20_000 } );
 	await page.waitForFunction( () => {
 		const w = window as unknown as { __odd?: object };
 		return typeof w.__odd !== 'undefined';
-	}, { timeout: 60_000 } );
+	}, { timeout: 30_000 } );
 }
 
 /**
@@ -26,12 +24,12 @@ export async function goDesktopShell( page: Page ) {
 export async function waitForWallpaperScenes( page: Page ) {
 	await page.waitForFunction( () => {
 		return typeof ( window as unknown as { PIXI?: object } ).PIXI !== 'undefined';
-	}, { timeout: 90_000 } );
+	}, { timeout: 40_000 } );
 	await page.waitForFunction( () => {
 		const scenes = ( window as unknown as { __odd?: { scenes?: Record<string, object> } } ).__odd
 			?.scenes;
 		return !! scenes && Object.keys( scenes ).length > 0;
-	}, { timeout: 90_000 } );
+	}, { timeout: 40_000 } );
 }
 
 /**
@@ -64,10 +62,10 @@ export async function openOddShop( page: Page ) {
 		const kick = () => {
 			let n = 0;
 			( function attempt() {
-				if ( tryOpen() || n++ > 120 ) {
+				if ( tryOpen() || n++ > 40 ) {
 					return;
 				}
-				setTimeout( attempt, 250 );
+				setTimeout( attempt, 200 );
 			} )();
 		};
 		if ( desktop && typeof desktop.ready === 'function' ) {
@@ -76,5 +74,5 @@ export async function openOddShop( page: Page ) {
 			setTimeout( kick, 500 );
 		}
 	} );
-	await expect( page.locator( '[data-odd-panel], .odd-panel' ).first() ).toBeVisible( { timeout: 45_000 } );
+	await expect( page.locator( '[data-odd-panel], .odd-panel' ).first() ).toBeVisible( { timeout: 20_000 } );
 }
