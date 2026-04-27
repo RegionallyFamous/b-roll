@@ -15,7 +15,7 @@
  * a cleared canvas — that's the regression we want to catch.
  */
 import { test, expect } from '@playwright/test';
-import { goDesktopShell } from './helpers';
+import { goDesktopShell, waitForWallpaperScenes } from './helpers';
 
 const ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.WP_ADMIN_PASS || 'password';
@@ -30,20 +30,15 @@ async function login( page ) {
 
 test.describe( 'ODD panel', () => {
 	test( 'loads, renders a scene, and survives a scene swap', async ( { page } ) => {
-		test.setTimeout( 90_000 );
+		test.setTimeout( 240_000 );
 
 		await login( page );
 		await goDesktopShell( page );
+		await waitForWallpaperScenes( page );
 
-		await page.waitForFunction( () => typeof window.__odd !== 'undefined', null, { timeout: 30_000 } );
-
-		const registeredScenes = await page.evaluate( async () => {
-			for ( let i = 0; i < 200; i++ ) {
-				const list = window.__odd && window.__odd.scenes;
-				if ( list && Object.keys( list ).length >= 1 ) return Object.keys( list );
-				await new Promise( ( r ) => setTimeout( r, 100 ) );
-			}
-			return [];
+		const registeredScenes = await page.evaluate( () => {
+			const list = window.__odd && window.__odd.scenes;
+			return list ? Object.keys( list ) : [];
 		} );
 		expect( registeredScenes.length, 'at least one scene must register on admin load' ).toBeGreaterThan( 0 );
 

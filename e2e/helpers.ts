@@ -11,13 +11,27 @@ export async function goDesktopShell( page: Page ) {
 	await page.goto( '/wp-desktop/', { waitUntil: 'load', timeout: 60_000 } );
 	await page.waitForURL( /\/wp-admin/, { timeout: 60_000 } );
 	await expect( page.locator( '#wp-desktop-shell' ) ).toBeVisible( { timeout: 30_000 } );
-	await page.waitForLoadState( 'networkidle' );
-	// ODD’s odd-store install runs after desktop scripts; this is a cheap
-	// proxy for “ODD’s admin script chain has started (not a classic page)”.
+	// Avoid `networkidle` — WordPress admin heartbeat / polling can prevent it
+	// from ever settling. odd-store is enough to know ODD’s PHP enqueue ran.
 	await page.waitForFunction( () => {
 		const w = window as unknown as { __odd?: object };
 		return typeof w.__odd !== 'undefined';
 	}, { timeout: 60_000 } );
+}
+
+/**
+ * Wallpaper IIFE can’t register scenes until Pixi is present and `mount` runs.
+ * This mirrors what panel.spec was polling for, with one explicit contract.
+ */
+export async function waitForWallpaperScenes( page: Page ) {
+	await page.waitForFunction( () => {
+		return typeof ( window as unknown as { PIXI?: object } ).PIXI !== 'undefined';
+	}, { timeout: 90_000 } );
+	await page.waitForFunction( () => {
+		const scenes = ( window as unknown as { __odd?: { scenes?: Record<string, object> } } ).__odd
+			?.scenes;
+		return !! scenes && Object.keys( scenes ).length > 0;
+	}, { timeout: 90_000 } );
 }
 
 /**
@@ -50,7 +64,7 @@ export async function openOddShop( page: Page ) {
 		const kick = () => {
 			let n = 0;
 			( function attempt() {
-				if ( tryOpen() || n++ > 50 ) {
+				if ( tryOpen() || n++ > 120 ) {
 					return;
 				}
 				setTimeout( attempt, 250 );

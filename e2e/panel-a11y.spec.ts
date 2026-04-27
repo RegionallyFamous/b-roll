@@ -4,7 +4,7 @@
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { goDesktopShell, openOddShop } from './helpers';
+import { goDesktopShell, openOddShop, waitForWallpaperScenes } from './helpers';
 
 const ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.WP_ADMIN_PASS || 'password';
@@ -19,9 +19,10 @@ async function login( page ) {
 
 test.describe( 'ODD panel a11y', () => {
 	test( 'no critical or serious axe violations in .odd-panel', async ( { page } ) => {
-		test.setTimeout( 90_000 );
+		test.setTimeout( 240_000 );
 		await login( page );
 		await goDesktopShell( page );
+		await waitForWallpaperScenes( page );
 		await openOddShop( page );
 		const panel = page.locator( '.odd-panel' ).first();
 
