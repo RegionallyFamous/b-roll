@@ -283,8 +283,12 @@ add_action(
 			'restUrl'          => esc_url_raw( rest_url( 'odd/v1/prefs' ) ),
 			'restNonce'        => wp_create_nonce( 'wp_rest' ),
 
-			// Wallpaper.
+			// Wallpaper. `scenes` is the array shape the panel needs;
+			// `sceneMap` is a slug→descriptor dict installed scene.js
+			// bundles read to resolve their `wallpaperUrl` + `previewUrl`
+			// without having to scan `scenes` on every frame.
 			'scenes'           => odd_wallpaper_scenes(),
+			'sceneMap'         => array_column( odd_wallpaper_scenes(), null, 'slug' ),
 			'scene'            => $active_scene,
 			'wallpaper'        => $active_scene,
 			'favorites'        => odd_wallpaper_get_user_slug_list( $uid, 'odd_favorites' ),
