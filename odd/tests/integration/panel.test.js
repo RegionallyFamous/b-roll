@@ -234,7 +234,7 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'Widgets department renders ODD widget cards wired to widgetLayer', () => {
+	it( 'Widgets department renders unified widget cards with the Add/Active state machine', () => {
 		const calls = installWidgetLayer();
 		const { host, cleanup } = mountPanel();
 
@@ -244,23 +244,29 @@ describe( 'ODD Shop', () => {
 		expect( widgetsTab, 'Widgets rail button must be present' ).toBeTruthy();
 		widgetsTab.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
-		// Both ODD widgets should render as tiles.
-		const cards = host.querySelectorAll( '.odd-shop__tile--widget' );
+		// Both ODD widgets should render as unified tiles.
+		const cards = host.querySelectorAll( '[data-odd-shop-card][data-odd-card-type="widget"]' );
 		expect( cards.length ).toBe( 2 );
 
 		const stickyCard = host.querySelector( '.odd-shop__tile--widget[data-widget-id="odd/sticky"]' );
 		expect( stickyCard, 'sticky card must be rendered' ).toBeTruthy();
 
-		// Adding a widget should call widgetLayer.add and re-render
-		// with an "on desktop" state.
-		const addBtn = stickyCard.querySelector( '.odd-shop__tile-btn' );
-		expect( addBtn.textContent.trim() ).toBe( 'Add to desktop' );
+		// Installed-but-not-on-desktop widgets show `Add`.
+		const addBtn = stickyCard.parentNode.querySelector( '.odd-shop__card-btn' );
+		expect( addBtn.textContent.trim() ).toBe( 'Add' );
 		addBtn.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 		expect( calls.add ).toEqual( [ 'odd/sticky' ] );
 
+		// After add the card flips to `Active` (disabled) and the
+		// wrap is marked `.is-active`. The plan explicitly keeps
+		// Remove out of the card surface — removal happens from
+		// the desktop widget chrome itself.
 		const refreshedSticky = host.querySelector( '.odd-shop__tile--widget[data-widget-id="odd/sticky"]' );
-		expect( refreshedSticky.classList.contains( 'is-active' ) ).toBe( true );
-		expect( refreshedSticky.querySelector( '.odd-shop__tile-btn' ).textContent.trim() ).toBe( 'Remove' );
+		const refreshedWrap   = refreshedSticky.closest( '.odd-shop__card-wrap' );
+		expect( refreshedWrap.classList.contains( 'is-active' ) ).toBe( true );
+		const activeBtn = refreshedWrap.querySelector( '.odd-shop__card-btn' );
+		expect( activeBtn.textContent.trim() ).toBe( 'Active' );
+		expect( activeBtn.disabled ).toBe( true );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

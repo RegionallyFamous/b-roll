@@ -1,0 +1,307 @@
+/**
+ * installs.test.js — post-install flows for the ODD Shop.
+ *
+ * Scene / icon-set / app installs write a cross-reload breadcrumb
+ * to sessionStorage and soft-reload the page; widgets hot-register
+ * via dynamic `<script>` injection and do NOT reload. This spec
+ * asserts each branch of `handleInstallSuccess` in isolation, plus
+ * the breadcrumb-consumption path on a subsequent mount.
+ *
+ * Uses real timers + explicit micro-pause helpers — the install
+ * chain is deeply nested promises (`fetch().then(r => r.json().then(...))`
+ * → `handleInstallSuccess` → `setTimeout(reload, 500)`), and fake
+ * timers need manual drains between every `.then` hop. The handful
+ * of real-time sleeps here are smaller than the production reload
+ * delay so tests still finish in well under a second.
+ */
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname( fileURLToPath( import.meta.url ) );
+const PANEL_JS = resolve( __dirname, '../../src/panel/index.js' );
+
+function loadPanel() {
+	const src = readFileSync( PANEL_JS, 'utf8' );
+	const fn = new Function( `${ src }\n//# sourceURL=panel/index.js` );
+	fn.call( globalThis );
+}
+
+function installHooks() {
+	const handlers = new Map();
+	window.wp = window.wp || {};
+	window.wp.hooks = {
+		doAction: ( name, ...args ) => ( handlers.get( name ) || [] ).forEach( ( h ) => h( ...args ) ),
+		addAction: ( name, _ns, fn ) => {
+			if ( ! handlers.has( name ) ) handlers.set( name, [] );
+			handlers.get( name ).push( fn );
+		},
+		removeAction: () => {},
+		applyFilters: ( _name, value ) => value,
+	};
+}
+
+function seed( overrides = {} ) {
+	window.odd = Object.assign(
+		{
+			pluginUrl: '',
+			version:   'test',
+			restUrl:   '/wp-json/odd/v1/prefs',
+			restNonce: 'nonce-abc',
+			bundlesUploadUrl: '/wp-json/odd/v1/bundles/upload',
+			bundleInstallUrl: '/wp-json/odd/v1/bundles/install-from-catalog',
+			canInstall:       true,
+			wallpaper: '',
+			scene:     '',
+			scenes:    [],
+			iconSet:   '',
+			iconSets:  [],
+			installedWidgets: [],
+			favorites: [],
+			recents:   [],
+			shuffle:   { enabled: false, minutes: 15 },
+			screensaver: { enabled: false, minutes: 10, scene: 'current' },
+			audioReactive: false,
+			appsEnabled:  false,
+			apps:         [],
+			userApps:     { installed: [], pinned: [] },
+			bundleCatalog: { scene: [], iconSet: [], widget: [] },
+		},
+		overrides
+	);
+}
+
+function mount() {
+	const host = document.createElement( 'div' );
+	document.body.appendChild( host );
+	const cleanup = window.wpDesktopNativeWindows.odd( host );
+	return { host, cleanup };
+}
+
+// Drain the microtask queue a few times so deeply-nested promise
+// chains settle without having to await each level explicitly.
+const flush = async () => {
+	for ( let i = 0; i < 6; i++ ) await Promise.resolve();
+};
+
+const rail = ( host, label ) => Array.from( host.querySelectorAll( '.odd-shop__rail-item' ) )
+	.find( ( b ) => b.querySelector( '.odd-shop__rail-label strong' )?.textContent.trim() === label );
+
+describe( 'ODD Shop · install flows', () => {
+	let reloadSpy;
+
+	beforeEach( () => {
+		document.body.innerHTML = '';
+		const existing = document.getElementById( 'odd-panel-styles' );
+		if ( existing ) existing.remove();
+		delete window.wpDesktopNativeWindows;
+		try { window.sessionStorage.removeItem( 'odd.justInstalled' ); } catch ( e ) {}
+		installHooks();
+
+		reloadSpy = vi.fn();
+		Object.defineProperty( window, 'location', {
+			configurable: true,
+			value: { ...window.location, reload: reloadSpy, href: 'http://localhost/' },
+		} );
+	} );
+
+	afterEach( () => {
+		delete globalThis.fetch;
+	} );
+
+	it( 'scene install writes a breadcrumb and soft-reloads', async () => {
+		seed( {
+			bundleCatalog: {
+				scene: [ { slug: 'gusts', label: 'Gusts', installed: false } ],
+				iconSet: [],
+				widget: [],
+			},
+		} );
+
+		globalThis.fetch = vi.fn( () => Promise.resolve( {
+			ok:   true,
+			json: () => Promise.resolve( {
+				installed: true,
+				slug:      'gusts',
+				type:      'scene',
+				manifest:  { slug: 'gusts', label: 'Gusts' },
+				entry_url: null,
+				row:       { slug: 'gusts', label: 'Gusts', installed: true },
+			} ),
+		} ) );
+
+		loadPanel();
+		const { host } = mount();
+
+		const card = host.querySelector( '[data-odd-shop-card][data-catalog-slug="gusts"]' );
+		card.querySelector( '.odd-shop__card-btn' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		await flush();
+		await new Promise( ( r ) => setTimeout( r, 10 ) );
+
+		const crumb = window.sessionStorage.getItem( 'odd.justInstalled' );
+		expect( crumb, 'breadcrumb must be persisted to sessionStorage' ).toBeTruthy();
+		const parsed = JSON.parse( crumb );
+		expect( parsed.type ).toBe( 'scene' );
+		expect( parsed.slug ).toBe( 'gusts' );
+
+		// The reload fires 500ms after the install succeeds.
+		expect( reloadSpy ).not.toHaveBeenCalled();
+		await new Promise( ( r ) => setTimeout( r, 550 ) );
+		expect( reloadSpy ).toHaveBeenCalled();
+	} );
+
+	it( 'icon-set install also rides the reload path', async () => {
+		seed( {
+			bundleCatalog: {
+				scene: [],
+				iconSet: [ { slug: 'filament', label: 'Filament', installed: false } ],
+				widget: [],
+			},
+		} );
+
+		globalThis.fetch = vi.fn( () => Promise.resolve( {
+			ok:   true,
+			json: () => Promise.resolve( {
+				installed: true,
+				slug:      'filament',
+				type:      'icon-set',
+				manifest:  { slug: 'filament', label: 'Filament' },
+				entry_url: null,
+				row:       { slug: 'filament', label: 'Filament', installed: true },
+			} ),
+		} ) );
+
+		loadPanel();
+		const { host } = mount();
+
+		rail( host, 'Icon Sets' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-catalog-slug="filament"]' );
+		expect( card, 'catalog icon-set tile must render' ).toBeTruthy();
+		card.querySelector( '.odd-shop__card-btn' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		await flush();
+		await new Promise( ( r ) => setTimeout( r, 10 ) );
+
+		const crumb = JSON.parse( window.sessionStorage.getItem( 'odd.justInstalled' ) );
+		expect( crumb.type ).toBe( 'icon-set' );
+		expect( crumb.slug ).toBe( 'filament' );
+	} );
+
+	it( 'widget install hot-registers without reloading and adds the tile in-page', async () => {
+		seed( {
+			bundleCatalog: {
+				scene: [],
+				iconSet: [],
+				widget: [ { slug: 'clock', label: 'Clock', installed: false } ],
+			},
+		} );
+
+		globalThis.fetch = vi.fn( () => Promise.resolve( {
+			ok:   true,
+			json: () => Promise.resolve( {
+				installed: true,
+				slug:      'clock',
+				type:      'widget',
+				manifest:  { slug: 'clock', label: 'Clock' },
+				entry_url: '/wp-content/odd-widgets/clock/widget.js',
+				row:       { id: 'odd/clock', slug: 'clock', label: 'Clock', installed: true },
+			} ),
+		} ) );
+
+		loadPanel();
+		const { host } = mount();
+
+		rail( host, 'Widgets' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-catalog-slug="clock"]' );
+		expect( card, 'catalog widget tile must render' ).toBeTruthy();
+		card.querySelector( '.odd-shop__card-btn' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		await flush();
+		await new Promise( ( r ) => setTimeout( r, 5 ) );
+
+		const scr = document.head.querySelector( 'script[data-odd-widget-slug="clock"]' );
+		expect( scr, 'widget entry <script> must be injected' ).toBeTruthy();
+		expect( scr.getAttribute( 'src' ) ).toBe( '/wp-content/odd-widgets/clock/widget.js' );
+
+		scr.onload();
+		await new Promise( ( r ) => setTimeout( r, 30 ) );
+
+		const installedTile = host.querySelector( '[data-odd-shop-card][data-widget-id="odd/clock"]' );
+		expect( installedTile, 'hot-registered widget must appear in the grid' ).toBeTruthy();
+		expect( reloadSpy ).not.toHaveBeenCalled();
+		// No reload → no breadcrumb.
+		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
+	} );
+
+	it( 'widget hot-register failure falls back to the reload path', async () => {
+		seed( {
+			bundleCatalog: {
+				scene: [],
+				iconSet: [],
+				widget: [ { slug: 'broken', label: 'Broken', installed: false } ],
+			},
+		} );
+
+		globalThis.fetch = vi.fn( () => Promise.resolve( {
+			ok:   true,
+			json: () => Promise.resolve( {
+				installed: true,
+				slug:      'broken',
+				type:      'widget',
+				manifest:  { slug: 'broken', label: 'Broken' },
+				entry_url: '/wp-content/odd-widgets/broken/widget.js',
+				row:       { id: 'odd/broken', slug: 'broken', label: 'Broken', installed: true },
+			} ),
+		} ) );
+
+		loadPanel();
+		const { host } = mount();
+
+		rail( host, 'Widgets' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		host.querySelector( '[data-odd-shop-card][data-catalog-slug="broken"] .odd-shop__card-btn' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		await flush();
+		await new Promise( ( r ) => setTimeout( r, 5 ) );
+
+		const scr = document.head.querySelector( 'script[data-odd-widget-slug="broken"]' );
+		scr.onerror();
+
+		await flush();
+		await new Promise( ( r ) => setTimeout( r, 20 ) );
+
+		const crumb = JSON.parse( window.sessionStorage.getItem( 'odd.justInstalled' ) );
+		expect( crumb, 'reload fallback must write a breadcrumb' ).toBeTruthy();
+		expect( crumb.type ).toBe( 'widget' );
+		expect( crumb.slug ).toBe( 'broken' );
+	} );
+
+	it( 'mount consumes a pre-existing breadcrumb and navigates to the right department', () => {
+		window.sessionStorage.setItem( 'odd.justInstalled', JSON.stringify( {
+			type: 'icon-set',
+			slug: 'filament',
+			name: 'Filament',
+			at:   Date.now(),
+		} ) );
+		seed( {
+			iconSets: [
+				{ slug: 'filament', label: 'Filament', franchise: 'Filament', accent: '#ff7a3c', icons: { dashboard: '', fallback: '' } },
+			],
+		} );
+		loadPanel();
+		const { host } = mount();
+
+		const iconsBtn = rail( host, 'Icon Sets' );
+		expect( iconsBtn.classList.contains( 'is-active' ) ).toBe( true );
+
+		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
+	} );
+} );

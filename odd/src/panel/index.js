@@ -220,6 +220,17 @@
 		installDropAnywhere( body );
 		installShopKeyboard( body, sidebar, buttons, renderSection );
 
+		// Post-reload landing: if the previous navigation just
+		// installed a bundle, switch to its department and flash
+		// the new tile. Consumed once so a subsequent unrelated
+		// reload doesn't replay it.
+		var justInstalled = consumeJustInstalled();
+		if ( justInstalled ) {
+			state.justInstalled = justInstalled;
+			var dept = DEPT_FOR_TYPE[ justInstalled.type ] || state.active;
+			state.active = dept;
+		}
+
 		renderSection( state.active );
 
 		return function teardown() {
@@ -295,47 +306,77 @@
 			var wrap = el( 'div', { 'data-odd-apps': '1', class: 'odd-shop__dept odd-shop__dept--apps' } );
 			wrap.appendChild( sectionHeader(
 				'Apps',
-				'Mini apps that run on your WordPress desktop without using — or knowing — anything about WordPress. Open the dock icon and they just work. Upload a .wp bundle, or install from the curated catalog below.',
+				'Mini apps that run on your WordPress desktop without using — or knowing — anything about WordPress. Open the dock icon and they just work.',
 				{ eyebrow: 'ODD · Mini Apps' }
 			) );
 
-			// Editorial banner for the Apps department. Replaces the
-			// previous gradient-only treatment so Apps gets the same
-			// visual weight as Wallpapers + Icon Sets.
 			wrap.appendChild( renderAppsHero() );
 
 			// Status rail. Populated by installBundle() / deletions.
 			var status = el( 'div', { class: 'odd-apps-status', 'data-odd-apps-status': '1' } );
 			wrap.appendChild( status );
 
-			var installedHead = el( 'h3', { class: 'odd-apps-subhead' } );
-			installedHead.textContent = 'Installed';
-			wrap.appendChild( installedHead );
+			// Discover strip of remote catalog apps (curation band).
+			// Lives above the unified grid so new-and-exciting entries
+			// get a dedicated editorial slot without duplicating the
+			// tile treatment between strip + grid.
+			var discover = renderDiscoverShelf( 'app' );
+			if ( discover ) wrap.appendChild( discover );
 
-			// Installed apps gallery.
-			var gallery = el( 'div', { class: 'odd-grid odd-grid--apps', 'data-odd-apps-gallery': '1' } );
+			// Unified grid — one tile per slug, merged across
+			// installed + catalog. `data-odd-apps-gallery` is kept so
+			// existing selectors (e.g. bulk refresh via
+			// `refreshAppsGallery`) still find the container.
+			var gallery = el( 'div', { class: 'odd-grid odd-grid--apps odd-shop__grid odd-shop__grid--apps', 'data-odd-apps-gallery': '1' } );
 			wrap.appendChild( gallery );
-
-			fetchApps().then( function ( apps ) {
-				renderAppsGallery( gallery, apps, wrap );
-			} );
-
-			// Catalog — everything available, installed or not. The
-			// server marks each row with `installed: true/false` so
-			// the UI can flip a card's primary action.
-			var catalogHead = el( 'h3', { class: 'odd-apps-subhead odd-apps-subhead--catalog' } );
-			catalogHead.textContent = 'Catalog';
-			wrap.appendChild( catalogHead );
-			var catalogNote = el( 'div', { class: 'odd-apps-note' } );
-			catalogNote.textContent = 'Curated ODD apps from the remote catalog. Each one downloads on install; nothing ships with the plugin itself.';
-			wrap.appendChild( catalogNote );
-			var catalog = el( 'div', { class: 'odd-grid odd-grid--apps', 'data-odd-apps-catalog': '1' } );
-			wrap.appendChild( catalog );
-			fetchCatalog().then( function ( rows ) {
-				renderCatalogGallery( catalog, rows, wrap );
-			} );
+			// Prefer the server-baked catalog (hydrated into
+			// window.odd.bundleCatalog) for first paint; then merge
+			// the live /apps list on top so local-only installed apps
+			// still appear even when the catalog is empty.
+			renderAppsUnifiedGrid( gallery, wrap );
 
 			return wrap;
+		}
+
+		function renderAppsUnifiedGrid( gallery, wrap ) {
+			gallery.innerHTML = '';
+			// Catalog first (from the remote catalog snapshot) so we
+			// get icons / descriptions / update_available flags, then
+			// live /apps merges in.
+			fetchCatalog().then( function ( catalogRows ) {
+				fetchApps().then( function ( installedApps ) {
+					var bySlug = {};
+					( catalogRows || [] ).forEach( function ( row ) {
+						if ( ! row || ! row.slug ) return;
+						bySlug[ row.slug ] = Object.assign( {}, row );
+					} );
+					( installedApps || [] ).forEach( function ( app ) {
+						if ( ! app || ! app.slug ) return;
+						var cat = bySlug[ app.slug ] || {};
+						bySlug[ app.slug ] = Object.assign( {}, cat, app, { installed: true } );
+					} );
+
+					var rows = [];
+					for ( var k in bySlug ) {
+						if ( Object.prototype.hasOwnProperty.call( bySlug, k ) ) rows.push( bySlug[ k ] );
+					}
+					rows.sort( function ( a, b ) {
+						if ( !! a.installed !== !! b.installed ) return a.installed ? -1 : 1;
+						return ( a.name || a.slug || '' ).localeCompare( b.name || b.slug || '' );
+					} );
+
+					gallery.innerHTML = '';
+					if ( ! rows.length ) {
+						var empty = el( 'div', { class: 'odd-apps-empty' } );
+						empty.textContent = 'No apps available — check the catalog endpoint or install from a .wp upload.';
+						gallery.appendChild( empty );
+						return;
+					}
+					rows.forEach( function ( row ) {
+						gallery.appendChild( renderCatalogCard( row, wrap ) );
+					} );
+				} );
+			} );
 		}
 
 		function renderCatalogGallery( gallery, rows, wrap ) {
@@ -353,125 +394,135 @@
 			} );
 		}
 
+		// Apps catalog card — one unified tile for every row, whether
+		// it came from the remote catalog (uninstalled) or from the
+		// local /apps registry (installed). Installed rows grow the
+		// additional app-management controls (surfaces toggles, Open
+		// / Enable / Delete) below the tile so the Apps department
+		// keeps its full manageability without double-rendering
+		// between an "Installed" gallery and a "Catalog" list.
 		function renderCatalogCard( row, wrap ) {
-			var card = el( 'div', { class: 'odd-catalog-row', 'data-catalog-slug': row.slug } );
-			if ( row.installed ) card.classList.add( 'is-installed' );
+			var normalised = normaliseShopRow( row, 'app' );
+			if ( ! normalised ) return el( 'div' );
+			normalised.installed = !! row.installed;
+			var cardWrap = renderShopCard( normalised );
+			if ( ! cardWrap ) return el( 'div' );
 
-			var iconWrap = el( 'div', { class: 'odd-catalog-row__icon' } );
-			if ( row.icon_url ) {
-				var src = row.icon_url;
-				if ( src.indexOf( 'http' ) !== 0 && src.indexOf( 'data:' ) !== 0 ) {
-					src = ( state.cfg.pluginUrl || '' ) + '/apps/catalog/' + src;
-				}
-				iconWrap.appendChild( el( 'img', { src: src, alt: '', loading: 'lazy' } ) );
-			} else {
-				iconWrap.classList.add( 'odd-catalog-row__icon--badge' );
-				iconWrap.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
-			}
-			card.appendChild( iconWrap );
+			// Legacy hooks so existing tests / styles (e.g. the
+			// per-app surfaces-checkbox matcher) still resolve.
+			cardWrap.classList.add( 'odd-card--app' );
+			cardWrap.setAttribute( 'data-app-slug', row.slug );
 
-			var body = el( 'div', { class: 'odd-catalog-row__body' } );
-			var titleRow = el( 'div', { class: 'odd-catalog-row__title' } );
-			var titleText = el( 'span', { class: 'odd-catalog-row__name' } );
-			titleText.textContent = row.name || row.slug;
-			titleRow.appendChild( titleText );
-			if ( row.builtin ) {
-				var pill = el( 'span', { class: 'odd-pill odd-pill--builtin' } );
-				pill.textContent = 'built-in';
-				titleRow.appendChild( pill );
-			}
-			if ( row.version ) {
-				var ver = el( 'span', { class: 'odd-catalog-row__version' } );
-				ver.textContent = 'v' + row.version;
-				titleRow.appendChild( ver );
-			}
-			body.appendChild( titleRow );
-
-			if ( row.description ) {
-				var desc = el( 'div', { class: 'odd-catalog-row__desc' } );
-				desc.textContent = row.description;
-				body.appendChild( desc );
-			}
-			card.appendChild( body );
-
-			var actions = el( 'div', { class: 'odd-catalog-row__actions' } );
-			if ( row.installed ) {
-				var installed = el( 'span', { class: 'odd-catalog-row__installed' } );
-				installed.textContent = row.update_available ? 'Update available' : 'Installed';
-				if ( row.update_available ) {
-					installed.classList.add( 'odd-catalog-row__installed--update' );
-				}
-				actions.appendChild( installed );
-
-				if ( row.update_available ) {
-					// Reinstall through the same install-from-catalog route
-					// with `allow_update=1`. The server-side handler
-					// uninstalls the old bundle first so the universal
-					// installer can lay the new files down without the
-					// slug-collision guard firing.
-					var updateBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-apps-btn--primary' } );
-					updateBtn.textContent = 'Update';
-					updateBtn.addEventListener( 'click', function () {
-						updateBtn.disabled = true;
-						updateBtn.textContent = 'Updating…';
-						setAppsStatus( wrap, 'Updating ' + ( row.name || row.slug ) + '…', 'busy' );
-						installFromCatalog( row.slug, { allowUpdate: true } ).then( function ( res ) {
-							if ( res && res.ok && res.data && res.data.installed ) {
-								setAppsStatus( wrap, 'Updated ' + ( row.name || row.slug ) + '. Reloading…', 'ok' );
-								setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 600 );
-								return;
-							}
-							updateBtn.disabled = false;
-							updateBtn.textContent = 'Update';
-							setAppsStatus( wrap, ( res && res.message ) || 'Update failed.', 'error' );
-						} );
-					} );
-					actions.appendChild( updateBtn );
-				}
-				var openBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
-				openBtn.textContent = 'Open';
-				openBtn.addEventListener( 'click', function () { openAppWindow( row.slug ); } );
-				actions.appendChild( openBtn );
-			} else {
-				var installBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
-				installBtn.textContent = row.builtin ? 'Add' : 'Get';
-				installBtn.addEventListener( 'click', function () {
-					var originalLabel = installBtn.textContent;
-					installBtn.disabled = true;
-					installBtn.textContent = row.builtin ? 'Adding…' : 'Getting…';
-					var label = row.builtin ? 'Adding ' : 'Downloading ';
-					setAppsStatus( wrap, label + ( row.name || row.slug ) + '…', 'busy' );
-					toast( label + ( row.name || row.slug ) + '…' );
-					installFromCatalog( row.slug ).then( function ( res ) {
+			if ( row.installed && row.update_available ) {
+				var updateBadge = el( 'span', { class: 'odd-shop__card-badge odd-shop__card-badge--update' } );
+				updateBadge.textContent = 'Update';
+				var inner = cardWrap.querySelector( '.odd-shop__card' );
+				if ( inner ) inner.appendChild( updateBadge );
+				var updateBtn = el( 'button', { type: 'button', class: 'odd-shop__card-btn odd-shop__card-btn--update' } );
+				updateBtn.textContent = 'Update';
+				updateBtn.addEventListener( 'click', function () {
+					updateBtn.disabled = true;
+					updateBtn.textContent = 'Updating…';
+					setAppsStatus( wrap, 'Updating ' + ( row.name || row.slug ) + '…', 'busy' );
+					installFromCatalog( row.slug, { allowUpdate: true } ).then( function ( res ) {
 						if ( res && res.ok && res.data && res.data.installed ) {
-							var m = res.data.manifest;
-							setAppsStatus( wrap, 'Installed ' + ( ( m && m.name ) || row.name ) + '. Reloading…', 'ok' );
-							toast( 'Installed ' + ( ( m && m.name ) || row.name ) + '. Reloading…' );
-							var ev = window.__odd && window.__odd.events;
-							if ( ev ) ev.emit( 'odd.app-installed', { slug: row.slug, manifest: m } );
-							setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 600 );
+							setAppsStatus( wrap, 'Updated ' + ( row.name || row.slug ) + '. Reloading…', 'ok' );
+							rememberJustInstalled( { type: 'app', slug: row.slug, name: row.name || row.slug } );
+							setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 500 );
 							return;
 						}
-						installBtn.disabled = false;
-						installBtn.textContent = originalLabel;
-						var msg = ( res && res.message ) ||
-							( res && res.data && ( res.data.message || res.data.code ) ) ||
-							'Install failed.';
-						setAppsStatus( wrap, msg, 'error' );
-						toast( msg );
-					} )[ 'catch' ]( function ( err ) {
-						installBtn.disabled = false;
-						installBtn.textContent = originalLabel;
-						var msg = ( err && err.message ) || 'Install failed (unexpected error).';
-						setAppsStatus( wrap, msg, 'error' );
-						toast( msg );
-						reportError( 'apps.install.click', err );
+						updateBtn.disabled = false;
+						updateBtn.textContent = 'Update';
+						setAppsStatus( wrap, ( res && res.message ) || 'Update failed.', 'error' );
 					} );
 				} );
-				actions.appendChild( installBtn );
+				cardWrap.appendChild( updateBtn );
 			}
-			card.appendChild( actions );
-			return card;
+
+			if ( row.installed ) {
+				cardWrap.appendChild( renderAppCardManagement( row, wrap ) );
+			}
+
+			return cardWrap;
+		}
+
+		function renderAppCardManagement( app, wrap ) {
+			var manage = el( 'div', { class: 'odd-shop__card-manage' } );
+
+			var rowSurfaces = ( app.surfaces && typeof app.surfaces === 'object' )
+				? app.surfaces
+				: { desktop: true, taskbar: false };
+			var surfacesRow = el( 'div', {
+				class: 'odd-card__surfaces odd-shop__card-surfaces',
+				'aria-label': __( 'App surfaces' ),
+			} );
+			if ( ! app.enabled ) {
+				surfacesRow.setAttribute( 'aria-disabled', 'true' );
+				surfacesRow.classList.add( 'is-disabled' );
+			}
+
+			function makeSurfaceToggle( key, label, hint ) {
+				var wrapLbl = el( 'label', { class: 'odd-card__surface' } );
+				var box     = el( 'input', { type: 'checkbox' } );
+				box.checked = !! rowSurfaces[ key ];
+				box.disabled = ! app.enabled;
+				var text = el( 'span', { class: 'odd-card__surface-text' } );
+				var name = el( 'strong' );
+				name.textContent = label;
+				var tail = el( 'span', { class: 'odd-card__surface-hint' } );
+				tail.textContent = hint;
+				text.appendChild( name );
+				text.appendChild( tail );
+				wrapLbl.appendChild( box );
+				wrapLbl.appendChild( text );
+				box.addEventListener( 'change', function () {
+					if ( ! app.enabled ) return;
+					var payload      = {};
+					payload[ key ]   = !! box.checked;
+					rowSurfaces[ key ] = !! box.checked;
+					box.disabled = true;
+					setAppSurfaces( app.slug, payload ).then( function ( res ) {
+						if ( res && res.surfaces ) {
+							setAppsStatus( wrap, __( 'Updated — reloading…' ), 'ok' );
+							setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 180 );
+							return;
+						}
+						box.checked  = ! box.checked;
+						box.disabled = false;
+						rowSurfaces[ key ] = !! box.checked;
+						setAppsStatus( wrap, __( 'Could not update surfaces.' ), 'error' );
+					} );
+				} );
+				return wrapLbl;
+			}
+			surfacesRow.appendChild( makeSurfaceToggle( 'desktop', __( 'Desktop icon' ), __( 'Show a shortcut on the desktop.' ) ) );
+			surfacesRow.appendChild( makeSurfaceToggle( 'taskbar', __( 'Taskbar pill' ),  __( 'Pin a launcher to the bottom taskbar.' ) ) );
+			manage.appendChild( surfacesRow );
+
+			var actions = el( 'div', { class: 'odd-shop__card-manage-actions' } );
+			var toggle = el( 'button', { type: 'button', class: 'odd-apps-btn' } );
+			toggle.textContent = app.enabled ? 'Disable' : 'Enable';
+			toggle.addEventListener( 'click', function () {
+				toggleApp( app.slug, ! app.enabled ).then( function ( ok ) {
+					if ( ok ) refreshAppsGallery( wrap );
+				} );
+			} );
+			var del = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--danger' } );
+			del.textContent = 'Delete';
+			del.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Uninstall "' + ( app.name || app.slug ) + '"?' ) ) return;
+				deleteApp( app.slug ).then( function ( ok ) {
+					if ( ok ) {
+						var ev = window.__odd && window.__odd.events;
+						if ( ev ) ev.emit( 'odd.app-uninstalled', { slug: app.slug } );
+						refreshAppsGallery( wrap );
+					}
+				} );
+			} );
+			actions.appendChild( toggle );
+			actions.appendChild( del );
+			manage.appendChild( actions );
+			return manage;
 		}
 
 		function fetchCatalog() {
@@ -667,9 +718,7 @@
 		function refreshAppsGallery( wrap ) {
 			var gallery = wrap.querySelector( '[data-odd-apps-gallery]' );
 			if ( ! gallery ) return;
-			fetchApps().then( function ( apps ) {
-				renderAppsGallery( gallery, apps, wrap );
-			} );
+			renderAppsUnifiedGrid( gallery, wrap );
 		}
 
 		function setAppsStatus( wrap, msg, kind ) {
@@ -850,41 +899,85 @@
 			var type  = ( data && data.type ) || 'app';
 			var slug  = ( data && data.slug ) || ( data && data.manifest && data.manifest.slug ) || '';
 			var name  = ( data && data.manifest && ( data.manifest.name || data.manifest.label ) ) || slug;
-			var noun  = NOUN_FOR_TYPE[ type ] || 'bundle';
-			var dept  = DEPT_FOR_TYPE[ type ] || state.active;
 
-			toast( 'Installed ' + noun + ' "' + name + '".' );
-
-			// Mark the catalog row as installed so the re-rendered
-			// Discover shelf flips the tile from "Install" to
-			// "Installed" — otherwise the server-pre-baked catalog on
-			// `window.odd.bundleCatalog` would still advertise the
-			// slug as uninstalled and a second click on the same tile
-			// would 409 with already_installed.
+			// Mark the catalog row as installed so any still-rendered
+			// Discover strip flips the tile from "Install" to the
+			// installed affordance. Otherwise the server-pre-baked
+			// catalog on `window.odd.bundleCatalog` would still
+			// advertise the slug as uninstalled and a second click
+			// on the same tile would 409 with already_installed.
 			markCatalogRowInstalled( type, slug );
+			emitInstalledEvent( data, type, slug );
 
+			if ( 'widget' === type ) {
+				return onInstallSuccessWidget( data, slug, name );
+			}
+			return onInstallSuccessReload( data, type, slug, name );
+		}
+
+		function emitInstalledEvent( data, type, slug ) {
 			var ev = window.__odd && window.__odd.events;
-			if ( ev ) {
-				try { ev.emit( 'odd.bundle-installed', { slug: slug, type: type, manifest: data.manifest } ); } catch ( e ) {}
-				// Back-compat: existing listeners still expect
-				// `odd.app-installed` for type: app.
-				if ( 'app' === type ) {
-					try { ev.emit( 'odd.app-installed', { slug: slug, manifest: data.manifest } ); } catch ( e2 ) {}
-				}
-			}
-
-			// Apps need a hard reload to surface their dock icon +
-			// register their native window. Other types slot into
-			// the panel without a reload.
+			if ( ! ev ) return;
+			try { ev.emit( 'odd.bundle-installed', { slug: slug, type: type, manifest: data && data.manifest } ); } catch ( e ) {}
+			// Back-compat: pre-v3.1 listeners still subscribe to
+			// `odd.app-installed` specifically for type: app.
 			if ( 'app' === type ) {
-				setTimeout( function () {
-					try { window.location.reload(); } catch ( e ) {}
-				}, 600 );
-				return;
+				try { ev.emit( 'odd.app-installed', { slug: slug, manifest: data && data.manifest } ); } catch ( e2 ) {}
 			}
+		}
 
-			state.justInstalled = { type: type, slug: slug, at: Date.now() };
-			renderSection( dept );
+		// Scene / icon-set / app install flow: write a breadcrumb
+		// to sessionStorage so the post-reload panel can land the
+		// user on the right department with the new tile flashed,
+		// toast a "Refreshing…" status, then reload after a short
+		// delay. Without the reload:
+		//   - scene.js bundles aren't enqueued until admin_enqueue_scripts
+		//     runs again, so picking the new scene would throw;
+		//   - the icon-dock filter is server-canonical (see
+		//     docs/adr/0001-icon-live-swap-server-canonical.md);
+		//   - apps register their native window + surfaces on `init`.
+		function onInstallSuccessReload( data, type, slug, name ) {
+			var noun = NOUN_FOR_TYPE[ type ] || 'bundle';
+			rememberJustInstalled( { type: type, slug: slug, name: name } );
+			toast( 'Installed ' + noun + ' "' + name + '". Refreshing…' );
+			setTimeout( function () {
+				try { window.location.reload(); } catch ( e ) {}
+			}, 500 );
+		}
+
+		// Widget install flow: no reload needed. Dynamically inject
+		// the widget's entry script (which self-registers into
+		// `wp.desktop.registerWidget`), splice a panel-shaped row
+		// into `state.cfg.installedWidgets`, re-render the Widgets
+		// department, and flash the new tile. Falls back to the
+		// reload path when the script fails to load so the user
+		// still ends up with a working widget, just more slowly.
+		function onInstallSuccessWidget( data, slug, name ) {
+			var entryUrl = data && data.entry_url;
+			var row      = data && data.row;
+			function fallback() {
+				onInstallSuccessReload( data, 'widget', slug, name );
+			}
+			if ( ! entryUrl ) { fallback(); return; }
+
+			loadWidgetScript( slug, entryUrl ).then( function () {
+				var widgetsList = Array.isArray( state.cfg.installedWidgets ) ? state.cfg.installedWidgets.slice() : [];
+				// Replace any existing entry with the fresh row so a
+				// re-install (update) overwrites the old label +
+				// description rather than duplicating the tile.
+				widgetsList = widgetsList.filter( function ( w ) { return w && w.slug !== slug; } );
+				if ( row && row.slug ) {
+					widgetsList.push( row );
+				} else {
+					widgetsList.push( { id: 'odd/' + slug, slug: slug, label: name, installed: true } );
+				}
+				state.cfg.installedWidgets = widgetsList;
+				state.justInstalled = { type: 'widget', slug: slug, name: name, at: Date.now() };
+				toast( 'Installed widget "' + name + '". Added to your widget shelf.' );
+				renderSection( 'widgets', { keepQuery: true } );
+			} ).catch( function () {
+				fallback();
+			} );
 		}
 
 		/**
@@ -913,9 +1006,9 @@
 			if ( ! state.justInstalled ) return;
 			var slug = state.justInstalled.slug;
 			if ( ! slug ) { state.justInstalled = null; return; }
-			// Wait a tick so the section has rendered its cards.
 			setTimeout( function () {
 				var selectors = [
+					'[data-odd-shop-card][data-slug="' + slug + '"]',
 					'[data-slug="' + slug + '"]',
 					'[data-scene-slug="' + slug + '"]',
 					'[data-set-slug="' + slug + '"]',
@@ -929,7 +1022,7 @@
 				if ( tile ) {
 					tile.classList.add( 'is-just-installed' );
 					try { tile.scrollIntoView( { behavior: 'smooth', block: 'center' } ); } catch ( e ) {}
-					setTimeout( function () { tile.classList.remove( 'is-just-installed' ); }, 2400 );
+					setTimeout( function () { tile.classList.remove( 'is-just-installed' ); }, 4000 );
 				}
 				state.justInstalled = null;
 			}, 80 );
@@ -1232,76 +1325,58 @@
 		 * remote entries ship URLs and descriptions rather than
 		 * painted previews.
 		 */
+		// Discover shelf — now a curation strip above the unified
+		// department grid rather than a parallel catalog list. Shows
+		// featured / new catalog rows using the same `renderShopCard`
+		// as everything else, so the visual language is consistent.
 		function renderDiscoverShelf( type ) {
 			var catalog = ( state.cfg.bundleCatalog || {} );
 			var key = ( type === 'icon-set' ) ? 'iconSet' : type;
-			var rows = Array.isArray( catalog[ key ] ) ? catalog[ key ] : [];
-			if ( ! rows.length ) return null;
+			var raw = Array.isArray( catalog[ key ] ) ? catalog[ key ] : [];
+			if ( ! raw.length ) return null;
 
-			var shelf = el( 'section', { class: 'odd-shop__shelf', 'data-shelf-anchor': 'Discover' } );
+			// Prefer featured + uninstalled rows; if the catalog doesn't
+			// advertise any featured entries, fall back to the first few
+			// uninstalled rows so the strip still has something to show.
+			var uninstalled = raw.filter( function ( r ) { return r && ! r.installed; } );
+			if ( ! uninstalled.length ) return null;
+			var featured = uninstalled.filter( function ( r ) { return r && ( r.featured || r.is_new ); } );
+			var rows = featured.length ? featured : uninstalled.slice( 0, 8 );
+
+			var shelf = el( 'section', { class: 'odd-shop__shelf odd-shop__shelf--discover', 'data-shelf-anchor': 'Discover' } );
 			var head  = el( 'div', { class: 'odd-shop__shelf-head' } );
 			var title = el( 'h3', { class: 'odd-shop__shelf-title' } );
-			title.textContent = 'Discover';
+			title.textContent = featured.length ? 'Featured in the catalog' : 'From the catalog';
 			var count = el( 'span', { class: 'odd-shop__shelf-count' } );
-			count.textContent = rows.length + ' from the catalog';
+			count.textContent = rows.length + ( rows.length === 1 ? ' pick' : ' picks' );
 			head.appendChild( title );
 			head.appendChild( count );
 			shelf.appendChild( head );
 
-			var list = el( 'div', { class: 'odd-catalog-list' } );
-			rows.forEach( function ( row ) {
-				list.appendChild( renderDiscoverRow( row ) );
+			var track = el( 'div', { class: 'odd-shop__shelf-track odd-shop__shelf-track--tiles' } );
+			rows.forEach( function ( raw ) {
+				var row = normaliseShopRow( raw, type );
+				if ( ! row ) return;
+				row.installed = !! raw.installed;
+				var card = renderShopCard( row, { variant: 'discover' } );
+				if ( card ) track.appendChild( card );
 			} );
-			shelf.appendChild( list );
+			shelf.appendChild( track );
 			return shelf;
 		}
 
-		function renderDiscoverRow( row ) {
-			var wrap = el( 'div', { class: 'odd-catalog-row' } );
-			if ( row.installed ) wrap.classList.add( 'is-installed' );
-
-			var iconWrap = el( 'div', { class: 'odd-catalog-row__icon' } );
-			if ( row.icon_url ) {
-				iconWrap.appendChild( el( 'img', { src: row.icon_url, alt: '', loading: 'lazy' } ) );
-			} else {
-				iconWrap.classList.add( 'odd-catalog-row__icon--badge' );
-				iconWrap.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
-			}
-			wrap.appendChild( iconWrap );
-
-			var body = el( 'div', { class: 'odd-catalog-row__body' } );
-			var titleRow = el( 'div', { class: 'odd-catalog-row__title' } );
-			var name = el( 'span', { class: 'odd-catalog-row__name' } );
-			name.textContent = row.name || row.slug;
-			titleRow.appendChild( name );
-			if ( row.version ) {
-				var v = el( 'span', { class: 'odd-catalog-row__version' } );
-				v.textContent = 'v' + row.version;
-				titleRow.appendChild( v );
-			}
-			body.appendChild( titleRow );
-			if ( row.description ) {
-				var desc = el( 'div', { class: 'odd-catalog-row__desc' } );
-				desc.textContent = row.description;
-				body.appendChild( desc );
-			}
-			wrap.appendChild( body );
-
-			var actions = el( 'div', { class: 'odd-catalog-row__actions' } );
-			if ( row.installed ) {
-				var tag = el( 'span', { class: 'odd-catalog-row__installed' } );
-				tag.textContent = 'Installed';
-				actions.appendChild( tag );
-			} else {
-				var btn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
-				btn.textContent = 'Install';
-				btn.addEventListener( 'click', function () {
-					installFromBundleCatalog( row, btn );
-				} );
-				actions.appendChild( btn );
-			}
-			wrap.appendChild( actions );
-			return wrap;
+		// Thin compat adapter — any lingering call sites that render
+		// a single catalog row pass through the unified card too.
+		function renderDiscoverRow( raw ) {
+			var type = 'scene';
+			// Best-effort type detection from the source row.
+			if ( raw && raw.widget ) type = 'widget';
+			else if ( raw && raw.icons ) type = 'icon-set';
+			else if ( raw && raw.app )   type = 'app';
+			var row = normaliseShopRow( raw, type );
+			if ( ! row ) return el( 'div' );
+			row.installed = !! ( raw && raw.installed );
+			return renderShopCard( row );
 		}
 
 		/**
@@ -2451,142 +2526,67 @@
 			return shelf;
 		}
 
+		// Thin adapter — every shelf that used to render a bespoke
+		// scene card now routes through the unified shop card so the
+		// tile visuals are identical with Icons / Widgets / Apps.
+		// Kept as a named function so `renderShelf( ..., renderSceneCard, ... )`
+		// call sites don't need to change.
 		function renderSceneCard( scene ) {
+			var row  = normaliseShopRow( scene, 'scene' );
+			if ( ! row ) return el( 'div' );
+			row.installed = true;
+			var wrap = renderShopCard( row );
+			// Scene card gets additional preview-state affordances
+			// that the generic renderer doesn't know about — the
+			// active scene gets the Iris "watching" sticker and the
+			// mid-preview tile grows a `is-previewing` class the
+			// preview-bar logic keys off. Layer these on after the
+			// unified render returns its DOM.
+			if ( wrap ) decorateSceneCard( wrap, scene );
+			return wrap;
+		}
+
+		function decorateSceneCard( wrap, scene ) {
+			var card = wrap.querySelector( '.odd-shop__card' );
+			if ( ! card ) return;
 			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
 			var active = scene.slug === currentSlug;
 			var isPreview = state.preview && state.preview.kind === 'wallpaper' && state.preview.slug === scene.slug;
-
-			// Shell is still a button so keyboard activation works the
-			// same way it did in the old grid; the inner Preview pill
-			// stops propagation so its click-through doesn't toggle
-			// preview twice.
-			var card = el( 'button', {
-				type: 'button',
-				class: 'odd-card odd-shop__tile'
-					+ ( active && ! state.preview ? ' is-active' : '' )
-					+ ( isPreview ? ' is-previewing' : '' ),
-				'data-slug': scene.slug,
-				'aria-label': ( scene.label || scene.slug ) + ' — ' + ( categoryOf( scene, 'wallpaper' ) || scene.franchise || 'scene' ),
-			} );
-
-			var thumb = el( 'div', { class: 'odd-shop__tile-thumb' } );
-			thumb.style.backgroundColor = scene.fallbackColor || '#111';
-			var img = el( 'img', {
-				src: scene.previewUrl || ( ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + scene.slug + '.webp' ),
-				alt: '',
-				loading: 'lazy',
-			} );
-			thumb.appendChild( img );
-			if ( active && ! state.preview ) {
-				var badge = el( 'span', { class: 'odd-shop__tile-badge' } );
-				badge.textContent = '✓ Active';
-				thumb.appendChild( badge );
-
-				// Iris "watching" sticker — ties the active wallpaper
-				// pick to the same eye glyph used by the marketing
-				// site, the favicon, and the brand mark.
-				var iris = el( 'span', {
-					class: 'odd-shop__iris-sticker',
-					'aria-hidden': 'true',
-					title: 'Iris is watching',
-				} );
-				iris.innerHTML =
-					'<svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">'
-						+ '<defs>'
-							+ '<linearGradient id="oddIrisBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">'
-								+ '<stop offset="0%" stop-color="#ff4fa8"/>'
-								+ '<stop offset="55%" stop-color="#9d6bff"/>'
-								+ '<stop offset="100%" stop-color="#5a35d6"/>'
-							+ '</linearGradient>'
-							+ '<radialGradient id="oddIrisIris" cx="42%" cy="38%" r="68%">'
-								+ '<stop offset="0%" stop-color="#c6fbff"/>'
-								+ '<stop offset="45%" stop-color="#70f5ff"/>'
-								+ '<stop offset="100%" stop-color="#1e7ac9"/>'
-							+ '</radialGradient>'
-						+ '</defs>'
-						+ '<rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="url(#oddIrisBg)"/>'
-						+ '<g class="odd-shop__iris-blinker">'
-							+ '<circle cx="32" cy="32" r="20" fill="#fdfaf2" stroke="#130826" stroke-width="3"/>'
-							+ '<circle cx="32" cy="32" r="13" fill="url(#oddIrisIris)"/>'
-							+ '<circle cx="32" cy="32" r="6" fill="#091425"/>'
-							+ '<circle cx="29" cy="29" r="2.4" fill="#ffffff"/>'
-						+ '</g>'
-					+ '</svg>';
-				thumb.appendChild( iris );
+			if ( isPreview ) {
+				card.classList.add( 'is-previewing' );
+				wrap.classList.add( 'is-previewing' );
+				var btn = wrap.querySelector( '.odd-shop__card-btn' );
+				if ( btn ) btn.textContent = 'Previewing';
 			}
-			card.appendChild( thumb );
-
-			var fav = isFavorite( scene.slug );
-			var star = el( 'span', {
-				class: 'odd-shop__fav' + ( fav ? ' is-on' : '' ),
-				role: 'button',
-				tabindex: '0',
-				'aria-label': fav ? 'Remove from favorites' : 'Add to favorites',
-				'aria-pressed': fav ? 'true' : 'false',
-				title: fav ? 'Unfavorite' : 'Favorite',
-			} );
-			star.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3.6 L14.6 9.1 L20.5 9.9 L16.2 14.2 L17.3 20.1 L12 17.3 L6.7 20.1 L7.8 14.2 L3.5 9.9 L9.4 9.1 Z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
-			star.addEventListener( 'click', function ( ev ) {
-				ev.stopPropagation();
-				ev.preventDefault();
-				toggleFavorite( scene.slug );
-			} );
-			star.addEventListener( 'keydown', function ( ev ) {
-				if ( ev.key === 'Enter' || ev.key === ' ' ) {
-					ev.stopPropagation();
-					ev.preventDefault();
-					toggleFavorite( scene.slug );
+			if ( active && ! state.preview ) {
+				var art = wrap.querySelector( '.odd-shop__card-art' );
+				if ( art && ! art.querySelector( '.odd-shop__iris-sticker' ) ) {
+					var iris = el( 'span', { class: 'odd-shop__iris-sticker', 'aria-hidden': 'true', title: 'Iris is watching' } );
+					iris.innerHTML =
+						'<svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">'
+							+ '<defs>'
+								+ '<linearGradient id="oddIrisBg' + scene.slug + '" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">'
+									+ '<stop offset="0%" stop-color="#ff4fa8"/>'
+									+ '<stop offset="55%" stop-color="#9d6bff"/>'
+									+ '<stop offset="100%" stop-color="#5a35d6"/>'
+								+ '</linearGradient>'
+								+ '<radialGradient id="oddIrisIris' + scene.slug + '" cx="42%" cy="38%" r="68%">'
+									+ '<stop offset="0%" stop-color="#c6fbff"/>'
+									+ '<stop offset="45%" stop-color="#70f5ff"/>'
+									+ '<stop offset="100%" stop-color="#1e7ac9"/>'
+								+ '</radialGradient>'
+							+ '</defs>'
+							+ '<rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="url(#oddIrisBg' + scene.slug + ')"/>'
+							+ '<g class="odd-shop__iris-blinker">'
+								+ '<circle cx="32" cy="32" r="20" fill="#fdfaf2" stroke="#130826" stroke-width="3"/>'
+								+ '<circle cx="32" cy="32" r="13" fill="url(#oddIrisIris' + scene.slug + ')"/>'
+								+ '<circle cx="32" cy="32" r="6" fill="#091425"/>'
+								+ '<circle cx="29" cy="29" r="2.4" fill="#ffffff"/>'
+							+ '</g>'
+						+ '</svg>';
+					art.appendChild( iris );
 				}
-			} );
-			// Intentionally NOT appended to `thumb` — nesting an
-			// interactive widget inside a <button> trips axe's
-			// nested-interactive rule. The star moves to the
-			// `tile-wrap` sibling at the bottom of this fn.
-
-			var meta = el( 'div', { class: 'odd-shop__tile-meta' } );
-			var metaText = el( 'div', { class: 'odd-shop__tile-text' } );
-			var title = el( 'div', { class: 'odd-card__title odd-shop__tile-title' } );
-			title.textContent = scene.label || scene.slug;
-			var sub = el( 'div', { class: 'odd-card__sub odd-shop__tile-sub' } );
-			// Prefer the canonical category (Skies/Wilds/Places/Forms)
-			// over the free-form `franchise` label so the subtitle is
-			// stable even when a scene manifest omits `franchise`
-			// altogether. `franchise` stays as a soft historical
-			// label; third-party scenes can set either.
-			var sceneCat = categoryOf( scene, 'wallpaper' ) || scene.franchise || 'Scene';
-			sub.textContent = sceneCat + ' · Scene';
-			metaText.appendChild( title );
-			metaText.appendChild( sub );
-
-			var pill = el( 'span', { class: 'odd-shop__tile-pill' } );
-			if ( isPreview ) pill.textContent = 'Previewing';
-			else if ( active && ! state.preview ) pill.textContent = 'Open';
-			else pill.textContent = 'Preview';
-
-			meta.appendChild( metaText );
-			meta.appendChild( pill );
-			card.appendChild( meta );
-
-			card.addEventListener( 'click', function () {
-				var current = state.cfg.wallpaper || state.cfg.scene;
-				if ( scene.slug === current && ! state.preview ) return;
-				if ( state.preview && state.preview.kind === 'wallpaper' && scene.slug === state.preview.originalSlug ) {
-					cancelPreview();
-					return;
-				}
-				previewScene( scene.slug );
-			} );
-
-			// Wrap so the interactive card <button> and the favorite
-			// star can live as siblings rather than parent/child —
-			// axe flags nested interactive controls as serious.
-			var wrap = el( 'div', {
-				class: 'odd-shop__tile-wrap',
-				'data-slug': scene.slug,
-			} );
-			wrap.appendChild( card );
-			wrap.appendChild( star );
-			return wrap;
+			}
 		}
 
 		function isFavorite( slug ) {
@@ -2961,87 +2961,34 @@
 			return hero;
 		}
 
+		// Icon-set card adapter — same unified tile as scenes, with a
+		// mid-preview overlay + an extra `odd-catalog-row--iconset`
+		// marker so `redecorateIconGrid` can still find previously-
+		// built rows to toggle between Preview / Previewing / Active.
 		function renderIconSetCard( set ) {
-			var currentSlug = state.cfg.iconSet || '';
-			var isDefault = ! currentSlug;
-			var active = ( set.slug === 'none' && isDefault ) || ( set.slug !== 'none' && set.slug === currentSlug );
-			var isPreview = state.preview && state.preview.kind === 'iconSet' && state.preview.slug === set.slug;
-
-			var card = el( 'div', {
-				class: 'odd-catalog-row odd-catalog-row--iconset'
-					+ ( active && ! state.preview ? ' is-active' : '' )
-					+ ( isPreview ? ' is-previewing' : '' ),
-				'data-slug': set.slug,
-			} );
-
-			var iconWrap = el( 'div', { class: 'odd-catalog-row__icon' } );
-			if ( set.preview ) {
-				iconWrap.appendChild( el( 'img', { src: set.preview, alt: '', loading: 'lazy' } ) );
-			} else if ( set.icons && Object.keys( set.icons ).length ) {
-				var keys = [ 'dashboard', 'posts', 'pages', 'media' ].filter( function ( k ) { return set.icons[ k ]; } );
-				if ( ! keys.length ) keys = Object.keys( set.icons ).slice( 0, 4 );
-				if ( set.accent ) iconWrap.style.background = set.accent;
-				var inner = el( 'div', { class: 'odd-iconset-mini' } );
-				keys.slice( 0, 4 ).forEach( function ( k ) {
-					inner.appendChild( el( 'img', { src: set.icons[ k ], alt: '', loading: 'lazy' } ) );
-				} );
-				iconWrap.appendChild( inner );
-			} else {
-				iconWrap.classList.add( 'odd-catalog-row__icon--badge' );
-				iconWrap.textContent = ( set.label || set.slug ).slice( 0, 2 ).toUpperCase();
+			var row = normaliseShopRow( set, 'icon-set' );
+			if ( ! row ) return el( 'div' );
+			row.installed = true;
+			var wrap = renderShopCard( row );
+			if ( wrap ) {
+				// Legacy marker + data-slug on the inner card so the
+				// in-place preview decorator (`redecorateIconGrid`)
+				// still finds its tiles after a selection changes.
+				var inner = wrap.querySelector( '.odd-shop__card' );
+				if ( inner ) {
+					inner.classList.add( 'odd-catalog-row--iconset' );
+					inner.setAttribute( 'data-slug', set.slug );
+				}
+				wrap.classList.add( 'odd-catalog-row--iconset-wrap' );
+				var isPreview = state.preview && state.preview.kind === 'iconSet' && state.preview.slug === set.slug;
+				if ( isPreview ) {
+					wrap.classList.add( 'is-previewing' );
+					if ( inner ) inner.classList.add( 'is-previewing' );
+					var btn = wrap.querySelector( '.odd-shop__card-btn' );
+					if ( btn ) { btn.textContent = 'Previewing'; btn.disabled = true; }
+				}
 			}
-			card.appendChild( iconWrap );
-
-			var body = el( 'div', { class: 'odd-catalog-row__body' } );
-			var titleRow = el( 'div', { class: 'odd-catalog-row__title' } );
-			var titleText = el( 'span', { class: 'odd-catalog-row__name' } );
-			titleText.textContent = set.label || set.slug;
-			titleRow.appendChild( titleText );
-			if ( set.franchise ) {
-				var franchise = el( 'span', { class: 'odd-catalog-row__version' } );
-				franchise.textContent = set.franchise;
-				titleRow.appendChild( franchise );
-			}
-			body.appendChild( titleRow );
-			if ( set.description ) {
-				var desc = el( 'div', { class: 'odd-catalog-row__desc' } );
-				desc.textContent = set.description;
-				body.appendChild( desc );
-			}
-			card.appendChild( body );
-
-			var actions = el( 'div', { class: 'odd-catalog-row__actions' } );
-			var btn = el( 'button', {
-				type: 'button',
-				class: 'odd-apps-btn odd-apps-btn--pill' + ( active && ! state.preview ? '' : ' odd-apps-btn--primary' ),
-			} );
-			if ( isPreview ) {
-				btn.textContent = 'Previewing';
-				btn.disabled = true;
-			} else if ( active && ! state.preview ) {
-				btn.textContent = 'Active';
-				btn.disabled = true;
-			} else {
-				btn.textContent = 'Preview';
-			}
-			btn.addEventListener( 'click', function ( e ) {
-				e.stopPropagation();
-				if ( btn.disabled ) return;
-				previewIconSet( set.slug );
-			} );
-			actions.appendChild( btn );
-			card.appendChild( actions );
-
-			// Whole-row click also starts a preview (except on the
-			// action button, which stops propagation). Makes the grid
-			// feel like the wallpaper cards.
-			card.addEventListener( 'click', function () {
-				if ( isPreview ) return;
-				if ( active && ! state.preview ) return;
-				previewIconSet( set.slug );
-			} );
-
-			return card;
+			return wrap;
 		}
 
 		function previewIconSet( slug ) {
@@ -3115,21 +3062,33 @@
 				var isPreviewing = previewSlug && slug === previewSlug;
 				row.classList.toggle( 'is-active',     !! ( isActive && ! previewSlug ) );
 				row.classList.toggle( 'is-previewing', !! isPreviewing );
+				var wrap = row.closest ? row.closest( '.odd-shop__card-wrap' ) : null;
+				if ( wrap ) {
+					wrap.classList.toggle( 'is-active',     !! ( isActive && ! previewSlug ) );
+					wrap.classList.toggle( 'is-previewing', !! isPreviewing );
+				}
 
-				var btn = row.querySelector( '.odd-apps-btn' );
+				// Support both the unified tile button class and the
+				// legacy `.odd-apps-btn` class — the latter still
+				// lives on the Icons-department "Reset to default"
+				// pill plus any third-party shelves that haven't
+				// rebased yet.
+				var btn = ( wrap && wrap.querySelector( '.odd-shop__card-btn' ) )
+					|| row.querySelector( '.odd-shop__card-btn' )
+					|| row.querySelector( '.odd-apps-btn' );
 				if ( btn ) {
 					if ( isPreviewing ) {
 						btn.textContent = 'Previewing';
 						btn.disabled = true;
-						btn.classList.remove( 'odd-apps-btn--primary' );
+						btn.classList.add( 'is-disabled' );
 					} else if ( isActive && ! previewSlug ) {
 						btn.textContent = 'Active';
 						btn.disabled = true;
-						btn.classList.remove( 'odd-apps-btn--primary' );
+						btn.classList.add( 'is-disabled' );
 					} else {
 						btn.textContent = 'Preview';
 						btn.disabled = false;
-						btn.classList.add( 'odd-apps-btn--primary' );
+						btn.classList.remove( 'is-disabled' );
 					}
 				}
 			}
@@ -3382,62 +3341,64 @@
 				{ eyebrow: 'ODD · Desktop Companions' }
 			) );
 
-			var catalog = widgetCatalog();
-			var enabled = enabledWidgetIds();
-			var enabledMap = {};
-			enabled.forEach( function ( eid ) { enabledMap[ eid ] = true; } );
+			var rows = shopRowsFor( 'widget' );
+			if ( state.query ) {
+				rows = filterByQuery( rows, state.query );
+			}
 
-			var filtered = state.query
-				? catalog.filter( function ( w ) {
-					var q = state.query.toLowerCase();
-					return ( w.label || '' ).toLowerCase().indexOf( q ) !== -1
-						|| ( w.tagline || '' ).toLowerCase().indexOf( q ) !== -1
-						|| ( w.description || '' ).toLowerCase().indexOf( q ) !== -1;
-				} )
-				: catalog;
-
-			// Hero: whatever's currently on the desktop goes first.
-			// If nothing is enabled we feature the top of the catalog
-			// as a "try me" slot.
+			// Hero: whichever widget is currently on the desktop wins.
+			// Falls back to the first installed row so the department
+			// always has a masthead (catalog-only rows skip the hero).
 			var hero = null;
-			for ( var i = 0; i < catalog.length; i++ ) {
-				if ( enabledMap[ catalog[ i ].id ] ) { hero = catalog[ i ]; break; }
+			for ( var i = 0; i < rows.length; i++ ) {
+				if ( rows[ i ] && rows[ i ].installed && shopCardIsActive( rows[ i ] ) ) { hero = rows[ i ]; break; }
 			}
-			if ( ! hero ) hero = catalog[ 0 ];
+			if ( ! hero ) {
+				for ( var j = 0; j < rows.length; j++ ) {
+					if ( rows[ j ] && rows[ j ].installed ) { hero = rows[ j ]; break; }
+				}
+			}
 			if ( hero && ! state.query ) {
-				wrap.appendChild( renderWidgetsHero( hero, !! enabledMap[ hero.id ] ) );
+				wrap.appendChild( renderWidgetsHero(
+					{
+						id:          'odd/' + hero.slug,
+						label:       hero.name,
+						glyph:       hero.raw && hero.raw.glyph ? hero.raw.glyph : '🧩',
+						gradient:    hero.raw && hero.raw.gradient
+							? hero.raw.gradient
+							: 'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)',
+						description: hero.description || 'A desktop widget.',
+					},
+					shopCardIsActive( hero )
+				) );
 			}
 
-			if ( ! filtered.length ) {
-				if ( state.query ) {
-					wrap.appendChild( renderEmptyResults( 'No widgets match "' + state.query + '".' ) );
-					return wrap;
-				}
+			// Discover strip of uninstalled catalog picks, followed
+			// by the unified grid (installed + remaining catalog
+			// rows). Same card renderer drives both surfaces.
+			if ( ! state.query ) {
+				var discover = renderDiscoverShelf( 'widget' );
+				if ( discover ) wrap.appendChild( discover );
+			}
+
+			if ( ! rows.length ) {
 				wrap.appendChild( renderEmptyDept(
 					'widgets',
-					'Install one from the Discover shelf below to park a little card on your desktop.',
+					state.query
+						? 'Nothing matched "' + state.query + '".'
+						: 'Browse the catalog above, or drop a .wp widget bundle to add one.',
 					'🧩'
 				) );
-				var discoverWidgetsEmpty = renderDiscoverShelf( 'widget' );
-				if ( discoverWidgetsEmpty ) wrap.appendChild( discoverWidgetsEmpty );
 				return wrap;
 			}
 
-			if ( ! state.query ) {
-				var discoverWidgets = renderDiscoverShelf( 'widget' );
-				if ( discoverWidgets ) wrap.appendChild( discoverWidgets );
-			}
+			var grid = el( 'div', { class: 'odd-shop__grid odd-shop__grid--widgets' } );
+			rows.forEach( function ( row ) {
+				var card = renderShopCard( row );
+				if ( card ) grid.appendChild( card );
+			} );
+			wrap.appendChild( grid );
 
-			wrap.appendChild( renderShelf(
-				'Widgets',
-				filtered,
-				function ( w ) { return renderWidgetCard( w, !! enabledMap[ w.id ] ); },
-				{ scope: 'widgets' }
-			) );
-
-			// Gentle reminder footer — widgets live on the desktop
-			// itself, which may not be obvious when browsing them
-			// from inside an ODD window that sits on top of the dock.
 			if ( ! state.query ) {
 				var tip = el( 'div', { class: 'odd-shop__tip' } );
 				var tipIcon = el( 'span', { class: 'odd-shop__tip-icon', 'aria-hidden': 'true' } );
@@ -3503,53 +3464,24 @@
 			return hero;
 		}
 
+		// Widget card adapter — routes through the shared renderer
+		// so the Widgets department tiles match Wallpapers / Icons /
+		// Apps visually. `widget` here is the catalog shape returned
+		// from `widgetCatalog()` (id: 'odd/<slug>', glyph, gradient,
+		// etc.); normaliseShopRow pulls a matching row out of it.
 		function renderWidgetCard( widget, isEnabled ) {
-			var card = el( 'div', {
-				class: 'odd-card odd-shop__tile odd-shop__tile--widget'
-					+ ( isEnabled ? ' is-active' : '' ),
-				'data-widget-id': widget.id,
-			} );
-
-			var thumb = el( 'div', { class: 'odd-shop__tile-thumb odd-shop__tile-thumb--widget' } );
-			thumb.style.background = widget.gradient;
-			var glyph = el( 'div', { class: 'odd-shop__tile-glyph', 'aria-hidden': 'true' } );
-			glyph.textContent = widget.glyph;
-			thumb.appendChild( glyph );
-			// Inner shine overlay adds a subtle physical quality to the
-			// gradient thumb — reads as "molded plastic sticker" rather
-			// than "flat rectangle with emoji".
-			thumb.appendChild( el( 'span', { class: 'odd-shop__tile-shine', 'aria-hidden': 'true' } ) );
-			if ( isEnabled ) {
-				var chip = el( 'span', { class: 'odd-shop__tile-chip' } );
-				chip.appendChild( el( 'span', { class: 'odd-shop__tile-chip-dot', 'aria-hidden': 'true' } ) );
-				chip.appendChild( document.createTextNode( 'On desktop' ) );
-				thumb.appendChild( chip );
+			var row = normaliseShopRow( widget, 'widget' );
+			if ( ! row ) return el( 'div' );
+			row.installed = true;
+			var wrap = renderShopCard( row );
+			if ( wrap && isEnabled ) {
+				wrap.classList.add( 'is-active' );
+				var card = wrap.querySelector( '.odd-shop__card' );
+				if ( card ) card.classList.add( 'is-active' );
+				var btn = wrap.querySelector( '.odd-shop__card-btn' );
+				if ( btn ) { btn.textContent = 'Active'; btn.disabled = true; btn.classList.add( 'is-disabled' ); }
 			}
-			card.appendChild( thumb );
-
-			var meta = el( 'div', { class: 'odd-shop__tile-meta' } );
-			var h = el( 'div', { class: 'odd-shop__tile-title' } );
-			h.textContent = widget.label;
-			var p = el( 'div', { class: 'odd-shop__tile-sub' } );
-			p.textContent = widget.tagline;
-			meta.appendChild( h );
-			meta.appendChild( p );
-			card.appendChild( meta );
-
-			var actions = el( 'div', { class: 'odd-shop__tile-actions' } );
-			var btn = el( 'button', {
-				type: 'button',
-				class: 'odd-shop__tile-btn' + ( isEnabled ? ' odd-shop__tile-btn--ghost' : ' odd-shop__tile-btn--primary' ),
-				'aria-pressed': isEnabled ? 'true' : 'false',
-			} );
-			btn.textContent = isEnabled ? 'Remove' : 'Add to desktop';
-			btn.addEventListener( 'click', function () {
-				toggleWidget( widget.id, ! isEnabled );
-			} );
-			actions.appendChild( btn );
-			card.appendChild( actions );
-
-			return card;
+			return wrap;
 		}
 
 		/* --- About section ---------------------------------------
@@ -3840,6 +3772,481 @@
 			h.appendChild( hh );
 			h.appendChild( p );
 			return h;
+		}
+
+		/* --- Unified shop card ---------------------------------- */
+
+		// Normalises a row from any of the four installed-registry
+		// shapes (`scenes` / `iconSets` / `installedWidgets` / apps)
+		// or from a not-installed `bundleCatalog` entry into the
+		// common shape `renderShopCard` consumes. Keeps the card
+		// renderer free of per-type branching beyond the preview art.
+		function normaliseShopRow( raw, type ) {
+			if ( ! raw ) return null;
+			var slug = raw.slug || ( raw.id ? String( raw.id ).replace( /^odd\//, '' ) : '' );
+			if ( ! slug ) return null;
+			var name = raw.label || raw.name || slug;
+
+			var subtitle = '';
+			if ( type === 'scene' ) {
+				subtitle = ( categoryOf( raw, 'wallpaper' ) || raw.franchise || 'Scene' ) + ' · Scene';
+			} else if ( type === 'icon-set' ) {
+				subtitle = ( raw.franchise || 'Icon set' ) + ' · Icon set';
+			} else if ( type === 'widget' ) {
+				subtitle = ( raw.franchise || 'Widget' ) + ' · Widget';
+			} else if ( type === 'app' ) {
+				subtitle = ( raw.version ? 'v' + raw.version : 'App' ) + ( raw.description ? ' · ' + raw.description.slice( 0, 48 ) : '' );
+			}
+
+			return {
+				slug:          slug,
+				type:          type,
+				name:          name,
+				subtitle:      subtitle,
+				description:   raw.description || '',
+				version:       raw.version || '',
+				franchise:     raw.franchise || '',
+				tags:          Array.isArray( raw.tags ) ? raw.tags : [],
+				previewUrl:    raw.previewUrl || '',
+				wallpaperUrl:  raw.wallpaperUrl || '',
+				iconUrl:       raw.icon_url || raw.icon || '',
+				icons:         raw.icons && typeof raw.icons === 'object' ? raw.icons : null,
+				preview:       raw.preview || '',
+				accent:        raw.accent || '',
+				fallbackColor: raw.fallbackColor || '',
+				featured:      !! raw.featured,
+				builtin:       !! raw.builtin,
+				installed:     raw.installed === undefined ? true : !! raw.installed,
+				enabled:       raw.enabled !== false,
+				raw:           raw,
+			};
+		}
+
+		// Return the list of installed rows for a type, normalised to
+		// the unified row shape. Apps come from `state.cfg.apps` (the
+		// extension-registry snapshot) — the REST /apps list is only
+		// used inside the legacy Apps gallery, but the unified grid
+		// doesn't need it.
+		function installedRowsFor( type ) {
+			var cfg = state.cfg || {};
+			var src;
+			if ( type === 'scene' ) {
+				src = Array.isArray( cfg.scenes ) ? cfg.scenes : [];
+				src = src.filter( function ( s ) { return s && s.slug && s.slug !== 'odd-pending'; } );
+			} else if ( type === 'icon-set' ) {
+				src = Array.isArray( cfg.iconSets ) ? cfg.iconSets : [];
+				src = src.filter( function ( s ) { return s && s.slug && s.slug !== 'none'; } );
+			} else if ( type === 'widget' ) {
+				src = Array.isArray( cfg.installedWidgets ) ? cfg.installedWidgets : [];
+			} else if ( type === 'app' ) {
+				src = Array.isArray( cfg.apps ) ? cfg.apps : [];
+			} else {
+				src = [];
+			}
+			var out = [];
+			for ( var i = 0; i < src.length; i++ ) {
+				var row = normaliseShopRow( src[ i ], type );
+				if ( row ) { row.installed = true; out.push( row ); }
+			}
+			return out;
+		}
+
+		function catalogRowsFor( type ) {
+			var catalog = ( state.cfg && state.cfg.bundleCatalog ) || {};
+			var key = ( type === 'icon-set' ) ? 'iconSet' : type;
+			var src = Array.isArray( catalog[ key ] ) ? catalog[ key ] : [];
+			var out = [];
+			for ( var i = 0; i < src.length; i++ ) {
+				var row = normaliseShopRow( src[ i ], type );
+				if ( row ) { row.installed = !! src[ i ].installed; out.push( row ); }
+			}
+			return out;
+		}
+
+		// Merge installed + catalog rows into one list keyed by slug.
+		// When both lists name the same slug, the installed row wins
+		// (it has richer metadata — URLs, franchise, etc.) but any
+		// catalog-only fields (description, featured) get layered in.
+		// Sort: active → installed alphabetical → not-installed alphabetical.
+		function shopRowsFor( type ) {
+			var installed = installedRowsFor( type );
+			var catalog   = catalogRowsFor( type );
+			var bySlug    = {};
+			for ( var i = 0; i < installed.length; i++ ) {
+				bySlug[ installed[ i ].slug ] = installed[ i ];
+			}
+			for ( var j = 0; j < catalog.length; j++ ) {
+				var row = catalog[ j ];
+				if ( bySlug[ row.slug ] ) {
+					if ( row.description && ! bySlug[ row.slug ].description ) {
+						bySlug[ row.slug ].description = row.description;
+					}
+					if ( row.featured ) bySlug[ row.slug ].featured = true;
+					continue;
+				}
+				bySlug[ row.slug ] = row;
+			}
+			var list = [];
+			for ( var k in bySlug ) {
+				if ( Object.prototype.hasOwnProperty.call( bySlug, k ) ) list.push( bySlug[ k ] );
+			}
+			list.sort( function ( a, b ) {
+				var aActive = shopCardIsActive( a );
+				var bActive = shopCardIsActive( b );
+				if ( aActive !== bActive ) return aActive ? -1 : 1;
+				if ( a.installed !== b.installed ) return a.installed ? -1 : 1;
+				return ( a.name || '' ).localeCompare( b.name || '' );
+			} );
+			return list;
+		}
+
+		function shopCardIsActive( row ) {
+			if ( ! row || ! row.installed ) return false;
+			if ( row.type === 'scene' ) {
+				var current = state.cfg.wallpaper || state.cfg.scene;
+				return row.slug === current;
+			}
+			if ( row.type === 'icon-set' ) {
+				return row.slug === ( state.cfg.iconSet || '' );
+			}
+			if ( row.type === 'widget' ) {
+				try {
+					var ids = enabledWidgetIds();
+					for ( var i = 0; i < ids.length; i++ ) {
+						if ( ids[ i ] === ( 'odd/' + row.slug ) || ids[ i ] === row.slug ) return true;
+					}
+				} catch ( e ) {}
+				return false;
+			}
+			// Apps don't have a single-active state — the plan keeps
+			// the button clickable as `Open` forever.
+			return false;
+		}
+
+		// Primary action label + kind derived from state. The kind is
+		// routed through `dispatchShopAction` below; the label is what
+		// the user actually sees on the tile's pill button.
+		function shopCardAction( row ) {
+			if ( ! row || ! row.installed ) {
+				return { label: 'Install', kind: 'install', disabled: false };
+			}
+			if ( shopCardIsActive( row ) ) {
+				return { label: 'Active', kind: 'active', disabled: true };
+			}
+			switch ( row.type ) {
+				case 'scene':
+				case 'icon-set':
+					return { label: 'Preview', kind: 'preview', disabled: false };
+				case 'widget':
+					return { label: 'Add', kind: 'add', disabled: false };
+				case 'app':
+					return { label: 'Open', kind: 'open', disabled: false };
+			}
+			return { label: 'Open', kind: 'open', disabled: false };
+		}
+
+		function dispatchShopAction( row, kind, btn ) {
+			switch ( kind ) {
+				case 'install':
+					if ( row.type === 'app' ) {
+						// Apps install via the Apps-specific endpoint
+						// (which forwards to bundles server-side but
+						// keeps the Apps status rail + toast copy).
+						var originalLabel = btn ? btn.textContent : 'Install';
+						if ( btn ) { btn.disabled = true; btn.textContent = 'Installing…'; }
+						toast( 'Installing ' + row.name + '…' );
+						installFromCatalog( row.slug ).then( function ( res ) {
+							if ( res && res.ok && res.data && res.data.installed ) {
+								handleInstallSuccess( res.data );
+								return;
+							}
+							if ( btn ) { btn.disabled = false; btn.textContent = originalLabel; }
+							toast( ( res && res.message ) || 'Install failed.' );
+						} );
+					} else {
+						installFromBundleCatalog( row.raw || row, btn );
+					}
+					break;
+				case 'preview':
+					if ( row.type === 'scene' )    { previewScene( row.slug );    break; }
+					if ( row.type === 'icon-set' ) { previewIconSet( row.slug );  break; }
+					break;
+				case 'add':
+					toggleWidget( 'odd/' + row.slug, true );
+					break;
+				case 'open':
+					openAppWindow( row.slug );
+					break;
+				case 'active':
+				default:
+					break;
+			}
+		}
+
+		// Artwork region of the tile. Shape changes by type:
+		//
+		//  - scene    → full-bleed preview.webp
+		//  - icon-set → 2×2 quartet of the canonical dashboard/posts/
+		//               pages/media icons on the set's accent-tinted
+		//               background (mirrors the iOS springboard vibe
+		//               the icon sets themselves go for — squircle
+		//               icons arranged on a coloured plate)
+		//  - widget   → gradient plate with the widget's glyph
+		//  - app      → square app icon centered on a soft plate
+		function renderShopCardArt( row ) {
+			var art = el( 'div', { class: 'odd-shop__card-art odd-shop__card-art--' + row.type, 'aria-hidden': 'true' } );
+
+			if ( row.type === 'scene' ) {
+				art.style.backgroundColor = row.fallbackColor || '#1d1d22';
+				var sceneUrl = row.previewUrl
+					|| ( ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + row.slug + '.webp' );
+				var img = el( 'img', { src: sceneUrl, alt: '', loading: 'lazy' } );
+				art.appendChild( img );
+				return art;
+			}
+
+			if ( row.type === 'icon-set' ) {
+				if ( row.accent ) art.style.background = row.accent;
+				if ( row.icons ) {
+					var quartet = el( 'div', { class: 'odd-shop__card-quartet' } );
+					var keys = [ 'dashboard', 'posts', 'pages', 'media' ].filter( function ( k ) { return row.icons[ k ]; } );
+					if ( ! keys.length ) keys = Object.keys( row.icons ).slice( 0, 4 );
+					keys.slice( 0, 4 ).forEach( function ( k ) {
+						quartet.appendChild( el( 'img', { src: row.icons[ k ], alt: '', loading: 'lazy' } ) );
+					} );
+					if ( quartet.children.length ) {
+						art.appendChild( quartet );
+						return art;
+					}
+				}
+				if ( row.preview ) {
+					art.appendChild( el( 'img', { src: row.preview, alt: '', loading: 'lazy' } ) );
+					return art;
+				}
+				var fallback = el( 'div', { class: 'odd-shop__card-mono' } );
+				fallback.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
+				art.appendChild( fallback );
+				return art;
+			}
+
+			if ( row.type === 'widget' ) {
+				art.style.background = 'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)';
+				var glyph = el( 'div', { class: 'odd-shop__card-glyph' } );
+				glyph.textContent = row.raw && row.raw.glyph ? row.raw.glyph : '🧩';
+				art.appendChild( glyph );
+				art.appendChild( el( 'span', { class: 'odd-shop__card-shine' } ) );
+				return art;
+			}
+
+			if ( row.type === 'app' ) {
+				if ( row.iconUrl ) {
+					var src = row.iconUrl;
+					if ( src.indexOf( 'data:' ) !== 0 && src.indexOf( 'http' ) !== 0 ) {
+						src = ( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/apps/icon/' + row.slug );
+					}
+					art.appendChild( el( 'img', { src: src, alt: '', loading: 'lazy' } ) );
+				} else {
+					var mono = el( 'div', { class: 'odd-shop__card-mono' } );
+					mono.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
+					art.appendChild( mono );
+				}
+				return art;
+			}
+
+			return art;
+		}
+
+		// The one and only card renderer for the Shop. Every tile in
+		// Wallpapers / Icons / Widgets / Apps — installed or not —
+		// flows through this function.
+		function renderShopCard( row, opts ) {
+			opts = opts || {};
+			if ( ! row ) return null;
+			var isActive = shopCardIsActive( row );
+			var action   = shopCardAction( row );
+			var kind     = action.kind;
+
+			var wrap = el( 'div', {
+				class: 'odd-shop__card-wrap'
+					+ ( row.installed ? ' is-installed' : ' is-catalog' )
+					+ ( isActive ? ' is-active' : '' )
+					+ ( opts.variant ? ' odd-shop__card-wrap--' + opts.variant : '' ),
+				'data-odd-shop-card': '1',
+				'data-odd-card-type': row.type,
+				'data-slug':          row.slug,
+				'data-scene-slug':    row.type === 'scene' ? row.slug : null,
+				'data-set-slug':      row.type === 'icon-set' ? row.slug : null,
+				'data-widget-id':     row.type === 'widget' ? ( 'odd/' + row.slug ) : null,
+				'data-catalog-slug':  row.installed ? null : row.slug,
+			} );
+
+			var card = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__card odd-shop__card--' + row.type
+					+ ( row.installed ? ' is-installed' : ' is-catalog' )
+					+ ( isActive ? ' is-active' : '' ),
+				'aria-label': row.name,
+				'data-slug': row.slug,
+			} );
+			if ( row.type === 'scene' )    card.setAttribute( 'data-scene-slug',  row.slug );
+			if ( row.type === 'icon-set' ) card.setAttribute( 'data-set-slug',    row.slug );
+			if ( row.type === 'widget' )   card.setAttribute( 'data-widget-id',   'odd/' + row.slug );
+			if ( ! row.installed )         card.setAttribute( 'data-catalog-slug', row.slug );
+			// Legacy hooks so existing selectors in tests + styles
+			// keep matching (e.g. `.odd-card`, `.odd-shop__tile`, the
+			// widget-specific `.odd-shop__tile--widget`).
+			card.classList.add( 'odd-card', 'odd-shop__tile' );
+			if ( row.type === 'widget' ) card.classList.add( 'odd-shop__tile--widget' );
+
+			card.appendChild( renderShopCardArt( row ) );
+
+			if ( isActive ) {
+				var pin = el( 'span', { class: 'odd-shop__card-pin', 'aria-hidden': 'true' } );
+				pin.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M5 12l4 4 10-10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+				card.appendChild( pin );
+			}
+
+			if ( ! row.installed ) {
+				var catalogBadge = el( 'span', { class: 'odd-shop__card-badge odd-shop__card-badge--catalog' } );
+				catalogBadge.textContent = 'Catalog';
+				card.appendChild( catalogBadge );
+			}
+
+			var meta = el( 'div', { class: 'odd-shop__card-meta' } );
+			var title = el( 'div', { class: 'odd-shop__card-title odd-shop__tile-title' } );
+			title.textContent = row.name;
+			var sub = el( 'div', { class: 'odd-shop__card-sub odd-shop__tile-sub' } );
+			sub.textContent = row.subtitle || '';
+			meta.appendChild( title );
+			meta.appendChild( sub );
+			card.appendChild( meta );
+
+			var btn = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__card-btn odd-shop__tile-btn odd-shop__card-btn--' + kind
+					+ ( action.disabled ? ' is-disabled' : ' odd-shop__tile-btn--primary' )
+					+ ( kind === 'install' ? ' odd-shop__card-btn--install' : '' ),
+				'aria-pressed': isActive ? 'true' : 'false',
+			} );
+			btn.textContent = action.label;
+			if ( action.disabled ) btn.disabled = true;
+			btn.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+				if ( btn.disabled ) return;
+				dispatchShopAction( row, kind, btn );
+			} );
+
+			// Whole-card click mirrors the button for installed rows
+			// (so clicking anywhere on a scene tile starts preview)
+			// but is a no-op for catalog rows — those require an
+			// explicit Install click so misplaced hover-clicks don't
+			// trigger a network download.
+			card.addEventListener( 'click', function ( e ) {
+				if ( e.target && e.target.closest && e.target.closest( '.odd-shop__card-btn' ) ) return;
+				if ( ! row.installed ) return;
+				if ( action.disabled ) return;
+				dispatchShopAction( row, kind, btn );
+			} );
+
+			wrap.appendChild( card );
+			wrap.appendChild( btn );
+
+			// Favorites star on scenes (the only type with a persisted
+			// favorites list today). Stays outside the button shell so
+			// nested-interactive rules aren't violated.
+			if ( row.type === 'scene' ) {
+				var fav = isFavorite( row.slug );
+				var star = el( 'span', {
+					class: 'odd-shop__card-fav odd-shop__fav' + ( fav ? ' is-on' : '' ),
+					role: 'button',
+					tabindex: '0',
+					'aria-label': fav ? 'Remove from favorites' : 'Add to favorites',
+					'aria-pressed': fav ? 'true' : 'false',
+				} );
+				star.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3.6 L14.6 9.1 L20.5 9.9 L16.2 14.2 L17.3 20.1 L12 17.3 L6.7 20.1 L7.8 14.2 L3.5 9.9 L9.4 9.1 Z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+				function toggleFromStar( ev ) {
+					ev.stopPropagation();
+					ev.preventDefault();
+					toggleFavorite( row.slug );
+				}
+				star.addEventListener( 'click', toggleFromStar );
+				star.addEventListener( 'keydown', function ( ev ) {
+					if ( ev.key === 'Enter' || ev.key === ' ' ) toggleFromStar( ev );
+				} );
+				wrap.appendChild( star );
+			}
+
+			return wrap;
+		}
+
+		/* --- Install breadcrumb + widget hot-register ------------ */
+
+		// Cross-reload breadcrumb. Scene / icon-set / app installs
+		// trigger a full page reload so their registration (scene.js
+		// enqueue, server-canonical dock filter, app native-window +
+		// surfaces) actually takes effect. The breadcrumb survives
+		// the reload in sessionStorage so the post-reload panel
+		// navigates the user to the right department and flashes
+		// the new tile.
+		//
+		// The key is inlined at every call site (rather than hoisted
+		// to a `var`) because `var`-declared constants only get
+		// their assignment at source order, and these helpers need
+		// to be callable from the init block higher up inside
+		// `renderPanel` — which runs before this sibling var
+		// initialiser would.
+
+		function rememberJustInstalled( payload ) {
+			try {
+				var json = JSON.stringify( {
+					type: payload.type,
+					slug: payload.slug,
+					name: payload.name || payload.slug,
+					at:   Date.now(),
+				} );
+				window.sessionStorage.setItem( 'odd.justInstalled', json );
+			} catch ( e ) {}
+		}
+
+		function consumeJustInstalled() {
+			try {
+				var raw = window.sessionStorage.getItem( 'odd.justInstalled' );
+				if ( ! raw ) return null;
+				window.sessionStorage.removeItem( 'odd.justInstalled' );
+				var parsed = JSON.parse( raw );
+				// Ignore breadcrumbs older than ~30s — they belong
+				// to a different navigation.
+				if ( ! parsed || ! parsed.slug ) return null;
+				if ( parsed.at && ( Date.now() - parsed.at ) > 30000 ) return null;
+				return parsed;
+			} catch ( e ) { return null; }
+		}
+
+		// Inject a `<script>` for a widget bundle and resolve once
+		// it's finished loading — the widget.js is expected to call
+		// `wp.desktop.registerWidget` at the bottom of its IIFE, so
+		// one microtask after `onload` the bundle is discoverable.
+		// Rejects on script-load errors so the caller can fall back
+		// to a reload.
+		function loadWidgetScript( slug, entryUrl ) {
+			return new Promise( function ( resolve, reject ) {
+				if ( ! entryUrl ) { reject( new Error( 'no entry_url' ) ); return; }
+				// Avoid double-injection if a previous attempt raced
+				// this one (e.g. rapid double-install of the same
+				// bundle before the first response came back).
+				var existing = document.querySelector( 'script[data-odd-widget-slug="' + slug + '"]' );
+				if ( existing ) {
+					setTimeout( resolve, 0 );
+					return;
+				}
+				var s = document.createElement( 'script' );
+				s.src = entryUrl;
+				s.async = true;
+				s.setAttribute( 'data-odd-widget-slug', slug );
+				s.onload  = function () { setTimeout( resolve, 16 ); };
+				s.onerror = function () { reject( new Error( 'widget script failed to load' ) ); };
+				document.head.appendChild( s );
+			} );
 		}
 
 		function savePrefs( body, onDone ) {

@@ -526,6 +526,10 @@ function odd_bundle_rest_install_from_catalog( WP_REST_Request $req ) {
 			'slug'      => $install['slug'],
 			'type'      => $install['type'],
 			'manifest'  => $install['manifest'],
+			// Shop hot-register payload. See the matching upload
+			// endpoint in includes/content/rest.php for the rationale.
+			'entry_url' => odd_bundle_entry_url_for( $install['manifest'] ),
+			'row'       => odd_bundle_panel_row_for( $install['manifest'] ),
 		)
 	);
 }

@@ -146,6 +146,127 @@ function odd_bundle_install( $tmp_path, $filename ) {
 }
 
 /**
+ * Build the entry_url a freshly-installed bundle needs for in-page
+ * registration. Only widgets actually need this today — each widget
+ * ships a `widget.js` that self-registers via `wp.desktop.registerWidget`
+ * on load, and the Shop hot-injects a `<script>` pointing at this URL
+ * after a successful install so the user doesn't have to reload for a
+ * new widget to appear in the Widgets grid. Scenes and icon sets both
+ * need a full page reload to re-run `admin_enqueue_scripts` or the
+ * server-canonical dock filters, so they get `null` here and the
+ * client drops back to its reload path.
+ *
+ * @param array $manifest Normalised manifest from `odd_bundle_install()`.
+ * @return string|null    Absolute URL to the entry JS, or null.
+ */
+function odd_bundle_entry_url_for( array $manifest ) {
+	if ( empty( $manifest['type'] ) || empty( $manifest['slug'] ) ) {
+		return null;
+	}
+	if ( 'widget' !== $manifest['type'] ) {
+		return null;
+	}
+	if ( ! function_exists( 'odd_widgets_url_for' ) ) {
+		return null;
+	}
+	$slug  = sanitize_key( (string) $manifest['slug'] );
+	$entry = isset( $manifest['entry'] ) ? (string) $manifest['entry'] : 'widget.js';
+	$base  = odd_widgets_url_for( $slug );
+	if ( '' === $base ) {
+		return null;
+	}
+	return $base . rawurlencode( $entry );
+}
+
+/**
+ * Build the panel-shaped row a freshly-installed bundle contributes to
+ * the Shop's state.cfg.{scenes|iconSets|installedWidgets|apps} list.
+ *
+ * The client splices this directly into its local state after a
+ * successful install so the unified grid can re-render with the new
+ * tile without re-fetching any registries. Mirrors the row shapes the
+ * server bakes into `window.odd` in `includes/enqueue.php` so the
+ * merge is a drop-in (keys + types match exactly).
+ *
+ * Returns an empty array for unknown types rather than null so the
+ * client can always `Array.isArray( res.row )`-guard without a second
+ * null check.
+ *
+ * @param array $manifest Normalised manifest from `odd_bundle_install()`.
+ * @return array
+ */
+function odd_bundle_panel_row_for( array $manifest ) {
+	if ( empty( $manifest['type'] ) || empty( $manifest['slug'] ) ) {
+		return array();
+	}
+
+	$type = (string) $manifest['type'];
+	$slug = sanitize_key( (string) $manifest['slug'] );
+
+	switch ( $type ) {
+		case 'scene':
+			$preview_name   = isset( $manifest['preview'] ) ? (string) $manifest['preview'] : 'preview.webp';
+			$wallpaper_name = isset( $manifest['wallpaper'] ) ? (string) $manifest['wallpaper'] : 'wallpaper.webp';
+			$base           = function_exists( 'odd_scenes_url_for' ) ? odd_scenes_url_for( $slug ) : '';
+			return array(
+				'slug'          => $slug,
+				'label'         => isset( $manifest['label'] ) ? (string) $manifest['label'] : $slug,
+				'franchise'     => isset( $manifest['franchise'] ) ? (string) $manifest['franchise'] : 'Community',
+				'tags'          => isset( $manifest['tags'] ) && is_array( $manifest['tags'] ) ? array_values( $manifest['tags'] ) : array(),
+				'fallbackColor' => isset( $manifest['fallbackColor'] ) ? (string) $manifest['fallbackColor'] : '#111',
+				'installed'     => true,
+				'previewUrl'    => '' === $base ? '' : $base . rawurlencode( $preview_name ),
+				'wallpaperUrl'  => '' === $base ? '' : $base . rawurlencode( $wallpaper_name ),
+			);
+
+		case 'icon-set':
+			$icons_map = array();
+			$icons     = isset( $manifest['icons'] ) && is_array( $manifest['icons'] ) ? $manifest['icons'] : array();
+			$base      = function_exists( 'odd_iconsets_url_for' ) ? odd_iconsets_url_for( $slug ) : '';
+			foreach ( $icons as $key => $file ) {
+				if ( ! is_string( $file ) || '' === $file ) {
+					continue;
+				}
+				$icons_map[ (string) $key ] = '' === $base ? '' : $base . rawurlencode( $file );
+			}
+			$preview = isset( $manifest['preview'] ) ? (string) $manifest['preview'] : '';
+			return array(
+				'slug'        => $slug,
+				'label'       => isset( $manifest['label'] ) ? (string) $manifest['label'] : $slug,
+				'franchise'   => isset( $manifest['franchise'] ) ? (string) $manifest['franchise'] : 'Community',
+				'accent'      => isset( $manifest['accent'] ) ? (string) $manifest['accent'] : '',
+				'description' => isset( $manifest['description'] ) ? (string) $manifest['description'] : '',
+				'preview'     => ( '' === $preview || '' === $base ) ? '' : $base . rawurlencode( $preview ),
+				'icons'       => $icons_map,
+				'installed'   => true,
+			);
+
+		case 'widget':
+			return array(
+				'id'          => 'odd/' . $slug,
+				'slug'        => $slug,
+				'label'       => isset( $manifest['label'] ) ? (string) $manifest['label'] : $slug,
+				'description' => isset( $manifest['name'] ) ? (string) $manifest['name'] : ( isset( $manifest['description'] ) ? (string) $manifest['description'] : '' ),
+				'franchise'   => isset( $manifest['franchise'] ) ? (string) $manifest['franchise'] : 'Community',
+				'installed'   => true,
+			);
+
+		case 'app':
+			return array(
+				'slug'        => $slug,
+				'name'        => isset( $manifest['name'] ) ? (string) $manifest['name'] : $slug,
+				'version'     => isset( $manifest['version'] ) ? (string) $manifest['version'] : '',
+				'description' => isset( $manifest['description'] ) ? (string) $manifest['description'] : '',
+				'icon'        => isset( $manifest['icon'] ) ? (string) $manifest['icon'] : '',
+				'enabled'     => true,
+				'installed'   => true,
+			);
+	}
+
+	return array();
+}
+
+/**
  * Uninstall any bundle by slug. Looks up which type owns the slug
  * and dispatches to the matching per-type uninstaller.
  */

@@ -80,6 +80,15 @@ function odd_bundle_rest_upload( WP_REST_Request $req ) {
 			'slug'      => $result['slug'],
 			'type'      => $result['type'],
 			'manifest'  => $result['manifest'],
+			// Shop hot-register payload. `entry_url` is the widget
+			// bundle's JS URL (null for every other type), and `row`
+			// is a panel-shaped record the client splices into
+			// `state.cfg.installedWidgets` / `scenes` / `iconSets` /
+			// `apps` so the unified grid can re-render with the new
+			// tile without a page reload (widgets) or at least with
+			// the same shape after a soft reload (everything else).
+			'entry_url' => odd_bundle_entry_url_for( $result['manifest'] ),
+			'row'       => odd_bundle_panel_row_for( $result['manifest'] ),
 		)
 	);
 }

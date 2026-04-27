@@ -16,7 +16,57 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.2.0"></a>
+## [3.2.0] — 2026-04-27
+
 ### Fixed
+- **Installed content didn't appear in its department until a manual
+  reload.** After a successful Discover install the Shop toasted
+  "Installed X" and flipped the catalog row to "Installed", but the
+  main department grids read from `state.cfg.scenes` /
+  `state.cfg.iconSets` / `state.cfg.installedWidgets`, which were
+  frozen snapshots of `window.odd` taken at panel mount — the new
+  item never appeared, and for scenes / widgets the associated
+  `scene.js` / `widget.js` wasn't enqueued by `admin_enqueue_scripts`
+  either, so picking the fresh install would throw
+  `Installed scene did not self-register`. Apps already soft-reloaded
+  after install, which is why only they felt fine. `handleInstallSuccess`
+  now dispatches per type: **scene / icon-set / app** write a
+  breadcrumb to `sessionStorage['odd.justInstalled']` and soft-reload
+  the page after 500 ms; **widgets** hot-register in-page via a
+  dynamic `<script>` injection pointing at `entry_url` (a new field
+  the install endpoints return), splice a `odd_bundle_panel_row_for()`-
+  shaped record into `state.cfg.installedWidgets`, and re-render the
+  Widgets grid. Post-reload mounts `consumeJustInstalled()` the
+  breadcrumb, land the user on the right department, and flash the
+  new tile with `is-just-installed`. Widget-script-load failures fall
+  back to the reload path so the user always ends up with a working
+  install — just a second or two more slowly.
+- **Two different card shapes across each department.** Every
+  Wallpapers / Icons / Widgets / Apps tile now flows through a single
+  `renderShopCard(row, ctx)` whose primary action button derives its
+  label from a four-state machine:
+  - not installed → `Install`
+  - installed, inactive scene → `Preview`
+  - installed, inactive icon set → `Preview`
+  - installed widget → `Add` (flips to `Active` once on the desktop)
+  - installed app → `Open`
+  Installed-and-currently-active tiles grow a green check pin and a
+  disabled `Active` pill. The art region is a continuous-curvature
+  squircle that mirrors the ODD icon style guide (see
+  [_tools/icon-style-guide.md](_tools/icon-style-guide.md)) so the
+  Shop reads as one uniform app grid regardless of content type,
+  replacing the earlier split between installed-item cards and
+  Discover catalog rows. The legacy `renderSceneCard` /
+  `renderIconSetCard` / `renderWidgetCard` / `renderCatalogCard` /
+  `renderDiscoverRow` entry points remain as thin adapters so any
+  third-party shelf renderer keeps working without changes.
+- **Discover was a parallel catalog surface that duplicated the
+  department grid.** Discover is now a curation strip above each
+  department's unified grid, rendered from the same `renderShopCard`
+  and filtered to `featured` / `new` rows from the remote catalog.
+  One visual language end-to-end; no more hunting for the same slug
+  in two different cards.
 - **Fresh installs paint the host's built-in wallpaper instead of an
   ODD scene.** The starter pack was seeding `odd_wallpaper` (which
   scene renders *inside* ODD's wallpaper card) but never pointing WP
