@@ -15,6 +15,7 @@
  * a cleared canvas — that's the regression we want to catch.
  */
 import { test, expect } from '@playwright/test';
+import { goDesktopShell } from './helpers';
 
 const ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.WP_ADMIN_PASS || 'password';
@@ -32,6 +33,7 @@ test.describe( 'ODD panel', () => {
 		test.setTimeout( 90_000 );
 
 		await login( page );
+		await goDesktopShell( page );
 
 		await page.waitForFunction( () => typeof window.__odd !== 'undefined', null, { timeout: 30_000 } );
 

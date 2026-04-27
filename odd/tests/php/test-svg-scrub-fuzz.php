@@ -56,6 +56,7 @@ class Test_Odd_Svg_Scrub_Fuzz extends WP_UnitTestCase {
 		require_once ODD_DIR . 'includes/content/iconsets.php';
 		$result = odd_iconset_svg_scrub( $svg );
 		if ( is_wp_error( $result ) ) {
+			$this->assertInstanceOf( WP_Error::class, $result );
 			return;
 		}
 		$out = (string) $result;

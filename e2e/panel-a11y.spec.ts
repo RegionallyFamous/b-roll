@@ -4,6 +4,7 @@
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { goDesktopShell } from './helpers';
 
 const ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.WP_ADMIN_PASS || 'password';
@@ -20,6 +21,7 @@ test.describe( 'ODD panel a11y', () => {
 	test( 'no critical or serious axe violations in .odd-panel', async ( { page } ) => {
 		test.setTimeout( 90_000 );
 		await login( page );
+		await goDesktopShell( page );
 		await page.waitForFunction( () => typeof window.__odd !== 'undefined', null, { timeout: 30_000 } );
 		await page.evaluate( () => {
 			const api = window.__odd && window.__odd.api;
