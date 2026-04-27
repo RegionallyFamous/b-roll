@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,9 @@ The ODD Shop → About tab has a **Copy diagnostics** button. Paste the markdown
 See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.md) for the full history. Version headings follow SemVer; API versioning is tracked separately (see [docs/api-versioning.md](https://github.com/RegionallyFamous/odd/blob/main/docs/api-versioning.md)).
 
 == Upgrade Notice ==
+
+= 3.1.1 =
+Install buttons in the Shop now toast immediately on click ("Installing X…") so you can tell the click landed, and every failure mode — HTTP error, catalog-entry not found, unexpected throw — now reliably surfaces a toast + an error on the Apps status rail. Previously a failed install inside a tab that didn't contain the status rail could fail silently.
 
 = 3.1.0 =
 Apps can now surface on the Desktop Mode taskbar as well as on the desktop. Each installed app gets two independent checkboxes in the Shop — **Desktop icon** and **Taskbar pill** — and you can enable either, both, or neither. "Neither" still leaves the app reachable via slash commands, the Shop's Open button, and any sibling plugin that calls `wp.desktop.openWindow('odd-app-<slug>')`. Manifest authors can ship `surfaces: { desktop, taskbar }` defaults in `manifest.json`; missing keys default to the historical `{ desktop: true, taskbar: false }` so existing apps upgrade cleanly.

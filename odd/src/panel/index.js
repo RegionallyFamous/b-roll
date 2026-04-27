@@ -472,10 +472,12 @@
 					installBtn.textContent = row.builtin ? 'Adding…' : 'Getting…';
 					var label = row.builtin ? 'Adding ' : 'Downloading ';
 					setAppsStatus( wrap, label + ( row.name || row.slug ) + '…', 'busy' );
+					toast( label + ( row.name || row.slug ) + '…' );
 					installFromCatalog( row.slug ).then( function ( res ) {
 						if ( res && res.ok && res.data && res.data.installed ) {
 							var m = res.data.manifest;
 							setAppsStatus( wrap, 'Installed ' + ( ( m && m.name ) || row.name ) + '. Reloading…', 'ok' );
+							toast( 'Installed ' + ( ( m && m.name ) || row.name ) + '. Reloading…' );
 							var ev = window.__odd && window.__odd.events;
 							if ( ev ) ev.emit( 'odd.app-installed', { slug: row.slug, manifest: m } );
 							setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 600 );
@@ -487,6 +489,14 @@
 							( res && res.data && ( res.data.message || res.data.code ) ) ||
 							'Install failed.';
 						setAppsStatus( wrap, msg, 'error' );
+						toast( msg );
+					} )[ 'catch' ]( function ( err ) {
+						installBtn.disabled = false;
+						installBtn.textContent = originalLabel;
+						var msg = ( err && err.message ) || 'Install failed (unexpected error).';
+						setAppsStatus( wrap, msg, 'error' );
+						toast( msg );
+						reportError( 'apps.install.click', err );
 					} );
 				} );
 				actions.appendChild( installBtn );
@@ -1306,6 +1316,7 @@
 				btn.disabled = true;
 				btn.textContent = 'Installing…';
 			}
+			toast( 'Installing ' + ( row.name || row.slug ) + '…' );
 			var url = ( state.cfg.bundleInstallUrl || '' ) ||
 				( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/bundles/install-from-catalog' );
 			fetch( url, {

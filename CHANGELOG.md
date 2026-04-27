@@ -16,6 +16,25 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.1.1"></a>
+## [3.1.1] — 2026-04-27
+
+### Fixed
+- **Install buttons always toast on click.** Every install affordance
+  — the Apps department "Get"/"Add" button and the universal Discover
+  shelves' "Install" button — now fires an immediate "Installing X…"
+  toast the moment the click lands. Previously the only visible
+  feedback was the button-label change + a status rail that isn't
+  present outside the Apps tab, which made a failed install look like
+  "nothing happened".
+- **Apps install no longer swallows unexpected errors.** The Apps
+  install click handler now has an explicit `.catch` that re-enables
+  the button, surfaces the error message on the status rail, toasts
+  it, and emits an `odd.error` bus event with source
+  `apps.install.click`. Previously a thrown exception inside the
+  `.then` path could leave the button stuck on "Getting…" with no
+  error surface.
+
 <a id="v3.1.0"></a>
 ## [3.1.0] — 2026-04-27
 
