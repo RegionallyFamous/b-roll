@@ -114,9 +114,13 @@ jobs:
         # actually mounts, `window.PIXI` would stay undefined forever
         # and Playwright would hang waiting for it. Force the admin's
         # Desktop Mode wallpaper to `odd` so the shell loads PIXI and
-        # mounts the scene engine on first paint.
+        # mounts the scene engine on first paint. Writing user meta
+        # directly (rather than via desktop_mode_save_os_settings)
+        # sidesteps the sanitizer which re-stamps the full settings
+        # shape; read-side merges defaults in from its own code path.
         run: |
-          wp eval 'desktop_mode_save_os_settings( 1, array( "wallpaper" => "odd" ) );'
+          wp user meta update 1 desktop_mode_os_settings '{"wallpaper":"odd"}' --format=json
+          wp eval 'var_export( desktop_mode_get_os_settings( 1 ) );'
 
       - name: Start WP server
         working-directory: /tmp/wp
