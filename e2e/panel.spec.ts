@@ -29,12 +29,23 @@ test.describe( 'ODD admin smoke', () => {
 			const type = msg.type();
 			if ( type === 'error' || type === 'warning' ) {
 				// eslint-disable-next-line no-console
-				console.log( `[page:${ type }]`, msg.text() );
+				console.log( `[page:${ type }]`, msg.text(), '@', page.url() );
 			}
 		} );
 		page.on( 'pageerror', ( err ) => {
 			// eslint-disable-next-line no-console
-			console.log( '[page:pageerror]', err.message );
+			console.log( '[page:pageerror]', err.message, '@', page.url() );
+		} );
+		page.on( 'response', async ( response ) => {
+			if ( response.status() >= 400 ) {
+				const url = response.url();
+				// eslint-disable-next-line no-console
+				console.log( `[page:${ response.status() }]`, url );
+			}
+		} );
+		page.on( 'requestfailed', ( request ) => {
+			// eslint-disable-next-line no-console
+			console.log( '[page:requestfailed]', request.url(), request.failure()?.errorText );
 		} );
 
 		await login( page );
