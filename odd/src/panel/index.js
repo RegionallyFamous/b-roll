@@ -1434,25 +1434,64 @@
 			// "What can I install?" — four cards that describe
 			// each content type. These aren't actions, they're
 			// affordance cues so the user knows the .wp format
-			// carries more than just apps.
+			// carries more than just apps. Each card ships a
+			// tinted glyph badge + a one-line description trimmed
+			// so all four feel parallel at a glance.
 			var types = [
-				{ type: 'app',      label: 'Apps',       icon: '📦', desc: 'Mini apps with their own dock icon and window. Served in a sandboxed frame; never a WordPress admin page.' },
-				{ type: 'scene',    label: 'Scenes',     icon: '🖼', desc: 'Live generative wallpapers that paint on top of the WordPress desktop.' },
-				{ type: 'icon-set', label: 'Icon Sets',  icon: '🧩', desc: 'Themed SVG packs that re-skin the dock and desktop shortcuts.' },
-				{ type: 'widget',   label: 'Widgets',    icon: '🧷', desc: 'Small cards that live on the desktop itself — drag by the title bar to park them.' },
+				{
+					type: 'app',
+					label: 'Apps',
+					tint: '#0071e3',
+					desc: 'Sandboxed mini apps with their own dock icon and window.',
+					glyph: '<rect x="3" y="6" width="14" height="11" rx="2"/><path d="M3 9h14"/><circle cx="6" cy="7.5" r=".6" fill="currentColor"/><circle cx="8" cy="7.5" r=".6" fill="currentColor"/>',
+				},
+				{
+					type: 'scene',
+					label: 'Scenes',
+					tint: '#8a5cff',
+					desc: 'Live generative wallpapers that paint across the desktop.',
+					glyph: '<rect x="3" y="4" width="14" height="12" rx="2"/><circle cx="13.5" cy="7.5" r="1.2" fill="currentColor"/><path d="M3 13l3-3 3 2 4-4 4 4"/>',
+				},
+				{
+					type: 'icon-set',
+					label: 'Icon Sets',
+					tint: '#00a693',
+					desc: 'Themed SVG packs that re-skin the dock and desktop shortcuts.',
+					glyph: '<rect x="3" y="3" width="6" height="6" rx="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.4"/>',
+				},
+				{
+					type: 'widget',
+					label: 'Widgets',
+					tint: '#ff8c1a',
+					desc: 'Draggable cards that live directly on the desktop surface.',
+					glyph: '<path d="M4 4h9l3 3v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/><path d="M13 4v3h3"/>',
+				},
 			];
 			var grid = el( 'div', { class: 'odd-shop__install-types' } );
 			types.forEach( function ( t ) {
-				var card = el( 'div', { class: 'odd-shop__install-type' } );
-				var g = el( 'span', { class: 'odd-shop__install-type-glyph', 'aria-hidden': 'true' } );
-				g.textContent = t.icon;
+				var card = el( 'div', {
+					class: 'odd-shop__install-type',
+					style: '--odd-itype-tint:' + t.tint,
+				} );
+				var g = el( 'span', {
+					class: 'odd-shop__install-type-glyph',
+					'aria-hidden': 'true',
+				} );
+				g.innerHTML = (
+					'<svg viewBox="0 0 20 20" width="20" height="20"'
+					+ ' fill="none" stroke="currentColor"'
+					+ ' stroke-width="1.6" stroke-linecap="round"'
+					+ ' stroke-linejoin="round">' + t.glyph + '</svg>'
+				);
+				var body = el( 'div', { class: 'odd-shop__install-type-body' } );
 				var l = el( 'strong' );
 				l.textContent = t.label;
 				var d = el( 'span', { class: 'odd-shop__install-type-desc' } );
 				d.textContent = t.desc;
+				body.appendChild( l );
+				body.appendChild( d );
 				card.appendChild( g );
-				card.appendChild( l );
-				card.appendChild( d );
+				card.appendChild( body );
 				grid.appendChild( card );
 			} );
 			wrap.appendChild( grid );

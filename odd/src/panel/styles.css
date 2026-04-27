@@ -504,11 +504,14 @@
 .odd-panel.odd-shop .odd-shop__dropzone-btn{all:unset;margin-top:10px;padding:8px 18px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border-strong);cursor:pointer;color:var(--odd-shop-accent);font-size:13px;font-weight:600}
 .odd-panel.odd-shop .odd-shop__dropzone-btn:hover{border-color:var(--odd-shop-accent);background:rgba(0,113,227,.08)}
 
-.odd-panel.odd-shop .odd-shop__install-types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 24px}
-.odd-panel.odd-shop .odd-shop__install-type{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:var(--odd-shop-radius);background:#fff;border:1px solid var(--odd-shop-border);color:var(--odd-shop-ink);font-size:12px;line-height:1.4;min-width:0}
-.odd-panel.odd-shop .odd-shop__install-type strong{font-size:13px;font-weight:700}
-.odd-panel.odd-shop .odd-shop__install-type-glyph{font-size:16px;line-height:1}
-.odd-panel.odd-shop .odd-shop__install-type-desc{color:var(--odd-shop-ink-2)}
+.odd-panel.odd-shop .odd-shop__install-types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 24px}
+.odd-panel.odd-shop .odd-shop__install-type{--odd-itype-tint:var(--odd-shop-accent);display:flex;align-items:flex-start;gap:10px;padding:14px;border-radius:var(--odd-shop-radius);background:#fff;border:1px solid var(--odd-shop-border);color:var(--odd-shop-ink);min-width:0;transition:border-color .14s ease,box-shadow .14s ease,transform .14s ease}
+.odd-panel.odd-shop .odd-shop__install-type:hover{border-color:color-mix(in srgb,var(--odd-itype-tint) 40%,var(--odd-shop-border));box-shadow:0 10px 22px -14px color-mix(in srgb,var(--odd-itype-tint) 65%,transparent);transform:translateY(-1px)}
+.odd-panel.odd-shop .odd-shop__install-type-glyph{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--odd-itype-tint) 14%,transparent);color:var(--odd-itype-tint)}
+.odd-panel.odd-shop .odd-shop__install-type-glyph svg{display:block;width:20px;height:20px}
+.odd-panel.odd-shop .odd-shop__install-type-body{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1 1 auto}
+.odd-panel.odd-shop .odd-shop__install-type strong{font-size:13.5px;font-weight:650;letter-spacing:-.01em;color:var(--odd-shop-ink)}
+.odd-panel.odd-shop .odd-shop__install-type-desc{font-size:12px;line-height:1.45;color:var(--odd-shop-ink-2)}
 @media (max-width:640px){.odd-panel.odd-shop .odd-shop__install-types{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* Shop-wide drop overlay — only visible while a file is
