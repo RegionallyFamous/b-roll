@@ -38,7 +38,7 @@ defined( 'ABSPATH' ) || exit;
 add_action(
 	'admin_enqueue_scripts',
 	function () {
-		if ( ! function_exists( 'wpdm_is_enabled' ) ) {
+		if ( ! function_exists( 'desktop_mode_is_enabled' ) ) {
 			return;
 		}
 

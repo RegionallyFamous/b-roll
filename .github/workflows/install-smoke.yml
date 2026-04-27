@@ -120,7 +120,7 @@ jobs:
       - name: Assert dock filter registered
         working-directory: /tmp/wp
         run: |
-          wp eval 'global $wp_filter; exit( isset( $wp_filter["wp_desktop_dock_item"] ) ? 0 : 1 );'
+          wp eval 'global $wp_filter; exit( isset( $wp_filter["desktop_mode_dock_item"] ) ? 0 : 1 );'
 
       - name: Assert icon-set registry populated
         working-directory: /tmp/wp
@@ -135,10 +135,11 @@ jobs:
       - name: Assert native-window registered for the Control Panel
         working-directory: /tmp/wp
         run: |
-          # wpdm_native_window_registry returns null when the window id
-          # is unknown to WP Desktop Mode. If our includes/native-window.php
-          # didn't run, the ODD control-panel window is missing.
-          wp eval 'if ( ! function_exists( "wpdm_native_window_registry" ) ) { exit( 0 ); } exit( null !== wpdm_native_window_registry( "odd" ) ? 0 : 1 );'
+          # desktop_mode_native_window_registry returns null when the
+          # window id is unknown to WP Desktop Mode. If our
+          # includes/native-window.php didn't run, the ODD control-panel
+          # window is missing.
+          wp eval 'if ( ! function_exists( "desktop_mode_native_window_registry" ) ) { exit( 0 ); } exit( null !== desktop_mode_native_window_registry( "odd" ) ? 0 : 1 );'
 
       - name: Build example .wp bundles
         run: |

@@ -2,7 +2,7 @@
 /**
  * ODD — accent-color presets for WP Desktop Mode's OS Settings.
  *
- * Adds one swatch per installed icon set via the `wp_desktop_accent_colors`
+ * Adds one swatch per installed icon set via the `desktop_mode_accent_colors`
  * filter. Each swatch uses the set's declared `accent` hex so picking
  * "Filament" in the icon picker and "Filament" in the accent picker
  * keeps the chrome coherent.
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_filter(
-	'wp_desktop_accent_colors',
+	'desktop_mode_accent_colors',
 	function ( $colors ) {
 		if ( ! is_array( $colors ) ) {
 			$colors = array();

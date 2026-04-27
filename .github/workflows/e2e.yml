@@ -93,7 +93,7 @@ jobs:
 
       - name: Enable desktop mode for admin
         working-directory: /tmp/wp
-        run: wp user meta update 1 wp_desktop_mode 1
+        run: wp user meta update 1 desktop_mode_mode 1
 
       - name: Start WP server
         working-directory: /tmp/wp

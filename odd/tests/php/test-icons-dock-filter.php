@@ -57,7 +57,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 			'icon' => 'original.svg',
 			'menu' => 'Posts',
 		);
-		$item_after  = apply_filters( 'wp_desktop_dock_item', $item_before, 'edit.php' );
+		$item_after  = apply_filters( 'desktop_mode_dock_item', $item_before, 'edit.php' );
 
 		$this->assertIsArray( $item_after );
 		$this->assertArrayHasKey( 'icon', $item_after );
@@ -69,7 +69,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		odd_icons_set_active_slug( $set_slug );
 
 		$item_before = array( 'icon' => 'original.svg' );
-		$item_after  = apply_filters( 'wp_desktop_dock_item', $item_before, 'third-party-plugin.php' );
+		$item_after  = apply_filters( 'desktop_mode_dock_item', $item_before, 'third-party-plugin.php' );
 
 		$this->assertIsArray( $item_after );
 		$this->assertNotSame( 'original.svg', $item_after['icon'], 'Unknown slug should still hit the set fallback.' );
@@ -79,7 +79,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		odd_icons_set_active_slug( 'none' );
 
 		$item_before = array( 'icon' => 'original.svg' );
-		$item_after  = apply_filters( 'wp_desktop_dock_item', $item_before, 'edit.php' );
+		$item_after  = apply_filters( 'desktop_mode_dock_item', $item_before, 'edit.php' );
 
 		$this->assertSame( 'original.svg', $item_after['icon'], 'No active set = icon unchanged.' );
 	}
@@ -100,7 +100,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 				'window' => 'edit.php',
 			),
 		);
-		$registry_after  = apply_filters( 'wp_desktop_icons', $registry_before );
+		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
 
 		$this->assertSame( 'odd-gear.svg', $registry_after['odd']['icon'], 'ODD Control Panel icon must be preserved.' );
 		$this->assertNotSame( 'original-posts.svg', $registry_after['posts']['icon'], 'Regular desktop icon gets re-themed.' );
@@ -110,6 +110,6 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$set_slug = $this->pick_set_with_fallback();
 		odd_icons_set_active_slug( $set_slug );
 
-		$this->assertSame( array(), apply_filters( 'wp_desktop_icons', array() ) );
+		$this->assertSame( array(), apply_filters( 'desktop_mode_icons', array() ) );
 	}
 }

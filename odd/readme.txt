@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 2.0.2
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,7 +28,7 @@ Everything is managed from one native WP Desktop Mode window (the ODD Control Pa
 
 == Installation ==
 
-1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.5.0 or newer.
+1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.5.1 or newer.
 2. Upload and activate ODD from the Plugins screen, or install it from this directory.
 3. Enable desktop mode on your user profile (WP Desktop Mode's user setting).
 4. Visit `wp-admin`, open the ODD Control Panel from its desktop icon, and pick a wallpaper or icon set.
@@ -68,6 +68,9 @@ The ODD Control Panel → About tab has a **Copy diagnostics** button. Paste the
 See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.md) for the full history. Version headings follow SemVer; API versioning is tracked separately (see [docs/api-versioning.md](https://github.com/RegionallyFamous/odd/blob/main/docs/api-versioning.md)).
 
 == Upgrade Notice ==
+
+= 2.1.0 =
+Follow WP Desktop Mode's 0.5.1 hook rename. Every `wp_desktop_*` filter/action and every `wp_register_desktop_*()` function call now uses the new `desktop_mode_*` / `desktop_mode_register_*()` names. ODD now requires WP Desktop Mode 0.5.1 or newer — older hosts won't fire the renamed hooks and ODD's dock-icon reskinning / native windows / accent swatches / toast tones would silently no-op. Update the host plugin before upgrading ODD.
 
 = 2.0.2 =
 Drop the mouse-follow parallax drift from every GPT-painted scene. The subtle "second image sliding around on top" effect is gone — backdrops now sit perfectly still under the foreground motion layer.

@@ -9,7 +9,7 @@
  *   loader.php               zip validate + extract
  *   registry.php             install/uninstall API + odd_app_registry
  *   rest.php                 /odd/v1/apps/* routes
- *   native-surfaces.php      wp_register_desktop_icon + _window per app
+ *   native-surfaces.php      desktop_mode_register_icon + _window per app
  *
  * Feature flag:
  *

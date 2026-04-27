@@ -2,13 +2,13 @@
 /**
  * ODD icons — dock item + desktop icon overrides.
  *
- * Hooks into WP Desktop Mode's singular `wp_desktop_dock_item` filter
- * (fires once per tile inside `wpdm_build_dock_items()` with the real
- * admin menu slug — `edit.php`, `upload.php`, `options-general.php`…
- * — as the 2nd argument) and replaces each item's `icon` field with
- * a URL pointing at the active icon set's SVG when a mapping exists
- * for that menu slug. Desktop icons are themed through the matching
- * `wp_desktop_icons` filter.
+ * Hooks into WP Desktop Mode's singular `desktop_mode_dock_item` filter
+ * (fires once per tile inside `desktop_mode_build_dock_items()` with
+ * the real admin menu slug — `edit.php`, `upload.php`,
+ * `options-general.php`… — as the 2nd argument) and replaces each
+ * item's `icon` field with a URL pointing at the active icon set's
+ * SVG when a mapping exists for that menu slug. Desktop icons are
+ * themed through the matching `desktop_mode_icons` filter.
  *
  * Why slug-based: dock items ship keyed by their admin menu file and
  * sets declare icons under those same keys in `manifest.json#icons`,
@@ -50,7 +50,7 @@ function odd_icons_slug_to_key( $slug ) {
 }
 
 add_filter(
-	'wp_desktop_dock_item',
+	'desktop_mode_dock_item',
 	function ( $item, $menu_slug ) {
 		if ( ! is_array( $item ) ) {
 			return $item;
@@ -81,7 +81,7 @@ add_filter(
 );
 
 add_filter(
-	'wp_desktop_icons',
+	'desktop_mode_icons',
 	function ( $registry ) {
 		if ( ! is_array( $registry ) || empty( $registry ) ) {
 			return $registry;

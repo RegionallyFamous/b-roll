@@ -4,12 +4,12 @@
  *
  * For every enabled installed app we register:
  *
- *   wp_register_desktop_window( 'odd-app-{slug}', [...] )
+ *   desktop_mode_register_window( 'odd-app-{slug}', [...] )
  *     Title bar reads the manifest's name; content renders through
  *     odd_apps_render_window_template() which injects a sandboxed
  *     iframe pointing at /wp-json/odd/v1/apps/serve/{slug}/.
  *
- *   wp_register_desktop_icon( 'odd-app-{slug}', [...] )
+ *   desktop_mode_register_icon( 'odd-app-{slug}', [...] )
  *     Paired desktop tile that opens the matching window. Label and
  *     position come from manifest.desktopIcon when present, falling
  *     back to the app name.
@@ -27,7 +27,7 @@ add_action(
 		if ( ! defined( 'ODD_APPS_ENABLED' ) || ! ODD_APPS_ENABLED ) {
 			return;
 		}
-		if ( ! function_exists( 'wp_register_desktop_window' ) || ! function_exists( 'wp_register_desktop_icon' ) ) {
+		if ( ! function_exists( 'desktop_mode_register_window' ) || ! function_exists( 'desktop_mode_register_icon' ) ) {
 			return;
 		}
 
@@ -78,7 +78,7 @@ function odd_apps_register_surfaces( $row ) {
 		}
 	}
 
-	wp_register_desktop_window( $window_id, $window_defaults );
+	desktop_mode_register_window( $window_id, $window_defaults );
 
 	$icon_defaults = array(
 		'title'    => $name,
@@ -96,7 +96,7 @@ function odd_apps_register_surfaces( $row ) {
 		}
 	}
 
-	wp_register_desktop_icon( 'odd-app-' . $slug, $icon_defaults );
+	desktop_mode_register_icon( 'odd-app-' . $slug, $icon_defaults );
 }
 
 /**
@@ -174,8 +174,8 @@ function odd_apps_icon_url( $slug, $manifest ) {
 	}
 	// data: URIs would be ideal but WP Desktop Mode's dock sanitizer
 	// only accepts dashicon classes or http(s) URLs (see
-	// wpdm_sanitize_dock_icon). Anything else falls back to a generic
-	// cog — so we always return a real URL.
+	// desktop_mode_sanitize_dock_icon). Anything else falls back to
+	// a generic cog — so we always return a real URL.
 	//
 	// Relative path inside the app bundle → route through the public
 	// icon endpoint. `<img>` tags don't send X-WP-Nonce, so the

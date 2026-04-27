@@ -2,7 +2,7 @@
 /**
  * ODD — custom toast tone for scene / icon swap announcements.
  *
- * Registers an `odd-muse` tone on `wp_desktop_toast_types`. Once
+ * Registers an `odd-muse` tone on `desktop_mode_toast_types`. Once
  * WP Desktop Mode surfaces a public `wp.desktop.toast()` API (the
  * hooks reference already describes it — the implementation is
  * planned), widgets and slash commands will emit `odd-muse`
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_filter(
-	'wp_desktop_toast_types',
+	'desktop_mode_toast_types',
 	function ( $types ) {
 		if ( ! is_array( $types ) ) {
 			$types = array();

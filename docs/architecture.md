@@ -14,13 +14,13 @@ odd/
 │   ├── rest.php                     /odd/v1/prefs (GET+POST)
 │   ├── migrate.php                  activation-time b-roll → odd migration (idempotent)
 │   ├── migrations.php               versioned per-user migration runner (odd_schema_version)
-│   ├── native-window.php            wp_register_desktop_window('odd', ...)
+│   ├── native-window.php            desktop_mode_register_window('odd', ...)
 │   ├── wallpaper/
 │   │   ├── registry.php             scenes.json reader + slug helpers
 │   │   └── prefs.php                per-user pref getters (odd_wallpaper_*)
 │   ├── icons/
 │   │   ├── registry.php             scans assets/icons/*/manifest.json, tints SVGs
-│   │   └── dock-filter.php          wp_desktop_dock_item + wp_desktop_icons @ priority 20
+│   │   └── dock-filter.php          desktop_mode_dock_item + desktop_mode_icons @ priority 20
 │   └── apps/
 │       ├── bootstrap.php            feature flag + require_once list
 │       ├── storage.php              odd_apps_index + odd_app_{slug} helpers + .htaccess
@@ -116,11 +116,11 @@ Icon-set changes trigger a 180 ms fade + `window.location.reload()`
 after the POST succeeds. Re-render happens server-side through two
 filters in `includes/icons/dock-filter.php`:
 
-- `wp_desktop_dock_item` (priority 20, 2-arg): per-tile swap keyed by
+- `desktop_mode_dock_item` (priority 20, 2-arg): per-tile swap keyed by
   `odd_icons_slug_to_key( $menu_slug )`, e.g. `edit.php` → `posts`.
   Falls back to the set's `fallback` icon when a set ships no specific
   match.
-- `wp_desktop_icons` (priority 20): re-skins desktop shortcuts by the
+- `desktop_mode_icons` (priority 20): re-skins desktop shortcuts by the
   same key logic, but skips the ODD Control Panel icon itself so its
   gear stays recognizable regardless of the active set.
 
@@ -232,8 +232,8 @@ Upload .odd / .wp
   → odd_apps_install()              write odd_apps_index + odd_app_<slug>,
                                     fire odd_app_installed action,
                                     re-apply manifest.extensions
-  → native-surfaces.php (init)      wp_register_desktop_window('odd-app-<slug>'),
-                                    wp_register_desktop_icon('odd-app-<slug>')
+  → native-surfaces.php (init)      desktop_mode_register_window('odd-app-<slug>'),
+                                    desktop_mode_register_icon('odd-app-<slug>')
 
 User double-clicks the desktop icon
   → WP Desktop opens odd-app-<slug> window
@@ -317,15 +317,15 @@ and expire after 12 hours.
 ### Native window + desktop icon registration
 
 An `init` handler (guarded by `function_exists(
-'wp_register_desktop_window' )` so a missing WP Desktop install fails
+'desktop_mode_register_window' )` so a missing WP Desktop install fails
 closed rather than fatal) iterates every enabled app and registers two
 things:
 
-- `wp_register_desktop_window( 'odd-app-<slug>', { template, width,
+- `desktop_mode_register_window( 'odd-app-<slug>', { template, width,
   height, min_width, min_height, icon, title } )` — `template` is a
   closure rendering a minimal mount-point `<div>`. Dimensions default
   to 860×600 (min 420×320) and can be overridden by `manifest.window`.
-- `wp_register_desktop_icon( 'odd-app-<slug>', { title, icon, window,
+- `desktop_mode_register_icon( 'odd-app-<slug>', { title, icon, window,
   position } )` — `position` defaults to 200 and can be overridden
   by `manifest.desktopIcon.position`.
 
@@ -413,8 +413,8 @@ ODD replaced two earlier plugins, `b-roll` (wallpapers) and
 `b-roll-icons` (dock icons). An activation-time migration in
 `includes/migrate.php` copies every `b_roll_*` / `b_roll_icons_set`
 user_meta key into the matching `odd_*` key non-destructively, and
-rewrites each user's `wpdm_os_settings.wallpaper` from `'b-roll'` to
-`'odd'` so WP Desktop picks up the renamed wallpaper.
+rewrites each user's `desktop_mode_os_settings.wallpaper` from
+`'b-roll'` to `'odd'` so WP Desktop picks up the renamed wallpaper.
 
 GitHub keeps a permanent redirect from the old
 `RegionallyFamous/b-roll` repo so historical Playground links keep

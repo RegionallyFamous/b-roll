@@ -16,6 +16,22 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v2.1.0"></a>
+## [2.1.0] — 2026-04-27
+
+### Changed
+- **Follow WP Desktop Mode's `wp_desktop_*` → `desktop_mode_*` hook rename (0.5.1).** Every PHP filter, action, and registration function ODD touches has moved to the new namespace. The minimum host plugin version is now **WP Desktop Mode 0.5.1**.
+  - Filters: `wp_desktop_dock_item` → `desktop_mode_dock_item`; `wp_desktop_icons` → `desktop_mode_icons`; `wp_desktop_shell_config` → `desktop_mode_shell_config`; `wp_desktop_accent_colors` → `desktop_mode_accent_colors`; `wp_desktop_toast_types` → `desktop_mode_toast_types`; `wp_desktop_default_wallpaper` → `desktop_mode_default_wallpaper`.
+  - Registration functions: `wp_register_desktop_window()` → `desktop_mode_register_window()`; `wp_register_desktop_icon()` → `desktop_mode_register_icon()`; `wpdm_native_window_registry()` → `desktop_mode_native_window_registry()`.
+  - Capability helpers: `wpdm_is_enabled()` → `desktop_mode_is_enabled()` (three `admin_enqueue_scripts` guards).
+  - User meta keys used by the Playground blueprint + e2e harness: `wp_desktop_mode` → `desktop_mode_mode`; `wpdm_save_os_settings()` → `desktop_mode_save_os_settings()` in the OS-settings seed step.
+  - PHP unit tests (`odd/tests/php/test-icons-dock-filter.php`) and CI smoke checks (`install-smoke.yml`) updated to apply / inspect the new filter names.
+  - All architecture docs (`CLAUDE.md`, `docs/architecture.md`, `docs/adr/0001-icon-live-swap-server-canonical.md`) now reference the new names.
+
+### Compatibility
+- There is no shim for the old names — 0.5.1 of the host plugin removed the `wp_desktop_*` prefix entirely. Users on 0.5.0 or earlier must update WP Desktop Mode before updating ODD, otherwise the dock reskinning, accent swatches, toast tones, and native windows will silently no-op (the `function_exists()` guards degrade to "do nothing" rather than fatal).
+- The JavaScript hook namespace (`wp-desktop.*` under `window.wp.hooks`) and the client globals (`wp.desktop`, `wpDesktopConfig`, `wpDesktopNativeWindows`) are **unchanged** — 0.5.1 kept those exactly as they were. ODD's widgets, commands, slash commands, wallpaper-engine visibility subscriptions, and panel-side code all continue to work with zero changes.
+
 <a id="v2.0.2"></a>
 ## [2.0.2] — 2026-04-27
 

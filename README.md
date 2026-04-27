@@ -50,7 +50,7 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 3. Make sure [WP Desktop Mode](https://github.com/WordPress/desktop-mode) is installed + active, then flip on desktop mode from the admin bar.
 4. Double-click the **ODD** desktop icon (or run `/odd-panel` from the ⌘K palette) to open the Shop.
 
-**Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.5.0+
+**Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.5.1+
 
 ---
 

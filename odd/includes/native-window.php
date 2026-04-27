@@ -21,13 +21,13 @@ defined( 'ABSPATH' ) || exit;
 add_action(
 	'init',
 	function () {
-		if ( ! function_exists( 'wp_register_desktop_window' ) || ! function_exists( 'wp_register_desktop_icon' ) ) {
+		if ( ! function_exists( 'desktop_mode_register_window' ) || ! function_exists( 'desktop_mode_register_icon' ) ) {
 			return;
 		}
 
 		$icon_url = odd_control_icon_url();
 
-		wp_register_desktop_window(
+		desktop_mode_register_window(
 			'odd',
 			array(
 				'title'      => __( 'ODD Shop', 'odd' ),
@@ -42,7 +42,7 @@ add_action(
 			)
 		);
 
-		wp_register_desktop_icon(
+		desktop_mode_register_icon(
 			'odd',
 			array(
 				'title'    => __( 'ODD', 'odd' ),
@@ -55,7 +55,7 @@ add_action(
 );
 
 add_filter(
-	'wp_desktop_shell_config',
+	'desktop_mode_shell_config',
 	function ( $config ) {
 		if ( empty( $config['session']['windows'] ) || ! is_array( $config['session']['windows'] ) ) {
 			return $config;
@@ -108,7 +108,7 @@ function odd_render_panel_template() {
  *
  * Shipped as a real SVG file (`assets/odd-eye.svg`) so it can go
  * straight into an `<img src>`. Data-URIs would be cleaner in theory
- * but WP Desktop Mode's `wpdm_sanitize_dock_icon` only allows
+ * but WP Desktop Mode's `desktop_mode_sanitize_dock_icon` only allows
  * dashicon classes and http(s) URLs — anything else is silently
  * swapped for `dashicons-admin-generic`, which is how we ended up
  * with a cog on the desktop for a while.

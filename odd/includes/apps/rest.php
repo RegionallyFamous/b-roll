@@ -465,7 +465,7 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 		'odd_apps_forbidden_extensions'     => function_exists( 'odd_apps_forbidden_extensions' ),
 		'odd_apps_mime_for'                 => function_exists( 'odd_apps_mime_for' ),
 		'odd_apps_inject_runtime_importmap' => function_exists( 'odd_apps_inject_runtime_importmap' ),
-		'wp_register_desktop_window'        => function_exists( 'wp_register_desktop_window' ),
+		'desktop_mode_register_window'      => function_exists( 'desktop_mode_register_window' ),
 	);
 
 	// Hook priority — is serve-cookieauth actually on init@1?
@@ -533,17 +533,17 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 	// Has the client-side desktop shell template element been
 	// written for this window? We can't see the shell's DOM from
 	// the server, but we can confirm the registry entry exists.
-	$wpdm_registered = null;
-	if ( function_exists( 'wpdm_native_window_registry' ) ) {
-		$wpdm_registered = null !== wpdm_native_window_registry( 'odd-app-' . $slug );
+	$desktop_mode_registered = null;
+	if ( function_exists( 'desktop_mode_native_window_registry' ) ) {
+		$desktop_mode_registered = null !== desktop_mode_native_window_registry( 'odd-app-' . $slug );
 	}
 
 	$diag = array(
-		'slug'       => $slug,
-		'env'        => $env,
-		'loaders'    => $loaders,
-		'init_hooks' => $init_hooks,
-		'install'    => array(
+		'slug'         => $slug,
+		'env'          => $env,
+		'loaders'      => $loaders,
+		'init_hooks'   => $init_hooks,
+		'install'      => array(
 			'installed' => $installed,
 			'enabled'   => $enabled,
 			'row'       => $row,
@@ -553,7 +553,7 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 				'has_extensions' => ! empty( $manifest['extensions'] ),
 			) : null,
 		),
-		'filesystem' => array(
+		'filesystem'   => array(
 			'base'       => $base,
 			'real_base'  => $real_base,
 			'entry_path' => $entry_path,
@@ -561,14 +561,14 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 			'entry_size' => $entry_size,
 			'entry_head' => $entry_head,
 		),
-		'serve'      => array(
+		'serve'        => array(
 			'url'           => $serve_url,
 			'regex_matches' => $regex_matches,
 			'importmap_ok'  => $importmap_ok,
 		),
-		'wpdm'       => array(
+		'desktop_mode' => array(
 			'window_id'         => 'odd-app-' . $slug,
-			'window_registered' => $wpdm_registered,
+			'window_registered' => $desktop_mode_registered,
 		),
 	);
 

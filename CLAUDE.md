@@ -8,7 +8,7 @@
 ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). It ships three decorators in one plugin:
 
 1. **A canvas wallpaper** — generative PixiJS scenes rendered on top of painted 1920×1080 WebP backdrops, switched from inside the plugin's own control panel.
-2. **Icon sets** — themed SVG packs that re-skin the WP Desktop dock and desktop-shortcut icons via the `wp_desktop_dock_item` + `wp_desktop_icons` filters.
+2. **Icon sets** — themed SVG packs that re-skin the WP Desktop dock and desktop-shortcut icons via the `desktop_mode_dock_item` + `desktop_mode_icons` filters.
 3. **Apps** — small standalone HTML/CSS/JS programs that get their own desktop icon and native window. They run on the WordPress desktop *without* using or knowing about WordPress; the only WP touchpoint is the install/serve plumbing. (Implementation note: served from a sandboxed iframe with same-origin cookie auth, but that's a hosting detail, not a user-facing framing — describe Apps to users as "mini apps that just run".)
 
 All four content types (scene, icon set, widget, app) install the same way: a single `.wp` archive with a `manifest.json` declaring `type`, dropped on the ODD Shop (topbar Install pill, dedicated **Install** tab in the sidebar, or Shop-wide drag-and-drop). Under the hood every install routes through `odd_bundle_install()` in `odd/includes/content/bundle.php`. Authors never need to write a companion plugin — see `docs/building-an-app.md`, `docs/building-a-scene.md`, `docs/building-an-icon-set.md`, `docs/building-a-widget.md`, and the universal manifest reference in `docs/wp-manifest.md`. The filter / event / registry surface used by ODD core is documented in `docs/building-on-odd.md` and is aimed at integrators, not content authors.
@@ -17,7 +17,7 @@ All three are managed from a single native WP Desktop Mode window (the **ODD Sho
 
 - **Repo:** `RegionallyFamous/odd`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
-- **Host plugin (required at runtime):** WP Desktop Mode v0.5.0+
+- **Host plugin (required at runtime):** WP Desktop Mode v0.5.1+ (the hook namespace moved to `desktop_mode_*` / `desktop_mode_register_*()` in 0.5.1)
 
 ODD currently ships ~19 scenes across four franchises (Generative / Atmosphere / Paper / ODD Originals) and 17 icon sets. The reboot shipped three of each (Flux / Aurora / Origami and Filament / Arctic / Fold) — every visual is original: painted backdrops generated from neutral atmospheric prompts (now usually via GPT Image 2 for ODD Originals), motion layers built from Pixi primitives, icons rendered programmatically from one shared symbol catalog. Since v1.3.0 the panel has screensaver, click-to-preview (wallpaper + icons), and Rainfall, a collision-aware scene that uses `wp.desktop.getWallpaperSurfaces()`. Since v1.4.0 ODD ships two desktop widgets: `odd/sticky` and `odd/eight-ball`.
 
@@ -29,13 +29,13 @@ odd/
 ├── includes/
 │   ├── enqueue.php                odd-api, odd, odd-panel, odd-widgets, odd-commands script handles
 │   ├── rest.php                   /odd/v1/prefs (GET+POST)
-│   ├── native-window.php          wp_register_desktop_window('odd', …)
+│   ├── native-window.php          desktop_mode_register_window('odd', …)
 │   ├── wallpaper/
 │   │   ├── registry.php           scenes.json reader + slug helpers
 │   │   └── prefs.php              odd_wallpaper_* user-meta helpers
 │   └── icons/
 │       ├── registry.php           scans assets/icons/*/manifest.json
-│       └── dock-filter.php        wp_desktop_dock_item + wp_desktop_icons @ priority 20
+│       └── dock-filter.php        desktop_mode_dock_item + desktop_mode_icons @ priority 20
 ├── src/
 │   ├── shared/
 │   │   └── api.js                 window.__odd.api — setScene / setIconSet / shuffle / openPanel / toast
@@ -96,8 +96,8 @@ Panel clicks fire `wp.hooks.doAction( 'odd/pickScene', slug )` in parallel with 
 
 Icon-set changes trigger a 180 ms fade + `window.location.reload()` after the POST succeeds. Re-render happens server-side through the two filters in `includes/icons/dock-filter.php`:
 
-- `wp_desktop_dock_item` priority 20, two-arg: per-tile swap keyed by `odd_icons_slug_to_key( $menu_slug )` (e.g. `edit.php` → `posts`). Falls back to the set's `fallback` icon when a set ships no specific match.
-- `wp_desktop_icons` priority 20: re-skins desktop shortcuts by the same key logic, but **skips** the ODD Control Panel icon itself so it stays recognizable regardless of the active set.
+- `desktop_mode_dock_item` priority 20, two-arg: per-tile swap keyed by `odd_icons_slug_to_key( $menu_slug )` (e.g. `edit.php` → `posts`). Falls back to the set's `fallback` icon when a set ships no specific match.
+- `desktop_mode_icons` priority 20: re-skins desktop shortcuts by the same key logic, but **skips** the ODD Control Panel icon itself so it stays recognizable regardless of the active set.
 
 Server-side mapping is canonical; client-side live-swap via JS DOM surgery proved unreliable in earlier iterations and shouldn't be revisited.
 
@@ -207,7 +207,7 @@ All other script/style/REST calls compute their cache-busting version from `ODD_
 ## Gotchas
 
 - **SVG control bytes.** The icon-set validator scans for bytes `< 0x20` outside `\t\n\r`; an em-dash with a stray `\x14` once broke XML parsing in a prior release.
-- **Client-side icon live-swap is a rabbit hole.** `data-menu-slug` on dock DOM is the *sanitized CSS ID* (e.g. `menu-posts`), not the raw menu slug (`edit.php`). The fix is going server-canonical via `wp_desktop_dock_item` + a reload; don't regress.
+- **Client-side icon live-swap is a rabbit hole.** `data-menu-slug` on dock DOM is the *sanitized CSS ID* (e.g. `menu-posts`), not the raw menu slug (`edit.php`). The fix is going server-canonical via `desktop_mode_dock_item` + a reload; don't regress.
 - **GitHub release asset uploads** sometimes 409 "Error creating policy" right after release creation. The release workflow retries once after a 3 s pause.
 - **Playground + CORS.** `raw.githubusercontent.com` and `github.com/*/releases/download/…` both serve with `access-control-allow-origin: *`. Other hosts usually don't — check with `curl -H "Origin: https://playground.wordpress.net" -I <url>` before pointing a blueprint at a new URL.
 - **`wp-desktop.wallpaper.visibility` payload shape** is `{ id, state: 'hidden' | 'visible' }` per the recipe example — not documented in the API reference. The `onVis` handler silently no-ops on anything else.
