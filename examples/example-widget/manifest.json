@@ -1,0 +1,12 @@
+{
+	"$schema": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json",
+	"type": "widget",
+	"slug": "example-hello",
+	"name": "Example Hello",
+	"label": "Hello",
+	"version": "1.0.0",
+	"author": "ODD Examples",
+	"description": "Minimal widget that renders a greeting — the reference implementation of registerWidget.",
+	"entry": "widget.js",
+	"css": ["widget.css"]
+}

@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""Validate an ODD .wp bundle manifest.json against the published JSON
+Schema at `docs/schemas/manifest.schema.json`.
+
+Usage:
+  odd/bin/validate-manifest path/to/manifest.json [...more]
+
+Exits non-zero when any manifest fails the schema. Intended for
+third-party bundle authors (we ship this with the repo so vendors can
+run it without pulling in a JavaScript toolchain) and for the CI
+matrix check in .github/workflows/ci.yml.
+
+The schema is the source of truth for the *shape* of a manifest; the
+per-type PHP validators (odd/includes/content/{scenes,iconsets,widgets,apps}.php)
+go further by asserting file presence inside the zip, SVG safety, path
+normalisation, etc. Running this script and the PHP validators both
+should catch every known bad bundle.
+
+Dependencies:
+  - Python 3.9+
+  - `jsonschema` (installed via `pip install jsonschema` or inside a
+    venv). The script degrades gracefully to a structural check if
+    jsonschema is missing, so local-dev doesn't mandate the install,
+    but CI exports ODD_REQUIRE_JSONSCHEMA=1 to force it.
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO_ROOT = HERE.parent.parent
+SCHEMA_PATH = REPO_ROOT / "docs" / "schemas" / "manifest.schema.json"
+
+
+def structural_fallback(manifest: dict) -> list[str]:
+    """Minimal structural checks when jsonschema isn't installed. These
+    are the subset of the JSON Schema that have the highest blast
+    radius when broken — missing slug/name/version, or a slug that
+    would break URLs and user-meta keys."""
+    problems: list[str] = []
+    for field in ("name", "slug", "version"):
+        if field not in manifest or not isinstance(manifest[field], str) or not manifest[field]:
+            problems.append(f"missing or empty required field: {field}")
+    slug = manifest.get("slug", "")
+    if isinstance(slug, str) and slug:
+        import re
+        if not re.match(r"^[a-z0-9-]+$", slug):
+            problems.append(
+                f"slug '{slug}' must match ^[a-z0-9-]+$ "
+                f"(lowercase letters, digits, hyphens)"
+            )
+    bundle_type = manifest.get("type", "app")
+    if bundle_type not in ("app", "scene", "icon-set", "iconset", "widget"):
+        problems.append(
+            f"type '{bundle_type}' is not one of "
+            f"app, scene, icon-set, widget"
+        )
+    return problems
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        print("usage: validate-manifest path/to/manifest.json [...]", file=sys.stderr)
+        return 2
+
+    if not SCHEMA_PATH.exists():
+        print(f"schema not found: {SCHEMA_PATH}", file=sys.stderr)
+        return 2
+
+    schema = json.loads(SCHEMA_PATH.read_text())
+
+    try:
+        from jsonschema import Draft202012Validator
+        validator = Draft202012Validator(schema)
+        have_jsonschema = True
+    except ImportError:
+        if os.environ.get("ODD_REQUIRE_JSONSCHEMA") == "1":
+            print(
+                "jsonschema is required (set ODD_REQUIRE_JSONSCHEMA=0 to "
+                "downgrade to structural checks only). Install with "
+                "`pip install jsonschema`.",
+                file=sys.stderr,
+            )
+            return 2
+        validator = None
+        have_jsonschema = False
+        print(
+            "[validate-manifest] warning: jsonschema not installed — "
+            "running structural fallback only. `pip install jsonschema` "
+            "for full coverage.",
+            file=sys.stderr,
+        )
+
+    any_failed = False
+    for path_str in sys.argv[1:]:
+        path = Path(path_str)
+        if not path.exists():
+            print(f"[FAIL] {path}: not found", file=sys.stderr)
+            any_failed = True
+            continue
+        try:
+            manifest = json.loads(path.read_text())
+        except json.JSONDecodeError as e:
+            print(f"[FAIL] {path}: invalid JSON ({e})", file=sys.stderr)
+            any_failed = True
+            continue
+
+        problems: list[str] = []
+        if have_jsonschema and validator is not None:
+            for err in sorted(validator.iter_errors(manifest), key=lambda e: e.path):
+                location = "/".join(str(p) for p in err.absolute_path) or "(root)"
+                problems.append(f"{location}: {err.message}")
+        problems.extend(structural_fallback(manifest))
+
+        if problems:
+            any_failed = True
+            print(f"[FAIL] {path}")
+            for p in problems:
+                print(f"  - {p}")
+        else:
+            print(f"[ok]   {path}")
+
+    return 1 if any_failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

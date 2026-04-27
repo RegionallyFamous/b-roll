@@ -235,7 +235,15 @@
 		}, 'api.openPanel' );
 	}
 
+	// API compatibility version. Separate from ODD_VERSION so plugin
+	// patch releases don't force downstream extensions to re-test. We
+	// bump this when the surface described in the docstring above
+	// changes in a way extensions can observe. See
+	// docs/api-versioning.md for the contract.
+	var API_VERSION = '2.0.0';
+
 	window.__odd.api = {
+		version:         API_VERSION,
 		HOOK_SCENE:      HOOK_SCENE,
 		HOOK_ICONSET:    HOOK_ICONSET,
 		TOAST_TONE:      TOAST_TONE,

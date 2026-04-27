@@ -116,6 +116,8 @@
 .odd-panel .odd-catalog-row__desc{font-size:12px;color:#50575e;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .odd-panel .odd-catalog-row__actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .odd-panel .odd-catalog-row__installed{font-size:11px;color:#8c8f94;text-transform:uppercase;letter-spacing:.04em}
+.odd-panel .odd-catalog-row__installed--update{color:#7a4cff;font-weight:600}
+.odd-panel .odd-catalog-row__installed--update::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#7a4cff;margin-right:6px;vertical-align:middle;box-shadow:0 0 6px rgba(122,76,255,.6)}
 .odd-panel .odd-apps-btn--pill{border-radius:999px;padding:6px 18px;font-weight:600}
 .odd-panel .odd-apps-btn:disabled{opacity:1;cursor:default}
 .odd-panel .odd-catalog-row--iconset{cursor:pointer}
@@ -537,3 +539,20 @@
   .odd-panel.odd-shop .odd-shop__content{padding:20px 22px 0}
   .odd-panel.odd-shop .odd-about{margin:-20px -22px 0;padding:44px 22px 36px}
 }
+
+/* Install failure troubleshoot (plan item 21). */
+.odd-panel .odd-install-trouble{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(10,10,20,.45);box-sizing:border-box}
+.odd-panel .odd-install-trouble__card{max-width:min(92vw,520px);max-height:88vh;overflow:auto;padding:20px 22px;border-radius:16px;background:#fff;box-shadow:0 24px 60px -20px rgba(0,0,0,.4);color:#1d2327}
+.odd-panel .odd-install-trouble__title{margin:0 0 6px;font-size:17px;font-weight:700}
+.odd-panel .odd-install-trouble__lede{margin:0 0 12px;font-size:13px;color:#50575e;line-height:1.45}
+.odd-panel .odd-install-trouble__pre{margin:0 0 10px;padding:12px 14px;border-radius:8px;background:#0d0d1a;color:#c8c8d4;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto}
+.odd-panel .odd-install-trouble__hint{margin:0 0 12px;font-size:12px;color:#646970}
+.odd-panel .odd-install-trouble__row{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+
+/* Keyboard shortcuts overlay (plan item 20). */
+.odd-panel .odd-kbd-help{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(5,5,12,.4);box-sizing:border-box}
+.odd-panel .odd-kbd-help__card{min-width:min(92vw,380px);padding:20px 22px;border-radius:16px;background:#f5f5f7;border:1px solid #dcdcde;box-shadow:0 20px 50px -24px rgba(0,0,0,.35);color:#1d2327}
+.odd-panel .odd-kbd-help__title{margin:0 0 10px;font-size:16px;font-weight:700}
+.odd-panel .odd-kbd-help__list{margin:0 0 16px;padding-left:0;list-style:none;font-size:13px;line-height:1.65;color:#1d2327}
+.odd-panel .odd-kbd-help__list li{margin:0 0 6px;display:flex;align-items:baseline;gap:8px}
+.odd-panel .odd-kbd-help__key{display:inline-block;min-width:4.2em;padding:2px 6px;border-radius:6px;border:1px solid #c3c4c7;background:#fff;font:12px/1.3 ui-monospace,Menlo,Consolas,monospace;text-align:center}

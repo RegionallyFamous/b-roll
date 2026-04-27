@@ -348,6 +348,11 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 	}
 
 	if ( 'text/html' === $mime ) {
+		$manifest = odd_apps_manifest_load( $slug );
+		$csp      = odd_apps_cookieauth_csp( $slug, is_array( $manifest ) ? $manifest : array() );
+		if ( is_string( $csp ) && '' !== $csp ) {
+			header( 'Content-Security-Policy: ' . $csp );
+		}
 		// Browser-built app archives may leave React as bare module
 		// imports (`react`, `react-dom`, `react/jsx-runtime`). The
 		// sandbox iframe has no bundler, so those imports fail before
@@ -575,4 +580,45 @@ function odd_apps_serve_runtime_module( $name ) {
 	header( 'X-Content-Type-Options: nosniff' );
 	header( 'Content-Length: ' . strlen( $source ) );
 	echo $source; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
+/**
+ * Build a Content-Security-Policy value for HTML served from /odd-app/.
+ * Default is strict same-origin with common allowances for Vite/React
+ * bundles (inline bootstraps, jsdelivr if the import map points there).
+ * Manifest may add an optional `csp` string (see docs/wp-manifest.md).
+ *
+ * @param string               $slug     App slug.
+ * @param array<string, mixed> $manifest Parsed manifest.json.
+ * @return string
+ */
+function odd_apps_cookieauth_csp( $slug, array $manifest ) {
+	$slug = sanitize_key( (string) $slug );
+	// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- long policy string.
+	$default = "default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'";
+	$policy  = (string) apply_filters( 'odd_app_cookieauth_csp', $default, $slug, $manifest );
+	if ( ! empty( $manifest['csp'] ) && is_string( $manifest['csp'] ) ) {
+		$extra = odd_apps_sanitize_csp_fragment( $manifest['csp'] );
+		if ( '' !== $extra ) {
+			$policy .= '; ' . $extra;
+		}
+	}
+	return $policy;
+}
+
+/**
+ * Strip control characters and cap length; allow only CSP-safe glyph subset.
+ *
+ * @param string $fragment User-supplied CSP fragment from manifest.
+ * @return string
+ */
+function odd_apps_sanitize_csp_fragment( $fragment ) {
+	$s = preg_replace( '/[\x00-\x1F\x7F]/', '', (string) $fragment );
+	if ( strlen( $s ) > 2048 ) {
+		$s = substr( $s, 0, 2048 );
+	}
+	if ( ! preg_match( '/^[a-zA-Z0-9_\-:;.,*\'\/\s\(\)]+$/', $s ) ) {
+		return '';
+	}
+	return $s;
 }

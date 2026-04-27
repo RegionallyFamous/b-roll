@@ -16,6 +16,45 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v2.0.0"></a>
+## [2.0.0] — 2026-04-27
+
+Ships the **world-class menu** plan (21 items): reliability, ecosystem, authoring, distribution, security, and polish in one major release. `ODD_VERSION` and `window.__odd.api.version` both advance to **2.0.0** — see [docs/api-versioning.md](docs/api-versioning.md).
+
+### Reliability & observability
+- **Playwright e2e** — local WordPress + Chromium: admin boot, `window.__odd`, canvas pixels, `odd/pickScene` hook.
+- **Deeper install-smoke** — icon set count, widget API, native window `odd`, bundle catalog + prefs REST shape.
+- **Scene perf sampler** — vitest + Pixi stub, 600 ticks per scene, `scene-perf-baseline.json` + optional `ODD_ENFORCE_PERF_BUDGETS=1` gate.
+- **Local diagnostics** — `odd/src/shared/diagnostics.js`, About tab “Copy diagnostics” (zero server telemetry, [ADR 0004](docs/adr/0004-zero-server-side-telemetry.md)).
+
+### Platform & extensibility
+- **JSON Schema** — `docs/schemas/manifest.schema.json` + `odd/bin/validate-manifest` (Python + jsonschema in CI).
+- **Example bundles** — `examples/` (scene, icon set, widget, app) built and installed in install-smoke.
+- **`window.__odd.api.version`** — `2.0.0` in `api.js` + [docs/api-versioning.md](docs/api-versioning.md).
+- **`@odd/test-harness`** + **`create-odd-bundle`** — `packages/test-harness`, `packages/create-odd-bundle` with templates.
+- **CONTRIBUTING.md**, **docs/adr/**, **docs/release-policy.md**.
+
+### Authoring & distribution
+- **`npm run build:previews`** — `odd/bin/build-previews` (Playwright + Pixi CDN) for 640×360 WebP previews.
+- **LICENSES.md** + `odd/bin/check-licenses` CI job.
+- **Uninstall** — docstring + options sweep for `odd-scenes`, `odd-icon-sets`, `odd-widgets` indexes; per-slug `odd_scene_*` / `odd_icon_set_*` / `odd_widget_*` options.
+- **i18n** — `load_plugin_textdomain` + `wp_set_script_translations` in `odd.php`; `wp-i18n` on panel/widgets/commands; `wp.i18n.__` on core Shop + widget labels; `odd/bin/make-pot` on release.
+- **readme.txt** + **docs/wp-org-submission.md** for directory workflow.
+- **Bundle updates** — catalog compares versions; “Update available” + `allow_update=1` reinstall; REST fields `installed_version`, `update_available`.
+
+### Security & hardening
+- **CSP** for `/odd-app/` HTML — `Content-Security-Policy` + optional manifest `csp` + `odd_app_cookieauth_csp` filter.
+- **SVG scrub corpus** — `odd/tests/php/test-svg-scrub-fuzz.php` (25+ cases).
+- **Rate limits** — 10 req/min per user on `POST /odd/v1/bundles/upload` and catalog install; HTTP 429; `odd/tests/php/test-rate-limit-bundles.php`.
+
+### Polish & UX
+- **Keyboard** — `?` shortcuts overlay, `/` focus search, arrow keys in sidebar; styles in `styles.css`.
+- **Axe e2e** — `e2e/panel-a11y.spec.ts` with `@axe-core/playwright` (zero critical/serious on `.odd-panel`).
+- **Failed install** — troubleshoot dialog with JSON payload + Copy diagnostics (item 21).
+
+### Breaking
+- **API major 2.0.0** — extension authors should confirm `window.__odd.api.version` / [api-versioning.md](docs/api-versioning.md) (surface listed there; no wholesale removal of v1 methods in this release — major signals the 2.0 product line and locked-down contracts).
+
 <a id="v1.8.1"></a>
 ## [1.8.1] — 2026-04-25
 

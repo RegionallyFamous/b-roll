@@ -19,6 +19,7 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once ODD_DIR . 'includes/content/archive.php';
+require_once ODD_DIR . 'includes/content/rate-limit.php';
 require_once ODD_DIR . 'includes/content/bundle.php';
 require_once ODD_DIR . 'includes/content/iconsets.php';
 require_once ODD_DIR . 'includes/content/scenes.php';

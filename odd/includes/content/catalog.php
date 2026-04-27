@@ -127,48 +127,83 @@ function odd_bundle_catalog_for_type( $type ) {
  */
 function odd_bundle_catalog_installed_slugs() {
 	$installed = array();
+	foreach ( odd_bundle_catalog_installed_versions() as $slug => $_v ) {
+		$installed[ $slug ] = true;
+	}
+	return $installed;
+}
 
-	// Apps.
+/**
+ * Same as {@see odd_bundle_catalog_installed_slugs()} but records the
+ * currently-installed version per slug. Used by the catalog to mark
+ * rows whose on-disk version is older than the curated one so the
+ * panel can show "Update available" instead of "Installed".
+ *
+ * @return array<string, string>
+ */
+function odd_bundle_catalog_installed_versions() {
+	$installed = array();
+
 	if ( function_exists( 'odd_apps_list' ) ) {
 		foreach ( odd_apps_list() as $row ) {
 			if ( ! empty( $row['slug'] ) ) {
-				$installed[ $row['slug'] ] = true;
+				$installed[ $row['slug'] ] = isset( $row['version'] ) ? (string) $row['version'] : '';
 			}
 		}
 	}
 
-	// Icon sets.
 	if ( function_exists( 'odd_icons_get_sets' ) ) {
 		foreach ( odd_icons_get_sets() as $row ) {
 			if ( ! empty( $row['slug'] ) ) {
-				$installed[ $row['slug'] ] = true;
+				$installed[ $row['slug'] ] = isset( $row['version'] ) ? (string) $row['version'] : '';
 			}
 		}
 	}
 
-	// Scenes.
 	$scenes = apply_filters( 'odd_scene_registry', array() );
 	if ( is_array( $scenes ) ) {
 		foreach ( $scenes as $row ) {
 			if ( is_array( $row ) && ! empty( $row['slug'] ) ) {
-				$installed[ $row['slug'] ] = true;
+				$installed[ $row['slug'] ] = isset( $row['version'] ) ? (string) $row['version'] : '';
 			}
 		}
 	}
 
-	// Widgets.
 	$widgets = apply_filters( 'odd_widget_registry', array() );
 	if ( is_array( $widgets ) ) {
 		foreach ( $widgets as $row ) {
-			$slug = is_array( $row ) && ! empty( $row['slug'] ) ? $row['slug']
-				: ( is_array( $row ) && ! empty( $row['id'] ) ? $row['id'] : '' );
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$slug = ! empty( $row['slug'] ) ? $row['slug']
+				: ( ! empty( $row['id'] ) ? $row['id'] : '' );
 			if ( '' !== $slug ) {
-				$installed[ $slug ] = true;
+				$installed[ $slug ] = isset( $row['version'] ) ? (string) $row['version'] : '';
 			}
 		}
 	}
 
 	return $installed;
+}
+
+/**
+ * Compare two version strings like PHP's `version_compare` but
+ * treating missing / empty versions as "older than anything", so a
+ * bundle installed before versions were tracked always gets flagged
+ * as "update available" when the catalog has a non-empty version.
+ *
+ * @return bool true if $catalog_version is strictly newer than $installed_version.
+ */
+function odd_bundle_catalog_is_newer( $catalog_version, $installed_version ) {
+	$catalog_version   = (string) $catalog_version;
+	$installed_version = (string) $installed_version;
+	if ( '' === $catalog_version ) {
+		return false;
+	}
+	if ( '' === $installed_version ) {
+		return true;
+	}
+	return version_compare( $installed_version, $catalog_version, '<' );
 }
 
 add_action(
@@ -204,16 +239,27 @@ add_action(
 );
 
 function odd_bundle_rest_catalog() {
-	$installed = odd_bundle_catalog_installed_slugs();
-	$rows      = array();
+	$versions = odd_bundle_catalog_installed_versions();
+	$rows     = array();
 	foreach ( odd_bundle_catalog() as $entry ) {
-		$entry['installed'] = isset( $installed[ $entry['slug'] ] );
-		$rows[]             = $entry;
+		$slug                       = $entry['slug'];
+		$installed                  = array_key_exists( $slug, $versions );
+		$installed_version          = $installed ? $versions[ $slug ] : '';
+		$entry['installed']         = $installed;
+		$entry['installed_version'] = $installed_version;
+		$entry['update_available']  = $installed
+			&& odd_bundle_catalog_is_newer( $entry['version'], $installed_version );
+		$rows[]                     = $entry;
 	}
 	return rest_ensure_response( array( 'bundles' => $rows ) );
 }
 
 function odd_bundle_rest_install_from_catalog( WP_REST_Request $req ) {
+	$rl = odd_bundle_rate_limit_check( 'bundle_catalog_install' );
+	if ( is_wp_error( $rl ) ) {
+		return $rl;
+	}
+
 	$slug = sanitize_key( (string) $req->get_param( 'slug' ) );
 	if ( '' === $slug ) {
 		return new WP_Error( 'invalid_slug', __( 'Missing slug.', 'odd' ), array( 'status' => 400 ) );
@@ -229,8 +275,46 @@ function odd_bundle_rest_install_from_catalog( WP_REST_Request $req ) {
 	if ( null === $entry ) {
 		return new WP_Error( 'not_in_catalog', __( 'Bundle is not in the catalog.', 'odd' ), array( 'status' => 404 ) );
 	}
-	if ( isset( odd_bundle_catalog_installed_slugs()[ $slug ] ) ) {
-		return new WP_Error( 'already_installed', __( 'Bundle is already installed.', 'odd' ), array( 'status' => 409 ) );
+
+	// "Allow update" flow: when the catalog carries a newer version
+	// than the one installed, the client can opt in by passing
+	// `allow_update=1`. Without the flag we still 409 so an accidental
+	// second "Install" click doesn't silently overwrite a user's
+	// bundle — this is a deliberate reinstall, not a passive install.
+	$versions          = odd_bundle_catalog_installed_versions();
+	$installed_version = isset( $versions[ $slug ] ) ? $versions[ $slug ] : null;
+	$is_installed      = array_key_exists( $slug, $versions );
+	$allow_update      = (bool) $req->get_param( 'allow_update' );
+	if ( $is_installed ) {
+		$newer = odd_bundle_catalog_is_newer( $entry['version'], (string) $installed_version );
+		if ( ! $allow_update ) {
+			return new WP_Error(
+				$newer ? 'update_available' : 'already_installed',
+				$newer
+					? __( 'An update is available. Pass allow_update=1 to reinstall.', 'odd' )
+					: __( 'Bundle is already installed.', 'odd' ),
+				array(
+					'status'            => 409,
+					'installed_version' => (string) $installed_version,
+					'catalog_version'   => (string) $entry['version'],
+				)
+			);
+		}
+		if ( ! $newer ) {
+			return new WP_Error(
+				'no_newer_version',
+				__( 'Catalog version is not newer than the installed version.', 'odd' ),
+				array( 'status' => 409 )
+			);
+		}
+		// Uninstall first so the universal installer (which refuses to
+		// install over a colliding slug) can lay the new files down.
+		if ( function_exists( 'odd_bundle_uninstall' ) ) {
+			$uninstall = odd_bundle_uninstall( $slug );
+			if ( is_wp_error( $uninstall ) ) {
+				return $uninstall;
+			}
+		}
 	}
 
 	$download_url = (string) $entry['download_url'];

@@ -5,6 +5,17 @@ Every ODD bundle — app, icon set, scene, or widget — ships a
 carries a shared header (identity, versioning, type) and a per-type
 body (entry points, icons, preview assets).
 
+> **JSON Schema.** A machine-readable schema lives at
+> [`docs/schemas/manifest.schema.json`][schema]. Add
+> `"$schema": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json"`
+> to your `manifest.json` to get completion + inline validation in
+> VS Code, or run `odd/bin/validate-manifest path/to/manifest.json`
+> locally (set `ODD_REQUIRE_JSONSCHEMA=1` after `pip install jsonschema`
+> for the full ruleset). CI runs this validator against the fixtures
+> in `odd/tests/fixtures/manifests/` on every PR.
+>
+> [schema]: schemas/manifest.schema.json
+
 This page is the canonical field reference. Author guides live
 alongside:
 

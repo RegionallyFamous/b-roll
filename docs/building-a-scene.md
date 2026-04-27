@@ -187,6 +187,16 @@ Both files are served from `wp-content/odd-scenes/<slug>/` via
 `content_url()` and are public (same privacy posture as
 `odd/assets/wallpapers/` built-ins).
 
+### Regenerating previews automatically
+
+ODD core ships `odd/bin/build-previews` (runnable as `npm run build:previews`) which boots Chromium headless, evaluates your scene against a real Pixi v8, samples a frame ~2 s in, and writes a 640×360 WebP. For third-party bundles, clone this repo, symlink your scene into `odd/src/wallpaper/scenes/<slug>.js`, add a stub row to `scenes.json`, and run the script — or copy the [`odd/bin/build-previews`](../odd/bin/build-previews) source into your own toolchain. Flags:
+
+```sh
+npm run build:previews                 # rebuild all previews
+npm run build:previews -- --only flux  # one scene
+npm run build:previews -- --diff       # only scenes whose .js is newer than their preview
+```
+
 ## Ship it
 
 1. Zip the folder:

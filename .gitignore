@@ -12,3 +12,6 @@ _tools/batch.txt
 .env
 .env.local
 .env.*.local
+playwright-report/
+test-results/
+

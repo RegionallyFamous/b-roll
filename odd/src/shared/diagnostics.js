@@ -1,0 +1,208 @@
+/**
+ * ODD diagnostics (window.__odd.diagnostics)
+ * ---------------------------------------------------------------
+ * Local-only, zero-telemetry diagnostics bundle for bug reports.
+ *
+ * Everything this module collects stays on the user's machine. The
+ * only side effect that leaves the browser is the user manually
+ * copying the payload into a GitHub issue. There is no network
+ * transport, no opt-in flag, no ping-back; if we ever add server-side
+ * telemetry it MUST be a separate module so this one keeps its
+ * "safe to run, always" contract.
+ *
+ * Exposes:
+ *   window.__odd.diagnostics.collect()              → payload object
+ *   window.__odd.diagnostics.collectMarkdown()      → markdown string
+ *   window.__odd.diagnostics.copy()                 → Promise<boolean>
+ *
+ * Also installs a ring buffer that captures the last 100 entries from
+ * console.error + console.warn + unhandled errors so the report has
+ * something useful even when the panel wasn't open when things went
+ * wrong. The buffer size is capped to keep `localStorage` clean.
+ */
+( function () {
+	'use strict';
+	if ( typeof window === 'undefined' ) return;
+
+	window.__odd = window.__odd || {};
+	if ( window.__odd.diagnostics ) return;
+
+	var MAX_ENTRIES = 100;
+	var buffer = [];
+
+	function now() {
+		return new Date().toISOString();
+	}
+
+	function safeStringify( arg ) {
+		if ( arg === undefined ) return 'undefined';
+		if ( arg === null ) return 'null';
+		if ( arg instanceof Error ) {
+			return ( arg.name || 'Error' ) + ': ' + arg.message +
+				( arg.stack ? '\n' + arg.stack : '' );
+		}
+		if ( typeof arg === 'string' ) return arg;
+		try { return JSON.stringify( arg ); }
+		catch ( _ ) { return String( arg ); }
+	}
+
+	function record( level, args ) {
+		try {
+			var line = Array.prototype.slice.call( args || [] ).map( safeStringify ).join( ' ' );
+			buffer.push( { at: now(), level: level, message: line.slice( 0, 2000 ) } );
+			while ( buffer.length > MAX_ENTRIES ) buffer.shift();
+		} catch ( _ ) {}
+	}
+
+	var c = window.console;
+	if ( c ) {
+		var origError = c.error && c.error.bind( c );
+		var origWarn  = c.warn  && c.warn.bind( c );
+		if ( origError ) { c.error = function () { record( 'error', arguments ); return origError.apply( null, arguments ); }; }
+		if ( origWarn )  { c.warn  = function () { record( 'warn',  arguments ); return origWarn.apply( null, arguments ); }; }
+	}
+
+	window.addEventListener( 'error', function ( e ) {
+		record( 'error', [ e && ( e.message || 'Uncaught' ), e && e.filename, e && e.lineno ] );
+	} );
+	window.addEventListener( 'unhandledrejection', function ( e ) {
+		record( 'error', [ 'UnhandledRejection:', e && ( e.reason && e.reason.message ) || e ] );
+	} );
+
+	// Also mirror whatever the event bus routed as `odd.error` so scene
+	// boundary errors show up in the report even when they were only
+	// logged through wrapMethod.
+	try {
+		if ( window.__odd.events && typeof window.__odd.events.on === 'function' ) {
+			window.__odd.events.on( 'odd.error', function ( payload ) {
+				record( 'error', [ 'odd.error', payload && payload.scope, payload && payload.error && payload.error.message ] );
+			} );
+		}
+	} catch ( _ ) {}
+
+	function environment() {
+		var c = window.odd || {};
+		return {
+			oddVersion:   c.version || '',
+			pluginUrl:    c.pluginUrl || '',
+			restUrl:      c.restUrl ? '(present)' : '(missing)',
+			apiVersion:   ( window.__odd && window.__odd.api && window.__odd.api.version ) || '',
+			wpHooks:      !! ( window.wp && window.wp.hooks ),
+			desktopMode:  !! ( window.wp && window.wp.desktop ),
+			pixi:         !! window.PIXI,
+			userAgent:    ( navigator && navigator.userAgent ) || '',
+			viewport:     { w: window.innerWidth, h: window.innerHeight },
+			devicePixelRatio: window.devicePixelRatio || 1,
+			language:     ( navigator && navigator.language ) || '',
+		};
+	}
+
+	function lifecyclePhase() {
+		try {
+			return ( window.__odd.lifecycle && window.__odd.lifecycle.phase && window.__odd.lifecycle.phase() ) || 'unknown';
+		} catch ( _ ) { return 'unknown'; }
+	}
+
+	function registriesSnapshot() {
+		try {
+			var r = window.__odd.registries;
+			if ( ! r ) return {};
+			function countOrEmpty( list ) { return Array.isArray( list ) ? list.length : 0; }
+			return {
+				scenes:   countOrEmpty( r.readScenes && r.readScenes() ),
+				iconSets: countOrEmpty( r.readIconSets && r.readIconSets() ),
+				widgets:  countOrEmpty( r.readWidgets && r.readWidgets() ),
+				commands: countOrEmpty( r.readCommands && r.readCommands() ),
+				apps:     countOrEmpty( r.readApps && r.readApps() ),
+			};
+		} catch ( _ ) { return {}; }
+	}
+
+	function storeSnapshot() {
+		try {
+			if ( ! window.__odd.store ) return {};
+			var snap = window.__odd.store.getState();
+			if ( snap && snap.user ) {
+				return { user: { wallpaper: snap.user.wallpaper, iconSet: snap.user.iconSet } };
+			}
+			return {};
+		} catch ( _ ) { return {}; }
+	}
+
+	function collect() {
+		return {
+			collectedAt:   now(),
+			phase:         lifecyclePhase(),
+			environment:   environment(),
+			registries:    registriesSnapshot(),
+			state:         storeSnapshot(),
+			recentLog:     buffer.slice().reverse().slice( 0, 50 ),
+		};
+	}
+
+	function collectMarkdown() {
+		var p = collect();
+		var env = p.environment;
+		var lines = [
+			'# ODD diagnostics',
+			'',
+			'_Collected at ' + p.collectedAt + '. No information has been sent anywhere — this was assembled locally and copied to your clipboard. Paste it into a GitHub issue as-is._',
+			'',
+			'## Environment',
+			'- ODD version: `' + env.oddVersion + '`',
+			'- API version: `' + env.apiVersion + '`',
+			'- Lifecycle phase: `' + p.phase + '`',
+			'- WP Desktop Mode present: ' + ( env.desktopMode ? 'yes' : 'no' ),
+			'- PIXI global present: ' + ( env.pixi ? 'yes' : 'no' ),
+			'- REST URL localized: ' + env.restUrl,
+			'- User agent: `' + env.userAgent + '`',
+			'- Viewport: `' + env.viewport.w + '×' + env.viewport.h + '` @ `' + env.devicePixelRatio + 'x`',
+			'- Language: `' + env.language + '`',
+			'',
+			'## Registries',
+			'- scenes: `' + p.registries.scenes + '` / iconSets: `' + p.registries.iconSets + '` / widgets: `' + p.registries.widgets + '` / commands: `' + p.registries.commands + '` / apps: `' + p.registries.apps + '`',
+			'',
+			'## State',
+			'- wallpaper: `' + ( p.state.user && p.state.user.wallpaper || '' ) + '`',
+			'- iconSet: `' + ( p.state.user && p.state.user.iconSet || '' ) + '`',
+			'',
+			'## Recent log (' + p.recentLog.length + ' entries, newest first)',
+			'```',
+		];
+		for ( var i = 0; i < p.recentLog.length; i++ ) {
+			var e = p.recentLog[ i ];
+			lines.push( '[' + e.at + '] [' + e.level + '] ' + e.message );
+		}
+		lines.push( '```' );
+		return lines.join( '\n' );
+	}
+
+	function copy() {
+		var md = collectMarkdown();
+		if ( navigator && navigator.clipboard && navigator.clipboard.writeText ) {
+			return navigator.clipboard.writeText( md ).then( function () { return true; }, function () { return fallbackCopy( md ); } );
+		}
+		return Promise.resolve( fallbackCopy( md ) );
+	}
+
+	function fallbackCopy( text ) {
+		try {
+			var ta = document.createElement( 'textarea' );
+			ta.value = text;
+			ta.style.position = 'fixed';
+			ta.style.opacity = '0';
+			document.body.appendChild( ta );
+			ta.select();
+			var ok = document.execCommand && document.execCommand( 'copy' );
+			document.body.removeChild( ta );
+			return !! ok;
+		} catch ( _ ) { return false; }
+	}
+
+	window.__odd.diagnostics = {
+		collect:         collect,
+		collectMarkdown: collectMarkdown,
+		copy:            copy,
+		recent:          function () { return buffer.slice(); },
+	};
+} )();

@@ -22,6 +22,7 @@ const MODULE_ORDER = [
 	'lifecycle.js',
 	'safecall.js',
 	'debug.js',
+	'diagnostics.js',
 ];
 
 function execInWindow( src, filename ) {

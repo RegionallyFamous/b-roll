@@ -122,6 +122,122 @@ jobs:
         run: |
           wp eval 'global $wp_filter; exit( isset( $wp_filter["wp_desktop_dock_item"] ) ? 0 : 1 );'
 
+      - name: Assert icon-set registry populated
+        working-directory: /tmp/wp
+        run: |
+          wp eval 'exit( count( odd_icons_get_sets() ) >= 17 ? 0 : 1 );'
+
+      - name: Assert widget bundle API loaded
+        working-directory: /tmp/wp
+        run: |
+          wp eval 'exit( function_exists( "odd_widget_bundle_install" ) ? 0 : 1 );'
+
+      - name: Assert native-window registered for the Control Panel
+        working-directory: /tmp/wp
+        run: |
+          # wpdm_native_window_registry returns null when the window id
+          # is unknown to WP Desktop Mode. If our includes/native-window.php
+          # didn't run, the ODD control-panel window is missing.
+          wp eval 'if ( ! function_exists( "wpdm_native_window_registry" ) ) { exit( 0 ); } exit( null !== wpdm_native_window_registry( "odd" ) ? 0 : 1 );'
+
+      - name: Build example .wp bundles
+        run: |
+          mkdir -p dist
+          for dir in examples/example-*; do
+            name=$(basename "$dir")
+            ( cd "$dir" && zip -r -q "$GITHUB_WORKSPACE/dist/${name}.wp" . -x '*.DS_Store' )
+            ls -la "$GITHUB_WORKSPACE/dist/${name}.wp"
+          done
+
+      - name: Install each example bundle through the universal installer
+        working-directory: /tmp/wp
+        run: |
+          # Drive the bundle installer from the PHP side so we don't
+          # have to authenticate HTTP multipart uploads. This is the
+          # same codepath the REST upload route terminates at.
+          cat > /tmp/install-example.php <<'PHP'
+          <?php
+          wp_set_current_user( 1 );
+          $bundles = array(
+              'example-rainbow'    => getenv( 'GITHUB_WORKSPACE' ) . '/dist/example-scene.wp',
+              'example-hex'        => getenv( 'GITHUB_WORKSPACE' ) . '/dist/example-iconset.wp',
+              'example-hello'      => getenv( 'GITHUB_WORKSPACE' ) . '/dist/example-widget.wp',
+              'example-hello-app'  => getenv( 'GITHUB_WORKSPACE' ) . '/dist/example-app.wp',
+          );
+          foreach ( $bundles as $slug => $wp_path ) {
+              if ( ! file_exists( $wp_path ) ) {
+                  fwrite( STDERR, "missing bundle: $wp_path\n" );
+                  exit( 1 );
+              }
+              $result = odd_bundle_install( $wp_path, basename( $wp_path ) );
+              if ( is_wp_error( $result ) ) {
+                  fwrite( STDERR, "install failed for $slug: " . $result->get_error_code() . ' — ' . $result->get_error_message() . "\n" );
+                  exit( 1 );
+              }
+              echo "installed: $slug\n";
+          }
+          exit( 0 );
+          PHP
+          wp eval-file /tmp/install-example.php
+
+      - name: Assert installed examples show up in their registries
+        working-directory: /tmp/wp
+        run: |
+          # The rainbow scene should register through the scene
+          # registry filter, the hex icon set through the icons
+          # registry, and the hello widget through the widgets index.
+          # We hit each registry's accessor directly.
+          wp eval 'if ( ! array_key_exists( "example-hex", odd_icons_get_sets() ) ) { fwrite( STDERR, "example-hex did not register\n" ); exit( 1 ); } echo "example-hex registered\n";'
+          wp eval 'if ( ! function_exists( "odd_scenes_index_load" ) ) { echo "scenes index helper missing — skipping\n"; exit( 0 ); } $i = odd_scenes_index_load(); if ( empty( $i["example-rainbow"] ) ) { fwrite( STDERR, "example-rainbow did not register\n" ); exit( 1 ); } echo "example-rainbow registered\n";'
+          wp eval 'if ( ! function_exists( "odd_widgets_index_load" ) ) { echo "widgets index helper missing — skipping\n"; exit( 0 ); } $i = odd_widgets_index_load(); if ( empty( $i["example-hello"] ) ) { fwrite( STDERR, "example-hello did not register\n" ); exit( 1 ); } echo "example-hello registered\n";'
+
+      - name: Assert bundle catalog REST responds
+        working-directory: /tmp/wp
+        run: |
+          # Use internal REST so we don't need to stand up a real HTTP
+          # server. The catalog endpoint requires `is_user_logged_in`;
+          # wp_set_current_user lets that through for the eval.
+          cat > /tmp/assert-catalog.php <<'PHP'
+          <?php
+          wp_set_current_user( 1 );
+          $req  = new WP_REST_Request( 'GET', '/odd/v1/bundles/catalog' );
+          $resp = rest_do_request( $req );
+          if ( is_wp_error( $resp ) || $resp->get_status() !== 200 ) {
+              fwrite( STDERR, "catalog endpoint returned " . ( is_wp_error( $resp ) ? $resp->get_error_code() : $resp->get_status() ) . "\n" );
+              exit( 1 );
+          }
+          $data = $resp->get_data();
+          if ( ! is_array( $data ) || ! isset( $data['bundles'] ) || ! is_array( $data['bundles'] ) ) {
+              fwrite( STDERR, "catalog response missing `bundles` array\n" );
+              exit( 1 );
+          }
+          exit( 0 );
+          PHP
+          wp eval-file /tmp/assert-catalog.php
+
+      - name: Assert prefs REST round-trips
+        working-directory: /tmp/wp
+        run: |
+          cat > /tmp/assert-prefs.php <<'PHP'
+          <?php
+          wp_set_current_user( 1 );
+          $req  = new WP_REST_Request( 'GET', '/odd/v1/prefs' );
+          $resp = rest_do_request( $req );
+          if ( is_wp_error( $resp ) || $resp->get_status() !== 200 ) {
+              fwrite( STDERR, "prefs endpoint returned " . ( is_wp_error( $resp ) ? $resp->get_error_code() : $resp->get_status() ) . "\n" );
+              exit( 1 );
+          }
+          $data = $resp->get_data();
+          foreach ( array( 'wallpaper', 'iconSet', 'scenes', 'sets' ) as $key ) {
+              if ( ! array_key_exists( $key, $data ) ) {
+                  fwrite( STDERR, "prefs missing key: $key\n" );
+                  exit( 1 );
+              }
+          }
+          exit( 0 );
+          PHP
+          wp eval-file /tmp/assert-prefs.php
+
       - name: Scan debug.log for PHP errors during activation
         working-directory: /tmp/wp
         run: |

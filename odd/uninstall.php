@@ -11,11 +11,17 @@
  *
  *   Site options
  *     - odd_apps_index                 installed app catalog
+ *     - odd_scenes_index               installed scene catalog (.wp-installed)
+ *     - odd_icon_sets_index            installed icon-set catalog (.wp-installed)
+ *     - odd_widgets_index              installed widget catalog (.wp-installed)
  *     - odd_apps_bazaar_migration      Bazaar → ODD migration report
  *     - odd_apps_bazaar_notice         one-time admin notice flag
  *     - odd_apps_bazaar_migration_lock legacy add_option lock (pre-1.3.3)
  *     - odd_apps_shared_secret         signed-URL shared secret
  *     - odd_app_{slug}                 one row per installed app
+ *     - odd_scene_{slug} / odd_icon_set_{slug} / odd_widget_{slug}
+ *                                      one row per installed bundle
+ *                                      of each universal-.wp type
  *
  *   Site transients
  *     - _transient_odd_apps_bazaar_migration_lock  (1.3.3+ lock)
@@ -30,12 +36,24 @@
  *
  * WHAT DOESN'T GET REMOVED
  *
- *   - wp-content/odd-apps/                          user-installed app
- *     bundles. Admins may want to keep them around to reinstall later;
- *     deletion on uninstall would be surprising. Clean up by hand if
- *     desired.
+ *   - wp-content/odd-apps/         user-installed app bundles.
+ *   - wp-content/odd-scenes/       user-installed scene bundles.
+ *   - wp-content/odd-icon-sets/    user-installed icon-set bundles.
+ *   - wp-content/odd-widgets/      user-installed widget bundles.
+ *
+ *     All four content directories are deliberately preserved so
+ *     admins can keep their bundles around to reinstall later.
+ *     Deletion on uninstall would be surprising. Clean up by hand
+ *     if desired.
+ *
  *   - Third-party plugin data (b-roll legacy b_roll_* keys, Bazaar
  *     bazaar_* options). Those plugins own their own lifecycle.
+ *
+ * When a new bundle type is added to odd/includes/content/,
+ * extend both the options list above AND the content directory
+ * list — the former ensures the database row gets swept, the
+ * latter documents the "we leave user files alone" policy so a
+ * future refactor doesn't silently start scrubbing them.
  */
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
@@ -47,6 +65,9 @@ global $wpdb;
 // but delete_option handles both states.
 $odd_known_options = array(
 	'odd_apps_index',
+	'odd_scenes_index',
+	'odd_icon_sets_index',
+	'odd_widgets_index',
 	'odd_apps_bazaar_migration',
 	'odd_apps_bazaar_notice',
 	'odd_apps_bazaar_migration_lock',
@@ -56,18 +77,28 @@ foreach ( $odd_known_options as $opt ) {
 	delete_option( $opt );
 }
 
-// Per-app option rows: odd_app_{slug}. A direct LIKE query is the
-// only way to sweep them without knowing the slug set after the
-// odd_apps_index row is already gone.
-$app_option_rows = $wpdb->get_col(
-	$wpdb->prepare(
-		"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-		$wpdb->esc_like( 'odd_app_' ) . '%'
-	)
+// Per-bundle option rows across all universal .wp types. A direct
+// LIKE query is the only way to sweep them without knowing the slug
+// set after the per-type index rows are already gone. Scoped to the
+// four prefixes so we don't clobber unrelated options like
+// `odd_apps_shared_secret` (already deleted above).
+$bundle_option_prefixes = array(
+	'odd_app_',
+	'odd_scene_',
+	'odd_icon_set_',
+	'odd_widget_',
 );
-if ( is_array( $app_option_rows ) ) {
-	foreach ( $app_option_rows as $row ) {
-		delete_option( $row );
+foreach ( $bundle_option_prefixes as $prefix ) {
+	$rows = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+			$wpdb->esc_like( $prefix ) . '%'
+		)
+	);
+	if ( is_array( $rows ) ) {
+		foreach ( $rows as $row ) {
+			delete_option( $row );
+		}
 	}
 }
 

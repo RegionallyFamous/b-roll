@@ -15,6 +15,11 @@
 	'use strict';
 	if ( typeof window === 'undefined' ) return;
 
+	var wpI18nW = window.wp && window.wp.i18n;
+	function __( s ) {
+		return ( wpI18nW && typeof wpI18nW.__ === 'function' ) ? wpI18nW.__( s, 'odd' ) : s;
+	}
+
 	function ready( cb ) {
 		if ( window.wp && window.wp.desktop && typeof window.wp.desktop.ready === 'function' ) {
 			window.wp.desktop.ready( cb );
@@ -89,9 +94,9 @@
 		var ta    = el( 'textarea', {
 			class:       'odd-sticky__text',
 			maxlength:   String( STICKY_MAX ),
-			placeholder: 'Scribble something…',
+			placeholder: __( 'Scribble something…' ),
 			spellcheck:  'true',
-			'aria-label': 'Sticky note',
+			'aria-label': __( 'Sticky note' ),
 		} );
 		var meta  = el( 'div', { class: 'odd-sticky__meta', 'aria-hidden': 'true' } );
 
@@ -179,7 +184,7 @@
 		var stage = el( 'button', {
 			type:       'button',
 			class:      'odd-eight__stage',
-			'aria-label': 'Magic 8-ball. Click to shake for a new answer.',
+			'aria-label': __( 'Magic 8-ball. Click to shake for a new answer.' ),
 		} );
 
 		var ball      = el( 'div', { class: 'odd-eight__ball' } );
@@ -220,7 +225,7 @@
 		function shake() {
 			if ( shaking ) return;
 			shaking = true;
-			hint.textContent = 'Shaking…';
+			hint.textContent = __( 'Shaking…' );
 
 			var next = pickAnswer();
 
@@ -230,7 +235,7 @@
 					answer.textContent = next;
 					answer.classList.remove( 'is-fading' );
 					shaking = false;
-					hint.textContent = 'Click to shake';
+					hint.textContent = __( 'Click to shake' );
 				}, 180 );
 				return;
 			}
@@ -244,7 +249,7 @@
 				window.requestAnimationFrame( function () {
 					answer.classList.remove( 'is-fading' );
 					shaking = false;
-					hint.textContent = 'Click to shake';
+					hint.textContent = __( 'Click to shake' );
 				} );
 			}, 520 );
 		}
@@ -314,8 +319,8 @@
 
 		window.wp.desktop.registerWidget( {
 			id:            'odd/sticky',
-			label:         'ODD · Sticky Note',
-			description:   'A tilted handwritten note that auto-saves as you type.',
+			label:         __( 'ODD · Sticky Note' ),
+			description:   __( 'A tilted handwritten note that auto-saves as you type.' ),
 			icon:          'dashicons-welcome-write-blog',
 			movable:       true,
 			resizable:     true,
@@ -328,8 +333,8 @@
 
 		window.wp.desktop.registerWidget( {
 			id:            'odd/eight-ball',
-			label:         'ODD · Magic 8-Ball',
-			description:   'A WordPress-flavored magic 8-ball. Click to shake.',
+			label:         __( 'ODD · Magic 8-Ball' ),
+			description:   __( 'A WordPress-flavored magic 8-ball. Click to shake.' ),
 			icon:          'dashicons-editor-help',
 			movable:       true,
 			resizable:     true,

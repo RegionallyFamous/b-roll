@@ -1,0 +1,22 @@
+{
+	"$schema": "../../../../docs/schemas/manifest.schema.json",
+	"type": "icon-set",
+	"slug": "example-iconset",
+	"name": "Example Icon Set",
+	"label": "Example",
+	"version": "1.0.0",
+	"accent": "#6a5cff",
+	"icons": {
+		"dashboard":  "dashboard.svg",
+		"posts":      "posts.svg",
+		"pages":      "pages.svg",
+		"media":      "media.svg",
+		"comments":   "comments.svg",
+		"appearance": "appearance.svg",
+		"plugins":    "plugins.svg",
+		"users":      "users.svg",
+		"tools":      "tools.svg",
+		"settings":   "settings.svg",
+		"fallback":   "fallback.svg"
+	}
+}

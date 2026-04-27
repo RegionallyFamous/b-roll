@@ -1,0 +1,128 @@
+name: e2e
+
+# Playwright end-to-end against a real WordPress install with ODD
+# activated. Picks up JS regressions that install-smoke misses
+# because install-smoke never loads a browser.
+#
+# Flake budget: Playwright runs with retries: 1 (see
+# playwright.config.ts), and the spec itself waits up to 200×100ms for
+# each DOM milestone. If a run fails consistently, download the
+# `playwright-report` artifact to get trace + video.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      WP_CLI_ALLOW_ROOT: '1'
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, zip, dom, gd
+          coverage: none
+          tools: wp-cli
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install node deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -u root -proot --silent; then
+              echo "mysql ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "mysql never came up" >&2; exit 1
+
+      - name: Provision WordPress
+        working-directory: /tmp
+        run: |
+          mkdir -p /tmp/wp && cd /tmp/wp
+          wp core download
+          wp config create \
+            --dbname=wordpress \
+            --dbuser=root \
+            --dbpass=root \
+            --dbhost=127.0.0.1 \
+            --skip-check
+          wp core install \
+            --url=http://127.0.0.1:8080 \
+            --title=ODD-e2e \
+            --admin_user=admin \
+            --admin_password=password \
+            --admin_email=e2e@example.com \
+            --skip-email
+
+      - name: Install WP Desktop Mode (host plugin)
+        working-directory: /tmp/wp
+        run: wp plugin install https://github.com/WordPress/desktop-mode/archive/refs/heads/trunk.zip --activate
+
+      - name: Link ODD into wp-content/plugins
+        run: |
+          ln -s "${{ github.workspace }}/odd" /tmp/wp/wp-content/plugins/odd
+          cd /tmp/wp && wp plugin activate odd
+
+      - name: Enable desktop mode for admin
+        working-directory: /tmp/wp
+        run: wp user meta update 1 wp_desktop_mode 1
+
+      - name: Start WP server
+        working-directory: /tmp/wp
+        run: |
+          nohup wp server --host=127.0.0.1 --port=8080 > /tmp/wp-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/ > /dev/null; then
+              echo "wp server ready"; exit 0
+            fi
+            sleep 1
+          done
+          echo "wp server never came up" >&2
+          cat /tmp/wp-server.log || true
+          exit 1
+
+      - name: Run Playwright e2e
+        env:
+          BASE_URL: http://127.0.0.1:8080
+          WP_ADMIN_USER: admin
+          WP_ADMIN_PASS: password
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

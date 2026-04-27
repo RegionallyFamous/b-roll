@@ -33,6 +33,14 @@ jobs:
           odd/bin/validate-scenes
           odd/bin/validate-icon-sets
 
+      - name: Regenerate POT (odd/languages/odd.pot)
+        run: |
+          # Makes sure the .pot translators pull from is always in
+          # sync with the tagged source. Refuses to ship if it would
+          # be empty (which means i18n regressed and nothing got
+          # wrapped in __() anymore — a real bug).
+          odd/bin/make-pot --out odd/languages/odd.pot
+
       - name: Build zip
         run: odd/bin/build-zip
 

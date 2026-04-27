@@ -1,0 +1,216 @@
+#!/usr/bin/env python3
+"""Generate `languages/odd.pot` from PHP __() / _e() / _x() / _n()
+calls and JS wp.i18n.__() / _x() / _n() calls across the plugin.
+
+We ship our own minimal generator so the release workflow doesn't
+have to install wp-cli + php + node to run `wp i18n make-pot`. It
+covers 98% of what translators need; edge cases (shared
+plural/context strings, heredoc-interpolated values) are explicitly
+skipped and left to translators to handle manually from msgctxt
+entries we do emit.
+
+Usage:
+  odd/bin/make-pot [--out languages/odd.pot]
+
+Exits non-zero if:
+  - the output file cannot be written
+  - nothing was extracted (almost certainly a bug — no i18n
+    functions should never be the truth for a user-facing plugin)
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+PLUGIN_ROOT = HERE.parent
+REPO_ROOT = PLUGIN_ROOT.parent
+
+PHP_CALL_RE = re.compile(
+    r"""\b(?P<func>__|_e|_x|_ex|_n|_nx|esc_html__|esc_html_e|esc_attr__|esc_attr_e)\s*\(\s*""",
+    re.VERBOSE,
+)
+JS_CALL_RE = re.compile(
+    r"""\b(?:wp\.i18n\.)?(?P<func>__|_x|_n|_nx)\s*\(\s*""",
+    re.VERBOSE,
+)
+
+# Matches a PHP/JS single or double quoted string (escapes honoured).
+STRING_RE = re.compile(
+    r"""(?P<q>['"])(?P<body>(?:\\.|(?!(?P=q)).)*?)(?P=q)""",
+    re.VERBOSE,
+)
+
+def parse_call(source: str, start: int, call_re: re.Pattern) -> tuple[dict, int] | None:
+    """Given `source[start:]` at the opening paren, extract up to 4
+    quoted args. Returns (entry, end_index) or None if parse failed."""
+    i = start
+    # Skip whitespace inside parens.
+    args: list[str] = []
+    for _ in range( 4 ):
+        while i < len(source) and source[i] in ' \t\r\n':
+            i += 1
+        m = STRING_RE.match(source, i)
+        if not m:
+            break
+        args.append(m.group('body'))
+        i = m.end()
+        while i < len(source) and source[i] in ' \t\r\n':
+            i += 1
+        if i >= len(source) or source[i] != ',':
+            break
+        i += 1
+    if not args:
+        return None
+    return {'args': args}, i
+
+def scan_php(text: str) -> list[dict]:
+    hits = []
+    for m in PHP_CALL_RE.finditer(text):
+        parsed = parse_call(text, m.end(), PHP_CALL_RE)
+        if not parsed:
+            continue
+        entry, _end = parsed
+        func = m.group('func')
+        # Require odd textdomain on last arg for _e/__/esc_* family
+        textdomain = entry['args'][-1] if len(entry['args']) >= 2 else None
+        if textdomain is not None and textdomain != 'odd':
+            continue
+        hits.append({'func': func, 'args': entry['args']})
+    return hits
+
+def scan_js(text: str) -> list[dict]:
+    hits = []
+    for m in JS_CALL_RE.finditer(text):
+        parsed = parse_call(text, m.end(), JS_CALL_RE)
+        if not parsed:
+            continue
+        entry, _end = parsed
+        textdomain = entry['args'][-1] if len(entry['args']) >= 2 else None
+        if textdomain is not None and textdomain != 'odd':
+            continue
+        hits.append({'func': m.group('func'), 'args': entry['args']})
+    return hits
+
+def walk(root: Path, exts: tuple[str, ...]) -> list[Path]:
+    out = []
+    for p in root.rglob('*'):
+        if any(p.suffix == e for e in exts) and 'languages' not in p.parts and 'node_modules' not in p.parts and 'vendor' not in p.parts:
+            out.append(p)
+    return out
+
+def escape_po(s: str) -> str:
+    return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--out', default=str(PLUGIN_ROOT / 'languages' / 'odd.pot'))
+    args = ap.parse_args()
+
+    entries: dict[tuple[str, str | None, str], set[tuple[str, int]]] = {}
+    files_seen = 0
+
+    for php in walk(PLUGIN_ROOT, ('.php',)):
+        try:
+            txt = php.read_text(encoding='utf-8', errors='replace')
+        except OSError:
+            continue
+        files_seen += 1
+        for hit in scan_php(txt):
+            key, ref = entry_key(hit, php, txt)
+            if key is None:
+                continue
+            entries.setdefault(key, set()).add(ref)
+    for js in walk(PLUGIN_ROOT, ('.js',)):
+        try:
+            txt = js.read_text(encoding='utf-8', errors='replace')
+        except OSError:
+            continue
+        files_seen += 1
+        for hit in scan_js(txt):
+            key, ref = entry_key(hit, js, txt)
+            if key is None:
+                continue
+            entries.setdefault(key, set()).add(ref)
+
+    if not entries:
+        print(f"no translatable strings found across {files_seen} files; refusing to write empty POT", file=sys.stderr)
+        return 1
+
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open('w', encoding='utf-8') as f:
+        write_header(f)
+        for key in sorted(entries):
+            msgctxt, msgid_plural, msgid = key
+            for ref in sorted(entries[key]):
+                f.write(f"#: {ref[0]}:{ref[1]}\n")
+            if msgctxt:
+                f.write(f'msgctxt "{escape_po(msgctxt)}"\n')
+            f.write(f'msgid "{escape_po(msgid)}"\n')
+            if msgid_plural is not None:
+                f.write(f'msgid_plural "{escape_po(msgid_plural)}"\n')
+                f.write('msgstr[0] ""\n')
+                f.write('msgstr[1] ""\n')
+            else:
+                f.write('msgstr ""\n')
+            f.write('\n')
+
+    print(f"wrote {len(entries)} entries from {files_seen} files → {out_path}")
+    return 0
+
+def entry_key(hit: dict, path: Path, source: str) -> tuple[tuple | None, tuple[str, int]]:
+    func = hit['func']
+    a = hit['args']
+    msgctxt: str | None = None
+    msgid_plural: str | None = None
+
+    # Map func → (msgid, plural?, ctxt?)
+    if func in ('__', '_e', 'esc_html__', 'esc_html_e', 'esc_attr__', 'esc_attr_e'):
+        msgid = a[0] if a else None
+    elif func in ('_x', '_ex'):
+        msgid = a[0] if len(a) >= 1 else None
+        msgctxt = a[1] if len(a) >= 2 else None
+    elif func == '_n':
+        msgid = a[0] if len(a) >= 1 else None
+        msgid_plural = a[1] if len(a) >= 2 else None
+    elif func == '_nx':
+        msgid = a[0] if len(a) >= 1 else None
+        msgid_plural = a[1] if len(a) >= 2 else None
+        msgctxt = a[3] if len(a) >= 4 else None
+    else:
+        msgid = a[0] if a else None
+
+    if not msgid:
+        return None, (str(path), 0)
+
+    # Find rough line number of first occurrence.
+    idx = source.find(msgid)
+    line = 1 + source.count('\n', 0, idx) if idx >= 0 else 1
+    rel = path.relative_to(REPO_ROOT)
+    return (msgctxt, msgid_plural, msgid), (str(rel), line)
+
+def write_header(f) -> None:
+    stamp = time.strftime('%Y-%m-%d %H:%M%z')
+    f.write(f'''# Copyright (C) {time.strftime("%Y")} ODD authors
+# This file is distributed under the same license as the ODD plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: odd\\n"
+"Report-Msgid-Bugs-To: https://github.com/RegionallyFamous/odd/issues\\n"
+"POT-Creation-Date: {stamp}\\n"
+"MIME-Version: 1.0\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+"Content-Transfer-Encoding: 8bit\\n"
+"Language-Team: \\n"
+"X-Generator: odd/bin/make-pot\\n"
+"X-Domain: odd\\n"
+
+''')
+
+if __name__ == '__main__':
+    sys.exit(main())

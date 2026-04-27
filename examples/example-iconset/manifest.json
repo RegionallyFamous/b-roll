@@ -1,0 +1,24 @@
+{
+	"$schema": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json",
+	"type": "icon-set",
+	"slug": "example-hex",
+	"name": "Example Hex",
+	"label": "Hex",
+	"version": "1.0.0",
+	"author": "ODD Examples",
+	"accent": "#6a5cff",
+	"description": "11 flat hexagon tiles — the minimum icon set that satisfies the ODD dock filter.",
+	"icons": {
+		"dashboard":  "dashboard.svg",
+		"posts":      "posts.svg",
+		"pages":      "pages.svg",
+		"media":      "media.svg",
+		"comments":   "comments.svg",
+		"appearance": "appearance.svg",
+		"plugins":    "plugins.svg",
+		"users":      "users.svg",
+		"tools":      "tools.svg",
+		"settings":   "settings.svg",
+		"fallback":   "fallback.svg"
+	}
+}

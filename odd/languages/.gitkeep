@@ -1,0 +1,4 @@
+JSON translation bundles (`odd-<locale>-<handle-md5>.json`) land
+in this directory. Don't delete this file — WordPress is quiet
+about translating missing directories, and the release workflow
+needs a target to write the POT file to.

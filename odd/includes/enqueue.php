@@ -88,6 +88,13 @@ add_action(
 			ODD_VERSION,
 			true
 		);
+		wp_enqueue_script(
+			'odd-diagnostics',
+			ODD_URL . '/src/shared/diagnostics.js',
+			array( 'odd-events' ),
+			ODD_VERSION,
+			true
+		);
 
 		// Feature surfaces. `odd-api` depends on every foundation
 		// module so downstream scripts can assume the full stack is
@@ -101,6 +108,7 @@ add_action(
 			'odd-lifecycle',
 			'odd-safecall',
 			'odd-debug',
+			'odd-diagnostics',
 		);
 
 		wp_enqueue_script(
@@ -120,7 +128,7 @@ add_action(
 		wp_enqueue_script(
 			'odd-panel',
 			ODD_URL . '/src/panel/index.js',
-			array_merge( $foundation_deps, array( 'odd-api' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'wp-i18n' ) ),
 			ODD_VERSION,
 			true
 		);
@@ -139,7 +147,7 @@ add_action(
 		wp_enqueue_script(
 			'odd-widgets',
 			ODD_URL . '/src/widgets/index.js',
-			array_merge( $foundation_deps, array( 'odd-api' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'wp-i18n' ) ),
 			ODD_VERSION,
 			true
 		);
@@ -152,7 +160,7 @@ add_action(
 		wp_enqueue_script(
 			'odd-commands',
 			ODD_URL . '/src/commands/index.js',
-			array_merge( $foundation_deps, array( 'odd-api' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'wp-i18n' ) ),
 			ODD_VERSION,
 			true
 		);

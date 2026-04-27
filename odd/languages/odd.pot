@@ -1,0 +1,684 @@
+# Copyright (C) 2026 ODD authors
+# This file is distributed under the same license as the ODD plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: odd\n"
+"Report-Msgid-Bugs-To: https://github.com/RegionallyFamous/odd/issues\n"
+"POT-Creation-Date: 2026-04-27 06:01-0500\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language-Team: \n"
+"X-Generator: odd/bin/make-pot\n"
+"X-Domain: odd\n"
+
+#: odd/src/widgets/index.js:337
+msgid "A WordPress-flavored magic 8-ball. Click to shake."
+msgstr ""
+
+#: odd/includes/content/bundle.php:103
+msgid "A bundle named \"%s\" is already installed. Remove it before reinstalling."
+msgstr ""
+
+#: odd/src/panel/index.js:688
+msgid "A bundle with that slug is already installed. Remove the existing one first."
+msgstr ""
+
+#: odd/src/widgets/index.js:323
+msgid "A tilted handwritten note that auto-saves as you type."
+msgstr ""
+
+#: odd/src/panel/index.js:10
+msgid "About"
+msgstr ""
+
+#: odd/src/panel/index.js:54
+msgid "Add a .wp bundle"
+msgstr ""
+
+#: odd/src/panel/index.js:697
+msgid "An SVG in this bundle isn\\u2019t well-formed."
+msgstr ""
+
+#: odd/includes/apps/registry.php:43
+msgid "An installation of this app is already in progress."
+msgstr ""
+
+#: odd/includes/content/bundle.php:129
+msgid "An installation of this bundle is already in progress."
+msgstr ""
+
+#: odd/includes/content/catalog.php:294
+msgid "An update is available. Pass allow_update=1 to reinstall."
+msgstr ""
+
+#: odd/src/panel/index.js:690
+msgid "Another install of this bundle is already in progress."
+msgstr ""
+
+#: odd/includes/apps/loader.php:164
+msgid "App \"%s\" is already installed. Delete it before reinstalling."
+msgstr ""
+
+#: odd/includes/apps/loader.php:81
+msgid "App archive exceeds 2000 files."
+msgstr ""
+
+#: odd/includes/apps/loader.php:65
+msgid "App archives must have a .wp extension."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:314
+msgid "App is already installed."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:311
+msgid "App is not in the catalog."
+msgstr ""
+
+#: odd/includes/apps/registry.php:112
+msgid "App is not installed."
+msgstr ""
+
+#: odd/includes/apps/loader.php:132
+msgid "App is too large (%1$s MB uncompressed). Maximum is %2$s MB."
+msgstr ""
+
+#: odd/includes/apps/rest.php:154
+msgid "App not found."
+msgstr ""
+
+#: odd/includes/apps/loader.php:159
+msgid "App slug must contain only lowercase letters, numbers, and hyphens."
+msgstr ""
+
+#: odd/src/panel/index.js:10
+msgid "Apps"
+msgstr ""
+
+#: odd/includes/apps/loader.php:96
+msgid "Archive contains a path-traversal entry: %s"
+msgstr ""
+
+#: odd/includes/apps/loader.php:104
+msgid "Archive contains a symlink: %s"
+msgstr ""
+
+#: odd/includes/apps/loader.php:90
+msgid "Archive contains an unreadable entry."
+msgstr ""
+
+#: odd/includes/apps/rest.php:251
+msgid "Bad app path."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:126
+msgid "Built-in app \"%s\" has an invalid manifest."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:117
+msgid "Built-in app \"%s\" has no source on disk."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:121
+msgid "Built-in app \"%s\" is missing manifest.json."
+msgstr ""
+
+#: odd/src/panel/index.js:681
+msgid "Bundle contains a path-traversal entry and was rejected."
+msgstr ""
+
+#: odd/includes/content/archive.php:115
+msgid "Bundle contains a path-traversal entry: %s"
+msgstr ""
+
+#: odd/src/panel/index.js:683
+msgid "Bundle contains a server-executable file and was rejected."
+msgstr ""
+
+#: odd/src/panel/index.js:680
+msgid "Bundle contains a suspicious compression ratio and was rejected."
+msgstr ""
+
+#: odd/src/panel/index.js:682
+msgid "Bundle contains a symlink and was rejected."
+msgstr ""
+
+#: odd/includes/content/archive.php:122
+msgid "Bundle contains a symlink: %s"
+msgstr ""
+
+#: odd/includes/content/archive.php:110
+msgid "Bundle contains an unreadable entry."
+msgstr ""
+
+#: odd/includes/content/archive.php:102
+msgid "Bundle exceeds %d files."
+msgstr ""
+
+#: odd/src/panel/index.js:678
+msgid "Bundle has too many files. The limit is 2000."
+msgstr ""
+
+#: odd/includes/content/catalog.php:295
+msgid "Bundle is already installed."
+msgstr ""
+
+#: odd/src/panel/index.js:684
+msgid "Bundle is missing a manifest.json at the root."
+msgstr ""
+
+#: odd/src/panel/index.js:695
+msgid "Bundle is missing one of the SVGs it declared."
+msgstr ""
+
+#: odd/src/panel/index.js:693
+msgid "Bundle is missing preview.webp."
+msgstr ""
+
+#: odd/src/panel/index.js:691
+msgid "Bundle is missing the entry file declared in manifest.json."
+msgstr ""
+
+#: odd/src/panel/index.js:694
+msgid "Bundle is missing wallpaper.webp."
+msgstr ""
+
+#: odd/includes/content/catalog.php:276
+msgid "Bundle is not in the catalog."
+msgstr ""
+
+#: odd/includes/content/archive.php:147
+msgid "Bundle is too large (%1$s MB uncompressed). Maximum is %2$s MB."
+msgstr ""
+
+#: odd/src/panel/index.js:679
+msgid "Bundle is too large. Keep it under 25 MB uncompressed."
+msgstr ""
+
+#: odd/src/panel/index.js:687
+msgid "Bundle slug must be lowercase letters, numbers, and hyphens."
+msgstr ""
+
+#: odd/src/panel/index.js:692
+msgid "Bundle\\u2019s entry path is invalid."
+msgstr ""
+
+#: odd/src/panel/index.js:686
+msgid "Bundle\\u2019s manifest.json is missing a required field."
+msgstr ""
+
+#: odd/src/panel/index.js:685
+msgid "Bundle\\u2019s manifest.json is not valid JSON."
+msgstr ""
+
+#: odd/includes/content/archive.php:73
+msgid "Bundles must have a .wp extension."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:342
+#: odd/includes/content/catalog.php:328
+msgid "Catalog downloads must use HTTPS."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:332
+#: odd/includes/content/catalog.php:322
+msgid "Catalog entry has no download URL."
+msgstr ""
+
+#: odd/includes/content/catalog.php:306
+msgid "Catalog version is not newer than the installed version."
+msgstr ""
+
+#: odd/src/widgets/index.js:187
+msgid "Click to shake"
+msgstr ""
+
+#: odd/src/panel/index.js:973
+msgid "Close"
+msgstr ""
+
+#: odd/src/panel/index.js:984
+msgid "Copied"
+msgstr ""
+
+#: odd/src/panel/index.js:978
+msgid "Copy diagnostics"
+msgstr ""
+
+#: odd/src/panel/index.js:984
+msgid "Copy failed"
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:139
+msgid "Could not copy built-in app files."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:135
+msgid "Could not create app directory."
+msgstr ""
+
+#: odd/includes/content/archive.php:272
+msgid "Could not create bundle directory."
+msgstr ""
+
+#: odd/includes/apps/loader.php:216
+#: odd/includes/content/archive.php:287
+msgid "Could not create staging directory."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:365
+#: odd/includes/content/catalog.php:342
+msgid "Could not download bundle: %s"
+msgstr ""
+
+#: odd/includes/content/archive.php:305
+msgid "Could not finalise bundle installation."
+msgstr ""
+
+#: odd/includes/apps/loader.php:237
+msgid "Could not finalize app installation."
+msgstr ""
+
+#: odd/src/panel/index.js:55
+msgid "Credits & chaos"
+msgstr ""
+
+#: odd/src/panel/index.js:52
+msgid "Desktop companions"
+msgstr ""
+
+#: odd/includes/apps/migrate-from-bazaar.php:234
+msgid "Dismiss"
+msgstr ""
+
+#: odd/includes/apps/loader.php:178
+msgid "Entry file \"%s\" not found in archive."
+msgstr ""
+
+#: odd/includes/content/scenes.php:93
+#: odd/includes/content/widgets.php:80
+msgid "Entry file \"%s\" not found in bundle."
+msgstr ""
+
+#: odd/src/panel/index.js:1041
+msgid "Escape"
+msgstr ""
+
+#: odd/includes/apps/loader.php:75
+#: odd/includes/content/archive.php:83
+msgid "File is not a valid ZIP archive."
+msgstr ""
+
+#: odd/includes/content/iconsets.php:298
+msgid "File is not an SVG."
+msgstr ""
+
+#: odd/includes/apps/rest.php:263
+msgid "File not found."
+msgstr ""
+
+#: odd/src/panel/index.js:1039
+msgid "Focus search"
+msgstr ""
+
+#: odd/src/panel/index.js:1006
+msgid "Full environment + log ring buffer is copied when diagnostics are available."
+msgstr ""
+
+#: odd/src/panel/index.js:1054
+msgid "Got it"
+msgstr ""
+
+#: odd/includes/content/iconsets.php:123
+msgid "Icon \"%s\" must be an SVG."
+msgstr ""
+
+#: odd/src/panel/index.js:10
+msgid "Icon Sets"
+msgstr ""
+
+#: odd/includes/content/iconsets.php:131
+msgid "Icon file \"%s\" was declared in the manifest but not found in the bundle."
+msgstr ""
+
+#: odd/includes/content/iconsets.php:106
+msgid "Icon key \"%s\" is invalid."
+msgstr ""
+
+#: odd/includes/content/iconsets.php:113
+msgid "Icon path \"%s\" contains invalid characters."
+msgstr ""
+
+#: odd/includes/content/iconsets.php:165
+msgid "Icon set accent must be a hex colour like #ffb000."
+msgstr ""
+
+#: odd/src/panel/index.js:696
+msgid "Icon set is missing required keys."
+msgstr ""
+
+#: odd/includes/content/iconsets.php:148
+msgid "Icon set is missing required keys: %s"
+msgstr ""
+
+#: odd/includes/content/iconsets.php:258
+msgid "Icon set is not installed."
+msgstr ""
+
+#: odd/includes/content/iconsets.php:97
+msgid "Icon set manifest.json must include an \"icons\" map."
+msgstr ""
+
+#: odd/src/panel/index.js:54
+msgid "Install"
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:298
+msgid "Install crashed: %s"
+msgstr ""
+
+#: odd/src/panel/index.js:485
+msgid "Install failed"
+msgstr ""
+
+#: odd/src/panel/index.js:485
+msgid "Install failed."
+msgstr ""
+
+#: odd/includes/content/bundle.php:165
+msgid "Internal error: type module missing."
+msgstr ""
+
+#: odd/includes/apps/registry.php:89
+msgid "Invalid app slug."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:109
+msgid "Invalid built-in slug."
+msgstr ""
+
+#: odd/includes/content/bundle.php:155
+msgid "Invalid bundle slug."
+msgstr ""
+
+#: odd/includes/apps/loader.php:194
+#: odd/includes/content/archive.php:268
+#: odd/includes/content/iconsets.php:254
+#: odd/includes/content/scenes.php:183
+#: odd/includes/content/widgets.php:143
+msgid "Invalid slug."
+msgstr ""
+
+#: odd/src/panel/index.js:1032
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: odd/src/panel/index.js:50
+msgid "Live generative scenes"
+msgstr ""
+
+#: odd/includes/apps/native-surfaces.php:149
+msgid "Loading %s…"
+msgstr ""
+
+#: odd/includes/native-window.php:100
+msgid "Loading ODD Shop…"
+msgstr ""
+
+#: odd/src/widgets/index.js:187
+msgid "Magic 8-ball. Click to shake for a new answer."
+msgstr ""
+
+#: odd/includes/apps/loader.php:174
+msgid "Manifest entry path contains invalid characters or path traversal."
+msgstr ""
+
+#: odd/src/panel/index.js:53
+msgid "Mini apps that just run"
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:307
+#: odd/includes/apps/rest.php:433
+#: odd/includes/content/catalog.php:265
+msgid "Missing slug."
+msgstr ""
+
+#: odd/src/panel/index.js:1042
+msgid "Move in the sidebar"
+msgstr ""
+
+#: odd/includes/content/bundle.php:160
+msgid "No bundle with that slug is installed."
+msgstr ""
+
+#: odd/includes/apps/rest.php:162
+#: odd/includes/content/rest.php:60
+msgid "No file uploaded. Use multipart field \"file\"."
+msgstr ""
+
+#: odd/includes/native-window.php:3
+#: odd/includes/toasts.php:3
+msgid "ODD"
+msgstr ""
+
+#: odd/includes/content/bundle.php:208
+msgid "ODD Apps are disabled on this site."
+msgstr ""
+
+#: odd/includes/native-window.php:5
+#: odd/src/panel/index.js:2
+msgid "ODD Shop"
+msgstr ""
+
+#: odd/includes/apps/migrate-from-bazaar.php:265
+msgid "ODD absorbed your Bazaar wares — %d migrated into the Apps tab. The old Bazaar plugin has been deactivated; delete it when you\\'re ready."
+msgstr ""
+
+#: odd/src/panel/index.js:701
+msgid "ODD couldn\\u2019t finalise the install. Check wp-content permissions and try again."
+msgstr ""
+
+#: odd/includes/content/bundle.php:112
+msgid "ODD does not know how to install bundles of type \"%s\"."
+msgstr ""
+
+#: odd/includes/accents.php:39
+msgid "ODD · %s"
+msgstr ""
+
+#: odd/src/widgets/index.js:336
+msgid "ODD · Magic 8-Ball"
+msgstr ""
+
+#: odd/src/widgets/index.js:322
+msgid "ODD · Sticky Note"
+msgstr ""
+
+#: odd/includes/icons/registry.php:73
+msgid "One or more manifest.json files failed to parse and were ignored. Check the plugin folder:"
+msgstr ""
+
+#: odd/src/panel/index.js:99
+msgid "Outlandish Desktop Decorator"
+msgstr ""
+
+#: odd/includes/apps/loader.php:69
+msgid "PHP ZipArchive extension is required to install apps."
+msgstr ""
+
+#: odd/includes/content/iconsets.php:158
+#: odd/includes/content/widgets.php:88
+msgid "Preview file is not present in the bundle."
+msgstr ""
+
+#: odd/src/panel/index.js:51
+msgid "Re-skin the dock"
+msgstr ""
+
+#: odd/includes/content/iconsets.php:294
+msgid "SVG contains control bytes and cannot be installed."
+msgstr ""
+
+#: odd/includes/content/iconsets.php:290
+msgid "SVG file is empty."
+msgstr ""
+
+#: odd/includes/content/scenes.php:88
+msgid "Scene bundle entry must be a .js file."
+msgstr ""
+
+#: odd/includes/content/scenes.php:100
+msgid "Scene bundle is missing preview.webp."
+msgstr ""
+
+#: odd/includes/content/scenes.php:106
+msgid "Scene bundle is missing wallpaper.webp."
+msgstr ""
+
+#: odd/includes/content/scenes.php:187
+msgid "Scene is not installed."
+msgstr ""
+
+#: odd/src/widgets/index.js:97
+msgid "Scribble something…"
+msgstr ""
+
+#: odd/src/panel/index.js:106
+msgid "Search"
+msgstr ""
+
+#: odd/src/panel/index.js:117
+msgid "Search wallpapers, icons, apps…"
+msgstr ""
+
+#: odd/includes/apps/loader.php:110
+#: odd/includes/content/archive.php:127
+msgid "Server-executable files are not allowed. Found: %s"
+msgstr ""
+
+#: odd/src/widgets/index.js:228
+msgid "Shaking…"
+msgstr ""
+
+#: odd/src/panel/index.js:1040
+msgid "Show this help"
+msgstr ""
+
+#: odd/includes/content/archive.php:197
+msgid "Slug must contain only lowercase letters, numbers, and hyphens."
+msgstr ""
+
+#: odd/src/widgets/index.js:99
+msgid "Sticky note"
+msgstr ""
+
+#: odd/src/panel/index.js:9
+msgid "Store"
+msgstr ""
+
+#: odd/src/panel/index.js:1089
+msgid "Store sections"
+msgstr ""
+
+#: odd/includes/apps/loader.php:119
+#: odd/includes/content/archive.php:135
+msgid "Suspicious compression ratio (%2$d:1) in %1$s."
+msgstr ""
+
+#: odd/src/panel/index.js:675
+msgid "That file isn\\u2019t a .wp bundle."
+msgstr ""
+
+#: odd/src/panel/index.js:676
+msgid "That file isn\\u2019t a valid ZIP archive."
+msgstr ""
+
+#: odd/includes/content/archive.php:77
+msgid "The PHP ZipArchive extension is required to install ODD bundles."
+msgstr ""
+
+#: odd/includes/apps/core-controller.php:382
+msgid "The downloaded file is not a valid .wp archive (server returned non-ZIP content)."
+msgstr ""
+
+#: odd/includes/content/catalog.php:357
+msgid "The downloaded file is not a valid .wp archive."
+msgstr ""
+
+#: odd/src/panel/index.js:689
+msgid "This ODD version doesn\\u2019t know how to install that bundle type."
+msgstr ""
+
+#: odd/includes/apps/rest.php:256
+msgid "This file type cannot be served."
+msgstr ""
+
+#: odd/src/panel/index.js:677
+msgid "This site is missing the PHP ZipArchive extension \\u2014 ask the host to enable it."
+msgstr ""
+
+#: odd/includes/content/rate-limit.php:41
+#: odd/src/panel/index.js:698
+msgid "Too many requests. Please wait a minute and try again."
+msgstr ""
+
+#: odd/includes/content/archive.php:211
+msgid "Unknown bundle type \"%s\". Supported: app, icon-set, scene, widget."
+msgstr ""
+
+#: odd/includes/icons/registry.php:443
+#: odd/includes/rest.php:180
+msgid "Unknown icon set."
+msgstr ""
+
+#: odd/includes/icons/registry.php:428
+msgid "Unknown icon."
+msgstr ""
+
+#: odd/includes/rest.php:105
+msgid "Unknown wallpaper slug."
+msgstr ""
+
+#: odd/src/panel/index.js:10
+msgid "Wallpapers"
+msgstr ""
+
+#: odd/includes/content/widgets.php:75
+msgid "Widget bundle entry must be a .js file."
+msgstr ""
+
+#: odd/includes/content/widgets.php:147
+msgid "Widget is not installed."
+msgstr ""
+
+#: odd/src/panel/index.js:52
+msgid "Widgets"
+msgstr ""
+
+#: odd/includes/content/scenes.php:120
+msgid "fallbackColor must be a hex colour like #0a0a1f."
+msgstr ""
+
+#: odd/includes/apps/loader.php:153
+#: odd/includes/content/archive.php:192
+msgid "manifest.json is missing required field: %s"
+msgstr ""
+
+#: odd/includes/apps/loader.php:147
+#: odd/includes/content/archive.php:171
+msgid "manifest.json is not valid JSON."
+msgstr ""
+
+#: odd/includes/content/archive.php:186
+msgid "manifest.json must be a JSON object."
+msgstr ""
+
+#: odd/includes/apps/loader.php:142
+msgid "manifest.json was not found at the archive root."
+msgstr ""
+
+#: odd/includes/content/archive.php:167
+msgid "manifest.json was not found at the bundle root."
+msgstr ""
+

@@ -3,7 +3,7 @@
  * Plugin Name:       ODD — Outlandish Desktop Decorator
  * Plugin URI:        https://github.com/RegionallyFamous/odd
  * Description:       Decorator for WP Desktop Mode: generative PixiJS wallpapers, themed icon sets, and a native ODD Shop window to browse and switch between them.
- * Version:           1.10.0
+ * Version:           2.0.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            regionallyfamous
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ODD_VERSION', '1.10.0' );
+define( 'ODD_VERSION', '2.0.0' );
 define( 'ODD_FILE', __FILE__ );
 define( 'ODD_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ODD_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
@@ -39,3 +39,45 @@ require_once ODD_DIR . 'includes/apps/bootstrap.php';
 // odd_apps_install() for back-compat.
 require_once ODD_DIR . 'includes/content/bootstrap.php';
 require_once ODD_DIR . 'includes/enqueue.php';
+
+/**
+ * Load translations for PHP, and wire every registered ODD script
+ * handle up to `wp_set_script_translations` so strings wrapped with
+ * `wp.i18n.__()` in the panel / widgets honour the active locale.
+ *
+ * The JSON files live at `languages/odd-<locale>-<handle-md5>.json`
+ * when they exist. `languages/odd.pot` is generated at release time
+ * by `odd/bin/make-pot` and is the source template that translators
+ * fork.
+ */
+add_action(
+	'init',
+	static function () {
+		load_plugin_textdomain( 'odd', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+	}
+);
+
+add_action(
+	'wp_enqueue_scripts',
+	static function () {
+		$langs_dir = ODD_DIR . 'languages';
+		foreach ( array( 'odd-panel', 'odd-widgets', 'odd-commands', 'odd-api' ) as $handle ) {
+			if ( wp_script_is( $handle, 'registered' ) ) {
+				wp_set_script_translations( $handle, 'odd', $langs_dir );
+			}
+		}
+	},
+	99
+);
+add_action(
+	'admin_enqueue_scripts',
+	static function () {
+		$langs_dir = ODD_DIR . 'languages';
+		foreach ( array( 'odd-panel', 'odd-widgets', 'odd-commands', 'odd-api' ) as $handle ) {
+			if ( wp_script_is( $handle, 'registered' ) ) {
+				wp_set_script_translations( $handle, 'odd', $langs_dir );
+			}
+		}
+	},
+	99
+);

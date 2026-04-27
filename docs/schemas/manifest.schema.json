@@ -1,0 +1,138 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json",
+	"title": "ODD .wp bundle manifest",
+	"description": "Authoritative schema for the manifest.json that ships at the root of every ODD .wp bundle. Mirrors the PHP validators in odd/includes/content/*.php. Bundle authors can enable live validation by adding `\"$schema\": \"https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json\"` to their manifest.\n\nThis schema is advisory — the canonical behaviour lives in the PHP validators and _tools/validators/validate_manifest.py. When the two disagree, the PHP validator wins at install time; this schema is kept in sync by CI (see odd/tests/php/test-manifest-schema-alignment.php once that test lands).",
+	"type": "object",
+	"required": ["name", "slug", "version"],
+	"additionalProperties": true,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "Optional. Points at this schema so editors can provide completion / validation."
+		},
+		"type": {
+			"type": "string",
+			"enum": ["app", "scene", "icon-set", "iconset", "widget"],
+			"default": "app",
+			"description": "Bundle type. `iconset` is accepted as a legacy alias for `icon-set`; installers canonicalise to the hyphenated form."
+		},
+		"slug": {
+			"type": "string",
+			"pattern": "^[a-z0-9-]+$",
+			"minLength": 1,
+			"maxLength": 64,
+			"description": "Globally unique across every bundle type. Lowercase ASCII letters, digits, and hyphens only."
+		},
+		"name": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 80
+		},
+		"label": {
+			"type": "string",
+			"description": "Optional human-readable label for UIs that want something shorter than `name`."
+		},
+		"version": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Bundle version. SemVer (x.y.z) recommended so the catalog update-check can compare."
+		},
+		"author": { "type": "string" },
+		"description": { "type": "string" },
+		"franchise": {
+			"type": "string",
+			"description": "Optional soft historical label — 'Generative', 'Atmosphere', 'Paper', etc. Not surfaced in the current UI."
+		},
+		"tags": {
+			"type": "array",
+			"items": { "type": "string", "minLength": 1 }
+		},
+		"entry": {
+			"type": "string",
+			"description": "Relative path to the entry script inside the bundle. Required for scenes (.js) and widgets (.js).",
+			"pattern": "^[^\\0]+$"
+		},
+		"preview": {
+			"type": "string",
+			"description": "Relative path to a preview image (.webp recommended). Required for scenes."
+		},
+		"wallpaper": {
+			"type": "string",
+			"description": "Relative path to the 1920×1080 backdrop .webp. Required for scenes."
+		},
+		"fallbackColor": {
+			"type": "string",
+			"pattern": "^#[0-9A-Fa-f]{3,8}$"
+		},
+		"icons": {
+			"type": "object",
+			"description": "Icon-set manifests only. Keys are dock-slot keys (e.g. `dashboard`, `posts`) and values are relative paths to .svg files inside the bundle.",
+			"patternProperties": {
+				"^[a-z0-9_-]+$": {
+					"type": "string",
+					"pattern": "^[^\\0]+\\.svg$"
+				}
+			},
+			"additionalProperties": false
+		},
+		"accent": {
+			"type": "string",
+			"pattern": "^#[0-9A-Fa-f]{3,8}$",
+			"description": "Icon-set accent colour surfaced in the Shop tile."
+		},
+		"css": {
+			"type": "array",
+			"description": "Widget manifests only. Relative paths to CSS files enqueued alongside the widget entry script.",
+			"items": { "type": "string" }
+		},
+		"window": {
+			"type": "object",
+			"description": "App manifests only. Initial window geometry + flags passed to wp.desktop.registerWindow.",
+			"additionalProperties": true,
+			"properties": {
+				"width": { "type": "integer", "minimum": 1 },
+				"height": { "type": "integer", "minimum": 1 },
+				"minWidth": { "type": "integer", "minimum": 1 },
+				"minHeight": { "type": "integer", "minimum": 1 },
+				"resizable": { "type": "boolean" },
+				"initialState": { "type": "string", "enum": ["normal", "maximized", "minimized"] }
+			}
+		},
+		"csp": {
+			"type": "string",
+			"maxLength": 2048,
+			"description": "App bundles only. Optional extra Content-Security-Policy directives, sanitized and appended after the default policy on /odd-app/ HTML responses."
+		}
+	},
+	"allOf": [
+		{
+			"if": { "properties": { "type": { "const": "scene" } }, "required": ["type"] },
+			"then": { "required": ["entry", "preview", "wallpaper"] }
+		},
+		{
+			"if": {
+				"anyOf": [
+					{ "properties": { "type": { "const": "icon-set" } }, "required": ["type"] },
+					{ "properties": { "type": { "const": "iconset" } }, "required": ["type"] }
+				]
+			},
+			"then": {
+				"required": ["icons"],
+				"properties": {
+					"icons": {
+						"required": [
+							"dashboard", "posts", "pages", "media", "comments",
+							"appearance", "plugins", "users", "tools", "settings",
+							"fallback"
+						]
+					}
+				}
+			}
+		},
+		{
+			"if": { "properties": { "type": { "const": "widget" } }, "required": ["type"] },
+			"then": { "required": ["entry"] }
+		}
+	]
+}

@@ -20,6 +20,11 @@
 	'use strict';
 	if ( typeof window === 'undefined' ) return;
 
+	var wpI18nOdd = window.wp && window.wp.i18n;
+	function __( s ) {
+		return ( wpI18nOdd && typeof wpI18nOdd.__ === 'function' ) ? wpI18nOdd.__( s, 'odd' ) : s;
+	}
+
 	window.wpDesktopNativeWindows = window.wpDesktopNativeWindows || {};
 
 	var _safeCall = ( window.__odd && window.__odd.safeCall ) || function ( fn ) { try { return fn(); } catch ( e ) {} };
@@ -42,12 +47,12 @@
 	// localized config (`appsEnabled`), slash commands, and tests
 	// keep working; only the user-facing labels + icons moved.
 	var SECTIONS = [
-		{ id: 'wallpaper', label: 'Wallpapers', icon: '🖼', tagline: 'Live generative scenes' },
-		{ id: 'icons',     label: 'Icon Sets',  icon: '🧩', tagline: 'Re-skin the dock' },
-		{ id: 'widgets',   label: 'Widgets',    icon: '🧷', tagline: 'Desktop companions' },
-		{ id: 'apps',      label: 'Apps',       icon: '📦', tagline: 'Mini apps that just run', gated: 'appsEnabled' },
-		{ id: 'install',   label: 'Install',    icon: '⇪', tagline: 'Add a .wp bundle',        gated: 'canInstall' },
-		{ id: 'about',     label: 'About',      icon: '👁', tagline: 'Credits & chaos' },
+		{ id: 'wallpaper', label: __( 'Wallpapers' ), icon: '🖼', tagline: __( 'Live generative scenes' ) },
+		{ id: 'icons',     label: __( 'Icon Sets' ),  icon: '🧩', tagline: __( 'Re-skin the dock' ) },
+		{ id: 'widgets',   label: __( 'Widgets' ),    icon: '🧷', tagline: __( 'Desktop companions' ) },
+		{ id: 'apps',      label: __( 'Apps' ),       icon: '📦', tagline: __( 'Mini apps that just run' ), gated: 'appsEnabled' },
+		{ id: 'install',   label: __( 'Install' ),  icon: '⇪', tagline: __( 'Add a .wp bundle' ),        gated: 'canInstall' },
+		{ id: 'about',     label: __( 'About' ),     icon: '👁', tagline: __( 'Credits & chaos' ) },
 	];
 
 	var renderPanel = function ( body ) {
@@ -89,9 +94,9 @@
 		brandMark.textContent = '👁';
 		var brandText = el( 'div', { class: 'odd-shop__brand-text' } );
 		var brandTitle = el( 'strong' );
-		brandTitle.textContent = 'ODD Shop';
+		brandTitle.textContent = __( 'ODD Shop' );
 		var brandSub = el( 'span' );
-		brandSub.textContent = 'Outlandish Desktop Decorator';
+		brandSub.textContent = __( 'Outlandish Desktop Decorator' );
 		brandText.appendChild( brandTitle );
 		brandText.appendChild( brandSub );
 		brandWrap.appendChild( brandMark );
@@ -103,13 +108,13 @@
 		// Mirrors the App Store's "Search" pill but doesn't try to be
 		// a global search — cross-department search would need its own
 		// result surface and is a v2 problem.
-		var searchWrap = el( 'label', { class: 'odd-shop__search', 'aria-label': 'Search' } );
+		var searchWrap = el( 'label', { class: 'odd-shop__search', 'aria-label': __( 'Search' ) } );
 		var searchGlyph = el( 'span', { class: 'odd-shop__search-glyph', 'aria-hidden': 'true' } );
 		searchGlyph.textContent = '⌕';
 		var searchInput = el( 'input', {
 			type: 'search',
 			class: 'odd-shop__search-input',
-			placeholder: 'Search wallpapers, icons, apps…',
+			placeholder: __( 'Search wallpapers, icons, apps…' ),
 			'data-odd-search': '1',
 		} );
 		searchInput.addEventListener( 'input', function () {
@@ -168,7 +173,7 @@
 			class: 'odd-shop__rail',
 		} );
 		var railHeader = el( 'div', { class: 'odd-shop__rail-heading' } );
-		railHeader.textContent = 'Store';
+		railHeader.textContent = __( 'Store' );
 		sidebar.appendChild( railHeader );
 
 		var content = el( 'section', {
@@ -243,6 +248,7 @@
 		body.appendChild( content );
 
 		installDropAnywhere( body );
+		installShopKeyboard( body, sidebar, buttons, renderSection );
 
 		renderSection( state.active );
 
@@ -419,8 +425,37 @@
 			var actions = el( 'div', { class: 'odd-catalog-row__actions' } );
 			if ( row.installed ) {
 				var installed = el( 'span', { class: 'odd-catalog-row__installed' } );
-				installed.textContent = 'Installed';
+				installed.textContent = row.update_available ? 'Update available' : 'Installed';
+				if ( row.update_available ) {
+					installed.classList.add( 'odd-catalog-row__installed--update' );
+				}
 				actions.appendChild( installed );
+
+				if ( row.update_available ) {
+					// Reinstall through the same install-from-catalog route
+					// with `allow_update=1`. The server-side handler
+					// uninstalls the old bundle first so the universal
+					// installer can lay the new files down without the
+					// slug-collision guard firing.
+					var updateBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-apps-btn--primary' } );
+					updateBtn.textContent = 'Update';
+					updateBtn.addEventListener( 'click', function () {
+						updateBtn.disabled = true;
+						updateBtn.textContent = 'Updating…';
+						setAppsStatus( wrap, 'Updating ' + ( row.name || row.slug ) + '…', 'busy' );
+						installFromCatalog( row.slug, { allowUpdate: true } ).then( function ( res ) {
+							if ( res && res.ok && res.data && res.data.installed ) {
+								setAppsStatus( wrap, 'Updated ' + ( row.name || row.slug ) + '. Reloading…', 'ok' );
+								setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 600 );
+								return;
+							}
+							updateBtn.disabled = false;
+							updateBtn.textContent = 'Update';
+							setAppsStatus( wrap, ( res && res.message ) || 'Update failed.', 'error' );
+						} );
+					} );
+					actions.appendChild( updateBtn );
+				}
 				var openBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
 				openBtn.textContent = 'Open';
 				openBtn.addEventListener( 'click', function () { openAppWindow( row.slug ); } );
@@ -465,7 +500,10 @@
 			  .then( function ( d ) { return ( d && Array.isArray( d.apps ) ) ? d.apps : []; } )
 			  .catch( function () { return []; } );
 		}
-		function installFromCatalog( slug ) {
+		function installFromCatalog( slug, opts ) {
+			opts = opts || {};
+			var body = { slug: slug };
+			if ( opts.allowUpdate ) body.allow_update = 1;
 			return fetch( appsBaseUrl() + '/install-from-catalog', {
 				method: 'POST',
 				credentials: 'same-origin',
@@ -473,7 +511,7 @@
 					'Content-Type': 'application/json',
 					'X-WP-Nonce':   state.cfg.restNonce || '',
 				},
-				body: JSON.stringify( { slug: slug } ),
+				body: JSON.stringify( body ),
 			} ).then( function ( r ) {
 				return r.json().then( function ( data ) {
 					return { ok: r.ok, status: r.status, data: data };
@@ -634,33 +672,34 @@
 
 		function errorCopy( code, fallback ) {
 			switch ( code ) {
-				case 'invalid_extension':    return 'That file isn\'t a .wp bundle.';
-				case 'invalid_zip':          return 'That file isn\'t a valid ZIP archive.';
-				case 'zip_unavailable':     return 'This site is missing the PHP ZipArchive extension — ask the host to enable it.';
-				case 'too_many_files':      return 'Bundle has too many files. The limit is 2000.';
-				case 'too_large':           return 'Bundle is too large. Keep it under 25 MB uncompressed.';
-				case 'zip_bomb':            return 'Bundle contains a suspicious compression ratio and was rejected.';
-				case 'path_traversal':      return 'Bundle contains a path-traversal entry and was rejected.';
-				case 'symlink_in_archive': return 'Bundle contains a symlink and was rejected.';
-				case 'forbidden_file_type': return 'Bundle contains a server-executable file and was rejected.';
-				case 'missing_manifest':    return 'Bundle is missing a manifest.json at the root.';
-				case 'invalid_manifest':    return 'Bundle\'s manifest.json is not valid JSON.';
-				case 'missing_manifest_field': return 'Bundle\'s manifest.json is missing a required field.';
-				case 'invalid_slug':        return 'Bundle slug must be lowercase letters, numbers, and hyphens.';
-				case 'slug_exists':         return 'A bundle with that slug is already installed. Remove the existing one first.';
-				case 'unsupported_type':   return 'This ODD version doesn\'t know how to install that bundle type.';
-				case 'install_in_progress': return 'Another install of this bundle is already in progress.';
-				case 'missing_entry':       return 'Bundle is missing the entry file declared in manifest.json.';
-				case 'invalid_entry':       return 'Bundle\'s entry path is invalid.';
-				case 'missing_preview':     return 'Bundle is missing preview.webp.';
-				case 'missing_wallpaper':   return 'Bundle is missing wallpaper.webp.';
-				case 'missing_icon':        return 'Bundle is missing one of the SVGs it declared.';
-				case 'missing_required_icons': return fallback || 'Icon set is missing required keys.';
-				case 'invalid_svg':         return 'An SVG in this bundle isn\'t well-formed.';
+				case 'invalid_extension':    return __( 'That file isn\u2019t a .wp bundle.' );
+				case 'invalid_zip':          return __( 'That file isn\u2019t a valid ZIP archive.' );
+				case 'zip_unavailable':     return __( 'This site is missing the PHP ZipArchive extension \u2014 ask the host to enable it.' );
+				case 'too_many_files':      return __( 'Bundle has too many files. The limit is 2000.' );
+				case 'too_large':           return __( 'Bundle is too large. Keep it under 25 MB uncompressed.' );
+				case 'zip_bomb':            return __( 'Bundle contains a suspicious compression ratio and was rejected.' );
+				case 'path_traversal':      return __( 'Bundle contains a path-traversal entry and was rejected.' );
+				case 'symlink_in_archive': return __( 'Bundle contains a symlink and was rejected.' );
+				case 'forbidden_file_type': return __( 'Bundle contains a server-executable file and was rejected.' );
+				case 'missing_manifest':    return __( 'Bundle is missing a manifest.json at the root.' );
+				case 'invalid_manifest':    return __( 'Bundle\u2019s manifest.json is not valid JSON.' );
+				case 'missing_manifest_field': return __( 'Bundle\u2019s manifest.json is missing a required field.' );
+				case 'invalid_slug':        return __( 'Bundle slug must be lowercase letters, numbers, and hyphens.' );
+				case 'slug_exists':         return __( 'A bundle with that slug is already installed. Remove the existing one first.' );
+				case 'unsupported_type':   return __( 'This ODD version doesn\u2019t know how to install that bundle type.' );
+				case 'install_in_progress': return __( 'Another install of this bundle is already in progress.' );
+				case 'missing_entry':       return __( 'Bundle is missing the entry file declared in manifest.json.' );
+				case 'invalid_entry':       return __( 'Bundle\u2019s entry path is invalid.' );
+				case 'missing_preview':     return __( 'Bundle is missing preview.webp.' );
+				case 'missing_wallpaper':   return __( 'Bundle is missing wallpaper.webp.' );
+				case 'missing_icon':        return __( 'Bundle is missing one of the SVGs it declared.' );
+				case 'missing_required_icons': return fallback ? __( fallback ) : __( 'Icon set is missing required keys.' );
+				case 'invalid_svg':         return __( 'An SVG in this bundle isn\u2019t well-formed.' );
+				case 'rest_too_many_requests': return __( 'Too many requests. Please wait a minute and try again.' );
 				case 'extract_mkdir_failed':
 				case 'extract_rename_failed':
-					return 'ODD couldn\'t finalise the install. Check wp-content permissions and try again.';
-				default: return fallback || 'Install failed.';
+					return __( 'ODD couldn\u2019t finalise the install. Check wp-content permissions and try again.' );
+				default: return fallback ? __( fallback ) : __( 'Install failed.' );
 			}
 		}
 
@@ -873,8 +912,11 @@
 
 		function onInstallFailure( res ) {
 			var data    = ( res && res.data ) || {};
-			var code    = data.code || 'install_failed';
-			var message = errorCopy( code, data.message );
+			var code    = data.code || ( data.data && data.data.code ) || 'install_failed';
+			if ( typeof data.message === 'string' && ! data.code && data.status ) {
+				code = 'install_failed';
+			}
+			var message = errorCopy( code, data.message || ( res && res.message ) );
 			toast( message );
 
 			// Leave a breadcrumb on the Apps status rail when the
@@ -885,6 +927,177 @@
 				statusWrap.textContent = message;
 				statusWrap.setAttribute( 'data-odd-status', 'error' );
 			}
+
+			showInstallTroubleshoot( res, message, code, data );
+		}
+
+		/**
+		 * Non-blocking recovery UI: structured server payload + one-click
+		 * diagnostics for GitHub issues (plan item 21).
+		 */
+		function showInstallTroubleshoot( res, message, code, data ) {
+			var root = document.querySelector( '.odd-shop' ) || document.body;
+			var old = root.querySelector( '.odd-install-trouble' );
+			if ( old ) {
+				try { old.parentNode.removeChild( old ); } catch ( e0 ) {}
+			}
+
+			var backdrop = el( 'div', {
+				class:                 'odd-install-trouble',
+				role:                  'dialog',
+				'aria-modal':          'true',
+				'aria-labelledby':     'odd-trouble-title',
+				'data-odd-troubleshoot': '1',
+			} );
+			var card = el( 'div', { class: 'odd-install-trouble__card' } );
+			var title = el( 'h2', { class: 'odd-install-trouble__title', id: 'odd-trouble-title' } );
+			title.textContent = __( 'Install failed' );
+			var sub = el( 'p', { class: 'odd-install-trouble__lede' } );
+			sub.textContent = message;
+
+			var pre = el( 'pre', { class: 'odd-install-trouble__pre' } );
+			var payload = {
+				code:    code,
+				status:  res && res.status,
+				message: message,
+				body:    data,
+			};
+			try {
+				pre.textContent = JSON.stringify( payload, null, 2 );
+			} catch ( e1 ) {
+				pre.textContent = String( message );
+			}
+
+			var row = el( 'div', { class: 'odd-install-trouble__row' } );
+			var closeBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+			closeBtn.textContent = __( 'Close' );
+			closeBtn.addEventListener( 'click', function () {
+				try { backdrop.parentNode.removeChild( backdrop ); } catch ( e2 ) {}
+			} );
+			var copyBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
+			copyBtn.textContent = __( 'Copy diagnostics' );
+			copyBtn.addEventListener( 'click', function () {
+				var d = window.__odd && window.__odd.diagnostics;
+				if ( d && typeof d.copy === 'function' ) {
+					copyBtn.disabled = true;
+					d.copy().then( function ( ok ) {
+						copyBtn.textContent = ok ? __( 'Copied' ) : __( 'Copy failed' );
+						setTimeout( function () {
+							copyBtn.disabled = false;
+							copyBtn.textContent = __( 'Copy diagnostics' );
+						}, 2000 );
+					} );
+					return;
+				}
+				try {
+					navigator.clipboard.writeText( pre.textContent );
+					copyBtn.textContent = __( 'Copied' );
+				} catch ( e3 ) {
+					copyBtn.textContent = __( 'Copy failed' );
+				}
+			} );
+			row.appendChild( closeBtn );
+			row.appendChild( copyBtn );
+
+			card.appendChild( title );
+			card.appendChild( sub );
+			card.appendChild( pre );
+			var hintP = el( 'p', { class: 'odd-install-trouble__hint' } );
+			hintP.textContent = __( 'Full environment + log ring buffer is copied when diagnostics are available.' );
+			card.appendChild( hintP );
+			card.appendChild( row );
+			backdrop.appendChild( card );
+			root.appendChild( backdrop );
+			setTimeout( function () { try { closeBtn.focus(); } catch ( e4 ) {} }, 10 );
+		}
+
+		/** Keyboard help overlay (/) search focus, ? shortcuts, rail arrows (plan item 20). */
+		function installShopKeyboard( body, rail, buttons, renderSection ) {
+			var helpOpen = null;
+			function isTypingTarget( t ) {
+				if ( ! t || ! t.tagName ) return false;
+				var tag = t.tagName;
+				if ( tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ) return true;
+				if ( t.isContentEditable ) return true;
+				return false;
+			}
+			function closeHelp() {
+				if ( helpOpen && helpOpen.parentNode ) {
+					try { helpOpen.parentNode.removeChild( helpOpen ); } catch ( e ) {}
+				}
+				helpOpen = null;
+			}
+			function openHelp() {
+				closeHelp();
+				var layer = el( 'div', { class: 'odd-kbd-help', role: 'dialog', 'aria-modal': 'true', 'aria-label': __( 'Keyboard shortcuts' ) } );
+				var inner = el( 'div', { class: 'odd-kbd-help__card' } );
+				var h2t = el( 'h2', { class: 'odd-kbd-help__title' } );
+				h2t.textContent = __( 'Keyboard shortcuts' );
+				inner.appendChild( h2t );
+				var list = el( 'ul', { class: 'odd-kbd-help__list' } );
+				var rows = [
+					[ '/ ', __( 'Focus search' ) ],
+					[ '? ', __( 'Show this help' ) ],
+					[ __( 'Escape' ), __( 'Close' ) ],
+					[ '\u2191 / \u2193', __( 'Move in the sidebar' ) ],
+				];
+				for ( var r = 0; r < rows.length; r++ ) {
+					var li = el( 'li' );
+					var k  = el( 'kbd', { class: 'odd-kbd-help__key' } );
+					k.textContent = rows[ r ][ 0 ];
+					li.appendChild( k );
+					li.appendChild( document.createTextNode( ' ' + rows[ r ][ 1 ] ) );
+					list.appendChild( li );
+				}
+				inner.appendChild( list );
+				var done = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
+				done.textContent = __( 'Got it' );
+				done.addEventListener( 'click', closeHelp );
+				inner.appendChild( done );
+				layer.appendChild( inner );
+				layer.addEventListener( 'click', function ( ev ) { if ( ev.target === layer ) closeHelp(); } );
+				body.appendChild( layer );
+				helpOpen = layer;
+				setTimeout( function () { try { done.focus(); } catch ( e2 ) {} }, 10 );
+			}
+
+			body.addEventListener( 'keydown', function ( ev ) {
+				if ( ev.key === 'Escape' ) {
+					closeHelp();
+					return;
+				}
+				if ( isTypingTarget( ev.target ) && ev.key !== 'Escape' ) {
+					return;
+				}
+				if ( ev.key === '?' || ( ev.key === '/' && ev.shiftKey ) ) {
+					ev.preventDefault();
+					if ( helpOpen ) closeHelp();
+					else openHelp();
+					return;
+				}
+				if ( ev.key === '/' ) {
+					var sea = document.querySelector( '[data-odd-search]' );
+					if ( sea && ev.target !== sea ) {
+						ev.preventDefault();
+						try { sea.focus(); } catch ( e3 ) {}
+					}
+					return;
+				}
+			} );
+
+			rail.setAttribute( 'role', 'navigation' );
+			rail.setAttribute( 'aria-label', __( 'Store sections' ) );
+			rail.addEventListener( 'keydown', function ( ev ) {
+				if ( ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp' ) return;
+				var items = rail.querySelectorAll( '.odd-shop__rail-item' );
+				if ( ! items || ! items.length ) return;
+				var list = Array.prototype.slice.call( items );
+				var ix   = list.indexOf( document.activeElement );
+				if ( ix < 0 ) return;
+				ev.preventDefault();
+				var next = ev.key === 'ArrowDown' ? Math.min( list.length - 1, ix + 1 ) : Math.max( 0, ix - 1 );
+				try { list[ next ].focus(); } catch ( e4 ) {}
+			} );
 		}
 
 		// Shop-wide drag-and-drop overlay — accept a .wp dropped

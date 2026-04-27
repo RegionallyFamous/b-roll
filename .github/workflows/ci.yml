@@ -50,6 +50,43 @@ jobs:
               python3 -c "import json,sys; json.load(open('$f'))"
           done
 
+  check-licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - run: odd/bin/check-licenses
+
+  manifest-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Install jsonschema
+        run: python -m pip install --quiet jsonschema
+      - name: Validate good manifest fixtures (must pass)
+        env:
+          ODD_REQUIRE_JSONSCHEMA: '1'
+        run: |
+          odd/bin/validate-manifest \
+            odd/tests/fixtures/manifests/scene-ok.json \
+            odd/tests/fixtures/manifests/iconset-ok.json \
+            odd/tests/fixtures/manifests/widget-ok.json \
+            odd/tests/fixtures/manifests/app-ok.json
+      - name: Validate bad manifest fixture (must fail)
+        env:
+          ODD_REQUIRE_JSONSCHEMA: '1'
+        run: |
+          if odd/bin/validate-manifest odd/tests/fixtures/manifests/scene-bad.json; then
+            echo "schema failed to catch known-bad manifest" >&2
+            exit 1
+          fi
+          echo "bad manifest was rejected as expected"
+
   vitest:
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,13 @@
+{
+	"$schema": "../../../../docs/schemas/manifest.schema.json",
+	"type": "app",
+	"slug": "example-app",
+	"name": "Example App",
+	"version": "1.0.0",
+	"window": {
+		"width": 640,
+		"height": 480,
+		"minWidth": 320,
+		"minHeight": 240
+	}
+}

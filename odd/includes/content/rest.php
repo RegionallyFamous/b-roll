@@ -48,6 +48,11 @@ add_action(
  * installer, and respond with { installed, slug, type, manifest }.
  */
 function odd_bundle_rest_upload( WP_REST_Request $req ) {
+	$rl = odd_bundle_rate_limit_check( 'bundle_upload' );
+	if ( is_wp_error( $rl ) ) {
+		return $rl;
+	}
+
 	$files = $req->get_file_params();
 	if ( empty( $files['file'] ) || ! isset( $files['file']['tmp_name'] ) ) {
 		return new WP_Error(
