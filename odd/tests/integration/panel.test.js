@@ -222,29 +222,14 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'renders a topbar Install pill that opens the hidden file input', () => {
+	it( 'does not render a topbar Install pill — uploads go through the dedicated Install tab', () => {
 		const { host, cleanup } = mountPanel();
 
-		const pill = host.querySelector( '[data-odd-install-pill]' );
-		expect( pill, 'topbar Install pill must render when canInstall is true' ).toBeTruthy();
-
-		const input = host.querySelector( '[data-odd-install-input]' );
-		expect( input, 'hidden install file input must render alongside the pill' ).toBeTruthy();
-
-		let clicked = false;
-		input.addEventListener( 'click', ( e ) => { clicked = true; e.preventDefault(); } );
-		pill.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
-		expect( clicked, 'clicking the pill must forward to the hidden input' ).toBe( true );
-
-		if ( typeof cleanup === 'function' ) cleanup();
-	} );
-
-	it( 'hides the Install pill when canInstall is false', () => {
-		window.odd.canInstall = false;
-		const { host, cleanup } = mountPanel();
-
-		const pill = host.querySelector( '[data-odd-install-pill]' );
-		expect( pill, 'pill must not render without manage_options' ).toBeFalsy();
+		// The topbar Install pill was removed in favor of the
+		// dedicated Install rail tab + the shop-wide drop overlay.
+		// Guard against it sneaking back in via a casual edit.
+		expect( host.querySelector( '[data-odd-install-pill]' ) ).toBeFalsy();
+		expect( host.querySelector( '[data-odd-install-input]' ) ).toBeFalsy();
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

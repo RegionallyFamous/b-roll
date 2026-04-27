@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.1.1
+Stable tag: 3.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,9 @@ The ODD Shop → About tab has a **Copy diagnostics** button. Paste the markdown
 See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.md) for the full history. Version headings follow SemVer; API versioning is tracked separately (see [docs/api-versioning.md](https://github.com/RegionallyFamous/odd/blob/main/docs/api-versioning.md)).
 
 == Upgrade Notice ==
+
+= 3.1.2 =
+Fixes the "clicking Install twice shows Install failed" bug in the Shop's Discover shelves. A successful install now flips the in-memory catalog row's `installed` flag so the re-rendered shelf shows "Installed" instead of another "Install" button — previously the server-pre-baked catalog was never updated client-side, so a second click on the same tile would POST again and the server would respond with a 409 `already_installed` error, which opened the troubleshoot modal for what looked to the user like an install that had never happened.
 
 = 3.1.1 =
 Install buttons in the Shop now toast immediately on click ("Installing X…") so you can tell the click landed, and every failure mode — HTTP error, catalog-entry not found, unexpected throw — now reliably surfaces a toast + an error on the Apps status rail. Previously a failed install inside a tab that didn't contain the status rail could fail silently.

@@ -16,6 +16,23 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.1.2"></a>
+## [3.1.2] — 2026-04-27
+
+### Fixed
+- **"Install failed" on the second click of a just-installed Discover
+  tile.** The Shop's Discover shelves read from a catalog blob that's
+  pre-baked into `window.odd.bundleCatalog` at first paint. A
+  successful install was re-rendering the section but not flipping
+  the matching row's `installed` flag, so the re-render kept drawing
+  an "Install" button (instead of the "Installed" label). A second
+  click would POST `/odd/v1/bundles/install-from-catalog` again with
+  the same slug, hit the server's already-installed guard, and open
+  the troubleshoot modal — from the user's point of view that looked
+  like the install had failed silently the first time. We now mutate
+  the in-memory catalog row on success, which flips the tile to
+  "Installed" immediately.
+
 <a id="v3.1.1"></a>
 ## [3.1.1] — 2026-04-27
 

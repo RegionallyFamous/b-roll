@@ -131,43 +131,12 @@
 		searchWrap.appendChild( searchInput );
 		topbar.appendChild( searchWrap );
 
-		// Universal install pill. Accepts a .wp bundle of any type
-		// (app, icon-set, scene, widget) and routes it through
-		// /odd/v1/bundles/upload. Hidden for users without
-		// manage_options — the REST endpoint rejects them too, but
-		// the UI shouldn't hint at an action they can't take.
-		var installPill = null;
-		var installInput = null;
-		if ( ( window.odd || {} ).canInstall ) {
-			installPill = el( 'button', {
-				type:         'button',
-				class:        'odd-shop__install',
-				'aria-label': 'Install from .wp file',
-				'data-odd-install-pill': '1',
-			} );
-			var installGlyph = el( 'span', { class: 'odd-shop__install-glyph', 'aria-hidden': 'true' } );
-			installGlyph.textContent = '⇪';
-			var installLabel = el( 'span', { class: 'odd-shop__install-label' } );
-			installLabel.textContent = 'Install';
-			installPill.appendChild( installGlyph );
-			installPill.appendChild( installLabel );
-
-			installInput = el( 'input', {
-				type:   'file',
-				accept: '.wp,application/zip',
-				style:  'display:none',
-				'data-odd-install-input': '1',
-			} );
-			installPill.addEventListener( 'click', function () { installInput.click(); } );
-			installInput.addEventListener( 'change', function () {
-				if ( installInput.files && installInput.files[ 0 ] ) {
-					installBundle( installInput.files[ 0 ] );
-					installInput.value = '';
-				}
-			} );
-			topbar.appendChild( installPill );
-			topbar.appendChild( installInput );
-		}
+		// The Shop used to render a dedicated "Install" pill in the
+		// topbar next to the search field, but it duplicated the
+		// dedicated Install tab (which has the same uploader with
+		// proper explanatory copy) and the shop-wide drop overlay.
+		// Removed to tighten the topbar; installBundle() is still
+		// reachable via both surfaces.
 
 		var sidebar = el( 'nav', {
 			'data-odd-sidebar': '1',
@@ -886,6 +855,14 @@
 
 			toast( 'Installed ' + noun + ' "' + name + '".' );
 
+			// Mark the catalog row as installed so the re-rendered
+			// Discover shelf flips the tile from "Install" to
+			// "Installed" — otherwise the server-pre-baked catalog on
+			// `window.odd.bundleCatalog` would still advertise the
+			// slug as uninstalled and a second click on the same tile
+			// would 409 with already_installed.
+			markCatalogRowInstalled( type, slug );
+
 			var ev = window.__odd && window.__odd.events;
 			if ( ev ) {
 				try { ev.emit( 'odd.bundle-installed', { slug: slug, type: type, manifest: data.manifest } ); } catch ( e ) {}
@@ -908,6 +885,28 @@
 
 			state.justInstalled = { type: type, slug: slug, at: Date.now() };
 			renderSection( dept );
+		}
+
+		/**
+		 * Flip the `installed` flag on the matching catalog row so the
+		 * next render of the Discover shelf for that type shows
+		 * "Installed" instead of "Install". Tolerant of the catalog
+		 * shape being partially populated — no-op if we can't find
+		 * the slice.
+		 */
+		function markCatalogRowInstalled( type, slug ) {
+			if ( ! slug ) return;
+			var cfg = state.cfg;
+			if ( ! cfg || ! cfg.bundleCatalog ) return;
+			var key = ( type === 'icon-set' ) ? 'iconSet' : type;
+			var rows = cfg.bundleCatalog[ key ];
+			if ( ! Array.isArray( rows ) ) return;
+			for ( var i = 0; i < rows.length; i++ ) {
+				if ( rows[ i ] && rows[ i ].slug === slug ) {
+					rows[ i ].installed = true;
+					return;
+				}
+			}
 		}
 
 		function highlightJustInstalled() {
