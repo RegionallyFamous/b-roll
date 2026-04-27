@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,6 +68,9 @@ The ODD Control Panel → About tab has a **Copy diagnostics** button. Paste the
 See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.md) for the full history. Version headings follow SemVer; API versioning is tracked separately (see [docs/api-versioning.md](https://github.com/RegionallyFamous/odd/blob/main/docs/api-versioning.md)).
 
 == Upgrade Notice ==
+
+= 2.0.1 =
+Ship the three Discover-shelf bundles (Rainfall / Origami / Confetti) that have been referenced from the ODD Shop catalog but never actually checked into the repo, so "Install" on them finally works end to end. Add a validate-catalog CI gate that blocks future Discover rows from merging without their matching .wp archives + icon SVGs.
 
 = 2.0.0 =
 The “world-class” release: Playwright e2e, deeper smoke tests, scene perf sampling, local diagnostics, JSON Schema + manifest CLI, example bundles, API 2.0 tagging, test harness + scaffold CLI, CSP for apps, SVG fuzz + rate limits, keyboard help + axe checks, install troubleshoot UI, i18n + POT, bundle update badges, and more. See CHANGELOG.md.

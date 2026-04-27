@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Origami icon set">
+  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="#fdf7ee"/>
+  <path d="M32 8 L52 28 L32 48 L12 28 Z" fill="#7c5cff"/>
+  <path d="M32 8 L52 28 L32 28 Z" fill="#b9a9ff" opacity=".85"/>
+  <path d="M32 8 L32 28 L12 28 Z" fill="#5a3dff" opacity=".55"/>
+  <path d="M12 28 L32 28 L32 48 Z" fill="#3f28cc" opacity=".7"/>
+  <path d="M32 28 L52 28 L32 48 Z" fill="#2a1b99" opacity=".6"/>
+  <circle cx="48" cy="50" r="6" fill="#ff70a6"/>
+  <circle cx="16" cy="50" r="5" fill="#ffd166"/>
+</svg>

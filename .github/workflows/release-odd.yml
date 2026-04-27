@@ -27,11 +27,12 @@ jobs:
           expected="${tag#v}"
           odd/bin/check-version --expect "$expected"
 
-      - name: Run scene + icon-set validators
+      - name: Run scene + icon-set + catalog validators
         run: |
           set -e
           odd/bin/validate-scenes
           odd/bin/validate-icon-sets
+          odd/bin/validate-catalog
 
       - name: Regenerate POT (odd/languages/odd.pot)
         run: |

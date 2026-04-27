@@ -177,7 +177,7 @@ No `index.js` edit required — the manifest is read at runtime.
 1. `git clone` into `wp-content/plugins/odd/` (or symlink).
 2. Activate ODD alongside WP Desktop Mode.
 3. No build step — plain JS, loaded via `wp_enqueue_script`.
-4. For a full validation pass: `odd/bin/check-version && odd/bin/validate-scenes && odd/bin/validate-icon-sets && odd/bin/build-zip`.
+4. For a full validation pass: `odd/bin/check-version && odd/bin/validate-scenes && odd/bin/validate-icon-sets && odd/bin/validate-catalog && odd/bin/build-zip`.
 
 ### Cut a release
 
@@ -191,6 +191,7 @@ No `index.js` edit required — the manifest is read at runtime.
 `.github/workflows/ci.yml` runs on every PR + push to `main`:
 - `validate-scenes` — manifest + assets for every scene.
 - `validate-icon-sets` — manifest + SVGs for every set.
+- `validate-catalog` — every `odd/apps/catalog/registry.json` row points at a real `.wp` + `.svg` on disk, and each `.wp` archive's inner `manifest.json` agrees with the registry row on `slug`, `type`, and `version`. Catches the "added a Discover-shelf row but forgot to check in the bundle" class of bug.
 - `check-version` — header + constant in `odd.php` agree.
 - `json-valid` — `blueprint.json` + scene / drifter / icon manifests all parse.
 - `zip-budget` — `odd/bin/build-zip` with a 35 MB cap; uploads `odd.zip` as a workflow artifact.

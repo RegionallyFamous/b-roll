@@ -16,6 +16,17 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v2.0.1"></a>
+## [2.0.1] — 2026-04-27
+
+### Fixed
+- **Discover-shelf bundles** — the three curated remote-install examples wired into `odd/apps/catalog/registry.json#bundles[]` (`scene-rainfall`, `iconset-origami`, `widget-confetti`) were referenced from the registry but the matching `.wp` archives and catalog icons were never checked in. Every Discover → Install click on those rows 404'd. All three bundles + icon SVGs are now in-tree and ship inside `odd.zip` + `raw.githubusercontent.com`.
+- **Catalog version drift** — the seven bundled apps in `registry.json` all advertised older versions than the `.wp` archives they pointed at (e.g. `mosaic` row said 1.1.0, archive said 1.2.0), which broke the `odd_bundle_catalog_is_newer` "Update available" logic. Registry rows are now pinned to the canonical archive versions.
+
+### Added
+- **`odd/bin/validate-catalog`** — Python validator that fails if any `icon_url` or `download_url` in `registry.json` that points back into this repo doesn't resolve on disk, or if any `.wp` archive's internal `manifest.json` disagrees with the registry row on `slug`, `type`, or `version`. Wired into `.github/workflows/ci.yml` (blocks merge) and `.github/workflows/release-odd.yml` (blocks release).
+- **`_tools/build-catalog-bundles.py`** — deterministic builder for the three Discover bundles. Idempotent, fixed-mtime ZIPs so repeat runs produce byte-identical artifacts.
+
 <a id="v2.0.0"></a>
 ## [2.0.0] — 2026-04-27
 
