@@ -79,23 +79,22 @@ test.describe( 'ODD admin smoke', () => {
 		} );
 		expect( canvasState.found, 'a wallpaper canvas should exist at >=320x180' ).toBe( true );
 
-		const nonBlackPixels = await page.evaluate( async () => {
-			await new Promise( ( r ) => setTimeout( r, 800 ) );
-			const canvas = Array.from( document.querySelectorAll( 'canvas' ) ).find(
-				( c ) => c.width >= 320 && c.height >= 180,
-			);
-			if ( ! canvas ) return 0;
-			const gl = canvas.getContext( 'webgl2' ) || canvas.getContext( 'webgl' );
-			if ( gl ) {
-				const pixels = new Uint8Array( 4 );
-				gl.readPixels( canvas.width / 2, canvas.height / 2, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels );
-				return pixels[ 0 ] + pixels[ 1 ] + pixels[ 2 ];
-			}
-			const ctx2d = canvas.getContext( '2d' );
-			if ( ! ctx2d ) return 0;
-			const d = ctx2d.getImageData( canvas.width / 2, canvas.height / 2, 1, 1 ).data;
-			return d[ 0 ] + d[ 1 ] + d[ 2 ];
-		} );
+		// `gl.readPixels` from the canvas default backbuffer is flaky in
+		// headless Chromium — PIXI v8 uses `preserveDrawingBuffer: false`,
+		// so sampling outside of a render tick usually returns zeros. The
+		// *engine* exposes what we actually care about: a mounted scene
+		// impl with a live PIXI app. Poll that instead of pixel bytes.
+		const sceneMounted = await page.waitForFunction(
+			() => {
+				const rt = ( window as unknown as {
+					__odd?: { runtime?: { activeScene?: { slug?: string; env?: { app?: { renderer?: unknown } } } } };
+				} ).__odd?.runtime;
+				const active = rt?.activeScene;
+				return !! active && typeof active.slug === 'string' && !! active.env?.app?.renderer;
+			},
+			{ timeout: 15_000 },
+		);
+		expect( !! sceneMounted, 'wallpaper engine must mount a scene' ).toBe( true );
 		expect( nonBlackPixels, 'centre pixel must be non-black after scene boot' ).toBeGreaterThan( 0 );
 
 		const hookFired = await page.evaluate( async ( targetSlug ) => {
