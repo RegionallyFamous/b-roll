@@ -3998,10 +3998,20 @@
 
 			if ( row.type === 'scene' ) {
 				art.style.backgroundColor = row.fallbackColor || '#1d1d22';
+				// Catalog rows only ship `icon_url` (a single thumbnail);
+				// installed rows have a richer `previewUrl`. Fall back
+				// through the chain so neither path renders a broken
+				// `<img>` placeholder over the CATALOG badge.
 				var sceneUrl = row.previewUrl
+					|| row.iconUrl
 					|| ( ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + row.slug + '.webp' );
-				var img = el( 'img', { src: sceneUrl, alt: '', loading: 'lazy' } );
-				art.appendChild( img );
+				if ( sceneUrl ) {
+					art.appendChild( el( 'img', { src: sceneUrl, alt: '', loading: 'lazy' } ) );
+				} else {
+					var sceneMono = el( 'div', { class: 'odd-shop__card-mono' } );
+					sceneMono.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
+					art.appendChild( sceneMono );
+				}
 				return art;
 			}
 
@@ -4019,8 +4029,14 @@
 						return art;
 					}
 				}
-				if ( row.preview ) {
-					art.appendChild( el( 'img', { src: row.preview, alt: '', loading: 'lazy' } ) );
+				// `preview` is the legacy combined preview image; the
+				// remote catalog uses `icon_url` instead, so prefer
+				// that. Either renders as a single full-bleed image.
+				var iconSetUrl = row.preview || row.iconUrl;
+				if ( iconSetUrl ) {
+					var iconSetImg = el( 'img', { src: iconSetUrl, alt: '', loading: 'lazy' } );
+					iconSetImg.classList.add( 'odd-shop__card-art-fill' );
+					art.appendChild( iconSetImg );
 					return art;
 				}
 				var fallback = el( 'div', { class: 'odd-shop__card-mono' } );

@@ -16,6 +16,44 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.2.1"></a>
+## [3.2.1] — 2026-04-27
+
+### Fixed
+- **3.2.0 shipped the unified Shop card with broken visuals on the
+  remote catalog.** Two regressions made the Discover and "From the
+  catalog" sections unusable:
+  1. Catalog rows render as dark gradients with two-letter initials
+     (`AR`, `BL`, `BO`, …) instead of artwork. The remote registry
+     ships a single `icon_url` per bundle but `renderShopCardArt`
+     only looked at scene `previewUrl` and icon-set `icons` /
+     `preview` — fields that exist on installed rows, not catalog
+     ones — and fell straight through to the `.odd-shop__card-mono`
+     fallback. The scene path also rendered an `<img>` pointing at a
+     non-existent local preview path, so the broken-image placeholder
+     hovered over the CATALOG badge. Both types now fall back to
+     `iconUrl` (which `normaliseShopRow` already lifts from `icon_url`
+     into the row shape) and only mono-out when no source is
+     available.
+  2. Single-item franchise shelves (e.g. `Technical · 1 SET`) blew the
+     active card up to the full track width. The `.odd-shop__shelf-track`
+     uses `display:flex` and the legacy `.odd-shop__tile` /
+     `.odd-catalog-row` children had `flex:0 0 224px` / `flex:0 0 360px`
+     so they sat at a fixed width regardless of how many siblings the
+     track had. The new `.odd-shop__card-wrap` had no such basis, so
+     a one-item track stretched its only child to fill the row.
+     Added `.odd-shop__card-wrap` to both the `--tiles` and `--list`
+     selectors and standardised the list track on 224 px (the new
+     unified card has a square art region either way; the legacy
+     360 px width was only sized for the old text-heavy
+     `.odd-catalog-row`).
+
+  Also added a `.odd-shop__card-art-fill` modifier the icon-set art
+  attaches when it falls back to a single thumbnail — it switches the
+  art image from `object-fit:cover` to `object-fit:contain` with 14%
+  padding so a square icon doesn't crop into the corners of an art
+  region that was sized for full-bleed franchise quartets.
+
 <a id="v3.2.0"></a>
 ## [3.2.0] — 2026-04-27
 
