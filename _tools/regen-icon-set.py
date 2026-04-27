@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Regenerate one ODD icon set as iOS-style app icons.
+"""Regenerate ODD icon sets as iOS-style app icons.
+
+Each of the 17 sets is authored by its own render function so the sets
+read as genuinely different visual languages, not one glyph system
+under 17 palettes. Same 13 metaphors (dashboard = 2x2 blocks, settings
+= gear, etc. — see _tools/gen-icon-sets.py SYMBOLS for the archetypes)
+but the subject treatment, background texture, stroke vocabulary, and
+decorative overlay are each their own thing.
 
 Usage:
-    python3 _tools/regen-icon-set.py <slug>       # regenerate one set
-    python3 _tools/regen-icon-set.py --all        # regenerate all 17 sets
+    python3 _tools/regen-icon-set.py <slug>
+    python3 _tools/regen-icon-set.py --all
     python3 _tools/regen-icon-set.py --print-prompt <slug>
-                                                   # print the LLM brief for a set
-
-The default (deterministic) path renders 13 SVGs using a glyph library
-and a per-set theme profile distilled from each set's manifest.json.
-The glyphs were AI-authored once (the iOS app icon style decisions
-live in the `GLYPHS` and `THEMES` tables below) so rerunning produces
-byte-identical output.
 
 The `--print-prompt` mode emits the LLM brief + per-set fill for
 piping to a code-authoring LLM when you want a fresh design pass.
 
-Every generated SVG goes through the same hard validator the catalog
-build uses. A failing icon blocks the whole set so a bad generation
-can never land on disk.
+Every generated SVG is run through the catalog validator (viewBox,
+squircle clipPath, <=10 KB, no control bytes, no <image>/<script>).
+A failing icon blocks the whole set so bad output can't land.
 
 Canvas + shape spec lives in `_tools/icon-style-guide.md`. The
 squircle clipPath is baked into `_tools/icon-sets/_base.svg.tmpl`.
@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -37,7 +38,6 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 SETS_DIR = HERE / "catalog-sources" / "icon-sets"
 TEMPLATES_DIR = HERE / "icon-sets"
-BASE_TEMPLATE = TEMPLATES_DIR / "_base.svg.tmpl"
 PROMPT_TEMPLATE = TEMPLATES_DIR / "__prompt__.md"
 
 # The squircle path is the contract. Every SVG must contain it verbatim.
@@ -56,702 +56,559 @@ SQUIRCLE_PATH = (
     "C 198.87 0 249.26 0 350.06 0 Z"
 )
 
+SQ_DEFS = f'<clipPath id="sq"><path d="{SQUIRCLE_PATH}"/></clipPath>'
+
 ICON_KEYS = [
     "dashboard", "posts", "pages", "media", "comments",
     "appearance", "plugins", "users", "tools", "settings",
     "profile", "links", "fallback",
 ]
 
-# Subject safe rect: 824×824 centered on the 1024 canvas, so x/y ∈ [100, 924].
-SAFE_X0 = 100
-SAFE_Y0 = 100
-SAFE_SIZE = 824
-# Most glyphs are composed inside a slightly inset 660×660 "subject" box
-# centered on (512, 512). This leaves iOS-like breathing room and keeps
-# strokes safely inside the squircle at 64 px dock size.
-SUBJ_SIZE = 660
-SUBJ_X0 = 512 - SUBJ_SIZE // 2  # 182
-SUBJ_Y0 = 512 - SUBJ_SIZE // 2  # 182
-
 
 # ------------------------------------------------------------------ #
-# Glyph library — one function per WP-Desktop role.
+# Metaphor geometry.
 #
-# Each returns a block of SVG markup rendered in the 1024 coordinate
-# space, using the theme's subject/stroke palette. Shapes are bold,
-# full-bleed within the subject box, no thin strokes — designed to
-# stay legible at the 64 px dock tile.
+# Each metaphor returns a dict of named keypoints + shape paths so
+# the 17 pens can render the same silhouette in their own visual
+# language. Coordinates are in the 1024^2 canvas. Meaningful
+# subject content stays inside the 824^2 safe rect (x,y ∈ [100,924]).
 # ------------------------------------------------------------------ #
 
 
-def _subject_palette(theme):
-    """Return (primary_fill, secondary_fill, stroke) for subject glyphs."""
-    return theme["subject"], theme.get("accent", theme["subject"]), theme.get("stroke", theme["subject"])
-
-
-def glyph_dashboard(theme):
-    # 2×2 grid of rounded tiles (classic "blocks" metaphor).
-    p, s, _ = _subject_palette(theme)
-    # Tile coords within the 660×660 subject box.
-    g = 36  # gap
-    tile = (SUBJ_SIZE - g) // 2  # ≈ 312
-    x0 = SUBJ_X0
-    y0 = SUBJ_Y0
-    rx = 60
+def _bubble_path(x, y, w, h, tail=(322, 732, 262, 852, 362, 732)):
+    tx1, ty1, tx2, ty2, tx3, ty3 = tail
     return (
-        f'<rect x="{x0}" y="{y0}" width="{tile}" height="{tile}" rx="{rx}" fill="{p}"/>'
-        f'<rect x="{x0 + tile + g}" y="{y0}" width="{tile}" height="{tile}" rx="{rx}" fill="{s}"/>'
-        f'<rect x="{x0}" y="{y0 + tile + g}" width="{tile}" height="{tile}" rx="{rx}" fill="{s}"/>'
-        f'<rect x="{x0 + tile + g}" y="{y0 + tile + g}" width="{tile}" height="{tile}" rx="{rx}" fill="{p}"/>'
+        f"M {x + 80} {y} "
+        f"L {x + w - 80} {y} "
+        f"Q {x + w} {y} {x + w} {y + 80} "
+        f"L {x + w} {y + h - 80} "
+        f"Q {x + w} {y + h} {x + w - 80} {y + h} "
+        f"L {tx1} {ty1} L {tx2} {ty2} L {tx3} {ty3} "
+        f"L {x + 80} {y + h} "
+        f"Q {x} {y + h} {x} {y + h - 80} "
+        f"L {x} {y + 80} "
+        f"Q {x} {y} {x + 80} {y} Z"
     )
 
 
-def glyph_posts(theme):
-    # Stacked horizontal lines on a page.
-    p, s, st = _subject_palette(theme)
-    x0, y0 = SUBJ_X0 + 40, SUBJ_Y0
-    w, h = SUBJ_SIZE - 80, SUBJ_SIZE
-    parts = [f'<rect x="{x0}" y="{y0}" width="{w}" height="{h}" rx="56" fill="{p}"/>']
-    bar_x = x0 + 60
-    bar_w_full = w - 120
-    rows = [
-        (y0 + 120, bar_w_full),
-        (y0 + 220, bar_w_full - 40),
-        (y0 + 320, bar_w_full),
-        (y0 + 420, bar_w_full - 80),
-        (y0 + 520, bar_w_full - 20),
-    ]
-    for by, bw in rows:
-        parts.append(
-            f'<rect x="{bar_x}" y="{by}" width="{bw}" height="42" rx="21" fill="{s}"/>'
-        )
-    return "".join(parts)
-
-
-def glyph_pages(theme):
-    # Page with folded top-right corner.
-    p, s, _ = _subject_palette(theme)
-    x0, y0 = SUBJ_X0 + 50, SUBJ_Y0
-    w, h = SUBJ_SIZE - 100, SUBJ_SIZE
-    fold = 140
-    # Main page path (rect with a diagonal cut top-right).
-    page = (
-        f"M {x0 + 60} {y0} "
-        f"L {x0 + w - fold} {y0} "
-        f"L {x0 + w} {y0 + fold} "
-        f"L {x0 + w} {y0 + h - 60} "
-        f"Q {x0 + w} {y0 + h} {x0 + w - 60} {y0 + h} "
-        f"L {x0 + 60} {y0 + h} "
-        f"Q {x0} {y0 + h} {x0} {y0 + h - 60} "
-        f"L {x0} {y0 + 60} "
-        f"Q {x0} {y0} {x0 + 60} {y0} Z"
-    )
-    fold_path = (
-        f"M {x0 + w - fold} {y0} "
-        f"L {x0 + w} {y0 + fold} "
-        f"L {x0 + w - fold} {y0 + fold} Z"
-    )
-    bar_x = x0 + 70
-    bar_w = w - 140
-    bars = []
-    for i, dy in enumerate((180, 280, 380, 480)):
-        bw = bar_w if i != 3 else bar_w - 90
-        bars.append(
-            f'<rect x="{bar_x}" y="{y0 + dy}" width="{bw}" height="36" rx="18" fill="{s}"/>'
-        )
-    return (
-        f'<path d="{page}" fill="{p}"/>'
-        f'<path d="{fold_path}" fill="{s}" fill-opacity="0.55"/>'
-        + "".join(bars)
-    )
-
-
-def glyph_media(theme):
-    # Picture frame: mountain + sun.
-    p, s, _ = _subject_palette(theme)
-    x0, y0 = SUBJ_X0, SUBJ_Y0 + 60
-    w, h = SUBJ_SIZE, SUBJ_SIZE - 120
-    # Frame.
-    frame = f'<rect x="{x0}" y="{y0}" width="{w}" height="{h}" rx="64" fill="{p}"/>'
-    # Inside background.
-    inner_pad = 28
-    inner = (
-        f'<rect x="{x0 + inner_pad}" y="{y0 + inner_pad}" '
-        f'width="{w - inner_pad * 2}" height="{h - inner_pad * 2}" '
-        f'rx="40" fill="{s}" fill-opacity="0.28"/>'
-    )
-    # Sun.
-    sun_cx = x0 + w - 170
-    sun_cy = y0 + 150
-    sun = f'<circle cx="{sun_cx}" cy="{sun_cy}" r="50" fill="{s}"/>'
-    # Mountain silhouette (two peaks).
-    base_y = y0 + h - inner_pad
-    peak1_x = x0 + 200
-    peak1_y = y0 + 260
-    peak2_x = x0 + w - 260
-    peak2_y = y0 + 320
-    mid_x = x0 + w // 2 + 20
-    mid_y = y0 + 380
-    mountain = (
-        f'<path d="M {x0 + inner_pad} {base_y} '
-        f"L {peak1_x} {peak1_y} "
-        f"L {mid_x} {mid_y} "
-        f"L {peak2_x} {peak2_y} "
-        f"L {x0 + w - inner_pad} {base_y} Z\" "
-        f'fill="{s}"/>'
-    )
-    return frame + inner + sun + mountain
-
-
-def glyph_comments(theme):
-    # Speech bubble with tail at bottom-left.
-    p, s, _ = _subject_palette(theme)
-    x0, y0 = SUBJ_X0, SUBJ_Y0 + 40
-    w, h = SUBJ_SIZE, SUBJ_SIZE - 180
-    bubble = (
-        f"M {x0 + 80} {y0} "
-        f"L {x0 + w - 80} {y0} "
-        f"Q {x0 + w} {y0} {x0 + w} {y0 + 80} "
-        f"L {x0 + w} {y0 + h - 80} "
-        f"Q {x0 + w} {y0 + h} {x0 + w - 80} {y0 + h} "
-        f"L {x0 + 240} {y0 + h} "
-        f"L {x0 + 160} {y0 + h + 120} "
-        f"L {x0 + 200} {y0 + h} "
-        f"L {x0 + 80} {y0 + h} "
-        f"Q {x0} {y0 + h} {x0} {y0 + h - 80} "
-        f"L {x0} {y0 + 80} "
-        f"Q {x0} {y0} {x0 + 80} {y0} Z"
-    )
-    dots_y = y0 + h // 2 - 20
-    dx = x0 + w // 2
-    dots = (
-        f'<circle cx="{dx - 120}" cy="{dots_y}" r="32" fill="{s}"/>'
-        f'<circle cx="{dx}" cy="{dots_y}" r="32" fill="{s}"/>'
-        f'<circle cx="{dx + 120}" cy="{dots_y}" r="32" fill="{s}"/>'
-    )
-    return f'<path d="{bubble}" fill="{p}"/>' + dots
-
-
-def glyph_appearance(theme):
-    # Paint brush angled from bottom-left to top-right.
-    p, s, _ = _subject_palette(theme)
-    # Brush ferrule + handle + tip angled across subject.
-    handle = (
-        f"M {SUBJ_X0 + 80} {SUBJ_Y0 + SUBJ_SIZE - 80} "
-        f"L {SUBJ_X0 + 380} {SUBJ_Y0 + 220} "
-        f"L {SUBJ_X0 + 510} {SUBJ_Y0 + 350} "
-        f"L {SUBJ_X0 + 210} {SUBJ_Y0 + SUBJ_SIZE + 50} Z"
-    )
-    ferrule = (
-        f"M {SUBJ_X0 + 380} {SUBJ_Y0 + 220} "
-        f"L {SUBJ_X0 + 490} {SUBJ_Y0 + 110} "
-        f"L {SUBJ_X0 + 620} {SUBJ_Y0 + 240} "
-        f"L {SUBJ_X0 + 510} {SUBJ_Y0 + 350} Z"
-    )
-    tip = (
-        f"M {SUBJ_X0 + 490} {SUBJ_Y0 + 110} "
-        f"L {SUBJ_X0 + 640} {SUBJ_Y0 - 40} "
-        f"L {SUBJ_X0 + 760} {SUBJ_Y0 + 80} "
-        f"L {SUBJ_X0 + 620} {SUBJ_Y0 + 240} Z"
-    )
-    splash = (
-        f'<circle cx="{SUBJ_X0 + 150}" cy="{SUBJ_Y0 + 120}" r="26" fill="{s}"/>'
-        f'<circle cx="{SUBJ_X0 + 230}" cy="{SUBJ_Y0 + 60}" r="18" fill="{s}"/>'
-    )
-    return (
-        f'<path d="{handle}" fill="{p}"/>'
-        f'<path d="{ferrule}" fill="{s}"/>'
-        f'<path d="{tip}" fill="{p}"/>'
-        + splash
-    )
-
-
-def glyph_plugins(theme):
-    # Electrical plug: head + 2 prongs + cord coming out the bottom.
-    p, s, _ = _subject_palette(theme)
-    cx = 512
-    head_w = 360
-    head_h = 340
-    hx = cx - head_w // 2
-    hy = SUBJ_Y0 + 140
-    parts = []
-    # Prongs.
-    prong_w = 44
-    prong_h = 120
-    parts.append(
-        f'<rect x="{cx - 90 - prong_w // 2}" y="{hy - prong_h}" '
-        f'width="{prong_w}" height="{prong_h}" rx="18" fill="{s}"/>'
-    )
-    parts.append(
-        f'<rect x="{cx + 90 - prong_w // 2}" y="{hy - prong_h}" '
-        f'width="{prong_w}" height="{prong_h}" rx="18" fill="{s}"/>'
-    )
-    # Head.
-    parts.append(
-        f'<rect x="{hx}" y="{hy}" width="{head_w}" height="{head_h}" rx="72" fill="{p}"/>'
-    )
-    # Cord.
-    cord_top = hy + head_h
-    parts.append(
-        f'<path d="M {cx} {cord_top} '
-        f"Q {cx + 140} {cord_top + 120} {cx} {cord_top + 240}\" "
-        f'fill="none" stroke="{p}" stroke-width="54" stroke-linecap="round"/>'
-    )
-    return "".join(parts)
-
-
-def glyph_users(theme):
-    # Two overlapping head+shoulders silhouettes.
-    p, s, _ = _subject_palette(theme)
-    cx1, cx2 = 440, 584
-    head_cy = SUBJ_Y0 + 200
-    head_r = 90
-    # Back user (slightly smaller, behind).
-    parts = [
-        f'<circle cx="{cx2 + 40}" cy="{head_cy - 10}" r="{head_r - 8}" fill="{s}"/>',
-        f'<path d="M {cx2 - 40} {SUBJ_Y0 + SUBJ_SIZE - 20} '
-        f"Q {cx2 - 40} {head_cy + 100} {cx2 + 40} {head_cy + 100} "
-        f"Q {cx2 + 190} {head_cy + 100} {cx2 + 190} {SUBJ_Y0 + SUBJ_SIZE - 20} Z\" "
-        f'fill="{s}"/>',
-    ]
-    # Front user.
-    parts.append(
-        f'<circle cx="{cx1}" cy="{head_cy}" r="{head_r}" fill="{p}"/>'
-    )
-    parts.append(
-        f'<path d="M {cx1 - 180} {SUBJ_Y0 + SUBJ_SIZE + 20} '
-        f"Q {cx1 - 180} {head_cy + 120} {cx1} {head_cy + 120} "
-        f"Q {cx1 + 180} {head_cy + 120} {cx1 + 180} {SUBJ_Y0 + SUBJ_SIZE + 20} Z\" "
-        f'fill="{p}"/>'
-    )
-    return "".join(parts)
-
-
-def glyph_tools(theme):
-    # Wrench: open head top-right, diagonal handle, rounded tail bottom-left.
-    p, s, _ = _subject_palette(theme)
-    # Handle: a thick diagonal rounded rectangle via path.
-    handle = (
-        f"M {SUBJ_X0 + 140} {SUBJ_Y0 + SUBJ_SIZE - 140} "
-        f"L {SUBJ_X0 + 440} {SUBJ_Y0 + 240} "
-        f"L {SUBJ_X0 + 560} {SUBJ_Y0 + 360} "
-        f"L {SUBJ_X0 + 260} {SUBJ_Y0 + SUBJ_SIZE - 20} "
-        f"Q {SUBJ_X0 + 140} {SUBJ_Y0 + SUBJ_SIZE + 100} "
-        f"{SUBJ_X0 + 40} {SUBJ_Y0 + SUBJ_SIZE - 80} "
-        f"Q {SUBJ_X0 - 20} {SUBJ_Y0 + SUBJ_SIZE - 260} "
-        f"{SUBJ_X0 + 140} {SUBJ_Y0 + SUBJ_SIZE - 140} Z"
-    )
-    # Open wrench head top-right.
-    head = (
-        f"M {SUBJ_X0 + 440} {SUBJ_Y0 + 240} "
-        f"L {SUBJ_X0 + 560} {SUBJ_Y0 + 120} "
-        f"L {SUBJ_X0 + 660} {SUBJ_Y0 + 120} "
-        f"L {SUBJ_X0 + 760} {SUBJ_Y0 + 220} "
-        f"L {SUBJ_X0 + 640} {SUBJ_Y0 + 340} "
-        f"L {SUBJ_X0 + 560} {SUBJ_Y0 + 360} Z"
-    )
-    # Bite (negative space in the head) — same colour as background-ish,
-    # but we can't know the bg colour from here, so draw it as a small
-    # circle in the secondary colour to read as depth.
-    bite = f'<circle cx="{SUBJ_X0 + 610}" cy="{SUBJ_Y0 + 230}" r="36" fill="{s}"/>'
-    return (
-        f'<path d="{handle}" fill="{p}"/>'
-        f'<path d="{head}" fill="{p}"/>'
-        + bite
-    )
-
-
-def glyph_settings(theme):
-    # Gear: 8-tooth rosette + center hole.
-    p, s, _ = _subject_palette(theme)
-    cx, cy = 512, 512
-    import math
-    r_in = 180   # gear body radius
-    r_out = 260  # tooth tip radius
-    teeth = 8
-    tooth_w = 0.18  # fraction of half-period
-    # Build gear path by walking angles.
+def _gear_path(cx, cy, ri, ro, teeth=8, tooth_w=0.18):
     half = math.pi / teeth
-    d = []
+    parts = []
     for i in range(teeth):
         a0 = i * 2 * half - half
         a1 = a0 + half * (1 - tooth_w)
         a2 = a0 + half * (1 + tooth_w)
         a3 = a0 + 2 * half
-        # inner → tooth rise
-        for (ang, rr) in ((a0, r_in), (a1, r_in), (a1, r_out),
-                          (a2, r_out), (a2, r_in), (a3, r_in)):
+        for ang, rr in (
+            (a0, ri), (a1, ri), (a1, ro),
+            (a2, ro), (a2, ri), (a3, ri),
+        ):
+            cmd = "M" if not parts else "L"
             x = cx + rr * math.cos(ang)
             y = cy + rr * math.sin(ang)
-            d.append(f"{'M' if not d else 'L'} {x:.2f} {y:.2f}")
-    gear = f'<path d="{" ".join(d)} Z" fill="{p}"/>'
-    hole = f'<circle cx="{cx}" cy="{cy}" r="82" fill="{s}"/>'
-    return gear + hole
+            parts.append(f"{cmd} {x:.2f} {y:.2f}")
+    return " ".join(parts) + " Z"
 
 
-def glyph_profile(theme):
-    # Single head+shoulders inside a rounded frame.
-    p, s, _ = _subject_palette(theme)
-    cx, cy = 512, 520
-    frame_r = 280
-    parts = [
-        f'<circle cx="{cx}" cy="{cy}" r="{frame_r}" fill="{p}"/>'
-    ]
-    # Head.
-    parts.append(
-        f'<circle cx="{cx}" cy="{cy - 80}" r="100" fill="{s}"/>'
+def _page_fold_path(x, y, w, h, fold, rx=56):
+    """Page with a diagonal top-right fold. Returns (page_d, fold_d)."""
+    page = (
+        f"M {x + rx} {y} "
+        f"L {x + w - fold} {y} "
+        f"L {x + w} {y + fold} "
+        f"L {x + w} {y + h - rx} "
+        f"Q {x + w} {y + h} {x + w - rx} {y + h} "
+        f"L {x + rx} {y + h} "
+        f"Q {x} {y + h} {x} {y + h - rx} "
+        f"L {x} {y + rx} "
+        f"Q {x} {y} {x + rx} {y} Z"
     )
-    # Shoulders (chip of a circle clipped by the frame circle).
-    parts.append(
-        f'<path d="M {cx - 180} {cy + frame_r} '
-        f"Q {cx - 180} {cy + 80} {cx} {cy + 80} "
-        f"Q {cx + 180} {cy + 80} {cx + 180} {cy + frame_r} Z\" "
-        f'fill="{s}"/>'
+    fold_tri = (
+        f"M {x + w - fold} {y} "
+        f"L {x + w} {y + fold} "
+        f"L {x + w - fold} {y + fold} Z"
     )
-    return "".join(parts)
+    return page, fold_tri
 
 
-def glyph_links(theme):
-    # Two interlocking rounded-rectangle link loops at ~30°.
-    p, s, _ = _subject_palette(theme)
-    # We build each link as two concentric rounded rects using a
-    # fill-rule="evenodd" path, rotated, translated.
-    def link_path(angle_deg, tx, ty, colour):
-        # Build path with outer + inner rects for the ring.
-        outer = (
-            "M -200 -100 "
-            "Q -260 -100 -260 -40 "
-            "L -260 40 "
-            "Q -260 100 -200 100 "
-            "L 200 100 "
-            "Q 260 100 260 40 "
-            "L 260 -40 "
-            "Q 260 -100 200 -100 Z"
-        )
-        inner = (
-            "M -200 -40 "
-            "Q -200 -40 -200 -40 "  # (kept as-is; rings are drawn separately)
-            "Z"
-        )
-        # Simpler: two concentric rounded rects via two <rect> overlays.
-        return (
-            f'<g transform="translate({tx} {ty}) rotate({angle_deg})">'
-            f'<rect x="-260" y="-100" width="520" height="200" rx="100" fill="{colour}"/>'
-            f'<rect x="-200" y="-40" width="400" height="80" rx="40" fill="#0000"/>'
-            f"</g>"
-        )
-    # We can't use "#0000" reliably across renderers; punch holes via mask
-    # instead by layering with the background colour. Simpler: draw each
-    # link as a stroked rounded rect so the middle stays empty.
-    stroke_w = 64
-    parts = []
-    for angle, tx, ty, colour in (
-        (-20, 430, 520, p),
-        (20, 620, 480, s),
-    ):
-        parts.append(
-            f'<g transform="translate({tx} {ty}) rotate({angle})">'
-            f'<rect x="-220" y="-90" width="440" height="180" rx="90" '
-            f'fill="none" stroke="{colour}" stroke-width="{stroke_w}"/>'
-            f"</g>"
-        )
-    return "".join(parts)
+def _brush_paths():
+    """Angled brush: (handle, ferrule, tip, splash_pts)."""
+    handle = (
+        "M 262 862 L 562 402 L 692 532 L 392 992 Z"
+    )
+    ferrule = (
+        "M 562 402 L 672 292 L 802 422 L 692 532 Z"
+    )
+    tip = (
+        "M 672 292 L 822 142 L 942 262 L 802 422 Z"
+    )
+    splash = [(332, 302, 26), (412, 242, 18)]
+    return handle, ferrule, tip, splash
 
 
-def glyph_fallback(theme):
-    # Three concentric pulses.
-    p, s, _ = _subject_palette(theme)
-    cx, cy = 512, 512
+def _plug_rects():
+    """(left_prong, right_prong, head_rect, cord_d)."""
+    lp = (400, 202, 44, 120)
+    rp = (580, 202, 44, 120)
+    head = (332, 322, 360, 340, 72)
+    cord = "M 512 662 Q 652 782 512 902"
+    return lp, rp, head, cord
+
+
+def _users_pair():
+    """Two head+shoulders: (back_head, back_shoulders_d, front_head, front_shoulders_d)."""
+    back_head = (624, 372, 82)
+    back_sh = (
+        "M 544 904 Q 544 472 624 472 Q 774 472 774 904 Z"
+    )
+    front_head = (440, 382, 92)
+    front_sh = (
+        "M 260 936 Q 260 484 440 484 Q 620 484 620 936 Z"
+    )
+    return back_head, back_sh, front_head, front_sh
+
+
+def _wrench_paths():
+    """(handle_d, head_d, bite_circle)."""
+    handle = (
+        "M 322 882 L 562 382 L 682 502 L 442 1002 "
+        "Q 322 1062 222 942 Q 162 802 322 882 Z"
+    )
+    head = (
+        "M 562 382 L 682 262 L 782 262 L 882 362 "
+        "L 762 482 L 682 502 Z"
+    )
+    bite = (752, 372, 36)
+    return handle, head, bite
+
+
+def _profile_paths():
+    """(frame_circle, head_circle, shoulders_d)."""
+    frame = (512, 520, 282)
+    head = (512, 440, 96)
+    shoulders = (
+        "M 312 802 Q 312 560 512 560 Q 712 560 712 802 Z"
+    )
+    return frame, head, shoulders
+
+
+def _link_rings():
+    """Two interlocking rounded-rect rings at ~20 degrees."""
+    # (cx, cy, w, h, rot, stroke_w)
     return (
-        f'<circle cx="{cx}" cy="{cy}" r="260" fill="none" stroke="{s}" stroke-width="32" opacity="0.45"/>'
-        f'<circle cx="{cx}" cy="{cy}" r="180" fill="none" stroke="{s}" stroke-width="40" opacity="0.7"/>'
-        f'<circle cx="{cx}" cy="{cy}" r="80" fill="{p}"/>'
+        (420, 540, 440, 180, -20),
+        (604, 480, 440, 180, 20),
     )
 
 
-GLYPHS = {
-    "dashboard":  glyph_dashboard,
-    "posts":      glyph_posts,
-    "pages":      glyph_pages,
-    "media":      glyph_media,
-    "comments":   glyph_comments,
-    "appearance": glyph_appearance,
-    "plugins":    glyph_plugins,
-    "users":      glyph_users,
-    "tools":      glyph_tools,
-    "settings":   glyph_settings,
-    "profile":    glyph_profile,
-    "links":      glyph_links,
-    "fallback":   glyph_fallback,
-}
+def _mountain_path(x, y, w, h, inset=28):
+    base_y = y + h - inset
+    peaks = (
+        f"M {x + inset} {base_y} "
+        f"L {x + 220} {y + h - 260} "
+        f"L {x + w // 2 + 30} {y + h - 180} "
+        f"L {x + w - 240} {y + h - 300} "
+        f"L {x + w - inset} {base_y} Z"
+    )
+    return peaks
 
 
 # ------------------------------------------------------------------ #
-# Per-set themes.
-#
-# Each theme describes:
-#   bg        list of linearGradient stops (2) for the background, OR a
-#             single solid colour string.
-#   bg_dir    "v" (top-to-bottom) or "d" (top-left to bottom-right).
-#   subject   fill for the primary subject shape.
-#   accent    fill for secondary subject accents.
-#   stroke    stroke colour when a glyph uses stroke-only shapes (links).
-#   specular  True/False — whether to render a Liquid Glass highlight.
-#
-# Palettes are derived from each set's manifest description. The
-# background always covers the full 1024² rect; the subject always
-# draws inside the 824×824 safe rect via the GLYPHS functions.
+# Assembly.
 # ------------------------------------------------------------------ #
 
 
-THEMES = {
-    "arcade-tokens": {
-        "bg": ["#f7d08a", "#8c5518"],  "bg_dir": "v",
-        "subject": "#fff0b8", "accent": "#b07a2a", "stroke": "#fff0b8",
-        "specular": True,
-    },
-    "arctic": {
-        "bg": ["#cff0ff", "#3a7fb8"],  "bg_dir": "v",
-        "subject": "#ffffff", "accent": "#0e3b5a", "stroke": "#ffffff",
-        "specular": True,
-    },
-    "blueprint": {
-        "bg": ["#0f3a66", "#072138"],  "bg_dir": "v",
-        "subject": "#7ec8ff", "accent": "#f0c96a", "stroke": "#7ec8ff",
-        "specular": False,
-    },
-    "botanical-plate": {
-        "bg": ["#f2ecd4", "#d4c88a"],  "bg_dir": "v",
-        "subject": "#2d3a22", "accent": "#6a8f3b", "stroke": "#2d3a22",
-        "specular": False,
-    },
-    "brutalist-stencil": {
-        "bg": ["#ffeb4a", "#ff5f4f"],  "bg_dir": "d",
-        "subject": "#111111", "accent": "#ffffff", "stroke": "#111111",
-        "specular": False,
-    },
-    "circuit-bend": {
-        "bg": ["#0f3f24", "#04180e"],  "bg_dir": "v",
-        "subject": "#f4c24c", "accent": "#e04a3b", "stroke": "#f4c24c",
-        "specular": False,
-    },
-    "claymation": {
-        "bg": ["#ffd87a", "#ff8a3a"],  "bg_dir": "v",
-        "subject": "#ffffff", "accent": "#b14a1a", "stroke": "#ffffff",
-        "specular": True,
-    },
-    "cross-stitch": {
-        "bg": ["#f6e6d4", "#d9c2a4"],  "bg_dir": "v",
-        "subject": "#e87ca7", "accent": "#4a4a6a", "stroke": "#e87ca7",
-        "specular": False,
-    },
-    "eyeball-avenue": {
-        "bg": ["#2a0a55", "#8a2dd4"],  "bg_dir": "v",
-        "subject": "#ffffff", "accent": "#ff4fa8", "stroke": "#ffffff",
-        "specular": True,
-    },
-    "filament": {
-        "bg": ["#181022", "#050308"],  "bg_dir": "v",
-        "subject": "#ffb000", "accent": "#ffe7a6", "stroke": "#ffb000",
-        "specular": True,
-    },
-    "fold": {
-        "bg": ["#eee6ff", "#9d7cff"],  "bg_dir": "v",
-        "subject": "#ffffff", "accent": "#4a2c9c", "stroke": "#ffffff",
-        "specular": True,
-    },
-    "hologram": {
-        "bg": ["#cbe6ff", "#ffd1f5"],  "bg_dir": "d",
-        "subject": "#5a7ea8", "accent": "#d4a4e0", "stroke": "#5a7ea8",
-        "specular": True,
-    },
-    "lemonade-stand": {
-        "bg": ["#ffef7a", "#ffb43a"],  "bg_dir": "v",
-        "subject": "#7a3a0f", "accent": "#e84a2a", "stroke": "#7a3a0f",
-        "specular": False,
-    },
-    "monoline": {
-        "bg": ["#14d6ff", "#4a5cff"],  "bg_dir": "d",
-        "subject": "#ffffff", "accent": "#001f3f", "stroke": "#ffffff",
-        "specular": True,
-    },
-    "risograph": {
-        "bg": "#f4ecd8", "bg_dir": "v",
-        "subject": "#ff4fa8", "accent": "#14a6cc", "stroke": "#ff4fa8",
-        "specular": False,
-    },
-    "stadium": {
-        "bg": ["#a62632", "#6a0b13"],  "bg_dir": "v",
-        "subject": "#ffd86a", "accent": "#ffffff", "stroke": "#ffd86a",
-        "specular": False,
-    },
-    "tiki": {
-        "bg": ["#8a5a2a", "#3a1f0e"],  "bg_dir": "v",
-        "subject": "#f6dfb4", "accent": "#c47a3c", "stroke": "#f6dfb4",
-        "specular": True,
-    },
-}
+def _svg_shell(defs: str, body: str, label: str) -> str:
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
+        f'width="1024" height="1024" role="img" aria-label="{label}">'
+        f"<defs>{SQ_DEFS}{defs}</defs>"
+        f'<g clip-path="url(#sq)">{body}</g>'
+        f"</svg>\n"
+    )
 
 
-# ------------------------------------------------------------------ #
-# SVG rendering.
-# ------------------------------------------------------------------ #
-
-
-CLIPPATH_BLOCK = (
-    f'<clipPath id="sq"><path d="{SQUIRCLE_PATH}"/></clipPath>'
-)
-
-
-def _background_defs(theme, uid):
-    bg = theme["bg"]
-    if isinstance(bg, str):
-        return "", f'<rect x="0" y="0" width="1024" height="1024" fill="{bg}"/>'
-    a, b = bg
-    if theme.get("bg_dir") == "d":
-        coords = 'x1="0" y1="0" x2="1" y2="1"'
-    else:
-        coords = 'x1="0" y1="0" x2="0" y2="1"'
-    defs = (
+def _bg_linear(uid, c1, c2, direction="v"):
+    coords = 'x1="0" y1="0" x2="0" y2="1"' if direction == "v" else 'x1="0" y1="0" x2="1" y2="1"'
+    return (
         f'<linearGradient id="bg{uid}" {coords}>'
-        f'<stop offset="0" stop-color="{a}"/>'
-        f'<stop offset="1" stop-color="{b}"/>'
+        f'<stop offset="0" stop-color="{c1}"/>'
+        f'<stop offset="1" stop-color="{c2}"/>'
         f"</linearGradient>"
     )
-    rect = f'<rect x="0" y="0" width="1024" height="1024" fill="url(#bg{uid})"/>'
-    return defs, rect
 
 
-def _specular_defs(theme, uid):
-    if not theme.get("specular"):
-        return "", ""
-    defs = (
-        f'<radialGradient id="sp{uid}" cx="0.28" cy="0.22" r="0.55">'
-        f'<stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>'
+def _bg_rect(uid):
+    return f'<rect width="1024" height="1024" fill="url(#bg{uid})"/>'
+
+
+def _specular_defs(uid, opacity=0.32):
+    return (
+        f'<radialGradient id="sp{uid}" cx="0.28" cy="0.22" r="0.6">'
+        f'<stop offset="0" stop-color="#ffffff" stop-opacity="{opacity}"/>'
         f'<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>'
         f"</radialGradient>"
     )
-    rect = (
-        f'<rect x="0" y="0" width="1024" height="1024" fill="url(#sp{uid})"/>'
-    )
-    return defs, rect
 
 
-def _drop_shadow_filter(uid):
+def _specular_rect(uid):
+    return f'<rect width="1024" height="1024" fill="url(#sp{uid})"/>'
+
+
+def _uid(slug, key):
+    return re.sub(r"[^a-zA-Z0-9]", "", f"{slug}{key}")
+
+
+# ------------------------------------------------------------------ #
+# Distinct set renderers.
+#
+# The first pass of the redesign reused one glyph library with different
+# palettes. That made the sets feel like recolors. This pass keeps the
+# same WP-Desktop metaphors but gives each set a different "pen":
+# relief coin, blueprint strokes, PCB traces, cross-stitch marks,
+# risograph offset plates, chenille patch stitching, carved wood, etc.
+# ------------------------------------------------------------------ #
+
+
+def _glyph_fill(key, primary, secondary, accent=None):
+    accent = accent or secondary
+    parts = []
+    if key == "dashboard":
+        for x, y, c in (
+            (182, 182, primary), (530, 182, secondary),
+            (182, 530, secondary), (530, 530, primary),
+        ):
+            parts.append(f'<rect x="{x}" y="{y}" width="312" height="312" rx="60" fill="{c}"/>')
+    elif key == "posts":
+        page, _ = _page_fold_path(252, 182, 520, 660, 0, 58)
+        parts.append(f'<path d="{page}" fill="{primary}"/>')
+        for i, (y, w) in enumerate(((302, 360), (402, 310), (502, 360), (602, 250), (702, 330))):
+            parts.append(f'<rect x="332" y="{y}" width="{w}" height="42" rx="21" fill="{secondary}"/>')
+    elif key == "pages":
+        page, fold = _page_fold_path(252, 182, 520, 660, 142, 58)
+        parts.append(f'<path d="{page}" fill="{primary}"/><path d="{fold}" fill="{secondary}" opacity=".62"/>')
+        for i, (y, w) in enumerate(((362, 360), (462, 330), (562, 280))):
+            parts.append(f'<rect x="332" y="{y}" width="{w}" height="38" rx="19" fill="{secondary}" opacity=".78"/>')
+    elif key == "media":
+        parts.append(f'<rect x="182" y="242" width="660" height="540" rx="68" fill="{primary}"/>')
+        parts.append(f'<rect x="220" y="280" width="584" height="464" rx="44" fill="{secondary}" opacity=".30"/>')
+        parts.append(f'<circle cx="664" cy="392" r="54" fill="{accent}"/>')
+        parts.append(f'<path d="{_mountain_path(220, 280, 584, 464)}" fill="{secondary}"/>')
+    elif key == "comments":
+        parts.append(f'<path d="{_bubble_path(182, 222, 660, 510)}" fill="{primary}"/>')
+        for x in (392, 512, 632):
+            parts.append(f'<circle cx="{x}" cy="472" r="34" fill="{secondary}"/>')
+    elif key == "appearance":
+        h, f, t, spl = _brush_paths()
+        parts.append(f'<path d="{h}" fill="{primary}"/><path d="{f}" fill="{secondary}"/><path d="{t}" fill="{primary}"/>')
+        for x, y, r in spl:
+            parts.append(f'<circle cx="{x}" cy="{y}" r="{r}" fill="{accent}"/>')
+    elif key == "plugins":
+        lp, rp, head, cord = _plug_rects()
+        for x, y, w, h in (lp, rp):
+            parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="18" fill="{secondary}"/>')
+        x, y, w, h, rx = head
+        parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" fill="{primary}"/>')
+        parts.append(f'<path d="{cord}" fill="none" stroke="{primary}" stroke-width="54" stroke-linecap="round"/>')
+    elif key == "users":
+        bh, bs, fh, fs = _users_pair()
+        parts.append(f'<circle cx="{bh[0]}" cy="{bh[1]}" r="{bh[2]}" fill="{secondary}"/><path d="{bs}" fill="{secondary}"/>')
+        parts.append(f'<circle cx="{fh[0]}" cy="{fh[1]}" r="{fh[2]}" fill="{primary}"/><path d="{fs}" fill="{primary}"/>')
+    elif key == "tools":
+        handle, head, bite = _wrench_paths()
+        parts.append(f'<path d="{handle}" fill="{primary}"/><path d="{head}" fill="{primary}"/>')
+        parts.append(f'<circle cx="{bite[0]}" cy="{bite[1]}" r="{bite[2]}" fill="{secondary}"/>')
+    elif key == "settings":
+        parts.append(f'<path d="{_gear_path(512, 512, 180, 260)}" fill="{primary}"/>')
+        parts.append(f'<circle cx="512" cy="512" r="86" fill="{secondary}"/>')
+    elif key == "profile":
+        frame, head, shoulders = _profile_paths()
+        parts.append(f'<circle cx="{frame[0]}" cy="{frame[1]}" r="{frame[2]}" fill="{primary}"/>')
+        parts.append(f'<circle cx="{head[0]}" cy="{head[1]}" r="{head[2]}" fill="{secondary}"/><path d="{shoulders}" fill="{secondary}"/>')
+    elif key == "links":
+        for cx, cy, w, h, rot in _link_rings():
+            c = primary if rot < 0 else secondary
+            parts.append(f'<g transform="translate({cx} {cy}) rotate({rot})"><rect x="{-w/2}" y="{-h/2}" width="{w}" height="{h}" rx="{h/2}" fill="none" stroke="{c}" stroke-width="66"/></g>')
+    else:
+        parts.append(f'<circle cx="512" cy="512" r="260" fill="none" stroke="{secondary}" stroke-width="34" opacity=".46"/>')
+        parts.append(f'<circle cx="512" cy="512" r="178" fill="none" stroke="{secondary}" stroke-width="44" opacity=".72"/>')
+        parts.append(f'<circle cx="512" cy="512" r="84" fill="{primary}"/>')
+    return "".join(parts)
+
+
+def _glyph_stroke(key, stroke, accent, width=34, dash=None):
+    dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
+    body = _glyph_fill(key, "none", "none", "none")
+    # Convert the fill glyph into a chunky outline vocabulary. This is
+    # intentionally simple and compact: inherited fill=none + stroke on
+    # the wrapper turns rect/circle/path subjects into an outlined set.
     return (
-        f'<filter id="ds{uid}" x="-10%" y="-10%" width="120%" height="120%">'
-        f'<feDropShadow dx="0" dy="18" stdDeviation="14" '
-        f'flood-color="#000" flood-opacity="0.22"/>'
-        f"</filter>"
+        f'<g fill="none" stroke="{stroke}" stroke-width="{width}" '
+        f'stroke-linecap="round" stroke-linejoin="round"{dash_attr}>{body}</g>'
+        f'<circle cx="820" cy="210" r="34" fill="{accent}"/>'
     )
 
 
-def render_icon(slug, key, theme):
-    """Return the SVG source string for one icon."""
-    uid = f"{slug}-{key}"
-    # Sanitize UID for use inside XML ids.
-    uid = re.sub(r"[^a-zA-Z0-9]", "", uid)
-    bg_defs, bg_rect = _background_defs(theme, uid)
-    sp_defs, sp_rect = _specular_defs(theme, uid)
-    shadow_defs = _drop_shadow_filter(uid)
-    subject = GLYPHS[key](theme)
-    label = key.replace("-", " ").title()
-    svg = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
-        f'width="1024" height="1024" role="img" aria-label="{label}">'
-        f"<defs>{CLIPPATH_BLOCK}{bg_defs}{sp_defs}{shadow_defs}</defs>"
-        f'<g clip-path="url(#sq)">'
-        f"{bg_rect}"
-        f'<g filter="url(#ds{uid})">{subject}</g>'
-        f"{sp_rect}"
-        f"</g></svg>\n"
+def _glow_filter(uid, color, opacity=".72"):
+    return (
+        f'<filter id="gl{uid}" x="-30%" y="-30%" width="160%" height="160%">'
+        f'<feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="{color}" flood-opacity="{opacity}"/>'
+        f'</filter>'
     )
-    return svg
+
+
+def _shadow_filter(uid, y=18, blur=14, opacity=".22"):
+    return (
+        f'<filter id="sh{uid}" x="-20%" y="-20%" width="140%" height="140%">'
+        f'<feDropShadow dx="0" dy="{y}" stdDeviation="{blur}" flood-color="#000" flood-opacity="{opacity}"/>'
+        f'</filter>'
+    )
+
+
+def _noise_dots(color, opacity=".22", step=128):
+    dots = []
+    for i, x in enumerate(range(96, 960, step)):
+        for j, y in enumerate(range(96, 960, step)):
+            r = 3 + ((i * 7 + j * 5) % 5)
+            dots.append(f'<circle cx="{x}" cy="{y}" r="{r}" fill="{color}" opacity="{opacity}"/>')
+    return "".join(dots)
+
+
+def _grid_lines(color, opacity=".18", step=96):
+    parts = []
+    for p in range(0, 1025, step):
+        parts.append(f'<path d="M {p} 0 V 1024 M 0 {p} H 1024" stroke="{color}" stroke-width="4" opacity="{opacity}"/>')
+    return "".join(parts)
+
+
+def _stitched_x(x, y, color, size=34, width=8):
+    h = size / 2
+    return (
+        f'<path d="M {x-h} {y-h} L {x+h} {y+h} M {x+h} {y-h} L {x-h} {y+h}" '
+        f'stroke="{color}" stroke-width="{width}" stroke-linecap="round"/>'
+    )
+
+
+def _cross_stitches(key, c1, c2):
+    # Build each metaphor out of chunky X-stitches placed on a coarse grid.
+    pts = []
+    if key == "dashboard":
+        for ox, oy in ((310, 310), (610, 310), (310, 610), (610, 610)):
+            for dx in (-46, 0, 46):
+                for dy in (-46, 0, 46):
+                    pts.append((ox + dx, oy + dy))
+    elif key in ("posts", "pages"):
+        for y in (300, 390, 480, 570, 660):
+            for x in range(340, 720, 70):
+                if x < 675 or y < 620:
+                    pts.append((x, y))
+        if key == "pages":
+            pts += [(680, 240), (735, 295), (680, 295)]
+    elif key == "media":
+        pts += [(650, 330), (700, 330), (675, 380)]
+        pts += [(310, 670), (380, 600), (450, 670), (540, 570), (640, 670)]
+    elif key == "comments":
+        for x in (390, 512, 634):
+            for y in (430, 500):
+                pts.append((x, y))
+        pts += [(350, 700), (310, 760)]
+    elif key == "appearance":
+        pts = [(360, 740), (420, 640), (480, 540), (540, 440), (640, 340), (730, 250)]
+    elif key == "plugins":
+        pts = [(430, 270), (590, 270), (430, 430), (512, 430), (594, 430), (512, 540), (512, 650), (512, 760)]
+    elif key == "users":
+        pts = [(440, 350), (610, 340), (360, 610), (440, 570), (520, 610), (625, 590), (700, 630)]
+    elif key == "tools":
+        pts = [(330, 780), (400, 660), (470, 540), (540, 420), (670, 300), (760, 350)]
+    elif key == "settings":
+        for a in range(0, 360, 45):
+            rad = math.radians(a)
+            pts.append((512 + 210 * math.cos(rad), 512 + 210 * math.sin(rad)))
+        pts += [(512, 512)]
+    elif key == "profile":
+        pts = [(512, 390), (450, 590), (512, 560), (574, 590), (430, 680), (512, 700), (594, 680)]
+    elif key == "links":
+        pts = [(360, 520), (430, 490), (500, 515), (570, 505), (640, 475), (710, 500)]
+    else:
+        for r in (0, 82, 164):
+            pts += [(512 + r, 512), (512 - r, 512), (512, 512 + r), (512, 512 - r)]
+    return "".join(_stitched_x(x, y, c1 if i % 2 == 0 else c2) for i, (x, y) in enumerate(pts))
+
+
+def _theme_shell(slug, key, label, bg_defs, bg, subject, extras="", defs_extra=""):
+    uid = _uid(slug, key)
+    defs = bg_defs + defs_extra
+    body = bg + subject + extras
+    return _svg_shell(defs, body, label)
+
+
+def render_set_icon(slug, key, manifest):
+    uid = _uid(slug, key)
+    label = f"{manifest['label']} {key.title()}"
+
+    if slug == "arcade-tokens":
+        defs = _bg_linear(uid, "#6d3c12", "#f4c66d") + _shadow_filter(uid, 10, 10, ".35")
+        bg = _bg_rect(uid) + '<circle cx="512" cy="512" r="372" fill="#b07a2a"/><circle cx="512" cy="512" r="318" fill="#f6d27d" opacity=".72"/><circle cx="512" cy="512" r="372" fill="none" stroke="#fff3bf" stroke-width="28" opacity=".6"/>'
+        subject = f'<g filter="url(#sh{uid})" transform="translate(512 512) scale(.74) translate(-512 -512)">{_glyph_fill(key, "#7a4a17", "#fff1b8")}</g>'
+        extras = '<circle cx="248" cy="248" r="22" fill="#fff1b8" opacity=".45"/><circle cx="776" cy="776" r="22" fill="#5b310f" opacity=".35"/>'
+    elif slug == "arctic":
+        defs = _bg_linear(uid, "#f4fcff", "#74bce2") + _specular_defs(uid, ".38") + _shadow_filter(uid, 18, 18, ".18")
+        bg = _bg_rect(uid) + '<path d="M120 720 L900 250" stroke="#ffffff" stroke-width="38" opacity=".18"/><path d="M160 280 L820 780" stroke="#ffffff" stroke-width="24" opacity=".14"/>'
+        subject = f'<g filter="url(#sh{uid})">{_glyph_fill(key, "#ffffff", "#17415d", "#7ddcff")}</g>'
+        extras = _specular_rect(uid)
+    elif slug == "blueprint":
+        defs = _bg_linear(uid, "#0b3763", "#04182c")
+        bg = _bg_rect(uid) + _grid_lines("#74d7ff", ".16", 86) + '<path d="M96 830 H928 M190 96 V928" stroke="#f0c96a" stroke-width="8" opacity=".55"/>'
+        subject = _glyph_stroke(key, "#7ee4ff", "#f0c96a", 26, "12 18")
+        extras = '<path d="M116 116 H252 M116 116 V252" stroke="#f0c96a" stroke-width="10" stroke-linecap="round"/>'
+    elif slug == "botanical-plate":
+        defs = _bg_linear(uid, "#f5edd8", "#d6c790")
+        bg = _bg_rect(uid) + _noise_dots("#6a8f3b", ".10", 116)
+        subject = f'<g transform="rotate(-4 512 512)">{_glyph_fill(key, "#2d3822", "#6a8f3b")}</g>'
+        extras = '<path d="M166 810 C260 620 300 480 230 250" fill="none" stroke="#6a8f3b" stroke-width="18" opacity=".55"/><path d="M220 500 C315 470 350 392 348 320" fill="none" stroke="#6a8f3b" stroke-width="16" opacity=".45"/>'
+    elif slug == "brutalist-stencil":
+        defs = _bg_linear(uid, "#ffdf3d", "#ff5f4f", "d")
+        bg = _bg_rect(uid) + '<path d="M0 816 H1024 V1024 H0 Z" fill="#111" opacity=".16"/>' + "".join(f'<path d="M{x} 0 L{x-260} 1024" stroke="#111" stroke-width="34" opacity=".10"/>' for x in range(180, 1320, 180))
+        subject = f'<g transform="skewX(-6) translate(52 0)">{_glyph_fill(key, "#111111", "#ffffff")}</g>'
+        extras = '<path d="M112 120 H912" stroke="#111" stroke-width="24" opacity=".22" stroke-dasharray="42 28"/>'
+    elif slug == "circuit-bend":
+        defs = _bg_linear(uid, "#0d4329", "#03150d") + _glow_filter(uid, "#2fb37a", ".48")
+        bg = _bg_rect(uid) + _grid_lines("#2fb37a", ".12", 128)
+        subject = f'<g filter="url(#gl{uid})">{_glyph_stroke(key, "#f4c24c", "#e04a3b", 28)}</g>'
+        extras = ''.join(f'<circle cx="{x}" cy="{y}" r="14" fill="#e04a3b"/>' for x, y in ((210, 210), (814, 246), (240, 808), (790, 780)))
+    elif slug == "claymation":
+        defs = _bg_linear(uid, "#ffd77b", "#ff8a3a") + _shadow_filter(uid, 22, 18, ".26") + _specular_defs(uid, ".28")
+        bg = _bg_rect(uid)
+        subject = f'<g filter="url(#sh{uid})" transform="rotate(2 512 512)">{_glyph_fill(key, "#fff7e8", "#b24a1a", "#ffcf70")}</g>'
+        extras = _specular_rect(uid) + _noise_dots("#ffffff", ".12", 160)
+    elif slug == "cross-stitch":
+        defs = _bg_linear(uid, "#f6e7d7", "#d9c1a4")
+        bg = _bg_rect(uid) + _grid_lines("#8b725d", ".10", 48)
+        subject = _cross_stitches(key, "#e87ca7", "#4a4a6a")
+        extras = '<rect x="116" y="116" width="792" height="792" rx="92" fill="none" stroke="#8b725d" stroke-width="12" opacity=".22" stroke-dasharray="18 18"/>'
+    elif slug == "eyeball-avenue":
+        defs = _bg_linear(uid, "#23084d", "#8d2bdd") + _shadow_filter(uid, 14, 16, ".30") + _specular_defs(uid, ".26")
+        bg = _bg_rect(uid) + '<ellipse cx="512" cy="512" rx="400" ry="284" fill="#ffffff"/><circle cx="512" cy="512" r="182" fill="#38d7ff"/><circle cx="512" cy="512" r="82" fill="#150320"/>'
+        subject = f'<g filter="url(#sh{uid})" transform="translate(512 512) scale(.54) translate(-512 -512)">{_glyph_fill(key, "#ff4fa8", "#ffffff")}</g>'
+        extras = _specular_rect(uid)
+    elif slug == "filament":
+        defs = _bg_linear(uid, "#160d22", "#040206") + _glow_filter(uid, "#ffb000", ".82") + _specular_defs(uid, ".18")
+        bg = _bg_rect(uid)
+        subject = f'<g filter="url(#gl{uid})">{_glyph_stroke(key, "#ffb000", "#ffe7a6", 24)}</g>'
+        extras = _specular_rect(uid)
+    elif slug == "fold":
+        defs = _bg_linear(uid, "#eee6ff", "#9f82ff") + _shadow_filter(uid, 16, 12, ".24")
+        facets = '<path d="M0 0 H1024 L620 360 Z" fill="#ffffff" opacity=".22"/><path d="M1024 1024 H0 L420 650 Z" fill="#4a2c9c" opacity=".18"/>'
+        bg = _bg_rect(uid) + facets
+        subject = f'<g filter="url(#sh{uid})">{_glyph_fill(key, "#ffffff", "#4a2c9c")}</g>'
+        extras = '<path d="M180 220 L830 780" stroke="#ffffff" stroke-width="12" opacity=".28"/>'
+    elif slug == "hologram":
+        defs = _bg_linear(uid, "#c8e7ff", "#ffd1f5", "d") + _specular_defs(uid, ".40")
+        bg = _bg_rect(uid) + '<path d="M86 778 L778 86 H938 V246 L246 938 H86 Z" fill="#ffffff" opacity=".22"/>'
+        subject = f'<g transform="rotate(-8 512 512)">{_glyph_fill(key, "#5a7ea8", "#d45fc9", "#9fd0ff")}</g>'
+        extras = _specular_rect(uid) + '<path d="M766 116 L908 116 L908 258 Z" fill="#ffffff" opacity=".62"/>'
+    elif slug == "lemonade-stand":
+        defs = _bg_linear(uid, "#fff174", "#ffbd38")
+        gingham = ''.join(f'<rect x="{i}" y="0" width="42" height="1024" fill="#fff" opacity=".12"/><rect x="0" y="{i}" width="1024" height="42" fill="#fff" opacity=".12"/>' for i in range(0, 1024, 126))
+        bg = _bg_rect(uid) + gingham
+        subject = f'<g transform="rotate(-3 512 512)">{_glyph_stroke(key, "#7a3a0f", "#e84a2a", 36)}</g>'
+        extras = _noise_dots("#e84a2a", ".16", 150)
+    elif slug == "monoline":
+        defs = _bg_linear(uid, "#14d6ff", "#4a5cff", "d") + _shadow_filter(uid, 18, 10, ".22")
+        bg = _bg_rect(uid) + '<circle cx="802" cy="182" r="160" fill="#ffffff" opacity=".18"/>'
+        subject = f'<g filter="url(#sh{uid})">{_glyph_stroke(key, "#ffffff", "#001f3f", 44)}</g>'
+        extras = ''
+    elif slug == "risograph":
+        defs = _bg_linear(uid, "#f4ecd8", "#eadfca")
+        bg = _bg_rect(uid) + _noise_dots("#6d5c4a", ".12", 94)
+        subject = f'<g transform="translate(-16 12)" opacity=".84">{_glyph_fill(key, "#14a6cc", "#14a6cc")}</g><g transform="translate(18 -14)" opacity=".86">{_glyph_fill(key, "#ff4fa8", "#ff4fa8")}</g>'
+        extras = '<rect width="1024" height="1024" fill="#f4ecd8" opacity=".10"/>'
+    elif slug == "stadium":
+        defs = _bg_linear(uid, "#a62632", "#610911") + _shadow_filter(uid, 12, 10, ".25")
+        bg = _bg_rect(uid) + '<path d="M0 768 H1024 V1024 H0 Z" fill="#ffffff" opacity=".08"/>'
+        subject = f'<g filter="url(#sh{uid})">{_glyph_fill(key, "#ffd86a", "#ffffff")}</g>'
+        extras = '<rect x="116" y="116" width="792" height="792" rx="116" fill="none" stroke="#ffffff" stroke-width="18" opacity=".56" stroke-dasharray="22 22"/>'
+    elif slug == "tiki":
+        defs = _bg_linear(uid, "#8a5426", "#311808")
+        grain = ''.join(f'<path d="M{x} 0 C{x-80} 260 {x+80} 520 {x} 1024" stroke="#f6dfb4" stroke-width="8" opacity=".10" fill="none"/>' for x in range(120, 1000, 140))
+        bg = _bg_rect(uid) + grain + '<rect x="96" y="96" width="832" height="832" rx="112" fill="none" stroke="#f6dfb4" stroke-width="26" opacity=".32"/>'
+        subject = f'<g>{_glyph_stroke(key, "#f6dfb4", "#c47a3c", 38, "70 22")}</g>'
+        extras = ''
+    else:
+        defs = _bg_linear(uid, "#222", "#000")
+        bg = _bg_rect(uid)
+        subject = _glyph_fill(key, "#fff", "#999")
+        extras = ""
+
+    return _theme_shell(slug, key, label, defs, bg, subject, extras)
 
 
 # ------------------------------------------------------------------ #
-# Validator.
+# Validation + command line.
 # ------------------------------------------------------------------ #
 
 
-SAFE_PAT = re.compile(rb"[^\t\n\r\x20-\x7e\x80-\xff]")
+CTRL_BYTES = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 
 def validate_svg(slug, key, svg):
-    """Raise on any rule the build-catalog validator will reject."""
-    if len(svg.encode("utf-8")) > 10240:
-        raise ValueError(f"{slug}/{key}: SVG exceeds 10240 bytes")
-    if SAFE_PAT.search(svg.encode("utf-8")):
-        raise ValueError(f"{slug}/{key}: SVG contains control bytes")
-    if SQUIRCLE_PATH not in svg:
-        raise ValueError(f"{slug}/{key}: missing canonical squircle path")
+    data = svg.encode("utf-8")
+    if len(data) > 10240:
+        raise ValueError(f"{slug}/{key}: {len(data)} bytes exceeds 10240")
+    if CTRL_BYTES.search(data):
+        raise ValueError(f"{slug}/{key}: contains forbidden control bytes")
+    if SQUIRCLE_PATH not in re.sub(r"\s+", " ", svg):
+        raise ValueError(f"{slug}/{key}: missing canonical squircle")
     if 'clip-path="url(#sq)"' not in svg:
-        raise ValueError(f"{slug}/{key}: missing clip-path=url(#sq) on main group")
-    if '<image' in svg or '<script' in svg or '<foreignObject' in svg:
-        raise ValueError(f"{slug}/{key}: forbidden tag (image/script/foreignObject)")
-    try:
-        root = ET.fromstring(svg)
-    except ET.ParseError as exc:
-        raise ValueError(f"{slug}/{key}: invalid XML: {exc}")
+        raise ValueError(f"{slug}/{key}: missing clip-path wrapper")
+    for tag in ("<image", "<script", "<foreignObject"):
+        if tag in svg:
+            raise ValueError(f"{slug}/{key}: forbidden tag {tag}")
+    root = ET.fromstring(svg)
     if root.tag != "{http://www.w3.org/2000/svg}svg":
-        raise ValueError(f"{slug}/{key}: root is not <svg>")
-    vb = root.attrib.get("viewBox", "").strip()
-    if vb != "0 0 1024 1024":
-        raise ValueError(f"{slug}/{key}: viewBox must be 0 0 1024 1024, got {vb!r}")
+        raise ValueError(f"{slug}/{key}: root is not SVG")
+    if root.attrib.get("viewBox") != "0 0 1024 1024":
+        raise ValueError(f"{slug}/{key}: invalid viewBox")
 
 
-# ------------------------------------------------------------------ #
-# Regen entrypoints.
-# ------------------------------------------------------------------ #
-
-
-def regen_set(slug):
+def regenerate_set(slug):
     set_dir = SETS_DIR / slug
     manifest_path = set_dir / "manifest.json"
     if not manifest_path.is_file():
-        raise SystemExit(f"no manifest.json at {manifest_path}")
+        raise SystemExit(f"missing manifest: {manifest_path}")
     manifest = json.loads(manifest_path.read_text())
-    if slug not in THEMES:
-        raise SystemExit(f"no theme profile for set {slug!r} in THEMES")
-    theme = THEMES[slug]
-
-    written = []
     for key in ICON_KEYS:
-        svg = render_icon(slug, key, theme)
+        svg = render_set_icon(slug, key, manifest)
         validate_svg(slug, key, svg)
-        out_name = manifest["icons"][key]
-        (set_dir / out_name).write_text(svg)
-        written.append(out_name)
-    print(f"{slug}: wrote {len(written)} icons ({manifest['label']})")
+        (set_dir / manifest["icons"][key]).write_text(svg)
+    print(f"{slug}: regenerated {len(ICON_KEYS)} distinct icons")
 
 
-def build_prompt_for_set(slug):
-    set_dir = SETS_DIR / slug
-    manifest = json.loads((set_dir / "manifest.json").read_text())
+def build_prompt(slug):
+    manifest = json.loads((SETS_DIR / slug / "manifest.json").read_text())
     brief = PROMPT_TEMPLATE.read_text()
-    fill = (
-        f"\n\n## Set fill\n\n"
-        f"SET_SLUG:      {manifest['slug']}\n"
-        f"SET_LABEL:     {manifest['label']}\n"
-        f"SET_FRANCHISE: {manifest['franchise']}\n"
-        f"ACCENT:        {manifest['accent']}\n"
-        f"DESCRIPTION:   {manifest['description']}\n"
+    return (
+        brief
+        + "\n\n## Set fill\n\n"
+        + f"SET_SLUG:      {manifest['slug']}\n"
+        + f"SET_LABEL:     {manifest['label']}\n"
+        + f"SET_FRANCHISE: {manifest['franchise']}\n"
+        + f"ACCENT:        {manifest['accent']}\n"
+        + f"DESCRIPTION:   {manifest['description']}\n"
     )
-    return brief + fill
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("slug", nargs="?")
-    ap.add_argument("--all", action="store_true", help="regenerate every set")
-    ap.add_argument("--print-prompt", action="store_true",
-                    help="print the LLM brief for the given slug and exit")
+    ap.add_argument("--all", action="store_true")
+    ap.add_argument("--print-prompt", action="store_true")
     args = ap.parse_args()
 
     if args.print_prompt:
         if not args.slug:
             raise SystemExit("--print-prompt needs a slug")
-        sys.stdout.write(build_prompt_for_set(args.slug))
+        sys.stdout.write(build_prompt(args.slug))
         return
 
     if args.all:
@@ -762,7 +619,7 @@ def main():
         raise SystemExit("usage: regen-icon-set.py <slug> | --all")
 
     for slug in slugs:
-        regen_set(slug)
+        regenerate_set(slug)
 
 
 if __name__ == "__main__":

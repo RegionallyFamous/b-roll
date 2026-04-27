@@ -36,9 +36,13 @@ curvature squircle baked in (`<clipPath id="sq">`), a full-bleed
 background, and one bold centered subject inside the 824×824 safe
 rect. Spec: [`../_tools/icon-style-guide.md`](../_tools/icon-style-guide.md).
 
-The "before" thumbnails come from the old 64×64 hand-authored sets
-(released as 1.0.0). The "after" thumbnails are the 1024×1024 iOS-style
-regenerations we just produced (1.1.0). GitHub renders both inline.
+The "before" thumbnails come from the first 1.1.0 iOS pass. That pass
+used the same glyphs across all 17 sets with different colors, which
+made the sets feel too similar. The "after" thumbnails are the 1.1.1
+regeneration: same 13 metaphors, but distinct set-specific visual
+treatments (coin relief, blueprint strokes, PCB traces, cross-stitch,
+riso offset, stadium patch stitching, carved wood, and more). GitHub
+renders both inline.
 
 > These SVGs ship verbatim in each set's `.wp` bundle. What you see is
 > what lands on users' WP-Desktop docks and in the Shop Discover tile.
@@ -110,14 +114,14 @@ def _set_section(slug: str, m: dict) -> list[str]:
         f'<strong>{m["label"]}</strong>'
         f'<span class="set-meta">{m["franchise"]} · accent <code>{m["accent"]}</code> · v{m["version"]}</span>'
         f'</div>'
-    ), "", f'_{m["description"]}_', "", "**Before (v1.0.0)**", "",
+    ), "", f'_{m["description"]}_', "", "**Before (v1.1.0, same-glyph iOS pass)**", "",
            '<div class="icon-grid">']
     for role in ROLES:
         buf.append(
             f'  <img src="icon-redesign-assets/before/{slug}/{role}.svg" '
             f'alt="{slug} {role} before">'
         )
-    buf += ["</div>", "", "**After (v1.1.0, iOS style)**", "",
+    buf += ["</div>", "", "**After (v1.1.1, distinct set-specific style)**", "",
             '<div class="icon-grid">']
     for role in ROLES:
         buf.append(

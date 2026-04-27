@@ -5,7 +5,7 @@
   "accent": "#2fb37a",
   "preview": "dashboard.svg",
   "description": "PCB-green tiles with gold traces, solder pads, and a tiny red LED in the corner. Pairs with Circuit Garden.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.svg",
