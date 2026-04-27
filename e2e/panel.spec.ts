@@ -37,10 +37,18 @@ test.describe( 'ODD admin smoke', () => {
 			console.log( '[page:pageerror]', err.message, '@', page.url() );
 		} );
 		page.on( 'response', async ( response ) => {
-			if ( response.status() >= 400 ) {
-				const url = response.url();
+			const url = response.url();
+			const status = response.status();
+			const ctype = ( response.headers()[ 'content-type' ] ?? '' ).toLowerCase();
+			const looksLikeScript = /\.js(\?|$)/.test( url );
+			if ( status >= 400 ) {
 				// eslint-disable-next-line no-console
-				console.log( `[page:${ response.status() }]`, url );
+				console.log( `[page:${ status }]`, url, ctype );
+				return;
+			}
+			if ( looksLikeScript && ctype.includes( 'html' ) ) {
+				// eslint-disable-next-line no-console
+				console.log( `[page:200-html-for-js]`, url, ctype );
 			}
 		} );
 		page.on( 'requestfailed', ( request ) => {
