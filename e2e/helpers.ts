@@ -19,3 +19,48 @@ export async function goDesktopShell( page: Page ) {
 		return typeof w.__odd !== 'undefined';
 	}, { timeout: 60_000 } );
 }
+
+/**
+ * Opens the ODD Shop the same way the Playground mu-plugin does: after
+ * `wp.desktop.ready`, retry `api.openPanel()` so the native window
+ * actually mounts (a single fire-and-forget call often no-ops in CI).
+ */
+export async function openOddShop( page: Page ) {
+	await page.evaluate( () => {
+		function tryOpen() {
+			const api = ( window as unknown as { __odd?: { api?: { openPanel?: () => boolean } } } )
+				.__odd?.api;
+			if ( api && typeof api.openPanel === 'function' && api.openPanel() ) {
+				return true;
+			}
+			const d = ( window as unknown as { wp?: { desktop?: { registerWindow?: ( o: { id: string } ) => void } } } )
+				.wp?.desktop;
+			if ( d && typeof d.registerWindow === 'function' ) {
+				try {
+					d.registerWindow( { id: 'odd' } );
+					return true;
+				} catch ( e ) {
+					/* keep polling */
+				}
+			}
+			return false;
+		}
+		const desktop = ( window as unknown as { wp?: { desktop?: { ready?: ( fn: () => void ) => void } } } } )
+			.wp?.desktop;
+		const kick = () => {
+			let n = 0;
+			( function attempt() {
+				if ( tryOpen() || n++ > 50 ) {
+					return;
+				}
+				setTimeout( attempt, 250 );
+			} )();
+		};
+		if ( desktop && typeof desktop.ready === 'function' ) {
+			desktop.ready( kick );
+		} else {
+			setTimeout( kick, 500 );
+		}
+	} );
+	await expect( page.locator( '[data-odd-panel], .odd-panel' ).first() ).toBeVisible( { timeout: 45_000 } );
+}

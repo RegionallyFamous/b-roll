@@ -4,7 +4,7 @@
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { goDesktopShell } from './helpers';
+import { goDesktopShell, openOddShop } from './helpers';
 
 const ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.WP_ADMIN_PASS || 'password';
@@ -22,15 +22,8 @@ test.describe( 'ODD panel a11y', () => {
 		test.setTimeout( 90_000 );
 		await login( page );
 		await goDesktopShell( page );
-		await page.waitForFunction( () => typeof window.__odd !== 'undefined', null, { timeout: 30_000 } );
-		await page.evaluate( () => {
-			const api = window.__odd && window.__odd.api;
-			if ( api && typeof api.openPanel === 'function' ) {
-				api.openPanel();
-			}
-		} );
+		await openOddShop( page );
 		const panel = page.locator( '.odd-panel' ).first();
-		await expect( panel ).toBeVisible( { timeout: 20_000 } );
 
 		const results = await new AxeBuilder( { page } )
 			.include( '.odd-panel' )
