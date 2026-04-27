@@ -45,7 +45,7 @@ export async function openOddShop( page: Page ) {
 			}
 			return false;
 		}
-		const desktop = ( window as unknown as { wp?: { desktop?: { ready?: ( fn: () => void ) => void } } } } )
+		const desktop = ( window as unknown as { wp?: { desktop?: { ready?: ( fn: () => void ) => void } } } )
 			.wp?.desktop;
 		const kick = () => {
 			let n = 0;
