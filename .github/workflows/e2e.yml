@@ -105,6 +105,19 @@ jobs:
         run: |
           wp eval '$r = odd_starter_install_now(); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message() . "\n"); exit(1); } var_export($r);'
 
+      - name: Select the ODD canvas wallpaper for admin
+        working-directory: /tmp/wp
+        # Desktop Mode's built-in wallpaper picker defaults to the
+        # `dark` CSS gradient, which means ODD's canvas wallpaper
+        # mount() never runs — and since the shell only loads PIXI on
+        # demand via `needs: ['pixijs']` when a `type: canvas` wallpaper
+        # actually mounts, `window.PIXI` would stay undefined forever
+        # and Playwright would hang waiting for it. Force the admin's
+        # Desktop Mode wallpaper to `odd` so the shell loads PIXI and
+        # mounts the scene engine on first paint.
+        run: |
+          wp eval 'desktop_mode_save_os_settings( 1, array( "wallpaper" => "odd" ) );'
+
       - name: Start WP server
         working-directory: /tmp/wp
         run: |
