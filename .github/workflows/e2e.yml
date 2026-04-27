@@ -17,7 +17,9 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Provisioning + Playwright can exceed 15m when specs use 3–4m waits
+    # (PIXI, scenes, panel) × retries — keep headroom for cold runners.
+    timeout-minutes: 30
     services:
       mysql:
         image: mysql:8.0
