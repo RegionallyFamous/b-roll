@@ -96,8 +96,9 @@ artwork. Released **CC0-1.0**.
 
 ## Widgets — `_tools/catalog-sources/widgets/<slug>/`
 
-Two widgets: `sticky` (Sticky Note) and `eight-ball` (Magic 8-Ball).
-Both are original hand-authored JavaScript + CSS. Released under
+Three widgets: `sticky` (Sticky Note), `eight-ball` (Magic 8-Ball),
+and `spotify` (Spotify Embed). All are original hand-authored
+JavaScript + CSS. Released under
 **GPL-2.0-or-later** to match the plugin.
 
 ## Apps — `_tools/catalog-sources/apps/<slug>/`

@@ -1,6 +1,6 @@
 # ODD REST API
 
-> Status: v3.4.0. Covers the `/apps/*`, `/bundles/*`, and `/starter/*` surfaces.
+> Status: v3.5.0. Covers the `/apps/*`, `/bundles/*`, and `/starter/*` surfaces.
 > Mirrored to the
 > [Apps REST API](https://github.com/RegionallyFamous/odd/wiki/Apps-REST-API)
 > wiki page.

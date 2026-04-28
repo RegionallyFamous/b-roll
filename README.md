@@ -27,11 +27,11 @@ Out of the box:
 
 - **Pick a wallpaper you actually want to look at.** Twenty live scenes — abstract ribbon fields, procedural auroras, rainfall that splashes on your real windows and dock, a tropical greenhouse at golden hour, and the Oddling Desktop starter scene. Every frame drawn fresh. Time-of-day aware. Optionally reacts to your microphone if you let it.
 - **Re-skin the whole desktop.** Eighteen icon packs swap every dock and shortcut icon in one click — Arctic frost blues, Blueprint construction strokes, Claymation, Hologram, Cross-Stitch, Arcade Tokens, Oddlings, and more. The current catalog uses full-color iOS-style SVGs with distinct silhouettes per set, not one recolored glyph system.
-- **Keep little things within reach.** Drop a handwritten sticky note or a Magic 8-Ball onto the desktop and drag them wherever feels right.
+- **Keep little things within reach.** Drop a handwritten sticky note, a Magic 8-Ball, or Spotify's official embed player onto the desktop and drag them wherever feels right.
 
 ### Try it before you commit.
 
-Every wallpaper and icon pack previews instantly. Wander the Shop, let a scene run for a minute, then keep it or roll back with one click. The preview bar floats in the corner until you decide — it's the Mac App Store "try before you buy" flow, for your own desktop.
+Every wallpaper and icon pack previews instantly. Wander the Shop, search across every department at once, let a scene run for a minute, then keep it or roll back with one click. The preview bar floats in the corner until you decide — it's the Mac App Store "try before you buy" flow, for your own desktop.
 
 ---
 

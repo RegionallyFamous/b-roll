@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.4.0
+Stable tag: 3.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,7 +20,7 @@ ODD manages four content types:
 
 * **Canvas wallpapers** — generative PixiJS scenes painted on top of 1920×1080 WebP backdrops. Drifting paper cranes, procedural aurora curtains, rainfall that respects on-screen icons, a pocket dimension that looks like the inside of a lava lamp, Oddling Desktop's CRT terrarium, and more.
 * **Icon sets** — themed SVG packs that reskin the dock and desktop shortcuts. Blueprint construction strokes. Cross-stitch thread marks. Claymation forms. Brutalist stencil. Hologram foil. Filament neon. Folded paper. Arctic glass. Oddlings.
-* **Desktop widgets** — sandboxed tiles like Sticky Note and Magic 8-Ball that install as `.wp` bundles.
+* **Desktop widgets** — sandboxed tiles like Sticky Note, Magic 8-Ball, and Spotify Embed that install as `.wp` bundles.
 * **Apps** — sandboxed HTML/CSS/JS bundles that live in their own native window and can show on the desktop, taskbar, both, or neither.
 
 On first activation ODD installs a small **starter pack** defined in the remote catalog (Oddling Desktop + Oddlings) so the desktop has content out of the box. Everything else is one click away in the Shop.
@@ -76,8 +76,11 @@ See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.m
 
 == Upgrade Notice ==
 
+= 3.5.0 =
+Adds unified Shop search across all departments, subtle generated sound effects with a local off switch, a Spotify Embed widget in the catalog, and darker no-background icon-set previews that read better in the Shop.
+
 = 3.4.0 =
-Refreshes the first-party catalog with a broader personality pass across all 47 bundles (7 apps, 20 scenes, 18 icon sets, 2 widgets), including the Oddling Desktop + Oddlings starter pack. Also keeps themed Code icons matched between desktop and taskbar and removes extra icon chrome around ODD-owned launchers.
+Refreshes the first-party catalog with a broader personality pass across all 47 bundles (7 apps, 20 scenes, 18 icon sets, 2 widgets at release time), including the Oddling Desktop + Oddlings starter pack. Also keeps themed Code icons matched between desktop and taskbar and removes extra icon chrome around ODD-owned launchers.
 
 = 3.3.0 =
 Ships Oddling Desktop + Oddlings as the new catalog starter pack, updates the Shop's Settings/card layout, and keeps the plugin itself content-free. The default scene and icon set still install from the remote catalog; no wallpapers, icon packs, widgets, or apps are bundled inside the plugin zip.

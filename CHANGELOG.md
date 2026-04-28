@@ -16,6 +16,32 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.0"></a>
+## [3.5.0] — 2026-04-28
+
+### Added
+- **Unified Shop search.** The topbar search now searches across
+  wallpapers, icon sets, widgets, and apps at once, then groups matches
+  by department so users do not need to know where a bundle lives before
+  they search.
+- **Subtle ODD Shop sound effects.** Browsing, previewing, installing,
+  and success/error states now play tiny generated Web Audio cues after
+  user interaction. A new local **Shop sound effects** setting lets users
+  turn the cues off without affecting wallpaper audio-reactive scenes.
+- **Spotify Embed widget.** The first-party catalog now includes a
+  third widget that accepts Spotify playlist, album, track, artist, show,
+  and episode URLs and renders Spotify's official embedded player on the
+  desktop.
+
+### Changed
+- **Icon-set catalog previews now share a dark stage.** The Shop and
+  generated catalog tiles strip each set's preview background so icon
+  packs compare by glyph style and color instead of by mismatched tile
+  backplates.
+- **Preview button hover polish.** Preview CTAs now use a warmer staging
+  tint that matches the amber preview state instead of the generic gray
+  hover treatment.
+
 <a id="v3.4.0"></a>
 ## [3.4.0] — 2026-04-27
 
