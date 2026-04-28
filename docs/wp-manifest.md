@@ -56,8 +56,8 @@ A slug identifies a bundle across every type. You **cannot** install
 `my-thing` as an icon set if `my-thing` is already an app. The Shop
 rejects the second upload with `slug_exists`. The same rule applies
 when an author tries to reuse a slug that already exists in the
-user's installed set (e.g. `flux` once the starter pack has pulled it
-in) or in the remote catalog.
+user's installed set (e.g. `oddling-desktop` once the starter pack has
+pulled it in) or in the remote catalog.
 
 ---
 

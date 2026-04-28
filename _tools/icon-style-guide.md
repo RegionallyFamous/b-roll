@@ -102,9 +102,9 @@ constants stay the same, only the scaling changes.
 
 ## File budget
 
-- **≤ 10 240 bytes uncompressed** per SVG. The full catalog of 17
-  sets × 13 icons = 221 SVGs must fit comfortably inside the 35 MB
-  catalog-zip budget with room for the 19 scenes' painted backdrops.
+- **≤ 10 240 bytes uncompressed** per SVG. First-party catalog icons
+  should stay compact enough for the remote catalog budget, with room
+  for the current scene catalog's painted backdrops.
 - **No `<image>` tags.** All-vector. Keeps files compact and resolution-
   independent.
 - **No `<script>`.** SVGs ship over WP-Desktop's sanitized pipeline

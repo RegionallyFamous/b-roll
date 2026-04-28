@@ -114,7 +114,7 @@ Permission callbacks are `is_user_logged_in`. The panel also ships the same stat
 
 ### Starter pack
 
-`register_activation_hook` runs `odd_starter_ensure_installed( true )` inline. No cron — the activating admin is already on a privileged page, so the installer downloads + extracts the starter-pack bundles right there. The runner loads the remote catalog, resolves the slugs listed in the catalog's top-level `starter_pack` (currently `{ scenes: ['flux'], iconSets: ['filament'], widgets: [], apps: [] }`), calls `odd_catalog_install_entry()` for each, and writes initial per-user preferences. State lives in the `odd_starter_state` option. If activation fails (catalog down, loopback blocked), a safety-net hook on `init` runs the installer inline on the next privileged page load — gated by exponential backoff (0s → 30s → 2 min → 10 min → 1 h → 6 h) against `last_attempt` so it doesn't thrash a chronically-failing catalog. The running state acts as a lock (auto-expires after 240 s) so concurrent admin tabs don't double-install.
+`register_activation_hook` runs `odd_starter_ensure_installed( true )` inline. No cron — the activating admin is already on a privileged page, so the installer downloads + extracts the starter-pack bundles right there. The runner loads the remote catalog, resolves the slugs listed in the catalog's top-level `starter_pack` (currently `{ scenes: ['oddling-desktop'], iconSets: ['oddlings'], widgets: [], apps: [] }`), calls `odd_catalog_install_entry()` for each, and writes initial per-user preferences. State lives in the `odd_starter_state` option. If activation fails (catalog down, loopback blocked), a safety-net hook on `init` runs the installer inline on the next privileged page load — gated by exponential backoff (0s → 30s → 2 min → 10 min → 1 h → 6 h) against `last_attempt` so it doesn't thrash a chronically-failing catalog. The running state acts as a lock (auto-expires after 240 s) so concurrent admin tabs don't double-install.
 
 ### Live scene swaps
 
@@ -203,7 +203,7 @@ All new scenes / icon sets / widgets / apps land in `_tools/catalog-sources/` an
 Edit `_tools/catalog-sources/starter-pack.json`:
 
 ```json
-{ "scenes": ["flux"], "iconSets": ["filament"], "widgets": [], "apps": [] }
+{ "scenes": ["oddling-desktop"], "iconSets": ["oddlings"], "widgets": [], "apps": [] }
 ```
 
 Slugs here must resolve to a catalog entry — the validator refuses to ship a starter pack that references missing bundles.
@@ -260,7 +260,7 @@ All other script/style/REST calls compute their cache-busting version from `ODD_
 - **Catalog determinism.** `_tools/build-catalog.py` must produce byte-identical output on repeat runs. `ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog` enforces this in CI. Non-determinism usually comes from mtimes in zip entries or unsorted iteration.
 - **GitHub release asset uploads** sometimes 409 "Error creating policy" right after release creation. The release workflow retries once after a 3 s pause.
 - **Playground + CORS.** `raw.githubusercontent.com` and `github.com/*/releases/download/…` both serve with `access-control-allow-origin: *`. Other hosts usually don't — check with `curl -H "Origin: https://playground.wordpress.net" -I <url>` before pointing a blueprint at a new URL. `odd.regionallyfamous.com/catalog/v1/` (GitHub Pages) does serve `*`, which is why the remote catalog works from Playground.
-- **Starter-pack cron never fires.** If `wp-cron` is disabled on the host, the starter pack stays in `pending`. `admin_init` reschedules overdue crons, and `POST /odd/v1/starter/retry` forces an immediate run.
+- **Starter-pack retry backoff.** The starter install is inline and cron-free, but failed catalog fetches back off before retrying. Use `POST /odd/v1/starter/retry` or `wp eval 'odd_starter_ensure_installed( true );'` to force an immediate retry while debugging.
 - **`desktop-mode.wallpaper.visibility` payload shape** is `{ id, state: 'hidden' | 'visible' }` per the recipe example. The `onVis` handler silently no-ops on anything else.
 
 ## File layout

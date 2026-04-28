@@ -171,7 +171,7 @@ zip hello-odd.wp manifest.json index.html icon.svg
 ```
 
 Then open the ODD Shop (via the desktop shortcut or `/odd-panel`),
-click **Upload** in the topbar, and pick `hello-odd.wp` — or drop it
+open **Install → Upload**, and pick `hello-odd.wp` — or drop it
 anywhere on the Shop. A **Hello ODD** icon appears on the desktop.
 Double-click to open.
 
@@ -482,13 +482,14 @@ subscription to cover apps + scenes + icon sets + widgets.
 
 ### The ODD Shop (recommended)
 
-Open the ODD Shop, click **Upload** in the topbar (or drop the `.wp`
+Open the ODD Shop, use **Install → Upload** (or drop the `.wp`
 anywhere on the Shop), and ODD handles the rest:
 
 1. The Shop extracts + validates the archive.
 2. On success, it jumps to the Apps department and flashes your new
    app's tile so you can see where it landed.
-3. The dock icon + desktop shortcut appear on the next paint.
+3. The taskbar pill and/or desktop shortcut appear on the next paint,
+   based on the app's `surfaces` setting.
 
 To remove an app, click the × on its card.
 

@@ -1,6 +1,6 @@
 # ODD REST API
 
-> Status: v1.9+. Covers the `/apps/*` and `/bundles/*` surfaces.
+> Status: v3.4.0. Covers the `/apps/*`, `/bundles/*`, and `/starter/*` surfaces.
 > Mirrored to the
 > [Apps REST API](https://github.com/RegionallyFamous/odd/wiki/Apps-REST-API)
 > wiki page.
@@ -444,8 +444,8 @@ activation UI to show "installing starter pack…" / "retrying in Xs".
     "next_attempt_at": 0,
     "last_error":      null,
     "installed":       {
-        "scenes":    [ "flux" ],
-        "iconSets":  [ "filament" ],
+        "scenes":    [ "oddling-desktop" ],
+        "iconSets":  [ "oddlings" ],
         "widgets":   [],
         "apps":      []
     }

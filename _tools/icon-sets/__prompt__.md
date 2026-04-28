@@ -40,7 +40,7 @@ bottom, so aim for them first and be creative inside the lines.
   thinner than 6 at the 1024 scale disappear — use chunky shapes and
   thick strokes.
 
-## 3. The 13 WP-Desktop metaphors (stable across all 17 sets)
+## 3. The 13 WP-Desktop metaphors (stable across all catalog sets)
 
 Every set ships exactly these keys. The metaphor silhouette stays
 constant across sets so users recognize each role after a set swap.
