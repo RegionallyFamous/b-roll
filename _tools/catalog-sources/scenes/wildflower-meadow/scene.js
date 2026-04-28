@@ -11,59 +11,6 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
-	// Signature moment: perf- and reduced-motion-aware overlay that
-	// lands in the negative-space slot the v2 wallpaper prompt reserves.
-	function signatureTick( state, env ) {
-		if ( env.perfTier === 'low' || env.reducedMotion ) return;
-		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
-		var s = state.__sig;
-		if ( ! s || ! s.layer || ! s.layer.parent ) {
-			s = state.__sig = {
-				layer: new PIXI.Graphics(),
-				timer: 40 + Math.random() * 50,
-				life: 0,
-			};
-			s.bfly = { x: 0, y: 0, phase: 0, target: 0, resting: 0 };
-			app.stage.addChild( s.layer );
-		}
-		if ( s.life <= 0 ) {
-			s.timer -= dt / 60;
-			if ( s.timer > 0 ) { s.layer.clear(); return; }
-			s.life = 1;
-			s.timer = 40 + Math.random() * 50;
-			s.bfly.x = app.renderer.width * 0.92;
-			            s.bfly.y = app.renderer.height * 0.18;
-			            s.bfly.target = app.renderer.width * ( 0.58 + Math.random() * 0.14 );
-			            s.bfly.resty  = app.renderer.height * ( 0.48 + Math.random() * 0.08 );
-			            s.bfly.phase = 0;
-			            s.bfly.resting = 0;
-		}
-		s.life = Math.max( 0, s.life - dt * 0.0008 );
-
-		            s.bfly.phase += dt * 0.4;
-		            var tx = s.bfly.target, ty = s.bfly.resty;
-		            if ( s.bfly.resting < 2.4 ) {
-		                s.bfly.x += ( tx - s.bfly.x ) * 0.02 * dt;
-		                s.bfly.y += ( ty - s.bfly.y ) * 0.02 * dt;
-		                if ( Math.abs( s.bfly.x - tx ) < 4 && Math.abs( s.bfly.y - ty ) < 4 ) {
-		                    s.bfly.resting += dt / 60;
-		                }
-		            } else {
-		                s.bfly.x += dt * 1.2;
-		                s.bfly.y -= dt * 0.6;
-		            }
-		            var flap = Math.sin( s.bfly.phase ) * 0.6 + 0.4;
-		            s.layer.clear();
-		            s.layer
-		                .ellipse( s.bfly.x - 8, s.bfly.y, 12 * flap, 16 )
-		                .fill( { color: 0xff7ab0, alpha: s.life } )
-		                .ellipse( s.bfly.x + 8, s.bfly.y, 12 * flap, 16 )
-		                .fill( { color: 0xff7ab0, alpha: s.life } )
-		                .rect( s.bfly.x - 1, s.bfly.y - 8, 2, 16 )
-		                .fill( { color: 0x1a0a0a, alpha: s.life } );
-		            if ( s.bfly.x > app.renderer.width + 40 ) s.life = 0;
-	}
-
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -224,8 +171,6 @@
 				fg.rect( xx - 0.6, yy - bf.size * 0.5, 1.2, bf.size ).fill( { color: 0x1e0f18, alpha: 0.95 } );
 			}
 
-		
-			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {

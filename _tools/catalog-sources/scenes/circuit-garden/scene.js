@@ -6,51 +6,6 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
-	// Signature moment: perf- and reduced-motion-aware overlay that
-	// lands in the negative-space slot the v2 wallpaper prompt reserves.
-	function signatureTick( state, env ) {
-		if ( env.perfTier === 'low' || env.reducedMotion ) return;
-		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
-		var s = state.__sig;
-		if ( ! s || ! s.layer || ! s.layer.parent ) {
-			s = state.__sig = {
-				layer: new PIXI.Graphics(),
-				timer: 26 + Math.random() * 44,
-				life: 0,
-			};
-			s.lady = { x: 0, step: 0 };
-			app.stage.addChild( s.layer );
-		}
-		if ( s.life <= 0 ) {
-			s.timer -= dt / 60;
-			if ( s.timer > 0 ) { s.layer.clear(); return; }
-			s.life = 1;
-			s.timer = 26 + Math.random() * 44;
-			s.lady.x = -20;
-			            s.lady.y = app.renderer.height * ( 0.72 + Math.random() * 0.06 );
-			            s.lady.step = 0;
-		}
-		s.life = Math.max( 0, s.life - dt * 0.0006 );
-
-		            s.lady.x += dt * 0.9;
-		            s.lady.step += dt * 0.1;
-		            var cx = s.lady.x, cy = s.lady.y + Math.sin( s.lady.step ) * 1.2;
-		            s.layer.clear();
-		            s.layer.ellipse( cx, cy, 10, 8 )
-		                .fill( { color: 0xd22b2b, alpha: s.life } )
-		                .rect( cx - 0.6, cy - 7.5, 1.2, 15 )
-		                .fill( { color: 0x16130a, alpha: s.life } )
-		                .circle( cx - 4, cy - 1, 1.5 )
-		                .fill( { color: 0x16130a, alpha: s.life } )
-		                .circle( cx + 4, cy + 1, 1.5 )
-		                .fill( { color: 0x16130a, alpha: s.life } )
-		                .circle( cx + 2, cy - 2, 1.2 )
-		                .fill( { color: 0x16130a, alpha: s.life } )
-		                .ellipse( cx - 10, cy - 6, 4, 3 )
-		                .fill( { color: 0x16130a, alpha: s.life * 0.9 } );
-		            if ( s.lady.x > app.renderer.width * 0.8 ) s.life = 0;
-	}
-
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -143,8 +98,6 @@
 				sg.circle( x, y, p.r ).fill( { color: p.color, alpha: Math.max( 0, a ) } );
 			}
 
-		
-			signatureTick( state, env );
 		},
 		onRipple: function ( opts, state ) {
 			state.ripple = Math.min( 1, state.ripple + ( ( opts && opts.intensity ) || 0.45 ) );

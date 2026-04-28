@@ -11,51 +11,6 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
-	// Signature moment: perf- and reduced-motion-aware overlay that
-	// lands in the negative-space slot the v2 wallpaper prompt reserves.
-	function signatureTick( state, env ) {
-		if ( env.perfTier === 'low' || env.reducedMotion ) return;
-		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
-		var s = state.__sig;
-		if ( ! s || ! s.layer || ! s.layer.parent ) {
-			s = state.__sig = {
-				layer: new PIXI.Graphics(),
-				timer: 20 + Math.random() * 35,
-				life: 0,
-			};
-			s.confetti = [];
-			app.stage.addChild( s.layer );
-		}
-		if ( s.life <= 0 ) {
-			s.timer -= dt / 60;
-			if ( s.timer > 0 ) { s.layer.clear(); return; }
-			s.life = 1;
-			s.timer = 20 + Math.random() * 35;
-			s.confetti = [];
-			            for ( var ci = 0; ci < 26; ci++ ) {
-			                s.confetti.push( {
-			                    x: app.renderer.width * 0.25 + Math.random() * app.renderer.width * 0.5,
-			                    y: app.renderer.height * ( 0.08 + Math.random() * 0.10 ),
-			                    vx: ( Math.random() - 0.5 ) * 1.2,
-			                    vy: 0.6 + Math.random() * 1.6,
-			                    r: 3 + Math.random() * 3,
-			                    color: [ 0xff5b9b, 0x21d6a8, 0xffb037, 0x5b8bff, 0xff3d67 ][ ci % 5 ]
-			                } );
-			            }
-		}
-		s.life = Math.max( 0, s.life - dt * 0.002 );
-
-		            s.layer.clear();
-		            for ( var ci = 0; ci < s.confetti.length; ci++ ) {
-		                var p = s.confetti[ ci ];
-		                p.x  += p.vx * dt;
-		                p.y  += p.vy * dt;
-		                p.vy += 0.01 * dt;
-		                s.layer.rect( p.x, p.y, p.r, p.r * 1.3 )
-		                    .fill( { color: p.color, alpha: s.life * 0.9 } );
-		            }
-	}
-
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -237,8 +192,6 @@
 				pg.rect( p.x + sway - p.size * 0.5, p.y - p.size * 0.3, p.size, p.size * 0.6 )
 					.fill( { color: p.color, alpha: p.alpha * ( 0.85 + high * 0.2 ) } );
 			}
-		
-			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {

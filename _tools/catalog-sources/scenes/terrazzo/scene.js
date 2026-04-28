@@ -12,47 +12,6 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
-	// Signature moment: perf- and reduced-motion-aware overlay that
-	// lands in the negative-space slot the v2 wallpaper prompt reserves.
-	function signatureTick( state, env ) {
-		if ( env.perfTier === 'low' || env.reducedMotion ) return;
-		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
-		var s = state.__sig;
-		if ( ! s || ! s.layer || ! s.layer.parent ) {
-			s = state.__sig = {
-				layer: new PIXI.Graphics(),
-				timer: 12 + Math.random() * 16,
-				life: 0,
-			};
-			s.rot = 0;
-			app.stage.addChild( s.layer );
-		}
-		if ( s.life <= 0 ) {
-			s.timer -= dt / 60;
-			if ( s.timer > 0 ) { s.layer.clear(); return; }
-			s.life = 1;
-			s.timer = 12 + Math.random() * 16;
-			s.rot = ( s.rot || 0 );
-		}
-		s.life = Math.max( 0, s.life - dt * 0.0015 );
-
-		            s.rot = ( s.rot || 0 ) + dt * 0.03;
-		            var cx = app.renderer.width  * 0.72;
-		            var cy = app.renderer.height * 0.5;
-		            s.layer.clear();
-		            var pts = [ [ -24, -16 ], [ 18, -22 ], [ 28, 6 ], [ 8, 22 ], [ -22, 12 ] ];
-		            var first = true;
-		            for ( var i = 0; i < pts.length; i++ ) {
-		                var c = Math.cos( s.rot ), si = Math.sin( s.rot );
-		                var rx = pts[ i ][ 0 ] * c - pts[ i ][ 1 ] * si;
-		                var ry = pts[ i ][ 0 ] * si + pts[ i ][ 1 ] * c;
-		                if ( first ) { s.layer.moveTo( cx + rx, cy + ry ); first = false; }
-		                else s.layer.lineTo( cx + rx, cy + ry );
-		            }
-		            s.layer.closePath().fill( { color: 0xa1e07a, alpha: s.life * 0.9 } );
-		            s.layer.closePath().stroke( { color: 0xffffff, width: 2, alpha: s.life * 0.65 } );
-	}
-
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -181,8 +140,6 @@
 				var a2 = Math.pow( Math.abs( Math.sin( s2.phase ) ), 4 ) * 0.4 * ( 0.7 + high * 0.5 );
 				sp.circle( s2.x, s2.y, s2.r ).fill( { color: 0xffffff, alpha: a2 } );
 			}
-		
-			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {

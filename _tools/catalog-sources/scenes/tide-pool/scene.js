@@ -13,56 +13,6 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
-	// Signature moment: perf- and reduced-motion-aware overlay that
-	// lands in the negative-space slot the v2 wallpaper prompt reserves.
-	function signatureTick( state, env ) {
-		if ( env.perfTier === 'low' || env.reducedMotion ) return;
-		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
-		var s = state.__sig;
-		if ( ! s || ! s.layer || ! s.layer.parent ) {
-			s = state.__sig = {
-				layer: new PIXI.Graphics(),
-				timer: 30 + Math.random() * 45,
-				life: 0,
-			};
-			s.crab = { x: 0, y: 0, bob: 0 };
-			app.stage.addChild( s.layer );
-		}
-		if ( s.life <= 0 ) {
-			s.timer -= dt / 60;
-			if ( s.timer > 0 ) { s.layer.clear(); return; }
-			s.life = 1;
-			s.timer = 30 + Math.random() * 45;
-			s.crab.x = -40;
-			            s.crab.y = app.renderer.height * ( 0.88 + Math.random() * 0.04 );
-			            s.crab.bob = 0;
-		}
-		s.life = Math.max( 0, s.life - dt * 0.0006 );
-
-		            s.crab.x += dt * 1.4;
-		            s.crab.bob += dt * 0.3;
-		            var cx = s.crab.x, cy = s.crab.y + Math.sin( s.crab.bob ) * 1.5;
-		            s.layer.clear();
-		            s.layer.ellipse( cx, cy, 18, 12 )
-		                .fill( { color: 0xb75a1a, alpha: s.life * 0.92 } )
-		                .circle( cx - 14, cy - 8, 4 )
-		                .fill( { color: 0xb75a1a, alpha: s.life } )
-		                .circle( cx + 14, cy - 8, 4 )
-		                .fill( { color: 0xb75a1a, alpha: s.life } );
-		            for ( var lg = 0; lg < 3; lg++ ) {
-		                var off = ( lg - 1 ) * 6;
-		                var phase = Math.sin( s.crab.bob * 2 + lg ) * 4;
-		                s.layer
-		                    .moveTo( cx - 12 + off, cy + 6 )
-		                    .lineTo( cx - 18 + off + phase, cy + 14 )
-		                    .stroke( { color: 0x6a2f0a, width: 2, alpha: s.life } )
-		                    .moveTo( cx + 12 - off, cy + 6 )
-		                    .lineTo( cx + 18 - off + phase, cy + 14 )
-		                    .stroke( { color: 0x6a2f0a, width: 2, alpha: s.life } );
-		            }
-		            if ( s.crab.x > app.renderer.width + 50 ) s.life = 0;
-	}
-
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -213,8 +163,6 @@
 				sg.circle( p.x, p.y, p.r ).fill( { color: 0xffffff, alpha: a } );
 			}
 
-		
-			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {

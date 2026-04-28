@@ -26,42 +26,6 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
-	// Signature moment: perf- and reduced-motion-aware overlay that
-	// lands in the negative-space slot the v2 wallpaper prompt reserves.
-	function signatureTick( state, env ) {
-		if ( env.perfTier === 'low' || env.reducedMotion ) return;
-		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
-		var s = state.__sig;
-		if ( ! s || ! s.layer || ! s.layer.parent ) {
-			s = state.__sig = {
-				layer: new PIXI.Graphics(),
-				timer: 40 + Math.random() * 60,
-				life: 0,
-			};
-			s.drop = { x: 0, y: 0, r: 0 };
-			app.stage.addChild( s.layer );
-		}
-		if ( s.life <= 0 ) {
-			s.timer -= dt / 60;
-			if ( s.timer > 0 ) { s.layer.clear(); return; }
-			s.life = 1;
-			s.timer = 40 + Math.random() * 60;
-			s.drop.x = app.renderer.width  * 0.5;
-			            s.drop.y = app.renderer.height * 0.5;
-			            s.drop.r = 4;
-			            if ( state.sparkBoost !== undefined ) state.sparkBoost = 1;
-		}
-		s.life = Math.max( 0, s.life - dt * 0.003 );
-
-		            s.drop.r += dt * 1.6;
-		            s.layer.clear();
-		            s.layer.circle( s.drop.x, s.drop.y, s.drop.r )
-		                .stroke( { color: 0xffe7a6, width: 3, alpha: s.life * 0.55 } );
-		            s.layer.circle( s.drop.x, s.drop.y, s.drop.r * 0.6 )
-		                .stroke( { color: 0xff9d5c, width: 2, alpha: s.life * 0.35 } );
-		            if ( s.drop.r > app.renderer.width * 0.6 ) s.life = 0;
-	}
-
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -291,8 +255,6 @@
 			}
 
 			void perfHigh;
-		
-			signatureTick( state, env );
 		},
 
 		onAudio: function ( state, env ) {

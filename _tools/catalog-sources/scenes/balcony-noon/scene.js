@@ -12,52 +12,6 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
-	// Signature moment: perf- and reduced-motion-aware overlay that
-	// lands in the negative-space slot the v2 wallpaper prompt reserves.
-	function signatureTick( state, env ) {
-		if ( env.perfTier === 'low' || env.reducedMotion ) return;
-		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
-		var s = state.__sig;
-		if ( ! s || ! s.layer || ! s.layer.parent ) {
-			s = state.__sig = {
-				layer: new PIXI.Graphics(),
-				timer: 42 + Math.random() * 68,
-				life: 0,
-			};
-			s.cat = { x: -220, phase: 0 };
-			app.stage.addChild( s.layer );
-		}
-		if ( s.life <= 0 ) {
-			s.timer -= dt / 60;
-			if ( s.timer > 0 ) { s.layer.clear(); return; }
-			s.life = 1;
-			s.timer = 42 + Math.random() * 68;
-			s.cat.x = -200;
-		}
-		s.life = Math.max( 0, s.life - dt * 0.0015 );
-
-		            s.cat.x += dt * 0.6;
-		            var w = app.renderer.width, hh = app.renderer.height;
-		            var baseX = app.renderer.width * 0.18 + s.cat.x * 0.3;
-		            var baseY = app.renderer.height * 0.52;
-		            s.layer.clear();
-		            var body = s.life * 0.72;
-		            s.layer
-		                .ellipse( baseX, baseY, 58, 18 )
-		                .fill( { color: 0x1a1510, alpha: body } )
-		                .ellipse( baseX + 48, baseY - 22, 22, 22 )
-		                .fill( { color: 0x1a1510, alpha: body } )
-		                .moveTo( baseX + 56, baseY - 40 ).lineTo( baseX + 62, baseY - 52 ).lineTo( baseX + 68, baseY - 38 )
-		                .fill( { color: 0x1a1510, alpha: body } )
-		                .moveTo( baseX + 40, baseY - 40 ).lineTo( baseX + 34, baseY - 52 ).lineTo( baseX + 28, baseY - 38 )
-		                .fill( { color: 0x1a1510, alpha: body } )
-		                .circle( baseX + 54, baseY - 26, 2 )
-		                .fill( { color: 0x8ef05a, alpha: body } )
-		                .circle( baseX + 42, baseY - 26, 2 )
-		                .fill( { color: 0x8ef05a, alpha: body } );
-		            if ( s.cat.x > w * 0.55 ) s.life = 0;
-	}
-
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -188,8 +142,6 @@
 					.fill( { color: 0xfff3c0, alpha: p.alpha * ( 0.8 + high * 0.3 ) } );
 			}
 
-		
-			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {

@@ -16,44 +16,6 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
-	// Signature moment: perf- and reduced-motion-aware overlay that
-	// lands in the negative-space slot the v2 wallpaper prompt reserves.
-	function signatureTick( state, env ) {
-		if ( env.perfTier === 'low' || env.reducedMotion ) return;
-		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
-		var s = state.__sig;
-		if ( ! s || ! s.layer || ! s.layer.parent ) {
-			s = state.__sig = {
-				layer: new PIXI.Graphics(),
-				timer: 42 + Math.random() * 28,
-				life: 0,
-			};
-			app.stage.addChild( s.layer );
-		}
-		if ( s.life <= 0 ) {
-			s.timer -= dt / 60;
-			if ( s.timer > 0 ) { s.layer.clear(); return; }
-			s.life = 1;
-			s.timer = 42 + Math.random() * 28;
-			s.phase = 0;
-		}
-		s.life = Math.max( 0, s.life - dt * 0.004 );
-
-		            s.phase = ( s.phase || 0 ) + dt * 0.08;
-		            var cx = app.renderer.width  * 0.78;
-		            var cy = app.renderer.height * 0.32;
-		            var pulse = Math.sin( s.phase ) * 0.5 + 0.5;
-		            s.layer.clear();
-		            s.layer.circle( cx, cy, 48 )
-		                .fill( { color: 0x9fd8ff, alpha: s.life * 0.45 } );
-		            s.layer.circle( cx, cy, 30 + pulse * 6 )
-		                .stroke( { color: 0xfff8c4, width: 3, alpha: s.life * 0.85 } );
-		            s.layer.circle( cx, cy, 10 )
-		                .fill( { color: 0x140420, alpha: s.life } );
-		            s.layer.circle( cx - 6, cy - 6, 3 )
-		                .fill( { color: 0xffffff, alpha: s.life * 0.9 } );
-	}
-
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -226,8 +188,6 @@
 				alpha: 0.04 + Math.sin( state.time * 0.006 ) * 0.012 + state.glitch * 0.04,
 			} );
 
-		
-			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {
