@@ -16,6 +16,14 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.2.5"></a>
+## [3.2.5] — 2026-04-27
+
+### Fixed
+- **The ODD Shop taskbar launcher now defaults on.** Users with no saved
+  `shopTaskbar` preference get the taskbar item automatically, while an
+  explicit off value is still respected.
+
 <a id="v3.2.4"></a>
 ## [3.2.4] — 2026-04-27
 

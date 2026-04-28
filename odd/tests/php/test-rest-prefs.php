@@ -57,7 +57,7 @@ class Test_REST_Prefs extends ODD_REST_Test_Case {
 		$this->assertArrayHasKey( 'enabled', $data['screensaver'] );
 		$this->assertArrayHasKey( 'minutes', $data['screensaver'] );
 		$this->assertArrayHasKey( 'scene', $data['screensaver'] );
-		$this->assertIsBool( $data['shopTaskbar'] );
+		$this->assertTrue( $data['shopTaskbar'] );
 	}
 
 	public function test_post_accepts_valid_wallpaper() {

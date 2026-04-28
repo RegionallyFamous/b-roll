@@ -134,6 +134,9 @@ function odd_shop_taskbar_enabled( $uid = 0 ) {
 	if ( '' === $value ) {
 		$value = get_user_meta( $uid, 'odd_shop_dock', true );
 	}
+	if ( '' === $value ) {
+		return true;
+	}
 	return (bool) $value;
 }
 
