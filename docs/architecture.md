@@ -96,9 +96,9 @@ They survive plugin reinstalls.
 
 ## Single-window contract
 
-The floating gear (`src/gear.js`), the registered desktop icon
-(`includes/native-window.php`), and `window.__odd.api.openPanel()`
-all call `wp.desktop.registerWindow({ id: 'odd', baseId: 'odd', ... })`.
+The registered desktop icon (`includes/native-window.php`), the
+`/odd-panel` command, and `window.__odd.api.openPanel()` all call
+`wp.desktop.registerWindow({ id: 'odd', baseId: 'odd', ... })`.
 WP Desktop Mode's window manager reuses any window with a matching
 `baseId`, so there's always at most one Shop window on screen.
 

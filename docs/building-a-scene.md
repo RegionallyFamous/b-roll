@@ -25,7 +25,8 @@ my-scene.wp
 
 Every file except the manifest is addressable from the manifest — you
 can rename them and point `entry` / `preview` / `wallpaper` at the new
-paths. The tree above is the convention ODD's built-ins follow.
+paths. The tree above is the convention ODD's first-party catalog
+scenes follow.
 
 ## Manifest
 

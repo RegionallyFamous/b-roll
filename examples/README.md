@@ -4,7 +4,7 @@ Four tiny, publishable `.wp` bundles — one per supported type — kept in-tree
 
 1. The bundle dispatcher accepts an archive it didn't author.
 2. The JSON Schema at `docs/schemas/manifest.schema.json` matches the PHP validators in practice, not just in theory.
-3. A contributor can learn what a valid bundle looks like by reading these files, not by reverse-engineering the built-in content.
+3. A contributor can learn what a valid bundle looks like by reading these files, not by reverse-engineering first-party catalog bundles.
 
 If you're building an ODD bundle, copy the closest example to your working directory, rename the slug, and iterate. `odd/bin/validate-manifest path/to/manifest.json` will tell you when the shape drifts away from the schema.
 
