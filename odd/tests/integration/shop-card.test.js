@@ -119,6 +119,34 @@ describe( 'ODD Shop · unified card state machine', () => {
 		delete globalThis.fetch;
 	} );
 
+	it( 'installed widget layers catalog icon_url into card art (no generic glyph)', async () => {
+		seed( {
+			installedWidgets: [ { id: 'odd/eight-ball', slug: 'eight-ball', label: 'Magic 8-Ball' } ],
+			bundleCatalog: {
+				scene:   [],
+				iconSet: [],
+				widget: [
+					{
+						slug:       'eight-ball',
+						label:      'Magic 8-Ball',
+						franchise:  'ODD Originals',
+						icon_url:   'https://example.com/catalog/v1/icons/widget-eight-ball.svg',
+						installed:  false,
+					},
+				],
+			},
+		} );
+		loadPanel();
+		const { host } = mount();
+		goToDepartment( host, 'Widgets' );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-widget-id="odd/eight-ball"]' );
+		expect( card ).toBeTruthy();
+		const thumb = card.querySelector( '.odd-shop__card-art--widget img.odd-shop__card-art-fill' );
+		expect( thumb ).toBeTruthy();
+		expect( thumb.getAttribute( 'src' ) ).toBe( 'https://example.com/catalog/v1/icons/widget-eight-ball.svg' );
+	} );
+
 	it( 'not-installed scene renders an Install button', () => {
 		seed( {
 			bundleCatalog: {

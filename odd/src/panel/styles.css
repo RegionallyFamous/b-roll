@@ -462,15 +462,15 @@
 .odd-panel.odd-shop .odd-apps-upload{border-radius:var(--odd-shop-radius);border-color:var(--odd-shop-border-strong);background:#fff}
 .odd-panel.odd-shop .odd-apps-upload.is-dragover{border-color:var(--odd-shop-accent);background:#eef5ff}
 
-/* Widgets department — gradient thumbnails with a giant
-* emoji glyph instead of painted artwork (widgets are
-* code-only, no ship-side textures). Hero reuses the same
-* trick: a translucent oversized glyph with a gentle bob
-* animation in place of a WebP. The animation is purely
-* decorative so it drops out under reduced-motion. */
+/* Widgets department — masthead prefers the catalog thumbnail
+   (icon_url on each registry row, surfaced as iconUrl) merged onto
+   installed widget rows. Fallback: two-letter initials. Hero uses the
+   same icon or initials with a gentle bob; reduced-motion drops it. */
 .odd-panel.odd-shop .odd-shop__hero--widgets{background:linear-gradient(135deg,#1f1f2d 0%,#3b2fa0 100%)}
 .odd-panel.odd-shop .odd-shop__hero--widgets .odd-shop__hero-scrim{background:linear-gradient(98deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.58) 36%,rgba(0,0,0,.3) 58%,rgba(0,0,0,0) 82%),linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.32) 100%)}
 .odd-panel.odd-shop .odd-shop__hero-glyph{position:absolute;top:50%;right:6%;transform:translateY(-50%);font-size:clamp(130px,26vw,240px);line-height:1;opacity:.58;filter:drop-shadow(0 16px 34px rgba(0,0,0,.38));pointer-events:none;z-index:0;animation:odd-shop-bob 7s ease-in-out infinite;will-change:transform}
+.odd-panel.odd-shop .odd-shop__hero-glyph .odd-shop__hero-icon-img{display:block;width:clamp(112px,20vw,200px);height:clamp(112px,20vw,200px);object-fit:contain;opacity:.88}
+.odd-panel.odd-shop .odd-shop__hero-glyph--initials{font-size:clamp(72px,14vw,150px);font-weight:800;letter-spacing:-.035em;line-height:.95;opacity:.52}
 @keyframes odd-shop-bob{0%,100%{transform:translateY(-50%)}50%{transform:translateY(calc(-50% - 10px))}}
 @media (prefers-reduced-motion: reduce){.odd-panel.odd-shop .odd-shop__hero-glyph{animation:none}}
 

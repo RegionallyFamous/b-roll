@@ -3578,37 +3578,6 @@
 		 * while the Shop is open.
 		 */
 
-		function widgetCatalog() {
-			// v3.0+: ODD ships no stock widgets. Every widget — including
-			// Sticky Note and Magic 8-Ball — is an installable bundle
-			// from the remote catalog, so this list is seeded entirely
-			// from `installedWidgets`. The Discover shelf below this
-			// function renders remote widget entries users can add.
-			var base   = [];
-			var extras = Array.isArray( state.cfg.installedWidgets ) ? state.cfg.installedWidgets : [];
-			// Merge installed widgets as their own cards. They don't
-			// ship editorial palette metadata so the Shop synthesises
-			// a neutral gradient + glyph fallback per card.
-			for ( var i = 0; i < extras.length; i++ ) {
-				var w = extras[ i ] || {};
-				if ( ! w.id ) continue;
-				base.push( {
-					id:          w.id,
-					label:       w.label || w.slug || w.id,
-					glyph:       '🧩',
-					accent:      '#6d6d8a',
-					gradient:    'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)',
-					tagline:     w.description || 'Installed widget.',
-					description: w.description || 'A community-installed widget. Remove it by uninstalling the bundle from wp-content/odd-widgets/.',
-					installed:   true,
-					slug:        w.slug,
-				} );
-			}
-			return base;
-		}
-
-		
-
 		function enabledWidgetIds() {
 			try {
 				if ( window.wp && window.wp.desktop && window.wp.desktop.widgetLayer ) {
@@ -3709,7 +3678,8 @@
 					{
 						id:          'odd/' + hero.slug,
 						label:       hero.name,
-						glyph:       hero.raw && hero.raw.glyph ? hero.raw.glyph : '🧩',
+						iconUrl:     hero.iconUrl || '',
+						glyph:       hero.raw && hero.raw.glyph ? hero.raw.glyph : '',
 						gradient:    hero.raw && hero.raw.gradient
 							? hero.raw.gradient
 							: 'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)',
@@ -3733,7 +3703,7 @@
 					state.query
 						? 'Nothing matched "' + state.query + '".'
 						: 'Browse the catalog above, or drop a .wp widget bundle to add one.',
-					'🧩'
+					'🧷'
 				) );
 				return wrap;
 			}
@@ -3774,7 +3744,19 @@
 				class: 'odd-shop__hero-glyph',
 				'aria-hidden': 'true',
 			} );
-			art.textContent = widget.glyph;
+			if ( widget.iconUrl ) {
+				art.appendChild( el( 'img', {
+					class:   'odd-shop__hero-icon-img',
+					src:     widget.iconUrl,
+					alt:     '',
+					loading: 'lazy',
+				} ) );
+			} else if ( widget.glyph ) {
+				art.textContent = widget.glyph;
+			} else {
+				art.classList.add( 'odd-shop__hero-glyph--initials' );
+				art.textContent = ( widget.label || '' ).slice( 0, 2 ).toUpperCase();
+			}
 			hero.appendChild( art );
 			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
 
@@ -3808,26 +3790,6 @@
 			inner.appendChild( actions );
 			hero.appendChild( inner );
 			return hero;
-		}
-
-		// Widget card adapter — routes through the shared renderer
-		// so the Widgets department tiles match Wallpapers / Icons /
-		// Apps visually. `widget` here is the catalog shape returned
-		// from `widgetCatalog()` (id: 'odd/<slug>', glyph, gradient,
-		// etc.); normaliseShopRow pulls a matching row out of it.
-		function renderWidgetCard( widget, isEnabled ) {
-			var row = normaliseShopRow( widget, 'widget' );
-			if ( ! row ) return el( 'div' );
-			row.installed = true;
-			var wrap = renderShopCard( row );
-			if ( wrap && isEnabled ) {
-				wrap.classList.add( 'is-active' );
-				var card = wrap.querySelector( '.odd-shop__card' );
-				if ( card ) card.classList.add( 'is-active' );
-				var btn = wrap.querySelector( '.odd-shop__card-btn' );
-				if ( btn ) { btn.textContent = 'Active'; btn.disabled = true; btn.classList.add( 'is-disabled' ); }
-			}
-			return wrap;
 		}
 
 		/* --- About section ---------------------------------------
@@ -4212,9 +4174,53 @@
 
 		// Merge installed + catalog rows into one list keyed by slug.
 		// When both lists name the same slug, the installed row wins
-		// (it has richer metadata — URLs, franchise, etc.) but any
-		// catalog-only fields (description, featured) get layered in.
+		// (enabled state, version from disk, REST snapshot) — but catalog
+		// carries the storefront artwork URLs (`icon_url`, scene previews,
+		// icon-set quartets). Those MUST layer in when the thin installed
+		// row lacks them — otherwise widgets lose their thumbnails, apps lose
+		// catalogue icons, and icon-set quartet data never appears.
 		// Sort: active → installed alphabetical → not-installed alphabetical.
+		function mergeCatalogOntoInstalled( ins, cat ) {
+			if ( ! ins || ! cat ) return;
+			function isEmptyIcons( obj ) {
+				return ! obj || typeof obj !== 'object' || ! Object.keys( obj ).length;
+			}
+			function isEmptyTags( arr ) {
+				return ! arr || ! Array.isArray( arr ) || ! arr.length;
+			}
+			function takeIfEmpty( prop ) {
+				var cv = cat[ prop ];
+				if ( cv === undefined || cv === null || cv === '' ) return;
+				if ( ins[ prop ] === undefined || ins[ prop ] === null || ins[ prop ] === '' ) ins[ prop ] = cv;
+			}
+			takeIfEmpty( 'iconUrl' );
+			takeIfEmpty( 'previewUrl' );
+			takeIfEmpty( 'wallpaperUrl' );
+			takeIfEmpty( 'preview' );
+			takeIfEmpty( 'franchise' );
+			takeIfEmpty( 'accent' );
+			takeIfEmpty( 'fallbackColor' );
+			takeIfEmpty( 'version' );
+			if ( cat.tags && Array.isArray( cat.tags ) && cat.tags.length && isEmptyTags( ins.tags ) ) {
+				ins.tags = cat.tags.slice();
+			}
+			if ( cat.icons && typeof cat.icons === 'object' && ! isEmptyIcons( cat.icons ) && isEmptyIcons( ins.icons ) ) {
+				ins.icons = cat.icons;
+			}
+			if ( cat.description && ! ins.description ) ins.description = cat.description;
+
+			// Refresh subline copy when franchise/version arrive from catalog.
+			if ( ins.type === 'widget' ) {
+				ins.subtitle = ( ins.franchise || 'Widget' ) + ' · Widget';
+			} else if ( ins.type === 'app' ) {
+				ins.subtitle = ( ins.version ? 'v' + ins.version : 'App' ) + ( ins.description ? ' · ' + ins.description.slice( 0, 48 ) : '' );
+			} else if ( ins.type === 'scene' ) {
+				ins.subtitle = ( categoryOf( ins.raw, 'wallpaper' ) || ins.franchise || 'Scene' ) + ' · Scene';
+			} else if ( ins.type === 'icon-set' ) {
+				ins.subtitle = ( ins.franchise || 'Icon set' ) + ' · Icon set';
+			}
+		}
+
 		function shopRowsFor( type ) {
 			var installed = installedRowsFor( type );
 			var catalog   = catalogRowsFor( type );
@@ -4229,6 +4235,7 @@
 						bySlug[ row.slug ].description = row.description;
 					}
 					if ( row.featured ) bySlug[ row.slug ].featured = true;
+					mergeCatalogOntoInstalled( bySlug[ row.slug ], row );
 					continue;
 				}
 				bySlug[ row.slug ] = row;
@@ -4402,12 +4409,14 @@
 			if ( row.type === 'widget' ) {
 				art.style.background = 'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)';
 				if ( row.iconUrl ) {
-					art.appendChild( el( 'img', { src: row.iconUrl, alt: '', loading: 'lazy' } ) );
-					return art;
+					var wimg = el( 'img', { src: row.iconUrl, alt: '', loading: 'lazy' } );
+					wimg.classList.add( 'odd-shop__card-art-fill' );
+					art.appendChild( wimg );
+				} else {
+					var wf = el( 'div', { class: 'odd-shop__card-mono' } );
+					wf.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
+					art.appendChild( wf );
 				}
-				var glyph = el( 'div', { class: 'odd-shop__card-glyph' } );
-				glyph.textContent = row.raw && row.raw.glyph ? row.raw.glyph : '🧩';
-				art.appendChild( glyph );
 				art.appendChild( el( 'span', { class: 'odd-shop__card-shine' } ) );
 				return art;
 			}

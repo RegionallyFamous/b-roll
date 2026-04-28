@@ -16,6 +16,22 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.3"></a>
+## [3.5.3] — 2026-04-28
+
+### Fixed
+- **Installed widgets (and catalog-thin apps/scenes)** no longer showed a
+  generic puzzle-piece thumb in the unified Shop grid. `shopRowsFor()` kept
+  the thin `installedWidgets` REST snapshot when a slug existed in both the
+  index and `bundleCatalog`, but only layered `description` + `featured`
+  from the registry — **`icon_url` never merged**, so widgets always fell back
+  to the emoji placeholder. Matching catalog rows now copy storefront artwork
+  fields (`iconUrl`, previews, quartet `icons`, franchise, tags, …) whenever
+  the installed row is missing them. Widget cards use full-bleed catalog
+  thumbnails; the last resort is initials (never the puzzle). The Widgets
+  department hero masthead uses the same `icon_url` instead of another
+  oversized emoji.
+
 <a id="v3.5.2"></a>
 ## [3.5.2] — 2026-04-28
 
