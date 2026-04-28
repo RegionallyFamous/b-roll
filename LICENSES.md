@@ -31,9 +31,10 @@ GPL-2.0-or-later license.
 
 ## Wallpapers — `_tools/catalog-sources/scenes/<slug>/wallpaper.webp`
 
-All 19 files. 1920×1080, WebP q82. Painted via a single pass with
-OpenAI's image API from neutral atmospheric prompts, then retouched to
-remove any accidental text / logo drift. Released **CC0-1.0**.
+All 20 files. 1920×1080, WebP q82. Painted via OpenAI's image API from
+neutral atmospheric prompts (see `_tools/wallpaper-prompts-v2.json`),
+then retouched to remove any accidental text / logo drift. Released
+**CC0-1.0**.
 
 | Slug                 | Provenance                                    |
 |----------------------|-----------------------------------------------|
@@ -47,6 +48,8 @@ remove any accidental text / logo drift. Released **CC0-1.0**.
 | flux                 | GPT Image 2                                   |
 | iris-observatory     | GPT Image 2                                   |
 | mercado              | GPT Image 2                                   |
+| oddling-desktop      | GPT Image 2 (v3.4.0 repaint; original seeded  |
+|                      | by `_tools/gen-oddling-desktop.py`)           |
 | origami              | GPT Image 2                                   |
 | pocket-dimension     | GPT Image 2                                   |
 | rainfall             | GPT Image 2                                   |
@@ -59,16 +62,16 @@ remove any accidental text / logo drift. Released **CC0-1.0**.
 
 ## Previews — `_tools/catalog-sources/scenes/<slug>/preview.webp`
 
-19 thumbnails, 640×360. Produced by `odd/bin/build-previews`, which
-boots Chromium, runs the matching Pixi scene for ~2 s, and snapshots
-the canvas. Derived from the wallpapers above; same **CC0-1.0** license.
+20 thumbnails, 640×360. Downscaled from the wallpapers above by
+`_tools/gen-wallpaper.py`; same **CC0-1.0** license.
 
 ## Icon sets — `_tools/catalog-sources/icon-sets/<slug>/`
 
-17 sets × 13 SVGs each. Every SVG is authored from a shared symbol
-catalog at `_tools/gen-icon-sets.py`. All hand-authored paths and
-programmatic primitives, no traced stock artwork. Released
-**CC0-1.0**.
+18 sets × 13 SVGs each. Seventeen sets are authored from a shared
+symbol catalog at `_tools/regen-icon-set.py`; the `oddlings` default
+set is hand-authored via `_tools/gen-oddling-desktop.py`. All
+hand-authored paths and programmatic primitives, no traced stock
+artwork. Released **CC0-1.0**.
 
 | Set                 | Files                                     |
 |---------------------|-------------------------------------------|
@@ -86,6 +89,7 @@ programmatic primitives, no traced stock artwork. Released
 | hologram            | 13 SVGs + manifest.json                   |
 | lemonade-stand      | 13 SVGs + manifest.json                   |
 | monoline            | 13 SVGs + manifest.json                   |
+| oddlings            | 13 SVGs + manifest.json (hand-authored)   |
 | risograph           | 13 SVGs + manifest.json                   |
 | stadium             | 13 SVGs + manifest.json                   |
 | tiki                | 13 SVGs + manifest.json                   |
