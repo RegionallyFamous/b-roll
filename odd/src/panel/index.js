@@ -1669,8 +1669,6 @@
 				} );
 			} );
 
-			wrap.appendChild( settings );
-
 			// Screensaver — dims into a full-screen scene after N
 			// minutes of admin idleness. The scene selector reads
 			// the current scene list off state.cfg.scenes so it
@@ -1764,7 +1762,8 @@
 			ssMins.addEventListener( 'change', pushScreensaver );
 			ssSceneSel.addEventListener( 'change', pushScreensaver );
 
-			wrap.appendChild( ssRow );
+			settings.appendChild( ssRow );
+			wrap.appendChild( settings );
 
 			return wrap;
 		}

@@ -132,18 +132,19 @@ def _page_fold_path(x, y, w, h, fold, rx=56):
 
 
 def _brush_paths():
-    """Angled brush: (handle, ferrule, tip, splash_pts)."""
-    handle = (
-        "M 262 862 L 562 402 L 692 532 L 392 992 Z"
+    """Dashicons-adjacent paintbrush: (handle, ferrule, bristles, highlight)."""
+    # Drawn upright and rotated by the caller. This keeps the mark
+    # readable at 64px while still giving each set room for its own
+    # texture/color treatment.
+    handle = (462, 430, 100, 350, 50)
+    ferrule = (410, 306, 204, 144, 36)
+    bristles = (
+        "M 414 306 "
+        "C 424 210 468 136 512 122 "
+        "C 556 136 600 210 610 306 Z"
     )
-    ferrule = (
-        "M 562 402 L 672 292 L 802 422 L 692 532 Z"
-    )
-    tip = (
-        "M 672 292 L 822 142 L 942 262 L 802 422 Z"
-    )
-    splash = [(332, 302, 26), (412, 242, 18)]
-    return handle, ferrule, tip, splash
+    highlight = "M 512 170 C 490 216 480 254 478 306"
+    return handle, ferrule, bristles, highlight
 
 
 def _plug_rects():
@@ -169,17 +170,19 @@ def _users_pair():
 
 
 def _wrench_paths():
-    """(handle_d, head_d, bite_circle)."""
-    handle = (
-        "M 322 882 L 562 382 L 682 502 L 442 1002 "
-        "Q 322 1062 222 942 Q 162 802 322 882 Z"
-    )
+    """Dashicons-adjacent wrench: (shaft, handle_ring, handle_hole, head, bite)."""
+    shaft = (474, 344, 76, 440, 38)
+    handle_ring = (512, 812, 116)
+    handle_hole = (512, 812, 46)
     head = (
-        "M 562 382 L 682 262 L 782 262 L 882 362 "
-        "L 762 482 L 682 502 Z"
+        "M 414 274 "
+        "C 414 172 496 100 598 118 "
+        "L 526 190 L 588 252 L 662 182 "
+        "C 694 286 624 374 512 374 "
+        "C 458 374 414 330 414 274 Z"
     )
-    bite = (752, 372, 36)
-    return handle, head, bite
+    bite = (586, 198, 42)
+    return shaft, handle_ring, handle_hole, head, bite
 
 
 def _profile_paths():
@@ -299,10 +302,15 @@ def _glyph_fill(key, primary, secondary, accent=None):
         for x in (392, 512, 632):
             parts.append(f'<circle cx="{x}" cy="472" r="34" fill="{secondary}"/>')
     elif key == "appearance":
-        h, f, t, spl = _brush_paths()
-        parts.append(f'<path d="{h}" fill="{primary}"/><path d="{f}" fill="{secondary}"/><path d="{t}" fill="{primary}"/>')
-        for x, y, r in spl:
-            parts.append(f'<circle cx="{x}" cy="{y}" r="{r}" fill="{accent}"/>')
+        h, f, bristles, highlight = _brush_paths()
+        hx, hy, hw, hh, hr = h
+        fx, fy, fw, fh, fr = f
+        parts.append('<g transform="rotate(-35 512 512)">')
+        parts.append(f'<rect x="{hx}" y="{hy}" width="{hw}" height="{hh}" rx="{hr}" fill="{primary}"/>')
+        parts.append(f'<rect x="{fx}" y="{fy}" width="{fw}" height="{fh}" rx="{fr}" fill="{secondary}"/>')
+        parts.append(f'<path d="{bristles}" fill="{primary}"/>')
+        parts.append(f'<path d="{highlight}" fill="none" stroke="{accent}" stroke-width="32" stroke-linecap="round" opacity=".62"/>')
+        parts.append('</g>')
     elif key == "plugins":
         lp, rp, head, cord = _plug_rects()
         for x, y, w, h in (lp, rp):
@@ -315,9 +323,15 @@ def _glyph_fill(key, primary, secondary, accent=None):
         parts.append(f'<circle cx="{bh[0]}" cy="{bh[1]}" r="{bh[2]}" fill="{secondary}"/><path d="{bs}" fill="{secondary}"/>')
         parts.append(f'<circle cx="{fh[0]}" cy="{fh[1]}" r="{fh[2]}" fill="{primary}"/><path d="{fs}" fill="{primary}"/>')
     elif key == "tools":
-        handle, head, bite = _wrench_paths()
-        parts.append(f'<path d="{handle}" fill="{primary}"/><path d="{head}" fill="{primary}"/>')
+        shaft, ring, hole, head, bite = _wrench_paths()
+        sx, sy, sw, sh, sr = shaft
+        parts.append('<g transform="rotate(38 512 512)">')
+        parts.append(f'<rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" rx="{sr}" fill="{primary}"/>')
+        parts.append(f'<circle cx="{ring[0]}" cy="{ring[1]}" r="{ring[2]}" fill="{primary}"/>')
+        parts.append(f'<circle cx="{hole[0]}" cy="{hole[1]}" r="{hole[2]}" fill="{secondary}"/>')
+        parts.append(f'<path d="{head}" fill="{primary}"/>')
         parts.append(f'<circle cx="{bite[0]}" cy="{bite[1]}" r="{bite[2]}" fill="{secondary}"/>')
+        parts.append('</g>')
     elif key == "settings":
         parts.append(f'<path d="{_gear_path(512, 512, 180, 260)}" fill="{primary}"/>')
         parts.append(f'<circle cx="512" cy="512" r="86" fill="{secondary}"/>')
@@ -338,7 +352,7 @@ def _glyph_fill(key, primary, secondary, accent=None):
 
 def _glyph_stroke(key, stroke, accent, width=34, dash=None):
     dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
-    body = _glyph_fill(key, "none", "none", "none")
+    body = _glyph_fill(key, "none", "none", accent if key == "appearance" else "none")
     # Convert the fill glyph into a chunky outline vocabulary. This is
     # intentionally simple and compact: inherited fill=none + stroke on
     # the wrapper turns rect/circle/path subjects into an outlined set.
@@ -413,13 +427,13 @@ def _cross_stitches(key, c1, c2):
                 pts.append((x, y))
         pts += [(350, 700), (310, 760)]
     elif key == "appearance":
-        pts = [(360, 740), (420, 640), (480, 540), (540, 440), (640, 340), (730, 250)]
+        pts = [(360, 720), (430, 650), (500, 580), (570, 510), (555, 390), (515, 300), (600, 350)]
     elif key == "plugins":
         pts = [(430, 270), (590, 270), (430, 430), (512, 430), (594, 430), (512, 540), (512, 650), (512, 760)]
     elif key == "users":
         pts = [(440, 350), (610, 340), (360, 610), (440, 570), (520, 610), (625, 590), (700, 630)]
     elif key == "tools":
-        pts = [(330, 780), (400, 660), (470, 540), (540, 420), (670, 300), (760, 350)]
+        pts = [(330, 730), (410, 650), (490, 570), (570, 490), (650, 410), (700, 300), (760, 250), (760, 350)]
     elif key == "settings":
         for a in range(0, 360, 45):
             rad = math.radians(a)

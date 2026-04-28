@@ -16,6 +16,21 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.2.2"></a>
+## [3.2.2] — 2026-04-27
+
+### Changed
+- **Settings is now a compact preference grid instead of a stretched
+  form banner.** Shuffle, Audio-reactive, and Screensaver use the same
+  card rhythm; Screensaver now lives in the grid with its controls
+  stacked inside the card instead of sprawling across the panel.
+- **Appearance and Tools icons now keep closer to Dashicons-style
+  metaphors.** The shared icon generator now draws Appearance as a
+  cleaner paintbrush mark and Tools as a simpler wrench mark, then
+  regenerates those two SVGs across all 17 icon sets. The icons still
+  keep each set's iOS-style treatment, but the core silhouettes are
+  easier to recognize in the dock.
+
 <a id="v3.2.1"></a>
 ## [3.2.1] — 2026-04-27
 
