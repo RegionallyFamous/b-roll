@@ -52,40 +52,36 @@ body.wp-desktop-active .wp-desktop-dock__item-primary:focus-visible {
 }
 
 /*
- * Strip the dock's glass tile for any ODD-owned icon — themed icon
- * sets, installed app icons, and catalog app icons. The artwork is
- * already self-contained; the plate just pads a weird border around
- * a wallpaper-aware illustration.
+ * Strip the dock's glass tile for themed icon-set glyphs only. Icon
+ * sets ship full-bleed backplates (riso paper, gingham, wood grain,
+ * etc.) so the dock's dark plate would sandwich a tile on a tile. App
+ * icons, on the other hand, are standalone glyphs — they WANT the
+ * same dark plate that ODD / Code get, so the dock looks coherent
+ * instead of apps floating bare against the wallpaper. Keep them in
+ * the default plate rule above.
  */
 body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"] ),
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ),
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] ) {
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ) {
 	background: transparent;
 	box-shadow: none;
 }
 
 body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):hover,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"] ):hover,
 body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):hover,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] ):hover,
 body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):focus-visible,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"] ):focus-visible,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):focus-visible,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] ):focus-visible {
+body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):focus-visible {
 	background: rgba( 255, 255, 255, 0.08 );
 }
 
 /*
- * Uniform rounded silhouette for ODD icons. Some of the v1.2 icon
+ * Uniform rounded silhouette for icon-set tiles. Some v1.2 icon
  * sets bake in a full-bleed 64x64 backplate (riso paper, gingham,
  * wood grain); clipping the <img> to a rounded rect hides the hard
- * corners so they match the softer monoline/filament style.
+ * corners so they match the softer monoline/filament style. App
+ * icons sit inside the default dark plate, so they don't need this.
  */
 body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] {
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"] {
 	border-radius: 14px;
 }
 
@@ -109,9 +105,7 @@ body.wp-desktop-active .wp-desktop-dock__item .dashicons {
 }
 
 body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] {
+body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"] {
 	width: var( --odd-dock-custom-icon-size );
 	height: var( --odd-dock-custom-icon-size );
 	max-width: var( --odd-dock-custom-icon-size );
@@ -154,17 +148,15 @@ body.wp-desktop-active .wp-desktop-icon__image img {
 }
 
 /*
- * Strip the desktop-shortcut glass plate for ODD-owned icons, same
- * as we strip the dock tile. Without this the catalog app icons and
- * every icon-set shortcut render inside a dark glass square with a
- * white border — a "weird border / background" around otherwise
- * clean artwork. The SVGs are self-contained; let them fill the tile
- * and take a light hover plate for affordance.
+ * Strip the desktop-shortcut glass plate for icon-set shortcuts
+ * only. Icon-set tiles ship their own full-bleed backplate, so the
+ * default plate here would sandwich a tile on a tile. App shortcuts
+ * (and anything else that's a standalone glyph) keep the default
+ * plate so the desktop reads as a coherent grid of tiles, not a
+ * bunch of floating stickers.
  */
 body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/apps/icon/"] ),
-body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/apps/catalog/icons/"] ) {
+body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ) {
 	background: none;
 	border: none;
 	box-shadow: none;
@@ -173,20 +165,14 @@ body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/apps/catalog/icon
 }
 
 body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/apps/icon/"] ),
 body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/apps/catalog/icons/"] ),
 body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/apps/icon/"] ),
-body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/apps/catalog/icons/"] ) {
+body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ) {
 	background: rgba( 255, 255, 255, 0.10 );
 }
 
 body.wp-desktop-active .wp-desktop-icon__image img[src*="/wp-json/odd/v1/icons/"],
-body.wp-desktop-active .wp-desktop-icon__image img[src*="/wp-json/odd/v1/apps/icon/"],
-body.wp-desktop-active .wp-desktop-icon__image img[src*="/assets/icons/"],
-body.wp-desktop-active .wp-desktop-icon__image img[src*="/apps/catalog/icons/"] {
+body.wp-desktop-active .wp-desktop-icon__image img[src*="/assets/icons/"] {
 	max-width: 54px;
 	max-height: 54px;
 	border-radius: 14px;

@@ -1,6 +1,6 @@
 /**
  * apps-surfaces.test.js — Shop UI contract for the per-app
- * `surfaces` preference (Desktop icon + Taskbar pill checkboxes).
+ * `surfaces` preference (Desktop icon + Taskbar icon checkboxes).
  *
  * Mirrors panel.test.js: we load the panel module against a seeded
  * `window.odd` + stubbed `fetch`, switch to the Apps department,
@@ -13,8 +13,9 @@
  *   2. A toggle POSTs `/odd/v1/apps/{slug}/toggle` with
  *      `{ surfaces: { <field>: bool } }` — partial payloads only,
  *      so the two checkboxes stay independent.
- *   3. After a successful POST the panel schedules a soft reload
- *      (180 ms fade + location.reload).
+ *   3. After a successful POST the panel does NOT auto-reload — it
+ *      flips the row's `requiresReload` flag so the unified grid
+ *      swaps its pill to "Reload to apply" on the next render.
  *   4. Toggles are disabled when app.enabled === false.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -172,7 +173,7 @@ describe( 'ODD Shop · App surfaces', () => {
 		await new Promise( ( r ) => setTimeout( r, ms ) );
 	};
 
-	it( 'renders a Desktop icon + Taskbar pill checkbox per installed app', async () => {
+	it( 'renders a Desktop icon + Taskbar icon checkbox per installed app', async () => {
 		const { host, cleanup } = mountPanel();
 		await gotoAppsDepartment( host );
 
@@ -184,12 +185,12 @@ describe( 'ODD Shop · App surfaces', () => {
 
 		// Initial state mirrors the seeded surfaces object.
 		expect( checks[ 0 ].checked ).toBe( true );   // Desktop icon on
-		expect( checks[ 1 ].checked ).toBe( false );  // Taskbar pill off
+		expect( checks[ 1 ].checked ).toBe( false );  // Taskbar icon off
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'toggling taskbar posts a partial { surfaces: { taskbar } } payload and soft-reloads', async () => {
+	it( 'toggling taskbar posts a partial { surfaces: { taskbar } } payload and does NOT auto-reload', async () => {
 		const { host, cleanup } = mountPanel();
 		await gotoAppsDepartment( host );
 
@@ -210,9 +211,11 @@ describe( 'ODD Shop · App surfaces', () => {
 		expect( body ).toEqual( { surfaces: { taskbar: true } } );
 		expect( Object.keys( body.surfaces ) ).toEqual( [ 'taskbar' ] );
 
-		// Soft reload fires after a 180 ms fade.
+		// Crucially no hard reload — the row just flips its
+		// `requiresReload` flag so the Shop's unified action pill
+		// switches to "Reload to apply" next render.
 		await tick( 220 );
-		expect( reloadSpy ).toHaveBeenCalledTimes( 1 );
+		expect( reloadSpy ).not.toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

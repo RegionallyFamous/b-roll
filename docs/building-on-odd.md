@@ -473,7 +473,7 @@ Third-party registrations can also be injected directly via the
 ### App surfaces
 
 Each installed app has two **visible** launch surfaces — the desktop
-shortcut icon and the Desktop Mode taskbar pill — plus an always-on
+shortcut icon and the Desktop Mode taskbar icon — plus an always-on
 **invisible** surface (the registered native window, reachable from
 `wp.desktop.openWindow( 'odd-app-<slug>' )` regardless of the two
 visible ones).
@@ -484,7 +484,7 @@ index row:
 ```php
 array(
     'desktop' => true,   // render a desktop icon
-    'taskbar' => false,  // pin a taskbar pill
+    'taskbar' => false,  // pin a taskbar icon
 )
 ```
 

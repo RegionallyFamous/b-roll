@@ -88,7 +88,7 @@ Covered in full by the [Building an App](building-an-app.md) guide.
 | `capability`  | no       | Defaults to `"manage_options"`. Checked on every serve request.              |
 | `window`      | no       | `{ width, height, min_width, min_height, title }`.                           |
 | `desktopIcon` | no       | `{ title, position }`. Position is an ordering hint (lower = earlier).       |
-| `surfaces`    | no       | `{ desktop: bool, taskbar: bool }`. Install-time defaults for the app's two visible launch surfaces — desktop icon and Desktop Mode taskbar pill. Missing keys default to `{ desktop: true, taskbar: false }`. Users can override each independently from the ODD Shop. |
+| `surfaces`    | no       | `{ desktop: bool, taskbar: bool }`. Install-time defaults for the app's two visible launch surfaces — desktop icon and Desktop Mode taskbar icon. Missing keys default to `{ desktop: true, taskbar: false }`. Users can override each independently from the ODD Shop. |
 | `extensions`  | no       | Declarative registrations against the ODD extension registries.              |
 
 ### Type: `icon-set`

@@ -14,7 +14,7 @@ No install, no signup, nothing to uninstall. Boots ODD + WP Desktop Mode in your
 
 ### Actually do the work — right inside WordPress.
 
-Click install in the Shop and the app is on your desktop. Its own icon. Its own window. Its own taskbar pill if you want one. No ZIP upload, no FTP, no plugin-upload dance.
+Click install in the Shop and the app is on your desktop. Its own icon. Its own window. Its own taskbar icon if you want one. No ZIP upload, no FTP, no plugin-upload dance.
 
 Out of the box:
 

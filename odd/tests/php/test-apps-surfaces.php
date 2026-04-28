@@ -1,7 +1,7 @@
 <?php
 /**
  * Tests for the per-app `surfaces` preference — which of Desktop
- * Mode's launch affordances (desktop icon, taskbar pill) an app
+ * Mode's launch affordances (desktop icon, taskbar icon) an app
  * registers.
  *
  * Covers the helper API (`odd_apps_set_surfaces`,
@@ -72,7 +72,7 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 	public function test_row_surfaces_defaults_when_missing_are_back_compat() {
 		$s = odd_apps_row_surfaces( array( 'slug' => 'legacy' ) );
 		$this->assertTrue( $s['desktop'], 'Pre-upgrade rows keep the desktop icon.' );
-		$this->assertFalse( $s['taskbar'], 'Pre-upgrade rows do NOT sprout a taskbar pill.' );
+		$this->assertFalse( $s['taskbar'], 'Pre-upgrade rows do NOT sprout a taskbar icon.' );
 	}
 
 	public function test_row_surfaces_coerces_truthy_values_to_bool() {
@@ -334,7 +334,7 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 		$icon   = $this->find_call( 'icon', 'odd-app-legacy-register' );
 
 		$this->assertNotNull( $window );
-		$this->assertSame( 'none', $window['args']['placement'], 'Default surfaces: no taskbar pill.' );
+		$this->assertSame( 'none', $window['args']['placement'], 'Default surfaces: no taskbar icon.' );
 		$this->assertNotNull( $icon, 'Default surfaces: desktop icon on.' );
 	}
 

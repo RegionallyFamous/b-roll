@@ -573,13 +573,13 @@
 					rowSurfaces[ key ] = !! box.checked;
 					box.disabled = true;
 					setAppSurfaces( app.slug, payload ).then( function ( res ) {
+						box.disabled = false;
 						if ( res && res.surfaces ) {
-							setAppsStatus( wrap, __( 'Updated — reloading…' ), 'ok' );
-							setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 180 );
+							markAppNeedsReload( app.slug, res.surfaces );
+							setAppsStatus( wrap, __( 'Saved — reload to apply.' ), 'ok' );
 							return;
 						}
 						box.checked  = ! box.checked;
-						box.disabled = false;
 						rowSurfaces[ key ] = !! box.checked;
 						setAppsStatus( wrap, __( 'Could not update surfaces.' ), 'error' );
 					} );
@@ -587,7 +587,7 @@
 				return wrapLbl;
 			}
 			surfacesRow.appendChild( makeSurfaceToggle( 'desktop', __( 'Desktop icon' ), __( 'Show a shortcut on the desktop.' ) ) );
-			surfacesRow.appendChild( makeSurfaceToggle( 'taskbar', __( 'Taskbar pill' ),  __( 'Pin a launcher to the bottom taskbar.' ) ) );
+			surfacesRow.appendChild( makeSurfaceToggle( 'taskbar', __( 'Taskbar icon' ), __( 'Pin a launcher to the bottom taskbar.' ) ) );
 			manage.appendChild( surfacesRow );
 
 			var actions = el( 'div', { class: 'odd-shop__card-manage-actions' } );
@@ -690,12 +690,16 @@
 			meta.appendChild( sub );
 			card.appendChild( meta );
 
-			// Surface toggles — Desktop icon + Taskbar pill.
+			// Surface toggles — Desktop icon + Taskbar icon.
 			//
 			// Desktop Mode registers the chosen surface(s) on `init`
 			// from odd_apps_row_surfaces(), so flipping a checkbox
-			// soft-reloads the page. Greyed out when the app is
-			// disabled — a disabled app isn't registered at all.
+			// needs a page reload for the change to reach the dock /
+			// desktop. We save the preference immediately and leave
+			// the reload to the user (the Shop card's primary pill
+			// switches to "Reload to apply") so we don't bounce them
+			// out of the Shop mid-session. Greyed out when the app
+			// is disabled — a disabled app isn't registered at all.
 			var rowSurfaces = ( app.surfaces && typeof app.surfaces === 'object' )
 				? app.surfaces
 				: { desktop: true, taskbar: false };
@@ -730,19 +734,17 @@
 					rowSurfaces[ key ] = !! box.checked;
 					box.disabled = true;
 					setAppSurfaces( app.slug, payload ).then( function ( res ) {
+						box.disabled = false;
 						if ( res && res.surfaces ) {
+							markAppNeedsReload( app.slug, res.surfaces );
 							setAppsStatus(
 								wrap,
-								__( 'Updated — reloading…' ),
+								__( 'Saved — reload to apply.' ),
 								'ok'
 							);
-							setTimeout( function () {
-								try { window.location.reload(); } catch ( e ) {}
-							}, 180 );
 							return;
 						}
 						box.checked  = ! box.checked;
-						box.disabled = false;
 						rowSurfaces[ key ] = !! box.checked;
 						setAppsStatus(
 							wrap,
@@ -765,7 +767,7 @@
 			surfacesRow.appendChild(
 				makeSurfaceToggle(
 					'taskbar',
-					__( 'Taskbar pill' ),
+					__( 'Taskbar icon' ),
 					__( 'Pin a launcher to the bottom taskbar.' )
 				)
 			);
@@ -2030,6 +2032,39 @@
 			} ).then( function ( r ) {
 				return r.ok ? r.json() : null;
 			} ).catch( function () { return null; } );
+		}
+		/**
+		 * Flip the in-memory `requiresReload` flag on an installed
+		 * app's row (and mirror the new surfaces shape) so the Shop's
+		 * unified grid re-renders its action pill as "Reload to
+		 * apply" without us bouncing the user out of the window.
+		 *
+		 * Native-window + desktop-icon registration happens once on
+		 * `init`, so the actual dock/desktop surfaces only reflect
+		 * the saved preferences after a page reload — but letting the
+		 * user pick when to take that reload (instead of firing one
+		 * 180 ms after a checkbox flip) is the whole point.
+		 */
+		function markAppNeedsReload( slug, surfaces ) {
+			if ( ! slug ) return;
+			var cfg = state.cfg || {};
+			var apps = Array.isArray( cfg.apps ) ? cfg.apps : [];
+			for ( var i = 0; i < apps.length; i++ ) {
+				var row = apps[ i ];
+				if ( ! row || row.slug !== slug ) continue;
+				if ( surfaces && typeof surfaces === 'object' ) {
+					row.surfaces = Object.assign( {}, row.surfaces || {}, surfaces );
+				}
+				row.requiresReload = true;
+			}
+			// Re-render the Apps department so the unified grid's
+			// pill flips to "Reload to apply" (see shopCardAction) —
+			// do it lazily so the checkbox click handler can finish.
+			try {
+				if ( state.active === 'apps' ) {
+					renderSection( 'apps', { keepQuery: true } );
+				}
+			} catch ( e ) {}
 		}
 		function deleteApp( slug ) {
 			return fetch( appsBaseUrl() + '/' + encodeURIComponent( slug ), {
@@ -4243,7 +4278,7 @@
 				return { label: 'Install', kind: 'install', disabled: false };
 			}
 			if ( row.requiresReload ) {
-				return { label: row.type === 'app' ? 'Reload to Open' : 'Reload', kind: 'reload', disabled: false };
+				return { label: row.type === 'app' ? 'Reload to apply' : 'Reload', kind: 'reload', disabled: false };
 			}
 			if ( shopCardIsActive( row ) ) {
 				return { label: 'Active', kind: 'active', disabled: true };

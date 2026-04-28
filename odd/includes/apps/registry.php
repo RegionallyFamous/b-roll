@@ -52,9 +52,10 @@ function odd_apps_install( $tmp_path, $filename ) {
 	}
 
 	// Manifest authors can declare the default surfaces (desktop
-	// icon + taskbar pill) per app; users can override after install.
+	// icon + taskbar icon) per app; users can override after install.
 	// Defaults favor the historical behavior — desktop icon on,
-	// taskbar off — so upgrades don't sprout new pills unsolicited.
+	// taskbar off — so upgrades don't sprout new taskbar icons
+	// unsolicited.
 	$surfaces = array(
 		'desktop' => isset( $manifest['surfaces']['desktop'] ) ? (bool) $manifest['surfaces']['desktop'] : true,
 		'taskbar' => isset( $manifest['surfaces']['taskbar'] ) ? (bool) $manifest['surfaces']['taskbar'] : false,
@@ -137,16 +138,17 @@ function odd_apps_set_enabled( $slug, $enabled ) {
 
 /**
  * Update the per-app `surfaces` preference — which of the two Desktop
- * Mode launch affordances (the desktop icon, the taskbar pill) this
+ * Mode launch affordances (the desktop icon, the taskbar icon) this
  * app should register on the next shell paint.
  *
  * The row is the source of truth; `odd_apps_register_surfaces()` reads
  * it on every `init` and forwards `surfaces.taskbar` into the
  * `placement` argument of `desktop_mode_register_window()`, and skips
  * `desktop_mode_register_icon()` entirely when `surfaces.desktop` is
- * false. Callers in the Shop POST the new shape; live apply is a soft
- * page reload (mirrors icon-set swap) because native-window
- * registration runs once per request.
+ * false. Callers in the Shop POST the new shape and flip the row's
+ * `requiresReload` flag so the unified card action becomes "Reload to
+ * apply" — native-window registration runs once per request, so the
+ * saved preference only takes visible effect after the next reload.
  *
  * @param string $slug
  * @param array  $surfaces { desktop?: bool, taskbar?: bool }

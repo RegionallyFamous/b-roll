@@ -17,14 +17,14 @@
  * row's `surfaces` shape (see odd_apps_row_surfaces()):
  *
  *   surfaces.taskbar → forwarded to register_window() as
- *     `placement => 'taskbar'`; Desktop Mode renders the pill via
- *     its internal `rail.appendSystemItem({ onOpen: … })` path so
- *     no JS click handler is needed on our side. When false we
- *     pass `placement => 'none'` (window registered, no tile).
+ *     `placement => 'taskbar'`; Desktop Mode renders the taskbar
+ *     icon via its internal `rail.appendSystemItem({ onOpen: … })`
+ *     path so no JS click handler is needed on our side. When false
+ *     we pass `placement => 'none'` (window registered, no tile).
  *
  *   surfaces.desktop → gates register_icon() entirely. When false
  *     the paired desktop shortcut is not created and the user
- *     launches the window via the taskbar pill (or any other
+ *     launches the window via the taskbar icon (or any other
  *     entry point listed above).
  *
  * Both IDs are prefixed `odd-app-` so the dock-filter can ignore
@@ -101,7 +101,7 @@ function odd_apps_register_surfaces( $row ) {
 
 	if ( ! $surfaces['desktop'] ) {
 		// User opted out of a desktop shortcut for this app — the
-		// taskbar pill (or any wp.desktop.openWindow() caller)
+		// taskbar icon (or any wp.desktop.openWindow() caller)
 		// remains the launch path. Nothing to register.
 		return;
 	}

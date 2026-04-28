@@ -16,6 +16,26 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.1"></a>
+## [3.5.1] — 2026-04-28
+
+### Changed
+- **App icons sit on the same dock/desktop tile as ODD and Code.** The
+  plate-stripping CSS was originally written so themed icon sets (which
+  ship their own backplate) wouldn't render tile-on-tile, but it was
+  catching installed app icons too — leaving them as bare glyphs floating
+  over the wallpaper. Apps now keep the dark glass tile, so the dock and
+  desktop read as one coherent grid instead of a mix of tiles and
+  stickers.
+- **Flipping a per-app surface toggle no longer bounces the page.** The
+  Shop used to do a 180 ms fade + `window.location.reload()` every time
+  you toggled "Desktop icon" or "Taskbar icon" on an installed app,
+  which felt like a hard reset. The preference now saves immediately
+  and flips the card's action to "Reload to apply" — same pattern as a
+  fresh install — so you pick when to take the reload.
+- **"Taskbar pill" → "Taskbar icon".** Cleaner label, matches the
+  Desktop icon toggle next to it.
+
 <a id="v3.5.0"></a>
 ## [3.5.0] — 2026-04-28
 

@@ -118,7 +118,7 @@ The fastest path to a working app. No tools, no npm, no bundler.
 
 The `surfaces` object is optional. It sets the **install-time
 defaults** for whether ODD registers a desktop icon and/or a Desktop
-Mode taskbar pill for your app. Both default to the historical
+Mode taskbar icon for your app. Both default to the historical
 behavior (`desktop: true`, `taskbar: false`), so omitting the key is
 equivalent to "desktop icon only." Users can flip either independently
 from the **ODD Shop → Apps** card after install — the manifest value
@@ -488,7 +488,7 @@ anywhere on the Shop), and ODD handles the rest:
 1. The Shop extracts + validates the archive.
 2. On success, it jumps to the Apps department and flashes your new
    app's tile so you can see where it landed.
-3. The taskbar pill and/or desktop shortcut appear on the next paint,
+3. The taskbar icon and/or desktop shortcut appear on the next paint,
    based on the app's `surfaces` setting.
 
 To remove an app, click the × on its card.
