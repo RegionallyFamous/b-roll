@@ -38,7 +38,7 @@ class Test_REST_Prefs extends ODD_REST_Test_Case {
 				'shuffle',
 				'screensaver',
 				'audioReactive',
-				'shopDock',
+				'shopTaskbar',
 				'iconSet',
 				'scenes',
 				'sets',
@@ -57,7 +57,7 @@ class Test_REST_Prefs extends ODD_REST_Test_Case {
 		$this->assertArrayHasKey( 'enabled', $data['screensaver'] );
 		$this->assertArrayHasKey( 'minutes', $data['screensaver'] );
 		$this->assertArrayHasKey( 'scene', $data['screensaver'] );
-		$this->assertIsBool( $data['shopDock'] );
+		$this->assertIsBool( $data['shopTaskbar'] );
 	}
 
 	public function test_post_accepts_valid_wallpaper() {
@@ -140,18 +140,18 @@ class Test_REST_Prefs extends ODD_REST_Test_Case {
 		$this->assertSame( 'random', $res->get_data()['screensaver']['scene'] );
 	}
 
-	public function test_post_updates_shop_dock_preference() {
+	public function test_post_updates_shop_taskbar_preference() {
 		$this->login_as();
 
-		$res = $this->dispatch_json( 'POST', '/odd/v1/prefs', array( 'shopDock' => true ) );
+		$res = $this->dispatch_json( 'POST', '/odd/v1/prefs', array( 'shopTaskbar' => true ) );
 		$this->assertSame( 200, $res->get_status() );
-		$this->assertTrue( $res->get_data()['shopDock'] );
-		$this->assertSame( '1', get_user_meta( $this->admin_id, 'odd_shop_dock', true ) );
+		$this->assertTrue( $res->get_data()['shopTaskbar'] );
+		$this->assertSame( '1', get_user_meta( $this->admin_id, 'odd_shop_taskbar', true ) );
 
-		$res = $this->dispatch_json( 'POST', '/odd/v1/prefs', array( 'shopDock' => false ) );
+		$res = $this->dispatch_json( 'POST', '/odd/v1/prefs', array( 'shopTaskbar' => false ) );
 		$this->assertSame( 200, $res->get_status() );
-		$this->assertFalse( $res->get_data()['shopDock'] );
-		$this->assertSame( '0', get_user_meta( $this->admin_id, 'odd_shop_dock', true ) );
+		$this->assertFalse( $res->get_data()['shopTaskbar'] );
+		$this->assertSame( '0', get_user_meta( $this->admin_id, 'odd_shop_taskbar', true ) );
 	}
 
 	public function test_post_caps_favorites_at_50() {

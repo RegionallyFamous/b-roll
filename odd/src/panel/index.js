@@ -1735,18 +1735,18 @@
 				} );
 			} );
 
-			// ODD Shop dock launcher — Desktop Mode reads native
+			// ODD Shop taskbar launcher — Desktop Mode reads native
 			// window placement during boot, so changes need a soft
-			// reload before the dock item appears/disappears.
-			var dockRow = el( 'label', { class: 'odd-setting-card odd-setting-card--shop-dock odd-switch-row' } );
+			// reload before the taskbar item appears/disappears.
+			var dockRow = el( 'label', { class: 'odd-setting-card odd-setting-card--shop-taskbar odd-switch-row' } );
 			var dockBox = el( 'input', { type: 'checkbox' } );
-			dockBox.checked = !! state.cfg.shopDock;
+			dockBox.checked = !! state.cfg.shopTaskbar;
 			var dockKnob = el( 'span', { class: 'odd-switch' } );
 			var dockText = el( 'span', { class: 'odd-setting-card__text' } );
 			var dockLbl = el( 'strong' );
-			dockLbl.textContent = __( 'Show ODD in Dock' );
+			dockLbl.textContent = __( 'Show ODD in Taskbar' );
 			var dockHint = el( 'span' );
-			dockHint.textContent = __( 'Add a launcher for the ODD Shop to the Desktop Mode dock.' );
+			dockHint.textContent = __( 'Add a launcher for the ODD Shop to the Desktop Mode taskbar.' );
 			dockText.appendChild( dockLbl );
 			dockText.appendChild( dockHint );
 			dockRow.appendChild( dockBox );
@@ -1754,11 +1754,11 @@
 			dockRow.appendChild( dockText );
 			settings.appendChild( dockRow );
 			dockBox.addEventListener( 'change', function () {
-				savePrefs( { shopDock: dockBox.checked }, function ( data ) {
-					if ( data && Object.prototype.hasOwnProperty.call( data, 'shopDock' ) ) {
-						state.cfg.shopDock = !! data.shopDock;
+				savePrefs( { shopTaskbar: dockBox.checked }, function ( data ) {
+					if ( data && Object.prototype.hasOwnProperty.call( data, 'shopTaskbar' ) ) {
+						state.cfg.shopTaskbar = !! data.shopTaskbar;
 					}
-					toast( __( 'Updated ODD dock setting. Reloading…' ) );
+					toast( __( 'Updated ODD taskbar setting. Reloading…' ) );
 					setTimeout( function () {
 						try { window.location.reload(); } catch ( e ) {}
 					}, 250 );

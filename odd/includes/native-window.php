@@ -39,7 +39,7 @@ add_action(
 				'height'     => 620,
 				'min_width'  => 720,
 				'min_height' => 480,
-				'placement'  => odd_shop_dock_enabled( $uid ) ? 'dock' : 'none',
+				'placement'  => odd_shop_taskbar_enabled( $uid ) ? 'taskbar' : 'none',
 			)
 		);
 
@@ -119,25 +119,37 @@ function odd_control_icon_url() {
 }
 
 /**
- * Whether the ODD Shop should be shown as a Desktop Mode dock item.
+ * Whether the ODD Shop should be shown as a Desktop Mode taskbar item.
  *
  * The desktop shortcut remains registered either way. This only
  * controls native-window placement, which Desktop Mode reads during
  * shell boot, so changing it requires a soft reload.
  */
-function odd_shop_dock_enabled( $uid = 0 ) {
+function odd_shop_taskbar_enabled( $uid = 0 ) {
 	$uid = $uid ? (int) $uid : get_current_user_id();
 	if ( $uid <= 0 ) {
 		return false;
 	}
-	return (bool) get_user_meta( $uid, 'odd_shop_dock', true );
+	$value = get_user_meta( $uid, 'odd_shop_taskbar', true );
+	if ( '' === $value ) {
+		$value = get_user_meta( $uid, 'odd_shop_dock', true );
+	}
+	return (bool) $value;
 }
 
-function odd_shop_set_dock_enabled( $uid, $enabled ) {
+function odd_shop_set_taskbar_enabled( $uid, $enabled ) {
 	$uid = (int) $uid;
 	if ( $uid <= 0 ) {
 		return false;
 	}
-	update_user_meta( $uid, 'odd_shop_dock', $enabled ? 1 : 0 );
-	return odd_shop_dock_enabled( $uid );
+	update_user_meta( $uid, 'odd_shop_taskbar', $enabled ? 1 : 0 );
+	return odd_shop_taskbar_enabled( $uid );
+}
+
+function odd_shop_dock_enabled( $uid = 0 ) {
+	return odd_shop_taskbar_enabled( $uid );
+}
+
+function odd_shop_set_dock_enabled( $uid, $enabled ) {
+	return odd_shop_set_taskbar_enabled( $uid, $enabled );
 }

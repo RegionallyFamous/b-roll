@@ -16,6 +16,14 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.2.4"></a>
+## [3.2.4] — 2026-04-27
+
+### Fixed
+- **The ODD Shop launcher setting now targets the taskbar, not the dock.**
+  Settings writes `shopTaskbar` / `odd_shop_taskbar`, and the native window
+  registers with `placement: 'taskbar'`.
+
 <a id="v3.2.3"></a>
 ## [3.2.3] — 2026-04-27
 
@@ -23,8 +31,8 @@ tag history is the full record of every shipped version.
 - **Install cards and catalog artwork are easier to scan.** The "What can I install?"
   cards now use a vertical icon-first layout, icon-set catalog previews fill the art
   frame, and widgets get specific preview art instead of a generic glyph.
-- **The ODD Shop dock launcher is now user-configurable.** Settings includes a
-  "Show ODD in Dock" toggle backed by the new `shopDock` preference.
+- **The ODD Shop taskbar launcher is now user-configurable.** Settings includes
+  a "Show ODD in Taskbar" toggle backed by the new `shopTaskbar` preference.
 
 ### Fixed
 - **Bundle installs no longer hard-refresh Desktop Mode.** The Shop now
