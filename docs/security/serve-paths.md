@@ -2,7 +2,7 @@
 
 > Scope: every code path that returns file bytes from `wp-content/odd-*/`
 > on an authenticated or public request. Last reviewed after the
-> remote-catalog refactor (v3.0.0). The on-disk layout and serve paths
+> remote-catalog refactor (v3.3.0). The on-disk layout and serve paths
 > are unchanged from v1.9.x; only the **source** of the content moved
 > from bundled plugin assets to the remote catalog + SHA256-verified
 > `.wp` downloads.
@@ -17,7 +17,7 @@ The universal `.wp` installer populates four per-type subtrees under
 | `wp-content/odd-scenes/<slug>/`  | v1.8.0              | JS scene + preview + wallpaper |
 | `wp-content/odd-widgets/<slug>/` | v1.8.0              | JS/CSS widget + `manifest.json`|
 
-Under v3.0.0 every bundle that lands in these subtrees is either (a)
+Under v3.x every bundle that lands in these subtrees is either (a)
 uploaded by a logged-in admin through `POST /odd/v1/bundles/upload`
 or (b) downloaded from the remote catalog at
 `https://odd.regionallyfamous.com/catalog/v1/` and verified against

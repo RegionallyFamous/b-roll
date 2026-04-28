@@ -1,19 +1,20 @@
 # Architecture
 
-> Status: v3.0.0. Mirrored to the
+> Status: v3.3.0. Mirrored to the
 > [Architecture](https://github.com/RegionallyFamous/odd/wiki/Architecture)
 > wiki page. For the agent-focused overview see
 > [`CLAUDE.md`](../CLAUDE.md).
 
 ## The one-line summary
 
-ODD 3.0 is an empty WordPress plugin whose content (wallpapers, icon
+ODD 3.x is an empty WordPress plugin whose content (wallpapers, icon
 sets, widgets, apps) lives in a remote catalog at
 `https://odd.regionallyfamous.com/catalog/v1/`. On activation the
-plugin schedules a cron that reads the catalog's `starter_pack`, pulls
-a default scene + icon set as universal `.wp` bundles, and verifies
-their SHA256 before extracting. Everything else installs on demand
-from the ODD Shop.
+plugin reads the catalog's `starter_pack`, pulls a default scene + icon
+set as universal `.wp` bundles, and verifies their SHA256 before
+extracting. The starter path is synchronous with an inline safety net;
+it does not depend on WP-Cron. Everything else installs on demand from
+the ODD Shop.
 
 ## File tree
 
@@ -26,7 +27,7 @@ odd/                                the plugin — JS/PHP/CSS only, no bundled c
 │   ├── migrate.php                 activation-time b-roll → odd migration (idempotent)
 │   ├── migrations.php              versioned per-user migration runner (odd_schema_version)
 │   ├── native-window.php           desktop_mode_register_window('odd', ...)
-│   ├── starter-pack.php            activation cron + exponential backoff + retry REST
+│   ├── starter-pack.php            inline starter install + backoff + retry REST
 │   ├── content/
 │   │   ├── catalog.php             remote registry fetch + transient cache + install-from-catalog REST
 │   │   ├── scenes.php              installed-scene bundle loader (filter → odd_scene_registry)
@@ -103,8 +104,9 @@ WP Desktop Mode's window manager reuses any window with a matching
 
 The Shop body renders from `window.wpDesktopNativeWindows.odd = body
 => { … }` in `src/panel/index.js`. The layout is the Mac App
-Store-style three-pane design: sidebar (Discover / Wallpapers / Icons
-/ Widgets / Apps / About), a content pane, and a detail sheet.
+Store-style design: top search bar, sidebar (Wallpapers / Icon Sets /
+Widgets / Apps / Install / Settings / About), content pane, and detail
+or preview surfaces where needed.
 
 Apps break the single-window rule intentionally: each installed app
 registers its own `baseId: 'odd-app-<slug>'` window, so users can

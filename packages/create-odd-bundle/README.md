@@ -13,7 +13,7 @@ npx create-odd-bundle widget my-new-widget
 npx create-odd-bundle app my-new-app
 ```
 
-The scaffold produces a directory ready to zip and upload through the ODD Control Panel → Shop → Upload. Slug validation matches the server-side installer (`^[a-z0-9-]+$`, 1–64 chars) so if the scaffold runs, the bundle you just generated is already a valid one.
+The scaffold produces a directory ready to zip and upload through ODD Shop → Install → Upload. Slug validation matches the server-side installer (`^[a-z0-9-]+$`, 1–64 chars) so if the scaffold runs, the bundle you just generated is already a valid one.
 
 ## Non-interactive use
 

@@ -3,7 +3,7 @@
 > One of four ODD author guides. Siblings: [Building an App](building-an-app.md), [Building a Scene](building-a-scene.md), [Building an Icon Set](building-an-icon-set.md).
 
 A widget is a small, self-contained card that lives on the ODD
-desktop — not inside the Control Panel. It's a single JavaScript file
+desktop — not inside the ODD Shop. It's a single JavaScript file
 that calls `wp.desktop.registerWidget()` at load. Zip it with a
 `manifest.json`, drop the `.wp` on the ODD Shop, and the widget
 appears in the Widgets department where users can toggle it onto their

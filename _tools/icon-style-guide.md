@@ -7,7 +7,7 @@ adds the exact continuous-curvature squircle path reverse-engineered by
 and pins down the rules the `build-catalog` validator enforces before a
 bundle can ship.
 
-Every icon that goes into the 17 icon sets under
+Every first-party icon that goes into the catalog sets under
 `_tools/catalog-sources/icon-sets/` must follow this.
 
 ## Canvas + shape

@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.1.2
+Stable tag: 3.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,12 +18,12 @@ As of ODD 3.0 the plugin is an **empty shell**. Every wallpaper, icon set, widge
 
 ODD manages four content types:
 
-* **Canvas wallpapers** — generative PixiJS scenes painted on top of 1920×1080 WebP backdrops. Drifting paper cranes, procedural aurora curtains, rainfall that respects on-screen icons, a pocket dimension that looks like the inside of a lava lamp, and more.
-* **Icon sets** — themed SVG packs that reskin the dock and desktop shortcuts. Blueprint. Cross-stitch. Claymation. Brutalist stencil. Hologram. Filament (tube neon). Fold (origami). Arctic.
+* **Canvas wallpapers** — generative PixiJS scenes painted on top of 1920×1080 WebP backdrops. Drifting paper cranes, procedural aurora curtains, rainfall that respects on-screen icons, a pocket dimension that looks like the inside of a lava lamp, Oddling Desktop's CRT terrarium, and more.
+* **Icon sets** — themed SVG packs that reskin the dock and desktop shortcuts. Blueprint construction strokes. Cross-stitch thread marks. Claymation forms. Brutalist stencil. Hologram foil. Filament neon. Folded paper. Arctic glass. Oddlings.
 * **Desktop widgets** — sandboxed tiles like Sticky Note and Magic 8-Ball that install as `.wp` bundles.
 * **Apps** — sandboxed HTML/CSS/JS bundles that live in their own native window with a dock icon.
 
-On first activation ODD installs a small **starter pack** defined in the remote catalog (a default scene + icon set) so the desktop has content out of the box. Everything else is one click away in the Shop.
+On first activation ODD installs a small **starter pack** defined in the remote catalog (Oddling Desktop + Oddlings) so the desktop has content out of the box. Everything else is one click away in the Shop.
 
 **Extending ODD.** Third parties ship apps, scenes, icon sets, and widgets as universal `.wp` bundles — no companion plugins required. See the [building guide](https://github.com/RegionallyFamous/odd/blob/main/docs/building-on-odd.md) for the full extension API (filters, events, registries, lifecycle hooks, error boundaries, debug inspector).
 
@@ -34,7 +34,7 @@ On first activation ODD installs a small **starter pack** defined in the remote 
 1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.5.1 or newer.
 2. Upload and activate ODD from the Plugins screen, or install it from this directory.
 3. Enable desktop mode on your user profile (WP Desktop Mode's user setting).
-4. Visit `wp-admin`, open the ODD Shop from its desktop icon, and pick a wallpaper or icon set. (On first activation ODD fetches a small starter pack from the remote catalog; if the site's offline, the Shop shows a retry affordance.)
+4. Visit `wp-admin`, open the ODD Shop from its desktop icon or taskbar item, and pick a wallpaper or icon set. (On first activation ODD fetches a small starter pack from the remote catalog; if the site's offline, the Shop shows a retry affordance.)
 
 == Frequently Asked Questions ==
 
@@ -75,6 +75,9 @@ The ODD Shop → About tab has a **Copy diagnostics** button. Paste the markdown
 See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.md) for the full history. Version headings follow SemVer; API versioning is tracked separately (see [docs/api-versioning.md](https://github.com/RegionallyFamous/odd/blob/main/docs/api-versioning.md)).
 
 == Upgrade Notice ==
+
+= 3.3.0 =
+Ships Oddling Desktop + Oddlings as the new catalog starter pack, updates the Shop's Settings/card layout, and keeps the plugin itself content-free. The default scene and icon set still install from the remote catalog; no wallpapers, icon packs, widgets, or apps are bundled inside the plugin zip.
 
 = 3.1.2 =
 Fixes the "clicking Install twice shows Install failed" bug in the Shop's Discover shelves. A successful install now flips the in-memory catalog row's `installed` flag so the re-rendered shelf shows "Installed" instead of another "Install" button — previously the server-pre-baked catalog was never updated client-side, so a second click on the same tile would POST again and the server would respond with a 409 `already_installed` error, which opened the troubleshoot modal for what looked to the user like an install that had never happened.

@@ -35,7 +35,7 @@ Permission shorthand used below:
 | `GET`    | `/apps/{slug}`                               | login         | Full manifest for one app.                 |
 | `POST`   | `/apps/upload`                               | admin         | Install from a `.odd` / `.wp` archive.     |
 | `DELETE` | `/apps/{slug}`                               | admin         | Uninstall an app and delete its files.     |
-| `POST`   | `/apps/{slug}/toggle`                        | admin         | Enable or disable an installed app.        |
+| `POST`   | `/apps/{slug}/toggle`                        | admin         | Enable/disable an installed app or update its desktop/taskbar surfaces. |
 | `GET`    | `/apps/serve/{slug}/{path...}`               | per-app cap   | Serve a file from the app bundle.          |
 | `GET`    | `/apps/icon/{slug}`                          | public        | Serve the app's declared icon file.        |
 | `GET`    | `/apps/catalog`                              | login         | Compat shim — forwards to `/bundles/catalog?type=app`. |
@@ -207,9 +207,11 @@ entry. Idempotent — returns `200` for unknown slugs.
 
 ### `POST /apps/{slug}/toggle`
 
-Enable or disable an installed app. Disabled apps keep their files and
-manifest; their desktop icon, native window, and serve endpoint stop
-working until re-enabled.
+Enable or disable an installed app, or update where it appears in WP
+Desktop Mode. Disabled apps keep their files and manifest; their
+desktop icon, taskbar item, native window, and serve endpoint stop
+working until re-enabled. Surface changes are stored even while an app
+is disabled and take effect on the next Desktop Mode registration pass.
 
 **Auth:** admin
 **Content-Type:** `application/json`
@@ -217,15 +219,23 @@ working until re-enabled.
 **Request body (optional):**
 
 ```json
-{ "enabled": true }
+{
+    "enabled": true,
+    "surfaces": { "desktop": true, "taskbar": false }
+}
 ```
 
 If `enabled` is omitted, the endpoint flips the current state.
+If `surfaces` is present, only the provided keys are changed; missing
+keys keep their current values. Both keys are booleans.
 
 **Response** — `200 OK`:
 
 ```json
-{ "enabled": false }
+{
+    "enabled": false,
+    "surfaces": { "desktop": true, "taskbar": false }
+}
 ```
 
 **Errors:**

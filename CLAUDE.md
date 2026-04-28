@@ -28,7 +28,7 @@ odd/
 │ ├── enqueue.php odd-api, odd, odd-panel, odd-commands script handles
 │ ├── rest.php /odd/v1/prefs (GET+POST)
 │ ├── native-window.php desktop_mode_register_window('odd', …)
-│ ├── starter-pack.php activation cron: installs starter_pack from remote catalog
+│ ├── starter-pack.php inline starter install + retry REST
 │ ├── content/
 │ │ ├── catalog.php wp_remote_get(registry.json) + 12h transient cache
 │ │ ├── scenes.php odd_scene_registry filter from installed bundles
@@ -67,10 +67,11 @@ _tools/
 └── migrate-v3.py one-shot migration script (kept for history)
 
 site/
+├── index.html / styles.css / wild.js marketing site
 └── catalog/v1/ published to odd.regionallyfamous.com by pages.yml
     ├── registry.json
     ├── registry.schema.json
-    ├── bundles/{slug}-{type}-{version}.wp
+    ├── bundles/{type}-{slug}.wp
     └── icons/{slug}.svg
 
 ci/smoke/

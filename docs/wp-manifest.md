@@ -207,7 +207,8 @@ set these in your source `manifest.json` — they'll be overwritten:
 | Field       | Added by                           | Meaning                                       |
 |-------------|------------------------------------|-----------------------------------------------|
 | `installed` | Per-type installer                 | Unix timestamp of the install.                |
-| `enabled`   | Apps-only: `odd_apps_set_enabled`  | Whether the app surfaces in the dock.         |
+| `enabled`   | Apps-only: `odd_apps_set_enabled`  | Whether the app is available to open and serve. |
+| `surfaces`  | Apps-only: `odd_apps_set_surfaces` | User-overridden `{ desktop, taskbar }` launch surfaces. |
 
 These are exposed on `GET /odd/v1/bundles/<slug>` (and the older
 `GET /odd/v1/apps/<slug>`) so the Shop can flag state, but they're

@@ -149,6 +149,12 @@ pixel art) and use `currentColor` everywhere else.
 - Keep stroke widths consistent across the set — the dock lays them
   out at the same px size and mismatched weights read as sloppiness.
 
+First-party catalog sets currently use a larger iOS-style source
+canvas (`viewBox="0 0 1024 1024"`) with the continuous squircle baked
+in. Third-party sets do **not** have to copy that treatment, but if you
+want the same direction see [`_tools/icon-style-guide.md`](../_tools/icon-style-guide.md)
+and keep every SVG below the 64 KB install limit.
+
 ## preview.svg (optional)
 
 If present, the Shop card uses it for the hero thumbnail — otherwise

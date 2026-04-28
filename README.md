@@ -25,8 +25,8 @@ Out of the box:
 
 ### Make the desktop a place you want to open.
 
-- **Pick a wallpaper you actually want to look at.** Close to twenty live scenes — abstract ribbon fields, procedural auroras, rainfall that splashes on your real windows and dock, a tropical greenhouse at golden hour. Every frame drawn fresh. Time-of-day aware. Optionally reacts to your microphone if you let it.
-- **Re-skin the whole desktop.** Seventeen icon packs swap every dock and shortcut icon in one click — Arctic frost blues, Blueprint grids, Claymation, Hologram, Cross-Stitch, Arcade Tokens, and a dozen more. One accent color drives every stroke, so retinting is trivial.
+- **Pick a wallpaper you actually want to look at.** Twenty live scenes — abstract ribbon fields, procedural auroras, rainfall that splashes on your real windows and dock, a tropical greenhouse at golden hour, and the Oddling Desktop starter scene. Every frame drawn fresh. Time-of-day aware. Optionally reacts to your microphone if you let it.
+- **Re-skin the whole desktop.** Eighteen icon packs swap every dock and shortcut icon in one click — Arctic frost blues, Blueprint construction strokes, Claymation, Hologram, Cross-Stitch, Arcade Tokens, Oddlings, and more. The current catalog uses full-color iOS-style SVGs with distinct silhouettes per set, not one recolored glyph system.
 - **Keep little things within reach.** Drop a handwritten sticky note or a Magic 8-Ball onto the desktop and drag them wherever feels right.
 
 ### Try it before you commit.
@@ -56,7 +56,7 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 
 ## Build your own
 
-Anyone can ship a scene, icon set, widget, or app as a single `.wp` file and hand it to an ODD user — they drop it on the Shop and it installs. No companion plugin required.
+Anyone can ship a scene, icon set, widget, or app as a single `.wp` file and hand it to an ODD user — they drop it on the Shop and it installs. No companion plugin required. First-party content lives under `_tools/catalog-sources/` and is published to the remote catalog by GitHub Pages; plugin releases are only for runtime changes.
 
 - [Building an App](docs/building-an-app.md)
 - [Building a Scene](docs/building-a-scene.md)
