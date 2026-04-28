@@ -5,6 +5,11 @@ vendor/
 __pycache__/
 *.pyc
 
+# OS / editor / lint caches
+.DS_Store
+.phpcs-cache
+*.swp
+
 # Local dev scratch
 _tmp/
 
