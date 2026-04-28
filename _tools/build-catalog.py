@@ -252,6 +252,44 @@ def widget_tile(slug: str, label: str) -> str:
             "</svg>\n"
         )
 
+    if slug == "spotify":
+        return (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
+            f'width="1024" height="1024" role="img" aria-label="{label} widget preview">'
+            "<defs>"
+            f'<linearGradient id="bg{uid}" x1="0" y1="0" x2="1" y2="1">'
+            '<stop offset="0" stop-color="#1ed760"/>'
+            '<stop offset=".52" stop-color="#0d3f24"/>'
+            '<stop offset="1" stop-color="#05070a"/>'
+            "</linearGradient>"
+            f'<linearGradient id="card{uid}" x1="0" y1="0" x2="0" y2="1">'
+            '<stop offset="0" stop-color="#20252d"/>'
+            '<stop offset="1" stop-color="#0b0d10"/>'
+            "</linearGradient>"
+            f'<filter id="sh{uid}" x="-20%" y="-20%" width="140%" height="150%">'
+            '<feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#000" flood-opacity=".42"/>'
+            "</filter>"
+            "</defs>"
+            f'<rect width="1024" height="1024" fill="url(#bg{uid})"/>'
+            '<circle cx="174" cy="150" r="220" fill="#fff" opacity=".16"/>'
+            '<circle cx="850" cy="846" r="260" fill="#1ed760" opacity=".18"/>'
+            f'<g filter="url(#sh{uid})" transform="rotate(-5 512 512)">'
+            f'<rect x="202" y="192" width="620" height="640" rx="76" fill="url(#card{uid})"/>'
+            '<rect x="252" y="246" width="520" height="326" rx="46" fill="#1ed760"/>'
+            '<circle cx="512" cy="410" r="122" fill="#0a0d10" opacity=".92"/>'
+            '<path d="M452 344 L452 476 L570 410 Z" fill="#1ed760"/>'
+            '<path d="M300 650 H724" stroke="#f7fff9" stroke-width="30" stroke-linecap="round" opacity=".92"/>'
+            '<path d="M300 718 H646" stroke="#1ed760" stroke-width="28" stroke-linecap="round" opacity=".92"/>'
+            '<path d="M300 786 H568" stroke="#f7fff9" stroke-width="24" stroke-linecap="round" opacity=".42"/>'
+            "</g>"
+            '<g fill="none" stroke="#f7fff9" stroke-linecap="round" opacity=".86">'
+            '<path d="M324 162 C444 102 604 104 716 168" stroke-width="24"/>'
+            '<path d="M366 214 C462 176 574 178 660 226" stroke-width="18" opacity=".72"/>'
+            '<path d="M410 262 C476 240 552 242 612 274" stroke-width="14" opacity=".54"/>'
+            "</g>"
+            "</svg>\n"
+        )
+
     # Generic fallback for future widgets.
     initial = (label or slug).strip()[:1].upper() or "?"
     return (

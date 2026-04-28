@@ -296,7 +296,7 @@ describe( 'spotify widget', () => {
 		expect( embedUrl( r ) ).toBe( 'https://open.spotify.com/embed/track/4iV5W9uYEdYUVa79Axb7Rh?utm_source=odd' );
 	} );
 
-	it( 'mounts into a setup form, accepts a URL, and renders a locked-down iframe', () => {
+	it( 'starts with a default playlist, allows Change + submit to swap embed', () => {
 		const def = captured.find( ( d ) => d.id === 'odd/spotify' );
 		expect( def ).toBeTruthy();
 		const container = document.createElement( 'div' );
@@ -308,6 +308,26 @@ describe( 'spotify widget', () => {
 			restore: () => null,
 		} );
 
+		let iframe = container.querySelector( 'iframe.odd-spotify__iframe' );
+		expect( iframe ).toBeTruthy();
+		expect( iframe.getAttribute( 'src' ) )
+			.toBe( 'https://open.spotify.com/embed/playlist/37i9dQZEVXbLp5XoPON0wI?utm_source=odd' );
+		expect( iframe.getAttribute( 'allow' ) ).toContain( 'encrypted-media' );
+		expect( iframe.getAttribute( 'loading' ) ).toBe( 'lazy' );
+		expect( iframe.getAttribute( 'referrerpolicy' ) ).toBe( 'strict-origin-when-cross-origin' );
+
+		expect( persisted.length ).toBe( 1 );
+		expect( persisted[ 0 ] ).toMatchObject( {
+			type:        'playlist',
+			id:          '37i9dQZEVXbLp5XoPON0wI',
+			originalUrl: 'https://open.spotify.com/playlist/37i9dQZEVXbLp5XoPON0wI',
+		} );
+
+		const change = Array.from( container.querySelectorAll( '.odd-spotify__btn' ) )
+			.find( ( b ) => /change/i.test( b.textContent || '' ) );
+		expect( change ).toBeTruthy();
+		change.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
 		const input = container.querySelector( 'input.odd-spotify__input' );
 		const form  = container.querySelector( 'form.odd-spotify__row' );
 		expect( input ).toBeTruthy();
@@ -316,16 +336,13 @@ describe( 'spotify widget', () => {
 		input.value = 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M';
 		form.dispatchEvent( new Event( 'submit', { bubbles: true, cancelable: true } ) );
 
-		const iframe = container.querySelector( 'iframe.odd-spotify__iframe' );
+		iframe = container.querySelector( 'iframe.odd-spotify__iframe' );
 		expect( iframe ).toBeTruthy();
 		expect( iframe.getAttribute( 'src' ) )
 			.toBe( 'https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=odd' );
-		expect( iframe.getAttribute( 'allow' ) ).toContain( 'encrypted-media' );
-		expect( iframe.getAttribute( 'loading' ) ).toBe( 'lazy' );
-		expect( iframe.getAttribute( 'referrerpolicy' ) ).toBe( 'strict-origin-when-cross-origin' );
 
-		expect( persisted.length ).toBe( 1 );
-		expect( persisted[ 0 ] ).toMatchObject( {
+		expect( persisted.length ).toBe( 2 );
+		expect( persisted[ 1 ] ).toMatchObject( {
 			type:        'playlist',
 			id:          '37i9dQZF1DXcBWIGoYBM5M',
 			originalUrl: 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M',
@@ -339,6 +356,11 @@ describe( 'spotify widget', () => {
 		const container = document.createElement( 'div' );
 		document.body.appendChild( container );
 		def.mount( container, { persist: () => {}, restore: () => null } );
+
+		const change = Array.from( container.querySelectorAll( '.odd-spotify__btn' ) )
+			.find( ( b ) => /change/i.test( b.textContent || '' ) );
+		expect( change ).toBeTruthy();
+		change.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
 		const input = container.querySelector( 'input.odd-spotify__input' );
 		const form  = container.querySelector( 'form.odd-spotify__row' );

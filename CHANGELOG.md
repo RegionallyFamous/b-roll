@@ -16,6 +16,23 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.4"></a>
+## [3.5.4] — 2026-04-28
+
+### Changed
+- **Spotify Embed widget catalog tile** uses a bespoke green “mini-player”
+  storefront SVG instead of the generic letter tile (`build-catalog.py`),
+  regenerated under `site/catalog/v1/icons/`.
+
+### Fixed
+- **Spotify Embed** seeds a default playlist embed on first launch when
+  nothing is persisted yet, so new installs are not staring at an empty
+  paste form.
+- **Add to desktop** on an already-enabled widget removes then re-adds the
+  layer id (`odd/…`) so WP Desktop Mode can remount the tile — fixes cases
+  where the Shop said the Spotify widget was on the desktop but it did not
+  appear.
+
 <a id="v3.5.3"></a>
 ## [3.5.3] — 2026-04-28
 

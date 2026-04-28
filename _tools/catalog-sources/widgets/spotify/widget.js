@@ -91,6 +91,10 @@
 	};
 	var ID_RE = /^[A-Za-z0-9]{16,40}$/;
 
+	/** Default Spotify playlist when nothing is persisted (same playlist as initial catalog embed). */
+	var DEFAULT_EMBED_FALLBACK_PLAYLIST_OPEN_URL =
+		'https://open.spotify.com/playlist/37i9dQZEVXbLp5XoPON0wI';
+
 	function parseSpotifyInput( raw ) {
 		if ( typeof raw !== 'string' ) return null;
 		var trimmed = raw.trim();
@@ -223,6 +227,13 @@
 		if ( restored && typeof restored === 'object' && restored.originalUrl ) {
 			var hydrated = parseSpotifyInput( restored.originalUrl );
 			if ( hydrated ) state.parsed = hydrated;
+		}
+		if ( ! state.parsed ) {
+			var initial = parseSpotifyInput( DEFAULT_EMBED_FALLBACK_PLAYLIST_OPEN_URL );
+			if ( initial ) {
+				state.parsed = initial;
+				persist();
+			}
 		}
 
 		function persist() {

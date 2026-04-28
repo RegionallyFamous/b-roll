@@ -3599,6 +3599,13 @@
 			} catch ( e2 ) { return []; }
 		}
 
+		function normalizeWidgetLayerId( id ) {
+			if ( typeof id !== 'string' || id === '' ) {
+				return id;
+			}
+			return id.indexOf( 'odd/' ) === 0 ? id : ( 'odd/' + id.replace( /^odd\/?/, '' ) );
+		}
+
 		function toggleWidget( id, shouldAdd ) {
 			function notify( msg ) {
 				try {
@@ -3612,11 +3619,27 @@
 				return;
 			}
 			var layer = window.wp.desktop.widgetLayer;
+			var wid = normalizeWidgetLayerId( id );
 			try {
 				if ( shouldAdd && typeof layer.add === 'function' ) {
-					layer.add( id );
+					var ids = enabledWidgetIds();
+					var already = ids.some( function ( x ) {
+						if ( typeof x !== 'string' ) {
+							return false;
+						}
+						if ( x === wid || x === id ) {
+							return true;
+						}
+						return x.replace( /^odd\//, '' ) === wid.replace( /^odd\//, '' );
+					} );
+					if ( already && typeof layer.remove === 'function' ) {
+						try {
+							layer.remove( wid );
+						} catch ( ignored ) {}
+					}
+					layer.add( wid );
 				} else if ( ! shouldAdd && typeof layer.remove === 'function' ) {
-					layer.remove( id );
+					layer.remove( wid );
 				}
 			} catch ( e ) {
 				notify( 'Couldn\'t toggle that widget.' );
