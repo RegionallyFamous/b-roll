@@ -117,4 +117,35 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 
 		$this->assertSame( array(), apply_filters( 'desktop_mode_icons', array() ) );
 	}
+
+	public function test_code_editor_taskbar_icon_matches_themed_desktop_icon() {
+		$config_before = array(
+			'desktopIcons'  => array(
+				array(
+					'id'     => 'wpdc-editor',
+					'window' => 'wpdc-editor',
+					'icon'   => 'themed-code.svg',
+				),
+			),
+			'nativeWindows' => array(
+				array(
+					'id'        => 'wpdc-editor',
+					'title'     => 'Code',
+					'icon'      => 'dashicons-editor-code',
+					'placement' => 'taskbar',
+				),
+				array(
+					'id'        => 'another-window',
+					'title'     => 'Another',
+					'icon'      => 'dashicons-admin-generic',
+					'placement' => 'taskbar',
+				),
+			),
+		);
+
+		$config_after = apply_filters( 'desktop_mode_shell_config', $config_before );
+
+		$this->assertSame( 'themed-code.svg', $config_after['nativeWindows'][0]['icon'] );
+		$this->assertSame( 'dashicons-admin-generic', $config_after['nativeWindows'][1]['icon'] );
+	}
 }

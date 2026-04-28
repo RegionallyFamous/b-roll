@@ -123,3 +123,51 @@ add_filter(
 	},
 	20
 );
+
+/**
+ * Desktop Mode's Code editor is both a desktop shortcut and a native
+ * window with `placement: taskbar`. The desktop shortcut passes
+ * through `desktop_mode_icons`; the taskbar tile is rendered from
+ * `nativeWindows[]`, so mirror the themed desktop icon there.
+ */
+add_filter(
+	'desktop_mode_shell_config',
+	function ( $config ) {
+		if ( ! is_array( $config ) || empty( $config['nativeWindows'] ) || empty( $config['desktopIcons'] ) ) {
+			return $config;
+		}
+
+		$code_icon = '';
+		foreach ( (array) $config['desktopIcons'] as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+			$id     = isset( $entry['id'] ) ? (string) $entry['id'] : '';
+			$window = isset( $entry['window'] ) ? (string) $entry['window'] : '';
+			if ( 'wpdc-editor' !== $id && 'wpdc-editor' !== $window ) {
+				continue;
+			}
+			if ( ! empty( $entry['icon'] ) ) {
+				$code_icon = (string) $entry['icon'];
+				break;
+			}
+		}
+
+		if ( '' === $code_icon ) {
+			return $config;
+		}
+
+		foreach ( $config['nativeWindows'] as $i => $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+			$id = isset( $entry['id'] ) ? (string) $entry['id'] : '';
+			if ( 'wpdc-editor' === $id ) {
+				$config['nativeWindows'][ $i ]['icon'] = $code_icon;
+			}
+		}
+
+		return $config;
+	},
+	30
+);
