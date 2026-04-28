@@ -680,6 +680,19 @@
     },
     {
       "type": "widget",
+      "slug": "spotify",
+      "name": "Spotify Embed",
+      "version": "1.0.0",
+      "author": "Regionally Famous",
+      "description": "Paste a Spotify playlist, album, track, artist, show, or episode URL and Spotify's official player lives on your desktop.",
+      "franchise": "ODD Originals",
+      "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/widget-spotify.svg",
+      "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/widget-spotify.wp",
+      "sha256": "45006983b0a0a29fe09e3a9e2411807196d791d7fd8b8f38b21bb09cb1c90674",
+      "size": 5166
+    },
+    {
+      "type": "widget",
       "slug": "sticky",
       "name": "Sticky Note",
       "version": "1.0.0",

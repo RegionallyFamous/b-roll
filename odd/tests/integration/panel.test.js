@@ -234,6 +234,25 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
+	it( 'searches across departments and renders unified results', () => {
+		window.odd.iconSets = [
+			{ slug: 'filament', label: 'Filament', franchise: 'ODD Defaults', accent: '#ff7a3c', icons: { dashboard: '', fallback: '' } },
+		];
+		const { host, cleanup } = mountPanel();
+
+		const search = host.querySelector( '[data-odd-search]' );
+		search.value = 'filament';
+		search.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+
+		expect( host.querySelector( '.odd-section-header h2' ).textContent.trim() ).toBe( 'Search' );
+		expect( host.querySelector( '[data-odd-shop-card][data-set-slug="filament"]' ) ).toBeTruthy();
+		const shelfTitles = Array.from( host.querySelectorAll( '.odd-shop__shelf-title' ) )
+			.map( ( node ) => node.textContent.trim() );
+		expect( shelfTitles ).toContain( 'Icon Sets' );
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
 	it( 'Widgets department renders unified widget cards with the Add/Active state machine', () => {
 		const calls = installWidgetLayer();
 		const { host, cleanup } = mountPanel();

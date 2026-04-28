@@ -27,6 +27,7 @@ const STICKY_JS    = resolve( WIDGETS_ROOT, 'sticky/widget.js' );
 const STICKY_CSS   = resolve( WIDGETS_ROOT, 'sticky/widget.css' );
 const EIGHTBALL_JS  = resolve( WIDGETS_ROOT, 'eight-ball/widget.js' );
 const EIGHTBALL_CSS = resolve( WIDGETS_ROOT, 'eight-ball/widget.css' );
+const SPOTIFY_JS    = resolve( WIDGETS_ROOT, 'spotify/widget.js' );
 
 function installWpDesktop() {
 	const calls = [];
@@ -72,6 +73,7 @@ function loadWidgets() {
 	for ( const [ js, name ] of [
 		[ STICKY_JS,    'widgets/sticky/widget.js' ],
 		[ EIGHTBALL_JS, 'widgets/eight-ball/widget.js' ],
+		[ SPOTIFY_JS,   'widgets/spotify/widget.js' ],
 	] ) {
 		const src = readFileSync( js, 'utf8' );
 		const fn = new Function( `${ src }\n//# sourceURL=${ name }` );
@@ -95,8 +97,8 @@ describe( 'widgets registration', () => {
 		vi.useRealTimers();
 	} );
 
-	it( 'registers two widgets with required fields', () => {
-		expect( captured.length ).toBe( 2 );
+	it( 'registers three widgets with required fields', () => {
+		expect( captured.length ).toBe( 3 );
 		for ( const def of captured ) {
 			expect( def.id ).toMatch( /^odd\// );
 			expect( typeof def.label ).toBe( 'string' );
@@ -108,7 +110,7 @@ describe( 'widgets registration', () => {
 			expect( def.defaultHeight ).toBeGreaterThanOrEqual( def.minHeight );
 		}
 		const ids = captured.map( ( d ) => d.id ).sort();
-		expect( ids ).toEqual( [ 'odd/eight-ball', 'odd/sticky' ] );
+		expect( ids ).toEqual( [ 'odd/eight-ball', 'odd/spotify', 'odd/sticky' ] );
 	} );
 } );
 
@@ -223,5 +225,159 @@ describe( 'eight-ball widget', () => {
 		const stage = container.querySelector( '.odd-eight__stage' );
 		const stageComputed = window.getComputedStyle( stage );
 		expect( stageComputed.pointerEvents ).not.toBe( 'none' );
+	} );
+} );
+
+describe( 'spotify widget', () => {
+	let captured;
+
+	beforeEach( () => {
+		document.body.innerHTML = '';
+		clearStorage();
+		captured = installWpDesktop();
+		loadWidgets();
+	} );
+
+	it( 'parser accepts every supported open.spotify.com URL shape', () => {
+		const parse = window.__odd.widgets.spotify.parse;
+		const cases = [
+			[ 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M', 'playlist', '37i9dQZF1DXcBWIGoYBM5M' ],
+			[ 'https://open.spotify.com/album/2noRn2Aes5aoNVsU6iWThc',    'album',    '2noRn2Aes5aoNVsU6iWThc' ],
+			[ 'https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh',    'track',    '4iV5W9uYEdYUVa79Axb7Rh' ],
+			[ 'https://open.spotify.com/artist/6qqNVTkY8uBg9cP3Jd7DAH',   'artist',   '6qqNVTkY8uBg9cP3Jd7DAH' ],
+			[ 'https://open.spotify.com/show/4rOoJ6Egrf8K2IrywzwOMk',     'show',     '4rOoJ6Egrf8K2IrywzwOMk' ],
+			[ 'https://open.spotify.com/episode/7makk4oTQel546B0PZlDM5', 'episode',  '7makk4oTQel546B0PZlDM5' ],
+			[ 'https://open.spotify.com/intl-en/track/4iV5W9uYEdYUVa79Axb7Rh', 'track', '4iV5W9uYEdYUVa79Axb7Rh' ],
+			[ 'https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M', 'playlist', '37i9dQZF1DXcBWIGoYBM5M' ],
+			[ '  https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=abc#x ', 'playlist', '37i9dQZF1DXcBWIGoYBM5M' ],
+		];
+		for ( const [ input, type, id ] of cases ) {
+			const r = parse( input );
+			expect( r, `failed to parse ${ input }` ).toBeTruthy();
+			expect( r.type ).toBe( type );
+			expect( r.id ).toBe( id );
+			expect( r.openUrl ).toBe( `https://open.spotify.com/${ type }/${ id }` );
+		}
+	} );
+
+	it( 'parser accepts spotify: URIs', () => {
+		const parse = window.__odd.widgets.spotify.parse;
+		const r = parse( 'spotify:playlist:37i9dQZF1DXcBWIGoYBM5M' );
+		expect( r ).toBeTruthy();
+		expect( r.type ).toBe( 'playlist' );
+		expect( r.id ).toBe( '37i9dQZF1DXcBWIGoYBM5M' );
+		expect( r.originalUrl ).toBe( 'spotify:playlist:37i9dQZF1DXcBWIGoYBM5M' );
+	} );
+
+	it( 'parser rejects HTML, javascript: URLs, and non-Spotify hosts', () => {
+		const parse = window.__odd.widgets.spotify.parse;
+		const bad = [
+			'',
+			'   ',
+			'not a url',
+			'<iframe src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M"></iframe>',
+			'javascript:alert(1)',
+			'https://evil.com/playlist/37i9dQZF1DXcBWIGoYBM5M',
+			'https://open.spotify.com/user/foo',
+			'https://open.spotify.com/playlist/!!!',
+			'spotify:user:foo',
+			'https://open.spotify.com/playlist/',
+			'spotify:playlist:',
+			'https://spotify.link/AbCdEf',
+		];
+		for ( const input of bad ) {
+			expect( parse( input ), `leaked: ${ JSON.stringify( input ) }` ).toBeNull();
+		}
+	} );
+
+	it( 'embedUrl builds the official Spotify embed URL', () => {
+		const { parse, embedUrl } = window.__odd.widgets.spotify;
+		const r = parse( 'https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh' );
+		expect( embedUrl( r ) ).toBe( 'https://open.spotify.com/embed/track/4iV5W9uYEdYUVa79Axb7Rh?utm_source=odd' );
+	} );
+
+	it( 'mounts into a setup form, accepts a URL, and renders a locked-down iframe', () => {
+		const def = captured.find( ( d ) => d.id === 'odd/spotify' );
+		expect( def ).toBeTruthy();
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+
+		const persisted = [];
+		const cleanup = def.mount( container, {
+			persist: ( v ) => { persisted.push( v ); },
+			restore: () => null,
+		} );
+
+		const input = container.querySelector( 'input.odd-spotify__input' );
+		const form  = container.querySelector( 'form.odd-spotify__row' );
+		expect( input ).toBeTruthy();
+		expect( form ).toBeTruthy();
+
+		input.value = 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M';
+		form.dispatchEvent( new Event( 'submit', { bubbles: true, cancelable: true } ) );
+
+		const iframe = container.querySelector( 'iframe.odd-spotify__iframe' );
+		expect( iframe ).toBeTruthy();
+		expect( iframe.getAttribute( 'src' ) )
+			.toBe( 'https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=odd' );
+		expect( iframe.getAttribute( 'allow' ) ).toContain( 'encrypted-media' );
+		expect( iframe.getAttribute( 'loading' ) ).toBe( 'lazy' );
+		expect( iframe.getAttribute( 'referrerpolicy' ) ).toBe( 'strict-origin-when-cross-origin' );
+
+		expect( persisted.length ).toBe( 1 );
+		expect( persisted[ 0 ] ).toMatchObject( {
+			type:        'playlist',
+			id:          '37i9dQZF1DXcBWIGoYBM5M',
+			originalUrl: 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M',
+		} );
+
+		cleanup();
+	} );
+
+	it( 'surfaces an error and stays in setup state when input is invalid', () => {
+		const def = captured.find( ( d ) => d.id === 'odd/spotify' );
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		def.mount( container, { persist: () => {}, restore: () => null } );
+
+		const input = container.querySelector( 'input.odd-spotify__input' );
+		const form  = container.querySelector( 'form.odd-spotify__row' );
+		input.value = 'https://evil.com/playlist/whatever';
+		form.dispatchEvent( new Event( 'submit', { bubbles: true, cancelable: true } ) );
+
+		expect( container.querySelector( 'iframe.odd-spotify__iframe' ) ).toBeNull();
+		const err = container.querySelector( '.odd-spotify__error' );
+		expect( err.textContent.length ).toBeGreaterThan( 0 );
+	} );
+
+	it( 'restores persisted state on re-mount and Clear wipes it back to setup', () => {
+		const def = captured.find( ( d ) => d.id === 'odd/spotify' );
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+
+		let stored = {
+			type:        'track',
+			id:          '4iV5W9uYEdYUVa79Axb7Rh',
+			originalUrl: 'https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh',
+			updatedAt:   1,
+		};
+		def.mount( container, {
+			persist: ( v ) => { stored = v; },
+			restore: () => stored,
+		} );
+
+		const iframe = container.querySelector( 'iframe.odd-spotify__iframe' );
+		expect( iframe ).toBeTruthy();
+		expect( iframe.getAttribute( 'src' ) )
+			.toBe( 'https://open.spotify.com/embed/track/4iV5W9uYEdYUVa79Axb7Rh?utm_source=odd' );
+
+		const clear = Array.from( container.querySelectorAll( '.odd-spotify__btn' ) )
+			.find( ( b ) => /clear/i.test( b.textContent || '' ) );
+		expect( clear ).toBeTruthy();
+		clear.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		expect( stored ).toBeNull();
+		expect( container.querySelector( 'iframe.odd-spotify__iframe' ) ).toBeNull();
+		expect( container.querySelector( 'input.odd-spotify__input' ) ).toBeTruthy();
 	} );
 } );

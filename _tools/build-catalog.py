@@ -159,10 +159,11 @@ def sha256_file(path: Path) -> str:
 #
 # Every catalog row needs an SVG tile. For scenes we derive one from
 # the fallbackColor + slug label (no external dependencies). For
-# icon-sets we compose a full-bleed preview from the set's own SVGs so
-# the Shop can use it as large catalog artwork without transparent app-
-# icon corners. For widgets we hand-author a tile. For apps we copy the
-# .wp bundle's icon.svg alongside.
+# icon-sets we compose a full-bleed preview from the set's own SVGs on
+# a shared dark stage. The individual icon backgrounds are stripped in
+# that preview so sets compare by glyph treatment instead of by a stack
+# of mismatched coloured plates. For widgets we hand-author a tile. For
+# apps we copy the .wp bundle's icon.svg alongside.
 # ---------------------------------------------------------------- #
 
 
@@ -267,12 +268,9 @@ def widget_tile(slug: str, label: str) -> str:
 def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[str, str]) -> str:
     """Compose a full-bleed catalog preview for an icon set.
 
-    The individual set SVGs are iOS-style squircles with transparent
-    corners. That is perfect for dock icons, but terrible as the large
-    Shop catalog image: the transparent corners show the card's dark
-    fallback background. Instead, build a deterministic 1024x1024
-    preview with a real background and four oversized icons that bleed
-    toward the edges.
+    The individual set SVGs are iOS-style squircles. That works for the
+    dock, but the Shop reads better when every set shares the same dark
+    stage and the preview compares only the glyph language.
     """
 
     ET.register_namespace("", "http://www.w3.org/2000/svg")
@@ -296,21 +294,32 @@ def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[
         return "#" + "".join(f"{v:02x}" for v in out)
 
     accent = safe_hex(accent)
-    bg1 = mix(accent, "#ffffff", 0.78)
-    bg2 = mix(accent, "#0c0a1d", 0.22)
+    glow = mix(accent, "#ffffff", 0.18)
     uid = re.sub(r"[^a-z0-9]+", "", slug.lower())
 
+    def strip_preview_background(root: ET.Element) -> None:
+        for group in root.iter():
+            if group.attrib.get("clip-path") != "url(#sq)":
+                continue
+            for child in list(group):
+                tag = child.tag.rsplit("}", 1)[-1]
+                if tag != "rect":
+                    continue
+                if child.attrib.get("width") == "1024" and child.attrib.get("height") == "1024":
+                    group.remove(child)
+
     placements = [
-        ("dashboard", -92, -56, 560, -5),
-        ("posts", 556, -56, 560, 4),
-        ("pages", -92, 552, 560, 4),
-        ("media", 556, 552, 560, -5),
+        ("dashboard", -92, -92, 560, -5),
+        ("posts", 556, -92, 560, 4),
+        ("pages", -92, 556, 560, 4),
+        ("media", 556, 556, 560, -5),
     ]
     snippets: list[str] = []
     for key, x, y, size, rot in placements:
         rel = icons.get(key) or icons.get("dashboard") or next(iter(icons.values()))
         svg_path = src_dir / rel
         root = ET.fromstring(svg_path.read_bytes())
+        strip_preview_background(root)
         root.set("x", str(x))
         root.set("y", str(y))
         root.set("width", str(size))
@@ -330,15 +339,21 @@ def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
         f'width="1024" height="1024" role="img" aria-label="{label} icon set preview">'
         "<defs>"
-        f'<linearGradient id="bg{uid}" x1="0" y1="0" x2="1" y2="1">'
-        f'<stop offset="0" stop-color="{bg1}"/>'
-        f'<stop offset="1" stop-color="{bg2}"/>'
-        "</linearGradient>"
+        f'<radialGradient id="glow{uid}" cx=".28" cy=".18" r=".72">'
+        f'<stop offset="0" stop-color="{glow}" stop-opacity=".32"/>'
+        f'<stop offset=".58" stop-color="{accent}" stop-opacity=".08"/>'
+        f'<stop offset="1" stop-color="{accent}" stop-opacity="0"/>'
+        "</radialGradient>"
+        f'<filter id="lift{uid}" x="-30%" y="-30%" width="160%" height="160%">'
+        '<feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#000" flood-opacity=".52"/>'
+        '<feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#fff" flood-opacity=".13"/>'
+        "</filter>"
         "</defs>"
-        f'<rect width="1024" height="1024" fill="url(#bg{uid})"/>'
-        f'<circle cx="128" cy="120" r="210" fill="#fff" opacity=".24"/>'
-        f'<circle cx="918" cy="884" r="260" fill="{accent}" opacity=".20"/>'
+        '<rect width="1024" height="1024" fill="#080511"/>'
+        f'<rect width="1024" height="1024" fill="url(#glow{uid})"/>'
+        f'<g filter="url(#lift{uid})">'
         + "".join(snippets)
+        + "</g>"
         + "</svg>\n"
     )
 

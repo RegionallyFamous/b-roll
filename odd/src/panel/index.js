@@ -104,28 +104,23 @@
 		brandWrap.appendChild( brandText );
 		topbar.appendChild( brandWrap );
 
-		// Search field — filters the current department's shelves in
-		// place (no REST call; pure client-side title/franchise match).
-		// Mirrors the App Store's "Search" pill but doesn't try to be
-		// a global search — cross-department search would need its own
-		// result surface and is a v2 problem.
+		// Search field — global client-side search across every Shop
+		// department. It merges installed content and catalog rows into
+		// one result surface so the user doesn't have to guess which tab
+		// owns a scene, app, icon set, or widget.
 		var searchWrap = el( 'label', { class: 'odd-shop__search', 'aria-label': __( 'Search' ) } );
 		var searchGlyph = el( 'span', { class: 'odd-shop__search-glyph', 'aria-hidden': 'true' } );
 		searchGlyph.textContent = '⌕';
 		var searchInput = el( 'input', {
 			type: 'search',
 			class: 'odd-shop__search-input',
-			placeholder: __( 'Search wallpapers, icons, apps…' ),
+			placeholder: __( 'Search wallpapers, icons, widgets, apps…' ),
 			'data-odd-search': '1',
 		} );
 		searchInput.addEventListener( 'input', function () {
 			state.query = searchInput.value || '';
-			// Only re-render when the current department actually
-			// pays attention to the filter, so typing never churns
-			// the About hero or the Apps uploader.
-			if ( state.active === 'wallpaper' || state.active === 'icons' ) {
-				renderSection( state.active, { keepQuery: true } );
-			}
+			if ( state.query ) playShopSound( 'search' );
+			renderSection( state.active, { keepQuery: true } );
 		} );
 		searchWrap.appendChild( searchGlyph );
 		searchWrap.appendChild( searchInput );
@@ -167,13 +162,100 @@
 			//     reloadOnCommit: bool              // iconSet only
 			//   }
 			preview:       null,
-			// Live client-side filter. Threaded into wallpaper +
-			// icons rendering; cleared on department switch unless
-			// the caller passes `keepQuery: true` (e.g. the search
-			// field re-rendering its own tab).
+			// Live global search query. Cleared on department switch
+			// unless the caller passes `keepQuery: true` (e.g. the
+			// search field re-rendering its result surface).
 			query:         '',
+			shopSounds:    loadShopSoundsSetting(),
 		};
 		var buttons = {};
+		var shopSfx = { ctx: null, last: {} };
+
+		function playShopSound( kind ) {
+			try {
+				if ( ! state.shopSounds ) return;
+				var AudioCtor = window.AudioContext || window.webkitAudioContext;
+				if ( ! AudioCtor ) return;
+				var nowMs = Date.now();
+				var minGap = kind === 'search' ? 85 : 45;
+				if ( shopSfx.last[ kind ] && nowMs - shopSfx.last[ kind ] < minGap ) return;
+				shopSfx.last[ kind ] = nowMs;
+
+				var ctx = shopSfx.ctx || ( shopSfx.ctx = new AudioCtor() );
+				if ( ctx.state === 'suspended' && typeof ctx.resume === 'function' ) {
+					ctx.resume();
+				}
+
+				var t = ctx.currentTime;
+				var master = ctx.createGain();
+				master.gain.setValueAtTime( 0.0001, t );
+				master.gain.exponentialRampToValueAtTime( soundVolume( kind ), t + 0.012 );
+				master.gain.exponentialRampToValueAtTime( 0.0001, t + soundDuration( kind ) );
+				master.connect( ctx.destination );
+
+				soundNotes( kind ).forEach( function ( note ) {
+					var osc = ctx.createOscillator();
+					var gain = ctx.createGain();
+					var start = t + ( note.delay || 0 );
+					var end = start + ( note.length || 0.07 );
+					osc.type = note.type || 'sine';
+					osc.frequency.setValueAtTime( note.freq, start );
+					if ( note.to ) osc.frequency.exponentialRampToValueAtTime( note.to, end );
+					gain.gain.setValueAtTime( 0.0001, start );
+					gain.gain.exponentialRampToValueAtTime( note.level || 0.75, start + 0.01 );
+					gain.gain.exponentialRampToValueAtTime( 0.0001, end );
+					osc.connect( gain );
+					gain.connect( master );
+					osc.start( start );
+					osc.stop( end + 0.02 );
+				} );
+			} catch ( e ) {}
+		}
+
+		function loadShopSoundsSetting() {
+			try {
+				return window.localStorage.getItem( 'odd.shopSounds' ) !== '0';
+			} catch ( e ) {
+				return true;
+			}
+		}
+
+		function saveShopSoundsSetting( enabled ) {
+			state.shopSounds = !! enabled;
+			try {
+				window.localStorage.setItem( 'odd.shopSounds', enabled ? '1' : '0' );
+			} catch ( e ) {}
+		}
+
+		function soundVolume( kind ) {
+			switch ( kind ) {
+				case 'error':   return 0.020;
+				case 'success': return 0.026;
+				case 'install': return 0.020;
+				default:        return 0.016;
+			}
+		}
+
+		function soundDuration( kind ) {
+			switch ( kind ) {
+				case 'success': return 0.32;
+				case 'error':   return 0.24;
+				case 'install': return 0.22;
+				default:        return 0.16;
+			}
+		}
+
+		function soundNotes( kind ) {
+			switch ( kind ) {
+				case 'nav':     return [ { freq: 420, to: 560, length: 0.055, type: 'triangle' } ];
+				case 'search':  return [ { freq: 760, to: 910, length: 0.035, type: 'sine', level: 0.45 } ];
+				case 'preview': return [ { freq: 520, length: 0.055, type: 'sine' }, { freq: 780, delay: 0.045, length: 0.07, type: 'sine', level: 0.55 } ];
+				case 'install': return [ { freq: 260, to: 390, length: 0.12, type: 'triangle' }, { freq: 520, delay: 0.07, length: 0.09, type: 'sine', level: 0.45 } ];
+				case 'success': return [ { freq: 523.25, length: 0.08, type: 'sine' }, { freq: 659.25, delay: 0.07, length: 0.08, type: 'sine' }, { freq: 880, delay: 0.14, length: 0.12, type: 'sine', level: 0.6 } ];
+				case 'error':   return [ { freq: 220, to: 164.81, length: 0.13, type: 'triangle' }, { freq: 185, delay: 0.07, length: 0.11, type: 'triangle', level: 0.5 } ];
+				default:        return [ { freq: 480, length: 0.055, type: 'sine' } ];
+			}
+		}
 
 		SECTIONS.forEach( function ( section ) {
 			// Skip gated sections (e.g. Apps) until their feature flag
@@ -199,7 +281,10 @@
 			}
 			btn.appendChild( glyph );
 			btn.appendChild( labelWrap );
-			btn.addEventListener( 'click', function () { renderSection( section.id ); } );
+			btn.addEventListener( 'click', function () {
+				if ( state.active !== section.id ) playShopSound( 'nav' );
+				renderSection( section.id );
+			} );
 			buttons[ section.id ] = btn;
 			sidebar.appendChild( btn );
 		} );
@@ -275,7 +360,9 @@
 				}
 			}
 			content.innerHTML = '';
-			if ( id === 'wallpaper' ) {
+			if ( state.query && String( state.query ).trim() ) {
+				content.appendChild( renderGlobalSearch() );
+			} else if ( id === 'wallpaper' ) {
 				content.appendChild( renderWallpaper() );
 			} else if ( id === 'icons' ) {
 				content.appendChild( renderIcons() );
@@ -730,6 +817,8 @@
 			if ( ! rail ) return;
 			rail.textContent = msg || '';
 			rail.className = 'odd-apps-status' + ( kind ? ' is-' + kind : '' );
+			if ( kind === 'ok' ) playShopSound( 'success' );
+			if ( kind === 'error' ) playShopSound( 'error' );
 		}
 
 		function installFile( file, wrap ) {
@@ -936,6 +1025,7 @@
 		function onInstallSuccessReload( data, type, slug, name ) {
 			var noun = NOUN_FOR_TYPE[ type ] || 'bundle';
 			rememberJustInstalled( { type: type, slug: slug, name: name } );
+			playShopSound( 'success' );
 			toast( 'Installed ' + noun + ' "' + name + '". Refreshing…' );
 			setTimeout( function () {
 				try { window.location.reload(); } catch ( e ) {}
@@ -966,6 +1056,7 @@
 			}
 			spliceInstalledRow( type, slug, row, data && data.manifest );
 			state.justInstalled = { type: type, slug: slug, name: name, at: Date.now() };
+			playShopSound( 'success' );
 			toast( message || ( 'Installed ' + noun + ' "' + name + '".' ) );
 			renderSection( DEPT_FOR_TYPE[ type ] || state.active, { keepQuery: true } );
 		}
@@ -989,6 +1080,7 @@
 			loadBundleScript( 'widget', slug, entryUrl ).then( function () {
 				spliceInstalledRow( 'widget', slug, row || { id: 'odd/' + slug, slug: slug, label: name, installed: true }, data && data.manifest );
 				state.justInstalled = { type: 'widget', slug: slug, name: name, at: Date.now() };
+				playShopSound( 'success' );
 				toast( 'Installed widget "' + name + '". Added to your widget shelf.' );
 				renderSection( 'widgets', { keepQuery: true } );
 			} ).catch( function () {
@@ -1130,6 +1222,7 @@
 			function proceed() {
 				state.posting = true;
 				setInstallPillState( true, 'Installing ' + file.name + '…' );
+				playShopSound( 'install' );
 				toast( 'Installing ' + file.name + '…' );
 
 				uploadBundle( file ).then( function ( res ) {
@@ -1154,7 +1247,7 @@
 
 			if ( mightExecJs ) {
 				confirmJavaScriptInline( 'scene', function ( ok ) {
-					if ( ! ok ) { toast( 'Install cancelled.' ); return; }
+					if ( ! ok ) { playShopSound( 'error' ); toast( 'Install cancelled.' ); return; }
 					proceed();
 				} );
 				return;
@@ -1169,6 +1262,7 @@
 				code = 'install_failed';
 			}
 			var message = errorCopy( code, data.message || ( res && res.message ) );
+			playShopSound( 'error' );
 			toast( message );
 
 			// Leave a breadcrumb on the Apps status rail when the
@@ -1452,6 +1546,7 @@
 		 * for icon sets) is identical regardless of install source.
 		 */
 		function installFromBundleCatalog( row, btn ) {
+			playShopSound( 'install' );
 			if ( btn ) {
 				btn.disabled = true;
 				btn.textContent = 'Installing…';
@@ -1485,6 +1580,7 @@
 				}
 			} ).catch( function ( err ) {
 				reportError( 'bundles.install-from-catalog', err );
+				playShopSound( 'error' );
 				toast( ( err && err.message ) || 'Network error while installing.' );
 				if ( btn ) {
 					btn.disabled = false;
@@ -1735,6 +1831,29 @@
 				} );
 			} );
 
+			// Shop sound effects — local browser preference for the
+			// tiny UI chimes generated by this panel. It intentionally
+			// does not touch the wallpaper audio-reactive setting above.
+			var sfxRow = el( 'label', { class: 'odd-setting-card odd-setting-card--shop-sounds odd-switch-row' } );
+			var sfxBox = el( 'input', { type: 'checkbox' } );
+			sfxBox.checked = !! state.shopSounds;
+			var sfxKnob = el( 'span', { class: 'odd-switch' } );
+			var sfxText = el( 'span', { class: 'odd-setting-card__text' } );
+			var sfxLbl = el( 'strong' );
+			sfxLbl.textContent = __( 'Shop sound effects' );
+			var sfxHint = el( 'span' );
+			sfxHint.textContent = __( 'Play soft clicks and chimes while browsing the ODD Shop.' );
+			sfxText.appendChild( sfxLbl );
+			sfxText.appendChild( sfxHint );
+			sfxRow.appendChild( sfxBox );
+			sfxRow.appendChild( sfxKnob );
+			sfxRow.appendChild( sfxText );
+			settings.appendChild( sfxRow );
+			sfxBox.addEventListener( 'change', function () {
+				saveShopSoundsSetting( sfxBox.checked );
+				if ( sfxBox.checked ) playShopSound( 'success' );
+			} );
+
 			// ODD Shop taskbar launcher — Desktop Mode reads native
 			// window placement during boot, so changes need a soft
 			// reload before the taskbar item appears/disappears.
@@ -1931,6 +2050,7 @@
 			  .catch( function () { return null; } );
 		}
 		function openAppWindow( slug ) {
+			playShopSound( 'nav' );
 			// Single-window contract: open through the host's window
 			// registry so re-clicks raise the existing window instead
 			// of spawning duplicates.
@@ -2121,6 +2241,89 @@
 			return wrap;
 		}
 
+		function renderGlobalSearch() {
+			var query = String( state.query || '' ).trim();
+			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--search' } );
+			wrap.appendChild( sectionHeader(
+				'Search',
+				query
+					? 'Results from every department in one place.'
+					: 'Search wallpapers, icon sets, widgets, and apps.',
+				{ eyebrow: 'ODD · All Departments' }
+			) );
+
+			var allRows = collectSearchRows();
+			var matches = filterByQuery( allRows, query );
+
+			if ( ! matches.length ) {
+				wrap.appendChild( renderEmptyResults( 'No Shop results match "' + query + '".' ) );
+				return wrap;
+			}
+
+			var summary = el( 'div', { class: 'odd-shop__search-summary', role: 'status' } );
+			summary.textContent = matches.length + ' result' + ( matches.length === 1 ? '' : 's' ) + ' for "' + query + '"';
+			wrap.appendChild( summary );
+
+			searchGroups().forEach( function ( group ) {
+				var rows = matches.filter( function ( row ) { return row.type === group.type; } );
+				if ( ! rows.length ) return;
+				var shelf = el( 'section', { class: 'odd-shop__shelf odd-shop__shelf--search' } );
+				var head = el( 'div', { class: 'odd-shop__shelf-head' } );
+				var title = el( 'h3', { class: 'odd-shop__shelf-title' } );
+				title.textContent = group.label;
+				var count = el( 'span', { class: 'odd-shop__shelf-count' } );
+				count.textContent = rows.length + ' ' + ( rows.length === 1 ? group.singular : group.plural );
+				head.appendChild( title );
+				head.appendChild( count );
+				shelf.appendChild( head );
+
+				var grid = el( 'div', { class: 'odd-shop__grid odd-shop__grid--search odd-shop__grid--' + group.type } );
+				rows.forEach( function ( row ) {
+					var card = renderSearchResultCard( row );
+					if ( card ) grid.appendChild( card );
+				} );
+				shelf.appendChild( grid );
+				wrap.appendChild( shelf );
+			} );
+
+			return wrap;
+		}
+
+		function searchGroups() {
+			return [
+				{ type: 'scene',    label: 'Wallpapers', singular: 'scene',    plural: 'scenes' },
+				{ type: 'icon-set', label: 'Icon Sets',  singular: 'set',      plural: 'sets' },
+				{ type: 'widget',   label: 'Widgets',    singular: 'widget',   plural: 'widgets' },
+				{ type: 'app',      label: 'Apps',       singular: 'app',      plural: 'apps' },
+			];
+		}
+
+		function collectSearchRows() {
+			var rows = [];
+			searchGroups().forEach( function ( group ) {
+				rows = rows.concat( shopRowsFor( group.type ) );
+			} );
+			return rows;
+		}
+
+		function renderSearchResultCard( row ) {
+			var card = renderShopCard( row );
+			if ( ! card ) return null;
+			if ( row.type === 'icon-set' ) {
+				var inner = card.querySelector( '.odd-shop__card' );
+				if ( inner ) {
+					inner.classList.add( 'odd-catalog-row--iconset' );
+					inner.setAttribute( 'data-slug', row.slug );
+				}
+				card.classList.add( 'odd-catalog-row--iconset-wrap' );
+			}
+			if ( row.type === 'app' ) {
+				card.classList.add( 'odd-card--app' );
+				card.setAttribute( 'data-app-slug', row.slug );
+			}
+			return card;
+		}
+
 		/**
 		 * Empty-state card shown at the top of a department when the
 		 * user has zero bundles of that type installed. On a fresh
@@ -2161,9 +2364,17 @@
 				if ( ! item ) return false;
 				var hay = [
 					item.label,
+					item.name,
 					item.slug,
+					item.type,
+					item.subtitle,
 					item.franchise,
 					item.description,
+					item.version,
+					item.raw && item.raw.label,
+					item.raw && item.raw.name,
+					item.raw && item.raw.type,
+					item.raw && item.raw.description,
 				].filter( Boolean ).join( ' ' ).toLowerCase();
 				if ( hay.indexOf( q ) >= 0 ) return true;
 				if ( Array.isArray( item.tags ) ) {
@@ -2720,6 +2931,7 @@
 
 		function previewScene( slug ) {
 			if ( state.posting ) return;
+			playShopSound( 'preview' );
 
 			// First click starts a preview; subsequent clicks on other
 			// cards just swap the preview target without changing the
@@ -2817,6 +3029,7 @@
 					state.cfg.scene    = data.wallpaper;
 				}
 				state.preview = null;
+				playShopSound( 'success' );
 				redecorateSceneGrid();
 				renderPreviewBar();
 			} );
@@ -2824,6 +3037,7 @@
 
 		function cancelPreview() {
 			if ( ! state.preview ) return;
+			playShopSound( 'nav' );
 			if ( state.preview.kind === 'wallpaper' ) {
 				pickSceneLive( state.preview.originalSlug );
 			} else if ( state.preview.kind === 'iconSet' ) {
@@ -3088,6 +3302,7 @@
 
 		function previewIconSet( slug ) {
 			if ( state.posting ) return;
+			playShopSound( 'preview' );
 
 			var isNone  = ( slug === 'none' || slug === '' );
 			var current = state.cfg.iconSet || '';
@@ -3201,6 +3416,7 @@
 					state.cfg.iconSet = data.iconSet;
 				}
 				state.preview = null;
+				playShopSound( 'success' );
 				if ( reload ) {
 					setTimeout( function () {
 						try { window.location.reload(); } catch ( e ) {}
@@ -4053,6 +4269,7 @@
 						// keeps the Apps status rail + toast copy).
 						var originalLabel = btn ? btn.textContent : 'Install';
 						if ( btn ) { btn.disabled = true; btn.textContent = 'Installing…'; }
+						playShopSound( 'install' );
 						toast( 'Installing ' + row.name + '…' );
 						installFromCatalog( row.slug ).then( function ( res ) {
 							if ( res && res.ok && res.data && res.data.installed ) {
@@ -4060,6 +4277,7 @@
 								return;
 							}
 							if ( btn ) { btn.disabled = false; btn.textContent = originalLabel; }
+							playShopSound( 'error' );
 							toast( ( res && res.message ) || 'Install failed.' );
 						} );
 					} else {
@@ -4071,6 +4289,7 @@
 					if ( row.type === 'icon-set' ) { previewIconSet( row.slug );  break; }
 					break;
 				case 'add':
+					playShopSound( 'success' );
 					toggleWidget( 'odd/' + row.slug, true );
 					break;
 				case 'open':
@@ -4089,10 +4308,9 @@
 		//
 		//  - scene    → full-bleed preview.webp
 		//  - icon-set → 2×2 quartet of the canonical dashboard/posts/
-		//               pages/media icons on the set's accent-tinted
-		//               background (mirrors the iOS springboard vibe
-		//               the icon sets themselves go for — squircle
-		//               icons arranged on a coloured plate)
+		//               pages/media icons on the shared dark Shop
+		//               surface, so sets compare by glyph language
+		//               instead of competing background colours
 		//  - widget   → gradient plate with the widget's glyph
 		//  - app      → square app icon centered on a soft plate
 		function renderShopCardArt( row ) {
@@ -4118,7 +4336,6 @@
 			}
 
 			if ( row.type === 'icon-set' ) {
-				if ( row.accent ) art.style.background = row.accent;
 				if ( row.icons ) {
 					var quartet = el( 'div', { class: 'odd-shop__card-quartet' } );
 					var keys = [ 'dashboard', 'posts', 'pages', 'media' ].filter( function ( k ) { return row.icons[ k ]; } );

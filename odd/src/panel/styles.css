@@ -262,7 +262,7 @@
 .odd-panel.odd-shop .odd-shop__hero-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 .odd-panel.odd-shop .odd-shop__hero-btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.01em;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,background .16s ease,border-color .16s ease}
 .odd-panel.odd-shop .odd-shop__hero-btn--primary{background:#fff;color:#1d1d1f;box-shadow:0 8px 20px -14px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.5) inset}
-.odd-panel.odd-shop .odd-shop__hero-btn--primary:hover{transform:translateY(-1px);box-shadow:0 14px 28px -14px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.6) inset}
+.odd-panel.odd-shop .odd-shop__hero-btn--primary:hover{background:linear-gradient(180deg,#fffaf2 0%,#fff2d9 100%);color:#7c2d12;transform:translateY(-1px);box-shadow:0 14px 28px -14px rgba(0,0,0,.55),0 0 0 1px rgba(245,158,11,.35) inset,0 1px 0 rgba(255,255,255,.75) inset}
 .odd-panel.odd-shop .odd-shop__hero-btn--primary:active{transform:translateY(0)}
 .odd-panel.odd-shop .odd-shop__hero-btn--ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.38);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .odd-panel.odd-shop .odd-shop__hero-btn--ghost:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.55);transform:translateY(-1px)}
@@ -395,6 +395,10 @@
 .odd-panel.odd-shop .odd-shop__empty-icon{font-size:34px;line-height:1;margin-bottom:14px;opacity:.75}
 .odd-panel.odd-shop .odd-shop__empty-title{font-size:17px;font-weight:700;color:var(--odd-shop-ink);margin-bottom:6px;letter-spacing:-.01em}
 .odd-panel.odd-shop .odd-shop__empty-sub{font-size:13px;max-width:34ch;margin:0 auto}
+.odd-panel.odd-shop .odd-shop__dept--search{padding-bottom:36px}
+.odd-panel.odd-shop .odd-shop__search-summary{display:inline-flex;align-items:center;margin:-10px 0 22px;padding:6px 12px;border-radius:999px;background:rgba(60,60,67,.08);color:var(--odd-shop-ink-2);font-size:12px;font-weight:700;letter-spacing:.01em}
+.odd-panel.odd-shop .odd-shop__shelf--search{margin-bottom:34px}
+.odd-panel.odd-shop .odd-shop__grid--search{grid-template-columns:repeat(auto-fill,minmax(172px,1fr))}
 
 /* Legacy card + catalog rows inherit the old styling when
 * they surface outside a shelf (About hero, Apps section). */
@@ -621,15 +625,15 @@
 .odd-panel .odd-shop__card--scene .odd-shop__card-art{aspect-ratio:16/10;border-radius:0}
 .odd-panel .odd-shop__card--app .odd-shop__card-art{aspect-ratio:1/1}
 .odd-panel .odd-shop__card--app .odd-shop__card-art > img{padding:10%;object-fit:contain;background:transparent}
-.odd-panel .odd-shop__card--icon-set .odd-shop__card-art{background:linear-gradient(135deg,#1d1640 0%,#0c0a1d 100%)}
+.odd-panel .odd-shop__card--icon-set .odd-shop__card-art{background:radial-gradient(120% 90% at 28% 18%,rgba(88,86,214,.36) 0%,rgba(88,86,214,0) 52%),linear-gradient(135deg,#171126 0%,#080511 100%)}
 /* Icon-set art: when we fall back to a single thumbnail (`icon_url`
  * from the remote catalog) the image is a square icon, not a full-
  * bleed preview, so contain it and pad it like an app tile rather
  * than cover-cropping it. The quartet path already lays out four
  * mini icons inside the same art region. */
 .odd-panel .odd-shop__card--icon-set .odd-shop__card-art > img.odd-shop__card-art-fill{padding:0;object-fit:cover;background:transparent}
-.odd-panel .odd-shop__card-quartet{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8%;width:70%;aspect-ratio:1/1}
-.odd-panel .odd-shop__card-quartet > img{width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,.92);border-radius:22.5%;padding:12%;box-shadow:0 6px 12px -6px rgba(0,0,0,.35)}
+.odd-panel .odd-shop__card-quartet{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;width:72%;aspect-ratio:1/1}
+.odd-panel .odd-shop__card-quartet > img{width:100%;height:100%;object-fit:contain;background:transparent;border-radius:0;padding:0;filter:drop-shadow(0 6px 10px rgba(0,0,0,.48)) drop-shadow(0 0 10px rgba(255,255,255,.12))}
 .odd-panel .odd-shop__card-glyph{position:relative;font-size:68px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.35))}
 .odd-panel .odd-shop__card-mono{position:relative;font:800 44px/1 -apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:-.02em;color:rgba(255,255,255,.92)}
 .odd-panel .odd-shop__card-shine{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 60% at 50% -10%,rgba(255,255,255,.45) 0%,rgba(255,255,255,0) 60%)}
@@ -648,7 +652,9 @@
 .odd-panel .odd-shop__card-btn--install{background:linear-gradient(135deg,#0071e3 0%,#2bb0ff 100%)}
 .odd-panel .odd-shop__card-btn--install:hover{background:linear-gradient(135deg,#005bb5 0%,#1f9ce6 100%)}
 .odd-panel .odd-shop__card-btn--preview,.odd-panel .odd-shop__card-btn--add,.odd-panel .odd-shop__card-btn--open{background:#f5f5f7;color:#1d1d1f;border:1px solid #d2d2d7;box-shadow:0 1px 0 rgba(255,255,255,.6) inset}
-.odd-panel .odd-shop__card-btn--preview:hover,.odd-panel .odd-shop__card-btn--add:hover,.odd-panel .odd-shop__card-btn--open:hover{background:#ebebf0;border-color:#b4b4b8;color:#000}
+.odd-panel .odd-shop__card-btn--preview{background:#fff;color:#1d1d1f;border-color:#d8d8de}
+.odd-panel .odd-shop__card-btn--preview:hover{background:linear-gradient(180deg,#fffaf2 0%,#fff2d9 100%);border-color:#f59e0b;color:#7c2d12;box-shadow:0 8px 18px -12px rgba(245,158,11,.8),0 1px 0 rgba(255,255,255,.75) inset}
+.odd-panel .odd-shop__card-btn--add:hover,.odd-panel .odd-shop__card-btn--open:hover{background:#ebebf0;border-color:#b4b4b8;color:#000}
 .odd-panel .odd-shop__card-btn--active,.odd-panel .odd-shop__card-btn.is-disabled{background:#e8e8ed;color:#8e8e93;cursor:default;box-shadow:none;border:1px solid #e0e0e5}
 .odd-panel .odd-shop__card-btn--active:hover,.odd-panel .odd-shop__card-btn.is-disabled:hover{transform:none;box-shadow:none;background:#e8e8ed;color:#8e8e93}
 .odd-panel .odd-shop__card-btn--update{background:#ff9500;color:#1d1d1f}
