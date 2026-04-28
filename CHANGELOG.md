@@ -16,6 +16,19 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.2"></a>
+## [3.5.2] — 2026-04-28
+
+### Fixed
+- **Magic 8-Ball (and Sticky Note) looked broken** — unstyled white
+  blocks and default button chrome. The widget bundles ship
+  `widget.css` and list it in `manifest.json`, but the plugin only ever
+  enqueued `widget.js`. Companion stylesheets now load on the same
+  `admin_enqueue_scripts` pass (with a manifest.json fallback for sites
+  whose widget index predates the new `css` field). Also removed stray
+  rules in the eight-ball CSS that zeroed out the ball animation globally,
+  and made the root widget a flex column so the hint lines up under the ball.
+
 <a id="v3.5.1"></a>
 ## [3.5.1] — 2026-04-28
 

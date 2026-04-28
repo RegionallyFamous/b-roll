@@ -7,13 +7,16 @@
  *
  *   manifest.json          slug / name / version / type / entry
  *   widget.js              self-registers via wp.desktop.registerWidget
+ *   widget.css             (optional) companion stylesheet; enqueue list in manifest `"css"`
  *   preview.webp           (optional) 640×360, shown on Shop cards
  *
  * Installed widgets live at `wp-content/odd-widgets/<slug>/`. Each
  * `widget.js` is enqueued on `admin_enqueue_scripts` so it runs
  * after `wp-desktop` initialises, which is enough for
  * `wp.desktop.registerWidget()` to hook the widget into the desktop
- * right column.
+ * right column. Declared `"css"` files are linked on the same hook so
+ * widget markup can be styled — previously only `.js` was loaded and
+ * catalog widgets that ship `widget.css` rendered unstyled.
  *
  * Security posture mirrors scenes: widget JS runs in the admin frame
  * with full privileges, so installation requires `manage_options`
@@ -90,6 +93,38 @@ function odd_widget_bundle_validate( $tmp_path, $filename, ZipArchive $zip, arra
 		$preview = $preview_rel;
 	}
 
+	// Optional companion stylesheets (Magic 8-Ball, Sticky Note, …).
+	$css_decl = isset( $manifest['css'] ) ? $manifest['css'] : array();
+	if ( is_string( $css_decl ) ) {
+		$css_decl = array( $css_decl );
+	}
+	if ( ! is_array( $css_decl ) ) {
+		$css_decl = array();
+	}
+	$css_paths = array();
+	foreach ( $css_decl as $css_one ) {
+		$css_rel = odd_content_sanitize_relative_path( (string) $css_one );
+		if ( '' === $css_rel || '.css' !== strtolower( substr( $css_rel, -4 ) ) ) {
+			return new WP_Error(
+				'invalid_css',
+				__( 'Widget manifest lists an invalid CSS path.', 'odd' ),
+				array( 'status' => 400 )
+			);
+		}
+		if ( false === $zip->getFromName( $css_rel ) ) {
+			return new WP_Error(
+				'missing_css',
+				sprintf(
+					/* translators: %s: relative path inside the .wp bundle */
+					__( 'CSS file "%s" is not present in the bundle.', 'odd' ),
+					$css_rel
+				),
+				array( 'status' => 400 )
+			);
+		}
+		$css_paths[] = $css_rel;
+	}
+
 	return array(
 		'slug'        => $header['slug'],
 		'name'        => $header['name'],
@@ -101,6 +136,7 @@ function odd_widget_bundle_validate( $tmp_path, $filename, ZipArchive $zip, arra
 		'franchise'   => isset( $manifest['franchise'] ) ? sanitize_text_field( (string) $manifest['franchise'] ) : 'Community',
 		'entry'       => $entry,
 		'preview'     => $preview,
+		'css'         => $css_paths,
 	);
 }
 
@@ -122,6 +158,7 @@ function odd_widget_bundle_install( $tmp_path, array $manifest ) {
 	}
 
 	$index          = odd_widgets_index_load();
+	$css_for_index  = isset( $manifest['css'] ) && is_array( $manifest['css'] ) ? $manifest['css'] : array();
 	$index[ $slug ] = array(
 		'slug'      => $slug,
 		'name'      => $manifest['name'],
@@ -130,6 +167,7 @@ function odd_widget_bundle_install( $tmp_path, array $manifest ) {
 		'franchise' => $manifest['franchise'],
 		'entry'     => $manifest['entry'],
 		'preview'   => $manifest['preview'],
+		'css'       => $css_for_index,
 		'installed' => time(),
 	);
 	odd_widgets_index_save( $index );
@@ -159,6 +197,61 @@ function odd_widget_bundle_uninstall( $slug ) {
 }
 
 /**
+ * Declared widget.css paths for an installed slug.
+ *
+ * Prefers the index row (new installs). Falls back to manifest.json on
+ * disk so upgrades that added stylesheet enqueue still work for rows
+ * written before `css` was persisted.
+ *
+ * @param string $slug Sanitized slug.
+ * @param array  $row  Index row.
+ * @return string[]    Sanitized relative paths that exist under the widget dir.
+ */
+function odd_widget_stylesheet_paths_for( $slug, array $row ) {
+	$slug = sanitize_key( (string) $slug );
+	if ( '' === $slug ) {
+		return array();
+	}
+
+	$paths = isset( $row['css'] ) && is_array( $row['css'] ) ? $row['css'] : array();
+
+	if ( empty( $paths ) ) {
+		$dir           = odd_widgets_dir_for( $slug );
+		$manifest_path = $dir . 'manifest.json';
+		if ( $dir && is_readable( $manifest_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local manifest beside odd_widgets_dir_for().
+			$raw = file_get_contents( $manifest_path );
+			if ( is_string( $raw ) ) {
+				$manifest = json_decode( $raw, true );
+				if ( is_array( $manifest ) && ! empty( $manifest['css'] ) ) {
+					if ( is_string( $manifest['css'] ) ) {
+						$paths = array( $manifest['css'] );
+					} elseif ( is_array( $manifest['css'] ) ) {
+						$paths = $manifest['css'];
+					}
+				}
+			}
+		}
+	}
+
+	$dir   = odd_widgets_dir_for( $slug );
+	$out   = array();
+	$paths = is_array( $paths ) ? $paths : array();
+	foreach ( $paths as $rel ) {
+		$rel = odd_content_sanitize_relative_path( (string) $rel );
+		if ( '' === $rel ) {
+			continue;
+		}
+		$full = $dir . $rel;
+		if ( $dir && is_readable( $full ) ) {
+			$out[] = $rel;
+		}
+	}
+
+	return $out;
+}
+
+/**
  * Enqueue installed widget JS on admin_enqueue_scripts. Each file
  * calls wp.desktop.registerWidget() at load time, so the widget
  * appears in the desktop right column without any extra wiring.
@@ -174,9 +267,20 @@ add_action(
 			return;
 		}
 		foreach ( $index as $slug => $row ) {
+			$ver = isset( $row['version'] ) ? $row['version'] : ODD_VERSION;
+			foreach ( odd_widget_stylesheet_paths_for( $slug, $row ) as $idx => $css_rel ) {
+				$css_handle = 'odd-widget-' . $slug . '-style-' . (int) $idx;
+				$css_url    = odd_widgets_url_for( $slug ) . rawurlencode( $css_rel );
+				wp_enqueue_style(
+					$css_handle,
+					$css_url,
+					array( 'wp-desktop' ),
+					$ver,
+					'all'
+				);
+			}
 			$entry = isset( $row['entry'] ) ? (string) $row['entry'] : 'widget.js';
 			$url   = odd_widgets_url_for( $slug ) . rawurlencode( $entry );
-			$ver   = isset( $row['version'] ) ? $row['version'] : ODD_VERSION;
 			wp_enqueue_script(
 				'odd-widget-' . $slug,
 				$url,

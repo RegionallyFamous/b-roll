@@ -3,6 +3,8 @@
 /* =========================================================== */
 
 .odd-widget--eight {
+	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
@@ -137,5 +139,3 @@
 .odd-widget--eight.is-reduced .odd-eight__ball {
 	animation: none;
 }
-.odd-eight__ball { animation: none; transition: none; }
-.odd-eight__shine { transition: none; }
