@@ -77,6 +77,25 @@ body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__
 }
 
 /*
+ * Native-window taskbar items (Code, app windows) render as "system"
+ * dock items, which gives the primary button its own square footprint.
+ * For ODD-owned icon art that reads like padding around an already
+ * complete app icon, so collapse the button to the artwork size.
+ */
+body.wp-desktop-active .wp-desktop-dock__item--system .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ),
+body.wp-desktop-active .wp-desktop-dock__item--system .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/apps/icon/"] ),
+body.wp-desktop-active .wp-desktop-dock__item--system .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ),
+body.wp-desktop-active .wp-desktop-dock__item--system .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/apps/catalog/icons/"] ),
+body.wp-desktop-active .wp-desktop-dock__item--system[data-system-id="wpdc-editor"] .wp-desktop-dock__item-primary {
+	width: var( --odd-dock-custom-icon-size );
+	height: var( --odd-dock-custom-icon-size );
+	min-width: var( --odd-dock-custom-icon-size );
+	min-height: var( --odd-dock-custom-icon-size );
+	background: transparent;
+	box-shadow: none;
+}
+
+/*
  * Uniform rounded silhouette for ODD icons. Some of the v1.2 icon
  * sets bake in a full-bleed 64x64 backplate (riso paper, gingham,
  * wood grain); clipping the <img> to a rounded rect hides the hard
