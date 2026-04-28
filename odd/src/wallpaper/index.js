@@ -11,7 +11,7 @@
  *     the on-disk + zip layout). The previous runtime looked at
  *     `src/scenes/…` which has been 404ing since the reboot.
  *   - The legacy in-canvas picker gear, tooltip, and `?` shortcut
- *     are gone — the native ODD Control Panel window is the single
+ *     are gone — the native ODD Shop window is the single
  *     picker surface.
  *   - The unused cut-out / atlas / chaos-drifter / easter-egg
  *     pipelines are removed; none of the three reboot scenes ship

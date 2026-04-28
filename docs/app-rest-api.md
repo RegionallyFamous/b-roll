@@ -45,7 +45,7 @@ Permission shorthand used below:
 | `GET`    | `/bundles/catalog`                           | login         | Browse the remote catalog (all bundle types). |
 | `POST`   | `/bundles/install-from-catalog`              | admin         | Install a catalog bundle by slug, verified via SHA256. |
 | `POST`   | `/bundles/refresh`                           | admin         | Force-refresh the remote catalog transient. |
-| `GET`    | `/starter`                                   | admin         | Read the starter-pack runner state.        |
+| `GET`    | `/starter`                                   | login         | Read the starter-pack runner state.        |
 | `POST`   | `/starter/retry`                             | admin         | Force a synchronous starter-pack retry.    |
 
 ---
@@ -430,9 +430,9 @@ registry payload.
 ### `GET /starter`
 
 Return the current state of the starter-pack runner. Useful for the
-activation UI to show "installing starter pack…" / "retrying in Xs".
+Shop to show "installing starter pack…" / "retry after backoff" states.
 
-**Auth:** admin
+**Auth:** login
 
 **Response** — `200 OK`:
 
@@ -440,20 +440,16 @@ activation UI to show "installing starter pack…" / "retrying in Xs".
 {
     "status":          "installed",
     "attempts":        1,
-    "last_attempt_at": 1766428800,
-    "next_attempt_at": 0,
-    "last_error":      null,
-    "installed":       {
-        "scenes":    [ "oddling-desktop" ],
-        "iconSets":  [ "oddlings" ],
-        "widgets":   [],
-        "apps":      []
-    }
+    "last_attempt":    1766428800,
+    "last_error":      "",
+    "installed":       [ "oddling-desktop", "oddlings" ],
+    "prefs_set":       true
 }
 ```
 
-Possible `status` values: `"scheduled"`, `"running"`, `"installed"`,
-`"failed_retrying"`, `"failed_backoff"`.
+Possible `status` values: `"pending"`, `"running"`, `"installed"`,
+`"failed"`. Failed states retry from the `init` safety net after the
+backoff window, or immediately when an admin calls `/starter/retry`.
 
 ---
 

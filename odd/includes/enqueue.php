@@ -21,7 +21,7 @@
  *                     onSceneChange). All other surfaces depend on it.
  *   - `odd`           wallpaper engine boot (Pixi + scene registrar).
  *                     Registers the `odd` wallpaper with WP Desktop Mode.
- *   - `odd-panel`     ODD Control Panel native-window render callback,
+ *   - `odd-panel`     ODD Shop native-window render callback,
  *                     declared on `window.wpDesktopNativeWindows.odd`.
  *                     (v3.0+ the stock Sticky Note + Magic 8-Ball
  *                     widgets ship as remote catalog bundles and

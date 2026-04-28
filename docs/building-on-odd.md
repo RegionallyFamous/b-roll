@@ -305,7 +305,7 @@ wp.hooks.addFilter( 'odd.muses', 'my-plugin/anya', function ( muses ) {
         label: 'Anya',
         voice: {
             boot: [ 'Boot complete.' ],
-            sceneOpen: { flux: [ 'Ink.' ] },
+            sceneOpen: { 'oddling-desktop': [ 'Something blinked.' ] },
         },
     } );
     return muses;

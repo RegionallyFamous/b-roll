@@ -66,7 +66,7 @@ Anyone can ship a scene, icon set, widget, or app as a single `.wp` file and han
 
 ## Repo layout
 
-- `odd/` — the plugin itself (what ships in `odd.zip`). **As of v3.0 this is empty of content** — just the PHP + JS runtime.
+- `odd/` — the plugin itself (what ships in `odd.zip`). **In v3.x this ships no catalog content** — just the PHP + JS runtime.
 - `_tools/catalog-sources/` — source of truth for every bundle (scene / icon set / widget / app). Rebuilt into `site/catalog/v1/` by `_tools/build-catalog.py`.
 - `site/` — the [odd.regionallyfamous.com](https://odd.regionallyfamous.com) marketing site **and the remote catalog** (`site/catalog/v1/registry.json` + `bundles/` + `icons/`), deployed to GitHub Pages.
 - `docs/` — authoring guides and reference docs.

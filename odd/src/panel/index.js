@@ -2127,7 +2127,7 @@
 		 * site this is common — the starter pack is still downloading
 		 * in the background, and the Discover shelf below renders
 		 * remote catalog entries so the user can install manually or
-		 * just wait for the starter pack cron to finish.
+		 * wait for the inline starter-pack installer to finish.
 		 *
 		 * @param {string} kind  Friendly plural ("scenes", "icon sets", etc.).
 		 * @param {string} hint  Second-line microcopy.
@@ -3267,7 +3267,7 @@
 			for ( var s = 0; s < shortcuts.length; s++ ) {
 				var sc = shortcuts[ s ];
 				var id = sc.getAttribute( 'data-icon-id' );
-				// Skip the ODD Control Panel's own icon — keep the
+				// Skip the ODD Shop's own icon — keep the
 				// eye recognizable regardless of the active set.
 				if ( id === 'odd' ) continue;
 				var sUrl = resolve( id ) || fallback;

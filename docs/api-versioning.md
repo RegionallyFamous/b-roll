@@ -6,8 +6,9 @@ the plugin you just installed — plugin releases and API releases
 evolve on their own SemVer tracks so a bug-fix plugin release never
 silently changes what third-party extensions can rely on.
 
-Today: **`2.1.0`** — shipped alongside plugin `3.0.0`. The bump is a
-minor: v3.0.0 added the `/odd/v1/bundles/*` REST surface and the
+Today: **`2.1.0`** — introduced in plugin `3.0.0` and still current
+for plugin `3.4.x`. The bump was a minor: v3.0.0 added the
+`/odd/v1/bundles/*` REST surface and the
 `/odd/v1/starter` pair, without removing or reshaping anything in the
 2.0.x surface. The `window.__odd.api` JS surface is byte-identical to
 2.0.0.

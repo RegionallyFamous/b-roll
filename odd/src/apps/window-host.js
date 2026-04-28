@@ -9,7 +9,7 @@
  *      at boot. When WPDM opens the window, it invokes our callback
  *      directly on the body element; we build the mount div and
  *      iframe with no dependency on any server-rendered <template>.
- *      This mirrors the ODD Control Panel's working pattern and
+ *      This mirrors the ODD Shop's working pattern and
  *      insulates us from template-emission failure modes (closure
  *      serialization, admin_footer skipped, mid-session install).
  *

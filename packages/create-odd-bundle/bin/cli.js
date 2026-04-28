@@ -138,7 +138,7 @@ async function main() {
 		console.log( `    1. cd ${ slug } && read README.md` );
 		console.log( `    2. (optional) npm install --save-dev @odd/test-harness vitest jsdom` );
 		console.log( `    3. zip -r ../${ slug }.wp .` );
-		console.log( `    4. upload the .wp in the ODD Control Panel → Shop → Upload` );
+		console.log( `    4. upload the .wp in the ODD Shop → Install → Upload` );
 		return 0;
 	} finally {
 		rl.close();
@@ -229,7 +229,7 @@ ${ type } bundle scaffolded by create-odd-bundle.
 1. Make sure every file mentioned in \`manifest.json\` exists.
 2. Run the validator: \`odd/bin/validate-manifest manifest.json\` from a cloned ODD repo, or install \`jsonschema\` locally and check against https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json.
 3. Zip the contents: \`zip -r ../${ slug }.wp .\`.
-4. Upload the \`.wp\` through the ODD Control Panel → Shop → Upload.
+4. Upload the \`.wp\` through the ODD Shop → Install → Upload.
 
 ## Testing
 

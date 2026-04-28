@@ -107,7 +107,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		);
 		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
 
-		$this->assertSame( 'odd-gear.svg', $registry_after['odd']['icon'], 'ODD Control Panel icon must be preserved.' );
+		$this->assertSame( 'odd-gear.svg', $registry_after['odd']['icon'], 'ODD Shop icon must be preserved.' );
 		$this->assertNotSame( 'original-posts.svg', $registry_after['posts']['icon'], 'Regular desktop icon gets re-themed.' );
 	}
 

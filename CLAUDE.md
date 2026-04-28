@@ -12,7 +12,7 @@ ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top 
 3. **Desktop widgets** — tiles like Sticky Note and Magic 8-Ball that live on the desktop surface. Install as `.wp` bundles.
 4. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that open in their own native window. Each app can surface as a desktop icon, a Desktop Mode taskbar pill, both, or neither — per-user preference in the ODD Shop. Install as `.wp` bundles.
 
-All four are managed from a single native WP Desktop Mode window (the **ODD Shop** — a Mac App Store-style browsing surface) opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`. Internally the window id stays `odd` — tests, commands, and the WP Desktop Mode session state still reference it by that id — so "Control Panel" references in `odd_icons_*` helpers and extension docs describe the same window.
+All four are managed from a single native WP Desktop Mode window (the **ODD Shop** — a Mac App Store-style browsing surface) opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`. Internally the window id stays `odd` — tests, commands, and the WP Desktop Mode session state still reference it by that id.
 
 - **Repo:** `RegionallyFamous/odd`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
@@ -248,8 +248,8 @@ Slugs here must resolve to a catalog entry — the validator refuses to ship a s
 ## Versioning
 
 Version lives in two places inside `odd/odd.php` — keep them in sync on release:
-- the `Version:` header (`* Version: 3.0.0`)
-- the `ODD_VERSION` constant (`define( 'ODD_VERSION', '3.0.0' );`)
+- the `Version:` header (`* Version: X.Y.Z`)
+- the `ODD_VERSION` constant (`define( 'ODD_VERSION', 'X.Y.Z' );`)
 
 All other script/style/REST calls compute their cache-busting version from `ODD_VERSION` at runtime.
 
