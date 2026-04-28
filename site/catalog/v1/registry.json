@@ -4,10 +4,10 @@
   "generated_at": "",
   "starter_pack": {
     "scenes": [
-      "flux"
+      "oddling-desktop"
     ],
     "iconSets": [
-      "filament"
+      "oddlings"
     ],
     "widgets": [],
     "apps": []
@@ -212,6 +212,26 @@
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-mercado.wp",
       "sha256": "e3adccf3d81127cc6b66c68fcd936a3496bb4dfa78182e208fe0ba8cf2e2f16d",
       "size": 461979
+    },
+    {
+      "type": "scene",
+      "slug": "oddling-desktop",
+      "name": "Oddling Desktop",
+      "version": "1.0.0",
+      "author": "Regionally Famous",
+      "description": "A living desktop terrarium. Tiny specimens drift over a plum CRT horizon while curious eyes blink from the edges.",
+      "franchise": "ODD Defaults",
+      "tags": [
+        "weird",
+        "creatures",
+        "terrarium",
+        "crt",
+        "default"
+      ],
+      "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-oddling-desktop.webp",
+      "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-oddling-desktop.wp",
+      "sha256": "0a3f6c33168a0d3d9b8f45d515e3b2f726e34d7987853ca908618211e0bc55b2",
+      "size": 27260
     },
     {
       "type": "scene",
@@ -588,6 +608,20 @@
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-monoline.wp",
       "sha256": "09ae74278693afa16461caa3cca5ab7d3c77576ef81b00092bd41fd6236e9094",
       "size": 11342
+    },
+    {
+      "type": "icon-set",
+      "slug": "oddlings",
+      "name": "Oddlings",
+      "version": "1.0.0",
+      "author": "Regionally Famous",
+      "description": "Dashicons-readable admin icons wearing little creature traits: peeking eyes, teeth, antennae, and gelatin highlights on a specimen-plum glass base.",
+      "franchise": "ODD Defaults",
+      "accent": "#38e8ff",
+      "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-oddlings.svg",
+      "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-oddlings.wp",
+      "sha256": "4c25b1e1794a048a3844a2072bd28b8a414b4234c6e5e5fa38e36b802172ce68",
+      "size": 12892
     },
     {
       "type": "icon-set",

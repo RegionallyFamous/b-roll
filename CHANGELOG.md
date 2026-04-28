@@ -16,6 +16,39 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.3.0"></a>
+## [3.3.0] — 2026-04-27
+
+### Added
+- **New default bundle: Oddling Desktop + Oddlings.** A matched scene and
+  icon set ship as the ODD starter pack so first-boot says "this plugin
+  has a personality" immediately.
+  - `oddling-desktop` paints a plum CRT terrarium: slow-drifting
+    specimen silhouettes with pinprick blinking eyes, translucent
+    file-tabs riding a shallow vector drift, and rare peek-eyes that
+    blink into the edges and recede. Audio reactive (bass speeds the
+    drift, treble fires a cyan scanline flare). Reduced-motion parks
+    specimens half-lidded; perf-low halves populations and skips the
+    halo bloom layer.
+  - `oddlings` delivers 13 Dashicons-readable admin icons on a
+    specimen-plum glass base, each wearing a single creature trait
+    (eyes, teeth, antennae, slit pupil, tongue) so the set reads as
+    recognizable first, weird second.
+  - `_tools/gen-oddling-desktop.py` is a deterministic generator for
+    both the icon SVGs and the wallpaper/preview WebPs so the default
+    is re-buildable from source without external tooling.
+
+### Changed
+- **Settings cards span the full content width.** The preference grid
+  in Settings is now a single column so every card gets the same
+  breathing room instead of awkwardly doubling up.
+- **App card management controls read cleanly.** Desktop icon / Taskbar
+  pill toggles use a dedicated panel with proper label/hint spacing,
+  rounded pills, and a tinted background so they stop looking squished.
+- **Wallpaper fallback prefers Oddling Desktop.** When the starter
+  pack has not resolved yet, `odd_wallpaper_default_scene()` now
+  chooses `oddling-desktop` before falling back to `flux`.
+
 <a id="v3.2.5"></a>
 ## [3.2.5] — 2026-04-27
 

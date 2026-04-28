@@ -13,7 +13,7 @@
 .odd-panel .odd-section-header{margin:0 0 16px}
 .odd-panel .odd-section-header h2{margin:0 0 6px;font-size:18px;font-weight:600}
 .odd-panel .odd-section-header p{margin:0;color:#50575e;font-size:13px;max-width:58ch;line-height:1.45}
-.odd-panel .odd-wallpaper-settings{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px;margin:0 0 18px}
+.odd-panel .odd-wallpaper-settings{display:grid;grid-template-columns:1fr;gap:16px;margin:0 0 18px}
 .odd-panel .odd-setting-card{position:relative;display:flex;flex-direction:column;gap:16px;min-height:136px;padding:20px 22px;background:linear-gradient(180deg,#fff,#fbfbff);border:1px solid #dfe3ea;border-radius:20px;box-shadow:0 18px 42px -30px rgba(20,14,40,.38),0 1px 0 rgba(255,255,255,.9) inset;color:#1d2327}
 .odd-panel .odd-setting-card--screensaver{margin:0 0 18px;grid-column:1/-1;min-height:0;background:linear-gradient(135deg,#ffffff 0%,#f8fbff 58%,#fff8ec 100%)}
 .odd-panel .odd-switch-row{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:start;gap:16px;cursor:pointer}
@@ -98,6 +98,13 @@
 .odd-panel .odd-card--app:hover{transform:none}
 .odd-panel .odd-card--app.is-disabled{opacity:.55}
 .odd-panel .odd-card__thumb--badge{font-size:24px;font-weight:700;color:#2271b1;background:linear-gradient(135deg,#e9f2fb,#fff)}
+.odd-panel .odd-card__surfaces{display:grid;gap:8px;margin:0;padding:0}
+.odd-panel .odd-card__surfaces.is-disabled{opacity:.58}
+.odd-panel .odd-card__surface{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:start;margin:0;color:#1d2327;cursor:pointer;line-height:1.35}
+.odd-panel .odd-card__surface input[type="checkbox"]{width:18px;height:18px;margin:1px 0 0;flex:0 0 auto}
+.odd-panel .odd-card__surface-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.odd-panel .odd-card__surface-text strong{font-size:12px;font-weight:700;line-height:1.25;color:#1d2327}
+.odd-panel .odd-card__surface-hint{display:block;font-size:11px;font-weight:400;line-height:1.35;color:#646970}
 .odd-panel .odd-card__actions{display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap}
 .odd-panel .odd-apps-subhead{margin:24px 0 10px;font-size:13px;font-weight:600;color:#1d2327;text-transform:uppercase;letter-spacing:.06em}
 .odd-panel .odd-apps-subhead--catalog{margin-top:32px}
@@ -399,7 +406,7 @@
 * from the oversized "hero form" treatment so this department feels
 * like system preferences instead of a broken store shelf. */
 .odd-panel.odd-shop .odd-shop__dept--settings{max-width:980px}
-.odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 22px}
+.odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:1fr;gap:14px;margin:0 0 22px}
 .odd-panel.odd-shop .odd-setting-card{border-radius:18px;border-color:var(--odd-shop-border);background:linear-gradient(180deg,#fff 0%,#fbfbfd 100%);box-shadow:0 1px 2px rgba(0,0,0,.035),0 18px 36px -30px rgba(20,14,40,.4)}
 .odd-panel.odd-shop .odd-setting-card--screensaver{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-height:0;margin:0;padding:20px 22px;background:linear-gradient(135deg,#fff 0%,#f7f9ff 62%,#fff9ed 100%)}
 .odd-panel.odd-shop .odd-setting-card__text strong{font-size:15px;letter-spacing:-.012em}
@@ -646,6 +653,12 @@
 .odd-panel .odd-shop__card-btn--active:hover,.odd-panel .odd-shop__card-btn.is-disabled:hover{transform:none;box-shadow:none;background:#e8e8ed;color:#8e8e93}
 .odd-panel .odd-shop__card-btn--update{background:#ff9500;color:#1d1d1f}
 .odd-panel .odd-shop__card-btn--update:hover{background:#e58700}
+.odd-panel .odd-shop__card-manage{display:flex;flex-direction:column;gap:12px;margin:-2px 0 0;padding:12px;border:1px solid rgba(60,60,67,.12);border-radius:18px;background:rgba(255,255,255,.76);box-shadow:0 1px 2px rgba(12,10,29,.04)}
+.odd-panel .odd-shop__card-surfaces{gap:10px}
+.odd-panel .odd-shop__card-manage-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:2px}
+.odd-panel .odd-shop__card-manage-actions .odd-apps-btn{box-sizing:border-box;min-height:34px;padding:7px 13px;border-radius:10px;font-size:12px;font-weight:700}
+.odd-panel .odd-shop__card-manage .odd-card__surface{padding:8px 9px;border-radius:12px;background:#f5f5f7}
+.odd-panel .odd-shop__card-manage .odd-card__surface input[type="checkbox"]{accent-color:#0071e3}
 .odd-panel .odd-shop__card.is-previewing,.odd-panel .odd-shop__card.is-active{box-shadow:0 2px 4px rgba(12,10,29,.06),0 18px 36px -24px rgba(12,10,29,.48)}
 .odd-panel .odd-shop__card.is-previewing::after,.odd-panel .odd-shop__card.is-active::after{content:none}
 .odd-panel .odd-shop__card-wrap.is-previewing .odd-shop__card{border-color:#f59e0b;box-shadow:0 0 0 2px #f59e0b,0 18px 36px -24px rgba(245,158,11,.55)}

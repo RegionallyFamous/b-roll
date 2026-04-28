@@ -1,0 +1,25 @@
+{
+  "slug": "oddlings",
+  "label": "Oddlings",
+  "franchise": "ODD Defaults",
+  "accent": "#38e8ff",
+  "preview": "dashboard.svg",
+  "description": "Dashicons-readable admin icons wearing little creature traits: peeking eyes, teeth, antennae, and gelatin highlights on a specimen-plum glass base.",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "icons": {
+    "dashboard": "dashboard.svg",
+    "posts": "posts.svg",
+    "pages": "pages.svg",
+    "media": "media.svg",
+    "comments": "comments.svg",
+    "appearance": "appearance.svg",
+    "plugins": "plugins.svg",
+    "users": "users.svg",
+    "tools": "tools.svg",
+    "settings": "settings.svg",
+    "profile": "profile.svg",
+    "links": "links.svg",
+    "fallback": "fallback.svg"
+  }
+}

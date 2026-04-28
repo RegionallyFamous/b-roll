@@ -80,9 +80,10 @@ function odd_wallpaper_scene_slugs( $reset = false ) {
 
 function odd_wallpaper_default_scene() {
 	$slugs = odd_wallpaper_scene_slugs();
-	// Prefer the starter pack's first scene (flux by default) so
-	// users hitting a mid-install admin load still get a sensible
-	// default. Falls back to the first installed scene otherwise.
+	// Prefer the starter pack's first scene (oddling-desktop by
+	// default) so users hitting a mid-install admin load still get a
+	// sensible default. Falls back to the first installed scene
+	// otherwise.
 	if ( function_exists( 'odd_catalog_starter_pack' ) ) {
 		$starter = odd_catalog_starter_pack();
 		if ( ! empty( $starter['scenes'] ) ) {
@@ -93,8 +94,10 @@ function odd_wallpaper_default_scene() {
 			}
 		}
 	}
-	if ( in_array( 'flux', $slugs, true ) ) {
-		return 'flux';
+	foreach ( array( 'oddling-desktop', 'flux' ) as $fallback ) {
+		if ( in_array( $fallback, $slugs, true ) ) {
+			return $fallback;
+		}
 	}
 	return $slugs ? $slugs[0] : '';
 }

@@ -1,0 +1,16 @@
+{
+  "slug": "oddling-desktop",
+  "label": "Oddling Desktop",
+  "franchise": "ODD Defaults",
+  "tags": [
+    "weird",
+    "creatures",
+    "terrarium",
+    "crt",
+    "default"
+  ],
+  "fallbackColor": "#12052a",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "description": "A living desktop terrarium. Tiny specimens drift over a plum CRT horizon while curious eyes blink from the edges."
+}

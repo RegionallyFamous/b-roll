@@ -1,9 +1,9 @@
 {
   "scenes": [
-    "flux"
+    "oddling-desktop"
   ],
   "iconSets": [
-    "filament"
+    "oddlings"
   ],
   "widgets": [],
   "apps": []
