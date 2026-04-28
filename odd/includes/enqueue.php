@@ -296,6 +296,7 @@ add_action(
 			'shuffle'          => odd_wallpaper_get_user_shuffle( $uid ),
 			'screensaver'      => odd_wallpaper_get_user_screensaver( $uid ),
 			'audioReactive'    => odd_wallpaper_get_user_audio_reactive( $uid ),
+			'shopDock'         => function_exists( 'odd_shop_dock_enabled' ) ? odd_shop_dock_enabled( $uid ) : false,
 
 			// Iris personality prefs.
 			'initiated'        => (bool) get_user_meta( $uid, 'odd_initiated', true ),

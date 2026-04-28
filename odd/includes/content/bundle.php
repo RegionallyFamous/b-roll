@@ -147,14 +147,9 @@ function odd_bundle_install( $tmp_path, $filename ) {
 
 /**
  * Build the entry_url a freshly-installed bundle needs for in-page
- * registration. Only widgets actually need this today — each widget
- * ships a `widget.js` that self-registers via `wp.desktop.registerWidget`
- * on load, and the Shop hot-injects a `<script>` pointing at this URL
- * after a successful install so the user doesn't have to reload for a
- * new widget to appear in the Widgets grid. Scenes and icon sets both
- * need a full page reload to re-run `admin_enqueue_scripts` or the
- * server-canonical dock filters, so they get `null` here and the
- * client drops back to its reload path.
+ * registration. Widgets and scenes both ship a JS entry that self-
+ * registers on load, so the Shop can hot-inject the script after
+ * install instead of rebooting the whole Desktop Mode shell.
  *
  * @param array $manifest Normalised manifest from `odd_bundle_install()`.
  * @return string|null    Absolute URL to the entry JS, or null.
@@ -163,15 +158,23 @@ function odd_bundle_entry_url_for( array $manifest ) {
 	if ( empty( $manifest['type'] ) || empty( $manifest['slug'] ) ) {
 		return null;
 	}
-	if ( 'widget' !== $manifest['type'] ) {
+	$slug = sanitize_key( (string) $manifest['slug'] );
+	$type = (string) $manifest['type'];
+	if ( 'widget' === $type ) {
+		if ( ! function_exists( 'odd_widgets_url_for' ) ) {
+			return null;
+		}
+		$entry = isset( $manifest['entry'] ) ? (string) $manifest['entry'] : 'widget.js';
+		$base  = odd_widgets_url_for( $slug );
+	} elseif ( 'scene' === $type ) {
+		if ( ! function_exists( 'odd_scenes_url_for' ) ) {
+			return null;
+		}
+		$entry = isset( $manifest['entry'] ) ? (string) $manifest['entry'] : 'scene.js';
+		$base  = odd_scenes_url_for( $slug );
+	} else {
 		return null;
 	}
-	if ( ! function_exists( 'odd_widgets_url_for' ) ) {
-		return null;
-	}
-	$slug  = sanitize_key( (string) $manifest['slug'] );
-	$entry = isset( $manifest['entry'] ) ? (string) $manifest['entry'] : 'widget.js';
-	$base  = odd_widgets_url_for( $slug );
 	if ( '' === $base ) {
 		return null;
 	}

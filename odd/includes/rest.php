@@ -7,7 +7,7 @@
  *          full catalog of installed scenes and icon sets so the panel
  *          can hydrate without re-fetching localized data.
  *   - POST accepts any subset of wallpaper/favorites/recents/shuffle/
- *          audioReactive/iconSet and writes each to its own user_meta
+ *          audioReactive/shopDock/iconSet and writes each to its own user_meta
  *          key. Partial updates are fine.
  */
 
@@ -66,6 +66,7 @@ function odd_rest_prefs_get() {
 			'shuffle'       => odd_wallpaper_get_user_shuffle( $uid ),
 			'screensaver'   => odd_wallpaper_get_user_screensaver( $uid ),
 			'audioReactive' => odd_wallpaper_get_user_audio_reactive( $uid ),
+			'shopDock'      => function_exists( 'odd_shop_dock_enabled' ) ? odd_shop_dock_enabled( $uid ) : false,
 			'iconSet'       => odd_icons_get_active_slug( $uid ),
 			'initiated'     => (bool) get_user_meta( $uid, 'odd_initiated', true ),
 			'mascotQuiet'   => (bool) get_user_meta( $uid, 'odd_mascot_quiet', true ),
@@ -136,6 +137,16 @@ function odd_rest_prefs_post( WP_REST_Request $request ) {
 		$on = ! empty( $params['audioReactive'] );
 		update_user_meta( $uid, 'odd_audio_reactive', $on ? 1 : 0 );
 		$out['audioReactive'] = $on;
+	}
+
+	if ( array_key_exists( 'shopDock', $params ) ) {
+		$on = ! empty( $params['shopDock'] );
+		if ( function_exists( 'odd_shop_set_dock_enabled' ) ) {
+			$out['shopDock'] = odd_shop_set_dock_enabled( $uid, $on );
+		} else {
+			update_user_meta( $uid, 'odd_shop_dock', $on ? 1 : 0 );
+			$out['shopDock'] = $on;
+		}
 	}
 
 	// Iris personality slice (Cut 3). All three are booleans, stored

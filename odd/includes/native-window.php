@@ -26,6 +26,7 @@ add_action(
 		}
 
 		$icon_url = odd_control_icon_url();
+		$uid      = get_current_user_id();
 
 		desktop_mode_register_window(
 			'odd',
@@ -38,7 +39,7 @@ add_action(
 				'height'     => 620,
 				'min_width'  => 720,
 				'min_height' => 480,
-				'placement'  => 'none',
+				'placement'  => odd_shop_dock_enabled( $uid ) ? 'dock' : 'none',
 			)
 		);
 
@@ -115,4 +116,28 @@ function odd_render_panel_template() {
  */
 function odd_control_icon_url() {
 	return ODD_URL . '/assets/odd-eye.svg';
+}
+
+/**
+ * Whether the ODD Shop should be shown as a Desktop Mode dock item.
+ *
+ * The desktop shortcut remains registered either way. This only
+ * controls native-window placement, which Desktop Mode reads during
+ * shell boot, so changing it requires a soft reload.
+ */
+function odd_shop_dock_enabled( $uid = 0 ) {
+	$uid = $uid ? (int) $uid : get_current_user_id();
+	if ( $uid <= 0 ) {
+		return false;
+	}
+	return (bool) get_user_meta( $uid, 'odd_shop_dock', true );
+}
+
+function odd_shop_set_dock_enabled( $uid, $enabled ) {
+	$uid = (int) $uid;
+	if ( $uid <= 0 ) {
+		return false;
+	}
+	update_user_meta( $uid, 'odd_shop_dock', $enabled ? 1 : 0 );
+	return odd_shop_dock_enabled( $uid );
 }

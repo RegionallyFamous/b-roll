@@ -355,6 +355,11 @@
 						var cat = bySlug[ app.slug ] || {};
 						bySlug[ app.slug ] = Object.assign( {}, cat, app, { installed: true } );
 					} );
+					( Array.isArray( state.cfg.apps ) ? state.cfg.apps : [] ).forEach( function ( app ) {
+						if ( ! app || ! app.slug || ! app.requiresReload ) return;
+						var cur = bySlug[ app.slug ] || {};
+						bySlug[ app.slug ] = Object.assign( {}, cur, { requiresReload: true, installed: true } );
+					} );
 
 					var rows = [];
 					for ( var k in bySlug ) {
@@ -426,9 +431,8 @@
 					setAppsStatus( wrap, 'Updating ' + ( row.name || row.slug ) + '…', 'busy' );
 					installFromCatalog( row.slug, { allowUpdate: true } ).then( function ( res ) {
 						if ( res && res.ok && res.data && res.data.installed ) {
-							setAppsStatus( wrap, 'Updated ' + ( row.name || row.slug ) + '. Reloading…', 'ok' );
-							rememberJustInstalled( { type: 'app', slug: row.slug, name: row.name || row.slug } );
-							setTimeout( function () { try { window.location.reload(); } catch ( e ) {} }, 500 );
+							setAppsStatus( wrap, 'Updated ' + ( row.name || row.slug ) + '.', 'ok' );
+							handleInstallSuccess( res.data );
 							return;
 						}
 						updateBtn.disabled = false;
@@ -733,12 +737,8 @@
 			setAppsStatus( wrap, 'Installing ' + file.name + '…', 'busy' );
 			uploadApp( file ).then( function ( data ) {
 				if ( data && data.installed && data.manifest ) {
-					setAppsStatus( wrap, 'Installed ' + data.manifest.name + '. Reloading so its icon appears…', 'ok' );
-					var ev = window.__odd && window.__odd.events;
-					if ( ev ) ev.emit( 'odd.app-installed', { slug: data.manifest.slug, manifest: data.manifest } );
-					setTimeout( function () {
-						try { window.location.reload(); } catch ( e ) {}
-					}, 600 );
+					setAppsStatus( wrap, 'Installed ' + ( data.manifest.name || data.manifest.label || data.manifest.slug ) + '.', 'ok' );
+					handleInstallSuccess( data );
 				} else {
 					var msg = ( data && data.message ) || ( data && data.code ) || 'Install failed.';
 					setAppsStatus( wrap, msg, 'error' );
@@ -896,7 +896,7 @@
 		}
 
 		function handleInstallSuccess( data ) {
-			var type  = ( data && data.type ) || 'app';
+			var type  = ( data && data.type ) || ( data && data.manifest && data.manifest.type ) || 'app';
 			var slug  = ( data && data.slug ) || ( data && data.manifest && data.manifest.slug ) || '';
 			var name  = ( data && data.manifest && ( data.manifest.name || data.manifest.label ) ) || slug;
 
@@ -912,7 +912,10 @@
 			if ( 'widget' === type ) {
 				return onInstallSuccessWidget( data, slug, name );
 			}
-			return onInstallSuccessReload( data, type, slug, name );
+			if ( 'scene' === type ) {
+				return onInstallSuccessScene( data, slug, name );
+			}
+			return onInstallSuccessInPanel( data, type, slug, name );
 		}
 
 		function emitInstalledEvent( data, type, slug ) {
@@ -926,16 +929,10 @@
 			}
 		}
 
-		// Scene / icon-set / app install flow: write a breadcrumb
-		// to sessionStorage so the post-reload panel can land the
-		// user on the right department with the new tile flashed,
-		// toast a "Refreshing…" status, then reload after a short
-		// delay. Without the reload:
-		//   - scene.js bundles aren't enqueued until admin_enqueue_scripts
-		//     runs again, so picking the new scene would throw;
-		//   - the icon-dock filter is server-canonical (see
-		//     docs/adr/0001-icon-live-swap-server-canonical.md);
-		//   - apps register their native window + surfaces on `init`.
+		// Last-resort path. We no longer auto-reload on a successful
+		// install because Desktop Mode can restore the WP Dashboard
+		// window during a full shell boot, which makes install feel
+		// like a hard reset.
 		function onInstallSuccessReload( data, type, slug, name ) {
 			var noun = NOUN_FOR_TYPE[ type ] || 'bundle';
 			rememberJustInstalled( { type: type, slug: slug, name: name } );
@@ -945,33 +942,52 @@
 			}, 500 );
 		}
 
+		function onInstallSuccessScene( data, slug, name ) {
+			var entryUrl = data && data.entry_url;
+			if ( ! entryUrl ) {
+				var missingRow = data && data.row ? Object.assign( {}, data.row, { requiresReload: true } ) : null;
+				if ( missingRow ) data = Object.assign( {}, data, { row: missingRow } );
+				return onInstallSuccessInPanel( data, 'scene', slug, name, 'Installed scene "' + name + '". Reload before previewing.' );
+			}
+			loadBundleScript( 'scene', slug, entryUrl ).then( function () {
+				onInstallSuccessInPanel( data, 'scene', slug, name, 'Installed scene "' + name + '". Ready to preview.' );
+			} ).catch( function () {
+				var failedRow = data && data.row ? Object.assign( {}, data.row, { requiresReload: true } ) : null;
+				if ( failedRow ) data = Object.assign( {}, data, { row: failedRow } );
+				onInstallSuccessInPanel( data, 'scene', slug, name, 'Installed scene "' + name + '". Reload before previewing.' );
+			} );
+		}
+
+		function onInstallSuccessInPanel( data, type, slug, name, message ) {
+			var noun = NOUN_FOR_TYPE[ type ] || 'bundle';
+			var row = data && data.row;
+			if ( 'app' === type && row ) {
+				row = Object.assign( {}, row, { requiresReload: true } );
+			}
+			spliceInstalledRow( type, slug, row, data && data.manifest );
+			state.justInstalled = { type: type, slug: slug, name: name, at: Date.now() };
+			toast( message || ( 'Installed ' + noun + ' "' + name + '".' ) );
+			renderSection( DEPT_FOR_TYPE[ type ] || state.active, { keepQuery: true } );
+		}
+
 		// Widget install flow: no reload needed. Dynamically inject
 		// the widget's entry script (which self-registers into
 		// `wp.desktop.registerWidget`), splice a panel-shaped row
 		// into `state.cfg.installedWidgets`, re-render the Widgets
-		// department, and flash the new tile. Falls back to the
-		// reload path when the script fails to load so the user
-		// still ends up with a working widget, just more slowly.
+		// department, and flash the new tile. If the script fails to
+		// load, the tile still appears with an explicit Reload action
+		// instead of forcing a desktop reset.
 		function onInstallSuccessWidget( data, slug, name ) {
 			var entryUrl = data && data.entry_url;
 			var row      = data && data.row;
 			function fallback() {
-				onInstallSuccessReload( data, 'widget', slug, name );
+				var fallbackRow = row ? Object.assign( {}, row, { requiresReload: true } ) : { id: 'odd/' + slug, slug: slug, label: name, installed: true, requiresReload: true };
+				onInstallSuccessInPanel( Object.assign( {}, data || {}, { row: fallbackRow } ), 'widget', slug, name, 'Installed widget "' + name + '". Reload before adding it.' );
 			}
 			if ( ! entryUrl ) { fallback(); return; }
 
-			loadWidgetScript( slug, entryUrl ).then( function () {
-				var widgetsList = Array.isArray( state.cfg.installedWidgets ) ? state.cfg.installedWidgets.slice() : [];
-				// Replace any existing entry with the fresh row so a
-				// re-install (update) overwrites the old label +
-				// description rather than duplicating the tile.
-				widgetsList = widgetsList.filter( function ( w ) { return w && w.slug !== slug; } );
-				if ( row && row.slug ) {
-					widgetsList.push( row );
-				} else {
-					widgetsList.push( { id: 'odd/' + slug, slug: slug, label: name, installed: true } );
-				}
-				state.cfg.installedWidgets = widgetsList;
+			loadBundleScript( 'widget', slug, entryUrl ).then( function () {
+				spliceInstalledRow( 'widget', slug, row || { id: 'odd/' + slug, slug: slug, label: name, installed: true }, data && data.manifest );
 				state.justInstalled = { type: 'widget', slug: slug, name: name, at: Date.now() };
 				toast( 'Installed widget "' + name + '". Added to your widget shelf.' );
 				renderSection( 'widgets', { keepQuery: true } );
@@ -999,6 +1015,56 @@
 					rows[ i ].installed = true;
 					return;
 				}
+			}
+		}
+
+		function spliceInstalledRow( type, slug, row, manifest ) {
+			if ( ! slug ) return;
+			row = row && typeof row === 'object' ? Object.assign( {}, row ) : {};
+			row.slug = row.slug || slug;
+			row.installed = true;
+
+			if ( 'scene' === type ) {
+				row.label = row.label || ( manifest && ( manifest.label || manifest.name ) ) || slug;
+				var scenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes.slice() : [];
+				scenes = scenes.filter( function ( s ) { return s && s.slug !== slug; } );
+				scenes.push( row );
+				state.cfg.scenes = scenes;
+				state.cfg.sceneMap = state.cfg.sceneMap || {};
+				state.cfg.sceneMap[ slug ] = row;
+				if ( window.odd && window.odd.sceneMap ) window.odd.sceneMap[ slug ] = row;
+				return;
+			}
+
+			if ( 'icon-set' === type ) {
+				row.label = row.label || ( manifest && ( manifest.label || manifest.name ) ) || slug;
+				var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets.slice() : [];
+				sets = sets.filter( function ( s ) { return s && s.slug !== slug; } );
+				sets.push( row );
+				state.cfg.iconSets = sets;
+				return;
+			}
+
+			if ( 'widget' === type ) {
+				row.id = row.id || ( 'odd/' + slug );
+				row.label = row.label || ( manifest && ( manifest.label || manifest.name ) ) || slug;
+				var widgets = Array.isArray( state.cfg.installedWidgets ) ? state.cfg.installedWidgets.slice() : [];
+				widgets = widgets.filter( function ( w ) { return w && w.slug !== slug; } );
+				widgets.push( row );
+				state.cfg.installedWidgets = widgets;
+				return;
+			}
+
+			if ( 'app' === type ) {
+				row.name = row.name || ( manifest && ( manifest.name || manifest.label ) ) || slug;
+				row.enabled = row.enabled !== false;
+				var apps = Array.isArray( state.cfg.apps ) ? state.cfg.apps.slice() : [];
+				apps = apps.filter( function ( a ) { return a && a.slug !== slug; } );
+				apps.push( row );
+				state.cfg.apps = apps;
+				state.cfg.userApps = state.cfg.userApps || { installed: [], pinned: [] };
+				state.cfg.userApps.installed = Array.isArray( state.cfg.userApps.installed ) ? state.cfg.userApps.installed.slice() : [];
+				if ( state.cfg.userApps.installed.indexOf( slug ) === -1 ) state.cfg.userApps.installed.push( slug );
 			}
 		}
 
@@ -1666,6 +1732,36 @@
 			audioBox.addEventListener( 'change', function () {
 				savePrefs( { audioReactive: audioBox.checked }, function ( data ) {
 					if ( data ) state.cfg.audioReactive = !! data.audioReactive;
+				} );
+			} );
+
+			// ODD Shop dock launcher — Desktop Mode reads native
+			// window placement during boot, so changes need a soft
+			// reload before the dock item appears/disappears.
+			var dockRow = el( 'label', { class: 'odd-setting-card odd-setting-card--shop-dock odd-switch-row' } );
+			var dockBox = el( 'input', { type: 'checkbox' } );
+			dockBox.checked = !! state.cfg.shopDock;
+			var dockKnob = el( 'span', { class: 'odd-switch' } );
+			var dockText = el( 'span', { class: 'odd-setting-card__text' } );
+			var dockLbl = el( 'strong' );
+			dockLbl.textContent = __( 'Show ODD in Dock' );
+			var dockHint = el( 'span' );
+			dockHint.textContent = __( 'Add a launcher for the ODD Shop to the Desktop Mode dock.' );
+			dockText.appendChild( dockLbl );
+			dockText.appendChild( dockHint );
+			dockRow.appendChild( dockBox );
+			dockRow.appendChild( dockKnob );
+			dockRow.appendChild( dockText );
+			settings.appendChild( dockRow );
+			dockBox.addEventListener( 'change', function () {
+				savePrefs( { shopDock: dockBox.checked }, function ( data ) {
+					if ( data && Object.prototype.hasOwnProperty.call( data, 'shopDock' ) ) {
+						state.cfg.shopDock = !! data.shopDock;
+					}
+					toast( __( 'Updated ODD dock setting. Reloading…' ) );
+					setTimeout( function () {
+						try { window.location.reload(); } catch ( e ) {}
+					}, 250 );
 				} );
 			} );
 
@@ -3815,6 +3911,7 @@
 				fallbackColor: raw.fallbackColor || '',
 				featured:      !! raw.featured,
 				builtin:       !! raw.builtin,
+				requiresReload: !! raw.requiresReload,
 				installed:     raw.installed === undefined ? true : !! raw.installed,
 				enabled:       raw.enabled !== false,
 				raw:           raw,
@@ -3929,6 +4026,9 @@
 			if ( ! row || ! row.installed ) {
 				return { label: 'Install', kind: 'install', disabled: false };
 			}
+			if ( row.requiresReload ) {
+				return { label: row.type === 'app' ? 'Reload to Open' : 'Reload', kind: 'reload', disabled: false };
+			}
 			if ( shopCardIsActive( row ) ) {
 				return { label: 'Active', kind: 'active', disabled: true };
 			}
@@ -3975,6 +4075,9 @@
 					break;
 				case 'open':
 					openAppWindow( row.slug );
+					break;
+				case 'reload':
+					onInstallSuccessReload( { row: row }, row.type, row.slug, row.name || row.slug );
 					break;
 				case 'active':
 				default:
@@ -4046,6 +4149,10 @@
 
 			if ( row.type === 'widget' ) {
 				art.style.background = 'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)';
+				if ( row.iconUrl ) {
+					art.appendChild( el( 'img', { src: row.iconUrl, alt: '', loading: 'lazy' } ) );
+					return art;
+				}
 				var glyph = el( 'div', { class: 'odd-shop__card-glyph' } );
 				glyph.textContent = row.raw && row.raw.glyph ? row.raw.glyph : '🧩';
 				art.appendChild( glyph );
@@ -4243,13 +4350,14 @@
 		// one microtask after `onload` the bundle is discoverable.
 		// Rejects on script-load errors so the caller can fall back
 		// to a reload.
-		function loadWidgetScript( slug, entryUrl ) {
+		function loadBundleScript( type, slug, entryUrl ) {
 			return new Promise( function ( resolve, reject ) {
 				if ( ! entryUrl ) { reject( new Error( 'no entry_url' ) ); return; }
 				// Avoid double-injection if a previous attempt raced
 				// this one (e.g. rapid double-install of the same
 				// bundle before the first response came back).
-				var existing = document.querySelector( 'script[data-odd-widget-slug="' + slug + '"]' );
+				var attr = 'data-odd-' + type + '-slug';
+				var existing = document.querySelector( 'script[' + attr + '="' + slug + '"]' );
 				if ( existing ) {
 					setTimeout( resolve, 0 );
 					return;
@@ -4257,9 +4365,9 @@
 				var s = document.createElement( 'script' );
 				s.src = entryUrl;
 				s.async = true;
-				s.setAttribute( 'data-odd-widget-slug', slug );
+				s.setAttribute( attr, slug );
 				s.onload  = function () { setTimeout( resolve, 16 ); };
-				s.onerror = function () { reject( new Error( 'widget script failed to load' ) ); };
+				s.onerror = function () { reject( new Error( type + ' script failed to load' ) ); };
 				document.head.appendChild( s );
 			} );
 		}

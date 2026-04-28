@@ -157,10 +157,12 @@ def sha256_file(path: Path) -> str:
 # ---------------------------------------------------------------- #
 # Discover tile icons.
 #
-# Every catalog row needs a 64x64 SVG tile. For scenes we derive one
-# from the fallbackColor + slug label (no external dependencies). For
-# icon-sets we reuse the set's preview SVG. For widgets we hand-author
-# a tile. For apps we copy the .wp bundle's icon.svg alongside.
+# Every catalog row needs an SVG tile. For scenes we derive one from
+# the fallbackColor + slug label (no external dependencies). For
+# icon-sets we compose a full-bleed preview from the set's own SVGs so
+# the Shop can use it as large catalog artwork without transparent app-
+# icon corners. For widgets we hand-author a tile. For apps we copy the
+# .wp bundle's icon.svg alongside.
 # ---------------------------------------------------------------- #
 
 
@@ -194,24 +196,150 @@ def _is_dark(hex_color: str) -> bool:
 
 
 def widget_tile(slug: str, label: str) -> str:
-    # Keep widget tiles on brand with the ODD Memphis palette.
-    palette = {
-        "sticky": "#ffd166",
-        "eight-ball": "#1a0b2e",
-    }
-    accent = palette.get(slug, "#8a5cff")
+    uid = re.sub(r"[^a-z0-9]+", "", slug.lower())
+
+    if slug == "sticky":
+        return (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
+            f'width="1024" height="1024" role="img" aria-label="{label} widget preview">'
+            "<defs>"
+            f'<linearGradient id="bg{uid}" x1="0" y1="0" x2="1" y2="1">'
+            '<stop offset="0" stop-color="#fff8bd"/>'
+            '<stop offset="1" stop-color="#ffb23f"/>'
+            "</linearGradient>"
+            f'<filter id="sh{uid}" x="-20%" y="-20%" width="140%" height="150%">'
+            '<feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#6b3a00" flood-opacity=".28"/>'
+            "</filter>"
+            "</defs>"
+            f'<rect width="1024" height="1024" fill="url(#bg{uid})"/>'
+            '<circle cx="160" cy="140" r="210" fill="#fff" opacity=".24"/>'
+            '<g filter="url(#shsticky)" transform="rotate(-7 512 512)">'
+            '<path d="M252 196 H800 V720 L652 870 H252 Z" fill="#ffe76a"/>'
+            '<path d="M652 720 H800 L652 870 Z" fill="#ffc247"/>'
+            '<path d="M652 720 L800 720 L652 870 Z" fill="#be7a18" opacity=".18"/>'
+            '<path d="M338 382 H700 M338 494 H650 M338 606 H582" fill="none" stroke="#7a5018" stroke-width="42" stroke-linecap="round" opacity=".72"/>'
+            "</g>"
+            "</svg>\n"
+        ).replace("url(#shsticky)", f"url(#sh{uid})")
+
+    if slug == "eight-ball":
+        return (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
+            f'width="1024" height="1024" role="img" aria-label="{label} widget preview">'
+            "<defs>"
+            f'<radialGradient id="bg{uid}" cx=".32" cy=".24" r=".9">'
+            '<stop offset="0" stop-color="#6d58ff"/>'
+            '<stop offset=".58" stop-color="#1d1640"/>'
+            '<stop offset="1" stop-color="#07030d"/>'
+            "</radialGradient>"
+            f'<radialGradient id="ball{uid}" cx=".34" cy=".28" r=".78">'
+            '<stop offset="0" stop-color="#6f667d"/>'
+            '<stop offset=".42" stop-color="#171421"/>'
+            '<stop offset="1" stop-color="#020104"/>'
+            "</radialGradient>"
+            f'<filter id="sh{uid}" x="-20%" y="-20%" width="140%" height="150%">'
+            '<feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#000" flood-opacity=".36"/>'
+            "</filter>"
+            "</defs>"
+            f'<rect width="1024" height="1024" fill="url(#bg{uid})"/>'
+            '<circle cx="180" cy="156" r="188" fill="#fff" opacity=".12"/>'
+            f'<circle cx="512" cy="522" r="324" fill="url(#ball{uid})" filter="url(#sh{uid})"/>'
+            '<circle cx="414" cy="364" r="74" fill="#fff" opacity=".14"/>'
+            '<circle cx="512" cy="508" r="138" fill="#f7f7fb"/>'
+            '<text x="512" y="562" text-anchor="middle" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="156" font-weight="900" fill="#111827">8</text>'
+            '<path d="M340 784 Q512 862 684 784" fill="none" stroke="#8b5cf6" stroke-width="28" stroke-linecap="round" opacity=".72"/>'
+            "</svg>\n"
+        )
+
+    # Generic fallback for future widgets.
     initial = (label or slug).strip()[:1].upper() or "?"
-    text_color = "#ffffff" if _is_dark(accent) else "#10121a"
     return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"'
-        f' role="img" aria-label="{label}">\n'
-        f'  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="{accent}"/>\n'
-        '  <circle cx="16" cy="16" r="6" fill="#ffffff" opacity="0.28"/>\n'
-        '  <rect x="40" y="10" width="14" height="14" rx="3" fill="#ffffff" opacity="0.2" transform="rotate(12 47 17)"/>\n'
-        '  <text x="32" y="44" text-anchor="middle"'
-        ' font-family="Inter, system-ui, -apple-system, sans-serif"'
-        f' font-size="28" font-weight="800" fill="{text_color}">{initial}</text>\n'
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
+        f'width="1024" height="1024" role="img" aria-label="{label} widget preview">'
+        '<rect width="1024" height="1024" fill="#8a5cff"/>'
+        '<circle cx="220" cy="200" r="160" fill="#fff" opacity=".22"/>'
+        '<text x="512" y="610" text-anchor="middle" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="420" font-weight="900" fill="#fff">'
+        f'{initial}</text>'
         "</svg>\n"
+    )
+
+
+def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[str, str]) -> str:
+    """Compose a full-bleed catalog preview for an icon set.
+
+    The individual set SVGs are iOS-style squircles with transparent
+    corners. That is perfect for dock icons, but terrible as the large
+    Shop catalog image: the transparent corners show the card's dark
+    fallback background. Instead, build a deterministic 1024x1024
+    preview with a real background and four oversized icons that bleed
+    toward the edges.
+    """
+
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+
+    def safe_hex(value: str) -> str:
+        value = (value or "#888888").strip()
+        if re.fullmatch(r"#[0-9a-fA-F]{3}", value):
+            return "#" + "".join(ch * 2 for ch in value[1:])
+        if re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+            return value
+        return "#888888"
+
+    def mix(c1: str, c2: str, amt: float) -> str:
+        a = safe_hex(c1).lstrip("#")
+        b = safe_hex(c2).lstrip("#")
+        out = []
+        for i in (0, 2, 4):
+            av = int(a[i:i + 2], 16)
+            bv = int(b[i:i + 2], 16)
+            out.append(round(av * (1 - amt) + bv * amt))
+        return "#" + "".join(f"{v:02x}" for v in out)
+
+    accent = safe_hex(accent)
+    bg1 = mix(accent, "#ffffff", 0.78)
+    bg2 = mix(accent, "#0c0a1d", 0.22)
+    uid = re.sub(r"[^a-z0-9]+", "", slug.lower())
+
+    placements = [
+        ("dashboard", -92, -56, 560, -5),
+        ("posts", 556, -56, 560, 4),
+        ("pages", -92, 552, 560, 4),
+        ("media", 556, 552, 560, -5),
+    ]
+    snippets: list[str] = []
+    for key, x, y, size, rot in placements:
+        rel = icons.get(key) or icons.get("dashboard") or next(iter(icons.values()))
+        svg_path = src_dir / rel
+        root = ET.fromstring(svg_path.read_bytes())
+        root.set("x", str(x))
+        root.set("y", str(y))
+        root.set("width", str(size))
+        root.set("height", str(size))
+        root.set("aria-hidden", "true")
+        root.attrib.pop("role", None)
+        root.attrib.pop("aria-label", None)
+        cx = x + size / 2
+        cy = y + size / 2
+        snippets.append(
+            f'<g transform="rotate({rot} {cx:g} {cy:g})">'
+            + ET.tostring(root, encoding="unicode", short_empty_elements=True)
+            + "</g>"
+        )
+
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
+        f'width="1024" height="1024" role="img" aria-label="{label} icon set preview">'
+        "<defs>"
+        f'<linearGradient id="bg{uid}" x1="0" y1="0" x2="1" y2="1">'
+        f'<stop offset="0" stop-color="{bg1}"/>'
+        f'<stop offset="1" stop-color="{bg2}"/>'
+        "</linearGradient>"
+        "</defs>"
+        f'<rect width="1024" height="1024" fill="url(#bg{uid})"/>'
+        f'<circle cx="128" cy="120" r="210" fill="#fff" opacity=".24"/>'
+        f'<circle cx="918" cy="884" r="260" fill="{accent}" opacity=".20"/>'
+        + "".join(snippets)
+        + "</svg>\n"
     )
 
 
@@ -312,15 +440,13 @@ def build_iconset(slug: str, src_dir: Path) -> dict:
     bundle = OUT_BUNDLES / f"iconset-{slug}.wp"
     write_zip(bundle, files)
 
-    # Use the set's preview SVG as the Discover tile.
+    # Use a dedicated full-bleed preview as the Discover tile. Reusing
+    # the set's app-icon-shaped dashboard.svg leaves transparent
+    # squircle corners on large Shop catalog cards.
     icon_name = f"iconset-{slug}.svg"
-    preview_src = src_dir / meta.get("preview", "dashboard.svg")
-    if preview_src.is_file():
-        (OUT_ICONS / icon_name).write_bytes(preview_src.read_bytes())
-    else:
-        (OUT_ICONS / icon_name).write_text(
-            widget_tile(slug, meta["label"])
-        )
+    (OUT_ICONS / icon_name).write_text(
+        iconset_tile(slug, meta["label"], meta.get("accent", "#888"), src_dir, meta["icons"])
+    )
 
     return {
         "type": "icon-set",

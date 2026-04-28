@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Sticky Note">
-  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="#ffd166"/>
-  <circle cx="16" cy="16" r="6" fill="#ffffff" opacity="0.28"/>
-  <rect x="40" y="10" width="14" height="14" rx="3" fill="#ffffff" opacity="0.2" transform="rotate(12 47 17)"/>
-  <text x="32" y="44" text-anchor="middle" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="28" font-weight="800" fill="#10121a">S</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Sticky Note widget preview"><defs><linearGradient id="bgsticky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff8bd"/><stop offset="1" stop-color="#ffb23f"/></linearGradient><filter id="shsticky" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#6b3a00" flood-opacity=".28"/></filter></defs><rect width="1024" height="1024" fill="url(#bgsticky)"/><circle cx="160" cy="140" r="210" fill="#fff" opacity=".24"/><g filter="url(#shsticky)" transform="rotate(-7 512 512)"><path d="M252 196 H800 V720 L652 870 H252 Z" fill="#ffe76a"/><path d="M652 720 H800 L652 870 Z" fill="#ffc247"/><path d="M652 720 L800 720 L652 870 Z" fill="#be7a18" opacity=".18"/><path d="M338 382 H700 M338 494 H650 M338 606 H582" fill="none" stroke="#7a5018" stroke-width="42" stroke-linecap="round" opacity=".72"/></g></svg>

@@ -399,21 +399,21 @@
 * from the oversized "hero form" treatment so this department feels
 * like system preferences instead of a broken store shelf. */
 .odd-panel.odd-shop .odd-shop__dept--settings{max-width:980px}
-.odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:0 0 22px}
+.odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 22px}
 .odd-panel.odd-shop .odd-setting-card{border-radius:18px;border-color:var(--odd-shop-border);background:linear-gradient(180deg,#fff 0%,#fbfbfd 100%);box-shadow:0 1px 2px rgba(0,0,0,.035),0 18px 36px -30px rgba(20,14,40,.4)}
-.odd-panel.odd-shop .odd-setting-card--screensaver{grid-column:auto;display:flex;gap:16px;margin:0;padding:20px 22px;background:linear-gradient(135deg,#fff 0%,#f7f9ff 62%,#fff9ed 100%)}
+.odd-panel.odd-shop .odd-setting-card--screensaver{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-height:0;margin:0;padding:20px 22px;background:linear-gradient(135deg,#fff 0%,#f7f9ff 62%,#fff9ed 100%)}
 .odd-panel.odd-shop .odd-setting-card__text strong{font-size:15px;letter-spacing:-.012em}
 .odd-panel.odd-shop .odd-setting-card__text span{max-width:34ch;color:var(--odd-shop-ink-3)}
 .odd-panel.odd-shop .odd-setting-card__controls{margin-left:64px;padding-top:2px}
-.odd-panel.odd-shop .odd-setting-card__controls--screensaver{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;max-width:none}
-.odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-field{grid-column:1/-1;grid-template-columns:auto minmax(0,1fr)}
-.odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-preview{grid-column:1/-1;justify-content:center;width:100%}
+.odd-panel.odd-shop .odd-setting-card__controls--screensaver{display:flex;align-items:center;gap:10px 14px;max-width:none}
+.odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-field{grid-template-columns:auto minmax(220px,280px)}
+.odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-preview{flex:0 0 auto;justify-content:center;width:auto;min-width:128px;box-sizing:border-box}
 .odd-panel.odd-shop .odd-setting-field{display:grid;grid-template-columns:auto minmax(180px,280px);align-items:center;gap:10px}
 .odd-panel.odd-shop .odd-minutes{width:72px;min-height:40px;border-radius:12px;font-size:15px}
 .odd-panel.odd-shop .odd-select{min-height:40px;border-radius:12px}
 .odd-panel.odd-shop .odd-setting-preview{min-height:40px;margin-left:0;padding:0 20px;background:#0f172a;color:#fff;border-color:#0f172a;box-shadow:0 12px 22px -16px rgba(15,23,42,.8)}
 .odd-panel.odd-shop .odd-switch-row input[type="checkbox"]:checked + .odd-switch{background:var(--odd-shop-accent);box-shadow:0 8px 20px -14px rgba(0,113,227,.7)}
-@media (max-width:760px){.odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:1fr}.odd-panel.odd-shop .odd-setting-card__controls,.odd-panel.odd-shop .odd-setting-card__controls--screensaver{margin-left:0}.odd-panel.odd-shop .odd-setting-card__controls--screensaver{grid-template-columns:auto auto;max-width:none}.odd-panel.odd-shop .odd-setting-field{grid-column:1/-1;grid-template-columns:auto minmax(0,1fr)}.odd-panel.odd-shop .odd-setting-preview{grid-column:1/-1;justify-content:center;width:100%}}
+@media (max-width:760px){.odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:1fr}.odd-panel.odd-shop .odd-setting-card__controls,.odd-panel.odd-shop .odd-setting-card__controls--screensaver{margin-left:0}.odd-panel.odd-shop .odd-setting-card__controls--screensaver{display:grid;grid-template-columns:auto minmax(0,1fr);max-width:none}.odd-panel.odd-shop .odd-setting-field{grid-column:1/-1;grid-template-columns:auto minmax(0,1fr)}.odd-panel.odd-shop .odd-setting-preview{grid-column:1/-1;justify-content:center;width:100%}}
 
 /* Catalog rows (icon sets + app catalog) feel more "store-shelf"
 * with a soft lift on hover so the row reads as "tappable
@@ -521,14 +521,14 @@
 .odd-panel.odd-shop .odd-shop__dropzone-btn{all:unset;margin-top:10px;padding:8px 18px;border-radius:999px;background:#fff;border:1px solid var(--odd-shop-border-strong);cursor:pointer;color:var(--odd-shop-accent);font-size:13px;font-weight:600}
 .odd-panel.odd-shop .odd-shop__dropzone-btn:hover{border-color:var(--odd-shop-accent);background:rgba(0,113,227,.08)}
 
-.odd-panel.odd-shop .odd-shop__install-types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 24px}
-.odd-panel.odd-shop .odd-shop__install-type{--odd-itype-tint:var(--odd-shop-accent);display:flex;align-items:flex-start;gap:10px;padding:14px;border-radius:var(--odd-shop-radius);background:#fff;border:1px solid var(--odd-shop-border);color:var(--odd-shop-ink);min-width:0;transition:border-color .14s ease,box-shadow .14s ease,transform .14s ease}
+.odd-panel.odd-shop .odd-shop__install-types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 24px}
+.odd-panel.odd-shop .odd-shop__install-type{--odd-itype-tint:var(--odd-shop-accent);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0;min-height:176px;padding:20px 18px 18px;border-radius:var(--odd-shop-radius);background:#fff;border:1px solid var(--odd-shop-border);color:var(--odd-shop-ink);text-align:center;transition:border-color .14s ease,box-shadow .14s ease,transform .14s ease}
 .odd-panel.odd-shop .odd-shop__install-type:hover{border-color:color-mix(in srgb,var(--odd-itype-tint) 40%,var(--odd-shop-border));box-shadow:0 10px 22px -14px color-mix(in srgb,var(--odd-itype-tint) 65%,transparent);transform:translateY(-1px)}
-.odd-panel.odd-shop .odd-shop__install-type-glyph{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--odd-itype-tint) 14%,transparent);color:var(--odd-itype-tint)}
-.odd-panel.odd-shop .odd-shop__install-type-glyph svg{display:block;width:20px;height:20px}
-.odd-panel.odd-shop .odd-shop__install-type-body{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1 1 auto}
-.odd-panel.odd-shop .odd-shop__install-type strong{font-size:13.5px;font-weight:650;letter-spacing:-.01em;color:var(--odd-shop-ink)}
-.odd-panel.odd-shop .odd-shop__install-type-desc{font-size:12px;line-height:1.45;color:var(--odd-shop-ink-2)}
+.odd-panel.odd-shop .odd-shop__install-type-glyph{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:14px;background:color-mix(in srgb,var(--odd-itype-tint) 14%,transparent);color:var(--odd-itype-tint)}
+.odd-panel.odd-shop .odd-shop__install-type-glyph svg{display:block;width:24px;height:24px}
+.odd-panel.odd-shop .odd-shop__install-type-body{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;flex:1 1 auto}
+.odd-panel.odd-shop .odd-shop__install-type strong{font-size:15px;font-weight:700;letter-spacing:-.012em;color:var(--odd-shop-ink)}
+.odd-panel.odd-shop .odd-shop__install-type-desc{max-width:18ch;font-size:12.5px;line-height:1.38;color:var(--odd-shop-ink-2)}
 @media (max-width:640px){.odd-panel.odd-shop .odd-shop__install-types{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* Shop-wide drop overlay — only visible while a file is
@@ -620,7 +620,7 @@
  * bleed preview, so contain it and pad it like an app tile rather
  * than cover-cropping it. The quartet path already lays out four
  * mini icons inside the same art region. */
-.odd-panel .odd-shop__card--icon-set .odd-shop__card-art > img.odd-shop__card-art-fill{padding:14%;object-fit:contain;background:transparent}
+.odd-panel .odd-shop__card--icon-set .odd-shop__card-art > img.odd-shop__card-art-fill{padding:0;object-fit:cover;background:transparent}
 .odd-panel .odd-shop__card-quartet{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8%;width:70%;aspect-ratio:1/1}
 .odd-panel .odd-shop__card-quartet > img{width:100%;height:100%;object-fit:contain;background:rgba(255,255,255,.92);border-radius:22.5%;padding:12%;box-shadow:0 6px 12px -6px rgba(0,0,0,.35)}
 .odd-panel .odd-shop__card-glyph{position:relative;font-size:68px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.35))}

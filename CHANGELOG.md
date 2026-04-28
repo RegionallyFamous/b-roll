@@ -16,6 +16,26 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.2.3"></a>
+## [3.2.3] — 2026-04-27
+
+### Changed
+- **Install cards and catalog artwork are easier to scan.** The "What can I install?"
+  cards now use a vertical icon-first layout, icon-set catalog previews fill the art
+  frame, and widgets get specific preview art instead of a generic glyph.
+- **The ODD Shop dock launcher is now user-configurable.** Settings includes a
+  "Show ODD in Dock" toggle backed by the new `shopDock` preference.
+
+### Fixed
+- **Bundle installs no longer hard-refresh Desktop Mode.** The Shop now
+  hot-registers scene/widget scripts and splices installed rows into the
+  current panel state so new content appears immediately without kicking
+  the user back through the Dashboard restore path. Apps that still need
+  a Desktop Mode boot to register their native window show an explicit
+  reload action instead of forcing it.
+- **Settings keeps the Screensaver controls inside the preference grid.** The
+  compact card now wraps cleanly instead of spilling across the panel.
+
 <a id="v3.2.2"></a>
 ## [3.2.2] — 2026-04-27
 

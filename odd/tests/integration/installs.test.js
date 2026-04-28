@@ -1,11 +1,10 @@
 /**
  * installs.test.js — post-install flows for the ODD Shop.
  *
- * Scene / icon-set / app installs write a cross-reload breadcrumb
- * to sessionStorage and soft-reload the page; widgets hot-register
- * via dynamic `<script>` injection and do NOT reload. This spec
- * asserts each branch of `handleInstallSuccess` in isolation, plus
- * the breadcrumb-consumption path on a subsequent mount.
+ * Installs update the Shop in place. Scenes and widgets hot-register
+ * via dynamic `<script>` injection; icon sets and apps splice their
+ * returned panel row into state. Reload is now an explicit fallback,
+ * not the success path.
  *
  * Uses real timers + explicit micro-pause helpers — the install
  * chain is deeply nested promises (`fetch().then(r => r.json().then(...))`
@@ -110,7 +109,7 @@ describe( 'ODD Shop · install flows', () => {
 		delete globalThis.fetch;
 	} );
 
-	it( 'scene install writes a breadcrumb and soft-reloads', async () => {
+	it( 'scene install hot-registers without reloading and adds the tile in-page', async () => {
 		seed( {
 			bundleCatalog: {
 				scene: [ { slug: 'gusts', label: 'Gusts', installed: false } ],
@@ -126,7 +125,7 @@ describe( 'ODD Shop · install flows', () => {
 				slug:      'gusts',
 				type:      'scene',
 				manifest:  { slug: 'gusts', label: 'Gusts' },
-				entry_url: null,
+				entry_url: '/wp-content/odd-scenes/gusts/scene.js',
 				row:       { slug: 'gusts', label: 'Gusts', installed: true },
 			} ),
 		} ) );
@@ -141,19 +140,20 @@ describe( 'ODD Shop · install flows', () => {
 		await flush();
 		await new Promise( ( r ) => setTimeout( r, 10 ) );
 
-		const crumb = window.sessionStorage.getItem( 'odd.justInstalled' );
-		expect( crumb, 'breadcrumb must be persisted to sessionStorage' ).toBeTruthy();
-		const parsed = JSON.parse( crumb );
-		expect( parsed.type ).toBe( 'scene' );
-		expect( parsed.slug ).toBe( 'gusts' );
+		const scr = document.head.querySelector( 'script[data-odd-scene-slug="gusts"]' );
+		expect( scr, 'scene entry <script> must be injected' ).toBeTruthy();
+		expect( scr.getAttribute( 'src' ) ).toBe( '/wp-content/odd-scenes/gusts/scene.js' );
 
-		// The reload fires 500ms after the install succeeds.
+		scr.onload();
+		await new Promise( ( r ) => setTimeout( r, 30 ) );
+
+		const installedTile = host.querySelector( '[data-odd-shop-card][data-scene-slug="gusts"]' );
+		expect( installedTile, 'hot-registered scene must appear in the grid' ).toBeTruthy();
 		expect( reloadSpy ).not.toHaveBeenCalled();
-		await new Promise( ( r ) => setTimeout( r, 550 ) );
-		expect( reloadSpy ).toHaveBeenCalled();
+		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
 	} );
 
-	it( 'icon-set install also rides the reload path', async () => {
+	it( 'icon-set install updates the grid without reloading', async () => {
 		seed( {
 			bundleCatalog: {
 				scene: [],
@@ -187,9 +187,11 @@ describe( 'ODD Shop · install flows', () => {
 		await flush();
 		await new Promise( ( r ) => setTimeout( r, 10 ) );
 
-		const crumb = JSON.parse( window.sessionStorage.getItem( 'odd.justInstalled' ) );
-		expect( crumb.type ).toBe( 'icon-set' );
-		expect( crumb.slug ).toBe( 'filament' );
+		const installedTile = host.querySelector( '[data-odd-shop-card][data-set-slug="filament"]' );
+		expect( installedTile, 'installed icon set must appear in the grid' ).toBeTruthy();
+		expect( installedTile.querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Preview' );
+		expect( reloadSpy ).not.toHaveBeenCalled();
+		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
 	} );
 
 	it( 'widget install hot-registers without reloading and adds the tile in-page', async () => {
@@ -240,7 +242,7 @@ describe( 'ODD Shop · install flows', () => {
 		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
 	} );
 
-	it( 'widget hot-register failure falls back to the reload path', async () => {
+	it( 'widget hot-register failure marks the tile as reloadable without hard reloading', async () => {
 		seed( {
 			bundleCatalog: {
 				scene: [],
@@ -278,10 +280,12 @@ describe( 'ODD Shop · install flows', () => {
 		await flush();
 		await new Promise( ( r ) => setTimeout( r, 20 ) );
 
-		const crumb = JSON.parse( window.sessionStorage.getItem( 'odd.justInstalled' ) );
-		expect( crumb, 'reload fallback must write a breadcrumb' ).toBeTruthy();
-		expect( crumb.type ).toBe( 'widget' );
-		expect( crumb.slug ).toBe( 'broken' );
+		const installedTile = host.querySelector( '[data-odd-shop-card][data-widget-id="odd/broken"]' );
+		expect( installedTile, 'failed hot-register still adds the installed tile' ).toBeTruthy();
+		const btn = installedTile.querySelector( '.odd-shop__card-btn' );
+		expect( btn.textContent.trim() ).toBe( 'Reload' );
+		expect( reloadSpy ).not.toHaveBeenCalled();
+		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
 	} );
 
 	it( 'mount consumes a pre-existing breadcrumb and navigates to the right department', () => {
