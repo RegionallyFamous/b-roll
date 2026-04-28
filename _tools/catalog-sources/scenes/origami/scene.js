@@ -27,6 +27,49 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
+	// Signature moment: perf- and reduced-motion-aware overlay that
+	// lands in the negative-space slot the v2 wallpaper prompt reserves.
+	function signatureTick( state, env ) {
+		if ( env.perfTier === 'low' || env.reducedMotion ) return;
+		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
+		var s = state.__sig;
+		if ( ! s || ! s.layer || ! s.layer.parent ) {
+			s = state.__sig = {
+				layer: new PIXI.Graphics(),
+				timer: 14 + Math.random() * 18,
+				life: 0,
+			};
+			s.phase = 0;
+			app.stage.addChild( s.layer );
+		}
+		if ( s.life <= 0 ) {
+			s.timer -= dt / 60;
+			if ( s.timer > 0 ) { s.layer.clear(); return; }
+			s.life = 1;
+			s.timer = 14 + Math.random() * 18;
+			s.phase = 0;
+		}
+		s.life = Math.max( 0, s.life - dt * 0.003 );
+
+		            s.phase = ( s.phase || 0 ) + dt * 0.04;
+		            var cx = app.renderer.width  * 0.42;
+		            var cy = app.renderer.height * 0.78;
+		            var open = ( Math.sin( s.phase ) + 1 ) * 0.5;
+		            var w = 40 + open * 34;
+		            var h2 = 22 + open * 26;
+		            s.layer.clear();
+		            s.layer
+		                .moveTo( cx, cy - h2 )
+		                .lineTo( cx + w, cy )
+		                .lineTo( cx, cy + h2 )
+		                .lineTo( cx - w, cy )
+		                .fill( { color: 0xffe3ec, alpha: s.life * 0.85 } );
+		            s.layer
+		                .moveTo( cx, cy - h2 )
+		                .lineTo( cx, cy + h2 )
+		                .stroke( { color: 0xb4778a, width: 2, alpha: s.life * 0.6 } );
+	}
+
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -278,6 +321,8 @@
 				drawCrane( cg, { face: cr.face, shadow: cr.shadow }, cr.x, cr.y + by, cr.scale, flapY );
 			}
 
+		
+			signatureTick( state, env );
 		},
 
 		onAudio: function ( state, env ) {

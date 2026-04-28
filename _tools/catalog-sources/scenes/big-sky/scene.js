@@ -13,6 +13,46 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
+	// Signature moment: perf- and reduced-motion-aware overlay that
+	// lands in the negative-space slot the v2 wallpaper prompt reserves.
+	function signatureTick( state, env ) {
+		if ( env.perfTier === 'low' || env.reducedMotion ) return;
+		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
+		var s = state.__sig;
+		if ( ! s || ! s.layer || ! s.layer.parent ) {
+			s = state.__sig = {
+				layer: new PIXI.Graphics(),
+				timer: 45 + Math.random() * 50,
+				life: 0,
+			};
+			s.birds = []; for ( var bi = 0; bi < 5; bi++ ) s.birds.push( { offset: bi * 0.16 } );
+			app.stage.addChild( s.layer );
+		}
+		if ( s.life <= 0 ) {
+			s.timer -= dt / 60;
+			if ( s.timer > 0 ) { s.layer.clear(); return; }
+			s.life = 1;
+			s.timer = 45 + Math.random() * 50;
+			s.leadX = -60; s.leadY = app.renderer.height * 0.18 + Math.random() * 20;
+		}
+		s.life = Math.max( 0, s.life - dt * 0.0008 );
+
+		            s.leadX += dt * 1.1;
+		            s.layer.clear();
+		            var a = s.life * 0.9;
+		            for ( var bi = 0; bi < s.birds.length; bi++ ) {
+		                var b = s.birds[ bi ];
+		                var bx = s.leadX - bi * 26;
+		                var by = s.leadY + bi * 14 + Math.sin( s.leadX * 0.02 + b.offset ) * 2;
+		                s.layer
+		                    .moveTo( bx - 10, by )
+		                    .quadraticCurveTo( bx - 5, by - 4, bx, by )
+		                    .quadraticCurveTo( bx + 5, by - 4, bx + 10, by )
+		                    .stroke( { color: 0x1a1a2a, width: 2.2, alpha: a } );
+		            }
+		            if ( s.leadX > app.renderer.width + 120 ) s.life = 0;
+	}
+
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -176,6 +216,8 @@
 					.stroke( { color: 0x2a1c10, width: 2.2, alpha: 0.85, cap: 'round' } );
 			}
 
+		
+			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {

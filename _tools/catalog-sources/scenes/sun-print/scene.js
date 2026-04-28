@@ -12,6 +12,45 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
+	// Signature moment: perf- and reduced-motion-aware overlay that
+	// lands in the negative-space slot the v2 wallpaper prompt reserves.
+	function signatureTick( state, env ) {
+		if ( env.perfTier === 'low' || env.reducedMotion ) return;
+		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
+		var s = state.__sig;
+		if ( ! s || ! s.layer || ! s.layer.parent ) {
+			s = state.__sig = {
+				layer: new PIXI.Graphics(),
+				timer: 36 + Math.random() * 44,
+				life: 0,
+			};
+			s.angle = 0;
+			app.stage.addChild( s.layer );
+		}
+		if ( s.life <= 0 ) {
+			s.timer -= dt / 60;
+			if ( s.timer > 0 ) { s.layer.clear(); return; }
+			s.life = 1;
+			s.timer = 36 + Math.random() * 44;
+			s.angle = ( s.angle || 0 ) + 0.12;
+		}
+		s.life = Math.max( 0, s.life - dt * 0.002 );
+
+		            var cx = app.renderer.width  * 0.28;
+		            var cy = app.renderer.height * 0.82;
+		            var tilt = s.angle || 0;
+		            s.layer.clear();
+		            var pts = [];
+		            for ( var i = 0; i < 8; i++ ) {
+		                var r = 30 + Math.sin( i * 1.3 + tilt ) * 14;
+		                var a = tilt + i * Math.PI / 4;
+		                pts.push( [ cx + Math.cos( a ) * r, cy + Math.sin( a ) * r * 0.6 ] );
+		            }
+		            s.layer.moveTo( pts[ 0 ][ 0 ], pts[ 0 ][ 1 ] );
+		            for ( var j = 1; j < pts.length; j++ ) s.layer.lineTo( pts[ j ][ 0 ], pts[ j ][ 1 ] );
+		            s.layer.closePath().fill( { color: 0x0e2b48, alpha: s.life * 0.35 } );
+	}
+
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -182,6 +221,8 @@
 				lg.ellipse( lx, ly, L.size * ( 0.6 + Math.cos( rot ) * 0.3 ), L.size * 0.55 )
 					.fill( { color: L.color, alpha: 0.85 } );
 			}
+		
+			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {

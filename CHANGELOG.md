@@ -16,6 +16,71 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.4.0"></a>
+## [3.4.0] — 2026-04-27
+
+### Added
+- **Personality pass across the whole catalog.** Every scene and every
+  icon set now leans harder into its own voice.
+  - Each of the 17 pre-existing icon sets grew one or two tile-surface
+    tells that read at dock/taskbar size without breaking glyph
+    recognition: arcade coins show relief cracks and a bent-coin variant,
+    arctic tiles grow frost from a corner, blueprint gains margin
+    rulers and coffee rings, claymation carries fingerprints, cross-stitch
+    skips a stitch, eyeball-avenue sprouts bloodshot veins, filament
+    kinks, fold tears at the edges, hologram scratches and peels,
+    lemonade-stand drips a crayon, monoline lifts a sticker edge,
+    risograph smudges an ink pass, stadium frays a pennant, tiki burns
+    its wood, and more. All via new tell emitters in
+    `_tools/regen-icon-set.py`.
+  - Every one of the 19 pre-existing scenes got one hand-coded Pixi
+    signature motif inside its tick: a luminous jellyfish bloom in
+    `abyssal-aquarium`, shooting stars in `aurora`, a cat silhouette
+    panning a window in `balcony-noon`, a rolling beach ball in
+    `beach-umbrellas`, a V-formation of birds in `big-sky`, a ladybug
+    walking a trace in `circuit-garden`, a paper airplane in
+    `cloud-city`, an ink-drop splash in `flux`, a pulsing iris lens in
+    `iris-observatory`, confetti bursts in `mercado`, a breathing
+    origami shape in `origami`, a blinking portal in `pocket-dimension`,
+    silent heat-lightning in `rainfall`, a sun-shifted silhouette in
+    `sun-print`, a rotating chip in `terrazzo`, a hermit-crab scuttle in
+    `tide-pool`, a mist puff in `tropical-greenhouse`, a "wrong weather"
+    flurry in `weather-factory`, and a butterfly landing in
+    `wildflower-meadow`. All perf-tier-aware (skipped on `low`) and
+    reduced-motion friendly.
+- **New default: weird-first `oddlings` icon tweaks + Oddling
+  personality continuity.** The Oddlings set and Oddling Desktop scene
+  (introduced in 3.3.0) now sit inside a catalog where the rest of the
+  bundles also have personality, so the default doesn't feel like the
+  only opinionated option.
+- **`_tools/wallpaper-prompts-v2.json`** — a new prompt archive that
+  pushes saturation, reserves negative-space slots for the Pixi motifs,
+  bakes in a signature ODD detail per scene (iris-shaped clouds,
+  eye-shaped bubbles, a specimen ceramic cat, etc.), and keeps the
+  "no text, no logos, no people" guardrails.
+
+### Changed
+- **Every scene wallpaper repainted via gpt-image-2 from v2 prompts.**
+  All 20 scene `wallpaper.webp` / `preview.webp` pairs were regenerated
+  at high quality with stronger art direction and explicit negative
+  space where each new motif lands. `_tools/gen-wallpaper.py` now also
+  mirrors output into `_tools/catalog-sources/scenes/<slug>/` so the
+  catalog bundle picks up regenerations without a separate copy step.
+- **Scene `meta.json` descriptions rewritten.** The placeholder
+  "<Label> — a painted ODD wallpaper scene." line has been replaced with
+  a specific one-liner on every scene that tells the user what they'll
+  see and which signature moment to watch for.
+- **Icon-set `manifest.json` descriptions polished** to reflect the new
+  surface tells.
+- **`regen-icon-set.py --all` now skips `oddlings`** so the hand-authored
+  creature badges aren't stomped by the generic fallback renderer. The
+  Oddlings set still rebuilds via `_tools/gen-oddling-desktop.py`.
+
+### Fixed
+- **Wallpaper fallback still prefers Oddling Desktop** when the starter
+  pack hasn't resolved yet, with the new repainted Flux as a second
+  fallback.
+
 <a id="v3.3.0"></a>
 ## [3.3.0] — 2026-04-27
 

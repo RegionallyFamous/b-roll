@@ -7,6 +7,53 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
+	// Signature moment: perf- and reduced-motion-aware overlay that
+	// lands in the negative-space slot the v2 wallpaper prompt reserves.
+	function signatureTick( state, env ) {
+		if ( env.perfTier === 'low' || env.reducedMotion ) return;
+		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
+		var s = state.__sig;
+		if ( ! s || ! s.layer || ! s.layer.parent ) {
+			s = state.__sig = {
+				layer: new PIXI.Graphics(),
+				timer: 55 + Math.random() * 75,
+				life: 0,
+			};
+			s.flakes = [];
+			app.stage.addChild( s.layer );
+		}
+		if ( s.life <= 0 ) {
+			s.timer -= dt / 60;
+			if ( s.timer > 0 ) { s.layer.clear(); return; }
+			s.life = 1;
+			s.timer = 55 + Math.random() * 75;
+			s.flakes = [];
+			            for ( var fi = 0; fi < 40; fi++ ) {
+			                s.flakes.push( {
+			                    x: Math.random() * app.renderer.width * 0.45,
+			                    y: Math.random() * app.renderer.height * 0.6,
+			                    vy: 0.6 + Math.random() * 1.0,
+			                    vx: -0.2 + Math.random() * 0.4,
+			                    r: 2 + Math.random() * 2.2
+			                } );
+			            }
+		}
+		s.life = Math.max( 0, s.life - dt * 0.0012 );
+
+		            s.layer.clear();
+		            for ( var fi = 0; fi < s.flakes.length; fi++ ) {
+		                var fl = s.flakes[ fi ];
+		                fl.x += fl.vx * dt;
+		                fl.y += fl.vy * dt;
+		                if ( fl.y > app.renderer.height * 0.78 ) {
+		                    fl.y = -10;
+		                    fl.x = Math.random() * app.renderer.width * 0.45;
+		                }
+		                s.layer.circle( fl.x, fl.y, fl.r )
+		                    .fill( { color: 0xffffff, alpha: s.life * 0.82 } );
+		            }
+	}
+
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -103,6 +150,8 @@
 				mg.circle( x, y, p.r ).fill( { color: p.color, alpha: p.alpha + state.ripple * 0.08 } );
 			}
 
+		
+			signatureTick( state, env );
 		},
 		onRipple: function ( opts, state ) {
 			state.ripple = Math.min( 1, state.ripple + ( ( opts && opts.intensity ) || 0.45 ) );

@@ -24,6 +24,48 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
+	// Signature moment: perf- and reduced-motion-aware overlay that
+	// lands in the negative-space slot the v2 wallpaper prompt reserves.
+	function signatureTick( state, env ) {
+		if ( env.perfTier === 'low' || env.reducedMotion ) return;
+		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
+		var s = state.__sig;
+		if ( ! s || ! s.layer || ! s.layer.parent ) {
+			s = state.__sig = {
+				layer: new PIXI.Graphics(),
+				timer: 14 + Math.random() * 20,
+				life: 0,
+			};
+			s.star = { x: 0, y: 0, dx: 1, dy: 1 };
+			app.stage.addChild( s.layer );
+		}
+		if ( s.life <= 0 ) {
+			s.timer -= dt / 60;
+			if ( s.timer > 0 ) { s.layer.clear(); return; }
+			s.life = 1;
+			s.timer = 14 + Math.random() * 20;
+			s.star.x  = app.renderer.width * ( 0.88 + Math.random() * 0.08 );
+			            s.star.y  = app.renderer.height * ( 0.05 + Math.random() * 0.10 );
+			            s.star.dx = -6 - Math.random() * 2;
+			            s.star.dy =  3 + Math.random() * 1.2;
+		}
+		s.life = Math.max( 0, s.life - dt * 0.0008 );
+
+		            s.star.x += s.star.dx * dt;
+		            s.star.y += s.star.dy * dt;
+		            s.layer.clear();
+		            s.layer.circle( s.star.x, s.star.y, 3.5 )
+		                .fill( { color: 0xffffff, alpha: s.life * 0.95 } );
+		            for ( var t = 1; t < 18; t++ ) {
+		                s.layer.circle(
+		                    s.star.x + s.star.dx * t * 1.6,
+		                    s.star.y + s.star.dy * t * 1.6,
+		                    Math.max( 0.5, 3.2 - t * 0.18 )
+		                ).fill( { color: 0xfff7d8, alpha: s.life * Math.max( 0, 0.9 - t * 0.06 ) } );
+		            }
+		            if ( s.star.x < -60 || s.star.y > app.renderer.height + 60 ) s.life = 0;
+	}
+
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -212,6 +254,8 @@
 				sg.circle( hx, hy, 2.2 ).fill( { color: 0xffffff, alpha: 0.95 * fade } );
 			}
 
+		
+			signatureTick( state, env );
 		},
 
 		onAudio: function ( state, env ) {

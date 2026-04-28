@@ -11,6 +11,52 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
+	// Signature moment: perf- and reduced-motion-aware overlay that
+	// lands in the negative-space slot the v2 wallpaper prompt reserves.
+	function signatureTick( state, env ) {
+		if ( env.perfTier === 'low' || env.reducedMotion ) return;
+		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
+		var s = state.__sig;
+		if ( ! s || ! s.layer || ! s.layer.parent ) {
+			s = state.__sig = {
+				layer: new PIXI.Graphics(),
+				timer: 90 + Math.random() * 90,
+				life: 0,
+			};
+			s.ball = { x: -80, y: 0, rot: 0 };
+			app.stage.addChild( s.layer );
+		}
+		if ( s.life <= 0 ) {
+			s.timer -= dt / 60;
+			if ( s.timer > 0 ) { s.layer.clear(); return; }
+			s.life = 1;
+			s.timer = 90 + Math.random() * 90;
+			s.ball.x = -80;
+			            s.ball.y = app.renderer.height * ( 0.78 + Math.random() * 0.08 );
+			            s.ball.rot = 0;
+		}
+		s.life = Math.max( 0, s.life - dt * 0.0015 );
+
+		            s.ball.x += dt * 3.2;
+		            s.ball.y -= dt * 0.6;
+		            s.ball.rot += dt * 0.12;
+		            var r = 22;
+		            s.layer.clear();
+		            var cx = s.ball.x, cy = s.ball.y;
+		            s.layer.circle( cx, cy, r )
+		                .fill( { color: 0xffffff, alpha: s.life * 0.95 } );
+		            for ( var k = 0; k < 6; k++ ) {
+		                var a0 = s.ball.rot + k * Math.PI / 3;
+		                s.layer.moveTo( cx, cy )
+		                    .lineTo( cx + Math.cos( a0 ) * r, cy + Math.sin( a0 ) * r )
+		                    .lineTo( cx + Math.cos( a0 + Math.PI / 6 ) * r, cy + Math.sin( a0 + Math.PI / 6 ) * r )
+		                    .fill( { color: ( k % 2 === 0 ? 0xff4d6d : 0xffca3a ), alpha: s.life * 0.85 } );
+		            }
+		            s.layer.ellipse( cx, cy + r + 4, r * 0.9, 5 )
+		                .fill( { color: 0x000000, alpha: s.life * 0.3 } );
+		            if ( s.ball.x > app.renderer.width * 0.55 ) s.life = 0;
+	}
+
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -160,6 +206,8 @@
 						.stroke( { color: 0x3a2a1e, width: 2, alpha: 0.45 } );
 				}
 			}
+		
+			signatureTick( state, env );
 		},
 
 		onRipple: function ( opts, state ) {

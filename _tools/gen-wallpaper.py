@@ -57,6 +57,10 @@ except ImportError:
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WALLPAPER_DIR = REPO_ROOT / "odd" / "assets" / "wallpapers"
 PREVIEW_DIR = REPO_ROOT / "odd" / "assets" / "previews"
+# Catalog-source dir for each scene. build-catalog.py reads the scene's
+# wallpaper.webp/preview.webp from here, so a regeneration that only
+# touches the plugin-asset dirs above is invisible to the bundle.
+CATALOG_SCENES_DIR = REPO_ROOT / "_tools" / "catalog-sources" / "scenes"
 WALLPAPER_W, WALLPAPER_H = 1920, 1080
 PREVIEW_W, PREVIEW_H = 640, 360
 GEN_W, GEN_H = 1536, 864  # gpt-image-2 16:9 landscape
@@ -150,6 +154,17 @@ def write_pair(slug: str, png: bytes) -> tuple[int, int]:
     pv = wp.resize((PREVIEW_W, PREVIEW_H), Image.LANCZOS)
     out_pv = PREVIEW_DIR / f"{slug}.webp"
     pv.save(out_pv, "WEBP", quality=80, method=6)
+
+    # Mirror into the catalog source tree so build-catalog.py picks up
+    # the regenerated assets. Only write if the scene source folder
+    # already exists — we don't invent new scene entries from here.
+    catalog_scene_dir = CATALOG_SCENES_DIR / slug
+    if catalog_scene_dir.is_dir():
+        wp.save(catalog_scene_dir / "wallpaper.webp", "WEBP",
+                quality=82, method=6)
+        pv.save(catalog_scene_dir / "preview.webp", "WEBP",
+                quality=80, method=6)
+
     return out_wp.stat().st_size, out_pv.stat().st_size
 
 

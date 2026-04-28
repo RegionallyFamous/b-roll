@@ -4,7 +4,7 @@
   "franchise": "Technical",
   "accent": "#2fb37a",
   "preview": "dashboard.svg",
-  "description": "PCB-green tiles with gold traces, solder pads, and a tiny red LED in the corner. Pairs with Circuit Garden.",
+  "description": "PCB-green tiles with gold traces, solder blobs, one bent rerouted trace, and a red LED that rotates position per icon. Pairs with Circuit Garden.",
   "version": "1.1.1",
   "author": "Regionally Famous",
   "icons": {

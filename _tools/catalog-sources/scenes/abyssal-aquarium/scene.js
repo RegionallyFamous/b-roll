@@ -7,6 +7,52 @@
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
+	// Signature moment: perf- and reduced-motion-aware overlay that
+	// lands in the negative-space slot the v2 wallpaper prompt reserves.
+	function signatureTick( state, env ) {
+		if ( env.perfTier === 'low' || env.reducedMotion ) return;
+		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
+		var s = state.__sig;
+		if ( ! s || ! s.layer || ! s.layer.parent ) {
+			s = state.__sig = {
+				layer: new PIXI.Graphics(),
+				timer: 30 + Math.random() * 30,
+				life: 0,
+			};
+			s.bloom = { x: -200, y: 0 };
+			app.stage.addChild( s.layer );
+		}
+		if ( s.life <= 0 ) {
+			s.timer -= dt / 60;
+			if ( s.timer > 0 ) { s.layer.clear(); return; }
+			s.life = 1;
+			s.timer = 30 + Math.random() * 30;
+			s.bloom.x = -80; s.bloom.y = app.renderer.height * (0.42 + Math.random() * 0.12);
+		}
+		s.life = Math.max( 0, s.life - dt * 0.002 );
+
+		            s.bloom.x += dt * 1.8;
+		            var w = app.renderer.width;
+		            s.layer.clear();
+		            for ( var i = 0; i < 5; i++ ) {
+		                var bx = s.bloom.x - i * 46;
+		                var by = s.bloom.y + Math.sin( s.bloom.x * 0.01 + i ) * 12;
+		                var a = s.life * ( 1 - i * 0.16 );
+		                s.layer.ellipse( bx, by, 46, 28 )
+		                    .fill( { color: 0x8ff7ff, alpha: a * 0.28 } );
+		                s.layer.ellipse( bx, by, 20, 18 )
+		                    .fill( { color: 0xe8fffb, alpha: a * 0.42 } );
+		                for ( var t = 0; t < 4; t++ ) {
+		                    s.layer
+		                        .moveTo( bx - 16 + t * 10, by + 12 )
+		                        .lineTo( bx - 18 + t * 10 + Math.sin( s.bloom.x * 0.02 + t ) * 6,
+		                                 by + 58 + Math.sin( s.bloom.x * 0.03 + t ) * 6 )
+		                        .stroke( { color: 0x8ff7ff, width: 2, alpha: a * 0.35 } );
+		                }
+		            }
+		            if ( s.bloom.x > w + 240 ) { s.life = 0; }
+	}
+
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
@@ -99,6 +145,8 @@
 				bg.circle( x, p.y, p.r ).stroke( { color: 0xb8fff8, width: 0.8, alpha: p.alpha + state.ripple * 0.12 } );
 			}
 
+		
+			signatureTick( state, env );
 		},
 		onRipple: function ( opts, state ) {
 			state.ripple = Math.min( 1, state.ripple + ( ( opts && opts.intensity ) || 0.5 ) );

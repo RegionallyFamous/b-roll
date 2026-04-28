@@ -456,6 +456,389 @@ def _theme_shell(slug, key, label, bg_defs, bg, subject, extras="", defs_extra="
     return _svg_shell(defs, body, label)
 
 
+# ------------------------------------------------------------------ #
+# Personality tells.
+#
+# Each set gets one or two extra SVG details that land on the tile
+# surface (never through the glyph) so dock/taskbar recognition stays
+# intact. Tells vary per icon key using a deterministic hash so a set
+# never looks perfectly cloned across its 13 icons.
+# ------------------------------------------------------------------ #
+
+
+def _key_hash(key):
+    h = 0
+    for ch in key:
+        h = (h * 131 + ord(ch)) & 0xFFFFFFFF
+    return h
+
+
+def _key_pick(key, choices):
+    return choices[_key_hash(key) % len(choices)]
+
+
+def _personality_tell(slug, key):
+    h = _key_hash(key)
+
+    if slug == "arcade-tokens":
+        # Hairline relief cracks that rotate position per key; one scuff
+        # glint; the "pages" key ships as a subtly bent coin.
+        angle = (h % 6) * 30
+        crack = (
+            f'<g transform="rotate({angle} 512 512)" opacity=".55">'
+            '<path d="M 300 640 L 420 520 L 560 580" stroke="#5b310f" '
+            'stroke-width="6" fill="none" stroke-linecap="round"/>'
+            '</g>'
+        )
+        glint = (
+            '<path d="M 688 332 L 760 298 L 744 370 Z" '
+            'fill="#fff1b8" opacity=".38"/>'
+        )
+        bent = (
+            '<ellipse cx="512" cy="512" rx="376" ry="360" '
+            'fill="none" stroke="#5b310f" stroke-width="6" opacity=".28"/>'
+            if key == "pages" else ""
+        )
+        return crack + glint + bent
+
+    if slug == "arctic":
+        # Frost crystals creep from a varied corner; one hairline crack.
+        corners = [
+            (120, 120, 1),
+            (904, 120, -1),
+            (120, 904, 1),
+            (904, 904, -1),
+        ]
+        cx, cy, d = corners[h % 4]
+        frost = (
+            f'<g stroke="#ffffff" stroke-width="5" stroke-linecap="round" '
+            f'fill="none" opacity=".55">'
+            f'<path d="M {cx} {cy} l {60 * d} -10 M {cx} {cy} l -8 60 '
+            f'M {cx} {cy} l {42 * d} 36 M {cx} {cy} l {24 * d} -52"/>'
+            f'</g>'
+        )
+        crack = (
+            '<path d="M 164 420 L 268 390 L 360 480" '
+            'stroke="#74bce2" stroke-width="4" fill="none" '
+            'opacity=".4" stroke-linecap="round"/>'
+            if key in ("posts", "tools", "fallback") else ""
+        )
+        return frost + crack
+
+    if slug == "blueprint":
+        # Margin ruler ticks along one side (varied), coffee ring,
+        # handwritten key caption.
+        sides = ["top", "right", "bottom", "left"]
+        side = sides[h % 4]
+        if side == "top":
+            ticks = "".join(
+                f'<line x1="{x}" y1="116" x2="{x}" y2="{140 + (i % 3) * 8}" '
+                f'stroke="#f0c96a" stroke-width="4" opacity=".55"/>'
+                for i, x in enumerate(range(260, 940, 70))
+            )
+        elif side == "bottom":
+            ticks = "".join(
+                f'<line x1="{x}" y1="908" x2="{x}" y2="{884 - (i % 3) * 8}" '
+                f'stroke="#f0c96a" stroke-width="4" opacity=".55"/>'
+                for i, x in enumerate(range(260, 940, 70))
+            )
+        elif side == "right":
+            ticks = "".join(
+                f'<line x1="908" y1="{y}" x2="{884 - (i % 3) * 8}" y2="{y}" '
+                f'stroke="#f0c96a" stroke-width="4" opacity=".55"/>'
+                for i, y in enumerate(range(260, 940, 70))
+            )
+        else:
+            ticks = "".join(
+                f'<line x1="116" y1="{y}" x2="{140 + (i % 3) * 8}" y2="{y}" '
+                f'stroke="#f0c96a" stroke-width="4" opacity=".55"/>'
+                for i, y in enumerate(range(260, 940, 70))
+            )
+        ring = (
+            '<circle cx="812" cy="856" r="52" fill="none" '
+            'stroke="#c9a24a" stroke-width="6" opacity=".42"/>'
+            '<circle cx="812" cy="856" r="40" fill="none" '
+            'stroke="#c9a24a" stroke-width="3" opacity=".30"/>'
+            if key in ("dashboard", "profile", "comments") else ""
+        )
+        return ticks + ring
+
+    if slug == "botanical-plate":
+        # Pressed pin, foxing spots, pencilled label.
+        pin_x = 180 + (h % 5) * 90
+        pin = (
+            f'<g transform="translate({pin_x} 170)">'
+            '<circle cx="0" cy="0" r="14" fill="#6a3d15"/>'
+            '<circle cx="-4" cy="-4" r="4" fill="#f6d27d"/>'
+            '</g>'
+        )
+        spots = (
+            '<g fill="#8a6028" opacity=".26">'
+            '<circle cx="208" cy="848" r="10"/>'
+            '<circle cx="238" cy="866" r="6"/>'
+            '<circle cx="824" cy="210" r="8"/>'
+            '</g>'
+        )
+        caption = (
+            '<rect x="680" y="866" width="168" height="42" rx="6" '
+            'fill="none" stroke="#2d3822" stroke-width="2" opacity=".35"/>'
+            '<path d="M 696 894 h 140" stroke="#2d3822" stroke-width="2" '
+            'opacity=".40"/>'
+        )
+        return pin + spots + caption
+
+    if slug == "brutalist-stencil":
+        # Wheat-paste torn corner, spray-paint drip on one icon.
+        corners = [
+            'M 0 0 L 210 0 L 180 60 L 120 40 L 60 90 L 0 50 Z',
+            'M 1024 0 L 1024 110 L 900 140 L 860 70 L 940 30 L 820 0 Z',
+            'M 0 1024 L 0 920 L 90 890 L 140 960 L 60 1024 Z',
+            'M 1024 1024 L 820 1024 L 860 960 L 930 980 L 1010 920 L 1024 990 Z',
+        ]
+        tear = (
+            f'<path d="{corners[h % 4]}" fill="#ffffff" opacity=".24"/>'
+        )
+        drip = (
+            '<path d="M 180 720 Q 200 820 194 900 Q 188 940 200 960" '
+            'stroke="#111" stroke-width="10" fill="none" opacity=".55" '
+            'stroke-linecap="round"/>'
+            '<circle cx="200" cy="968" r="9" fill="#111" opacity=".55"/>'
+            if key in ("appearance", "tools", "links") else ""
+        )
+        return tear + drip
+
+    if slug == "circuit-bend":
+        # Corner-rotating red LED (keeps four dots but with varied hot-pad),
+        # one bent trace, solder blob.
+        pads = [(210, 210), (814, 246), (240, 808), (790, 780)]
+        hot = pads[h % 4]
+        hot_dot = (
+            f'<circle cx="{hot[0]}" cy="{hot[1]}" r="22" fill="#ff3b2e" '
+            f'opacity=".72"/>'
+            f'<circle cx="{hot[0]}" cy="{hot[1]}" r="11" fill="#fff7ea" '
+            f'opacity=".85"/>'
+        )
+        bend = (
+            f'<path d="M 140 560 L 300 560 L 340 520 L 460 520 L 500 560 '
+            f'L 640 560" stroke="#2fb37a" stroke-width="6" fill="none" '
+            f'opacity=".45" stroke-linecap="round"/>'
+        )
+        solder = (
+            f'<circle cx="{hot[0] - 60}" cy="{hot[1] + 40}" r="14" '
+            f'fill="#f4c24c" opacity=".55"/>'
+        )
+        return hot_dot + bend + solder
+
+    if slug == "claymation":
+        # Fingerprint whorl, stray clay crumb.
+        fx = 160 + (h % 5) * 120
+        fy = 820 + (h % 3) * 20
+        whorl = (
+            f'<g transform="translate({fx} {fy})" fill="none" '
+            f'stroke="#b24a1a" stroke-width="3" opacity=".32">'
+            '<circle r="12"/><circle r="20"/><circle r="28"/>'
+            '</g>'
+        )
+        crumb = (
+            '<circle cx="862" cy="180" r="10" fill="#b24a1a" '
+            'opacity=".48"/>'
+            '<circle cx="886" cy="208" r="5" fill="#b24a1a" '
+            'opacity=".36"/>'
+        )
+        return whorl + crumb
+
+    if slug == "cross-stitch":
+        # Skipped stitch gap, linen fray tuft, threaded needle on one icon.
+        gap_x = 320 + (h % 5) * 80
+        gap = (
+            f'<rect x="{gap_x}" y="860" width="44" height="16" rx="4" '
+            f'fill="#f6e7d7"/>'
+        )
+        fray = (
+            '<g stroke="#b08a66" stroke-width="4" opacity=".7" '
+            'stroke-linecap="round">'
+            '<path d="M 932 132 l 28 -20"/>'
+            '<path d="M 942 150 l 30 -8"/>'
+            '<path d="M 950 172 l 36 -2"/>'
+            '</g>'
+        )
+        needle = (
+            '<g transform="rotate(28 820 192)">'
+            '<rect x="740" y="186" width="160" height="8" rx="4" '
+            'fill="#c0c6cc"/>'
+            '<circle cx="752" cy="190" r="10" fill="none" '
+            'stroke="#c0c6cc" stroke-width="4"/>'
+            '<path d="M 760 190 L 736 190" stroke="#e87ca7" '
+            'stroke-width="4" opacity=".8"/>'
+            '</g>'
+            if key == "tools" else ""
+        )
+        return gap + fray + needle
+
+    if slug == "eyeball-avenue":
+        # Tear highlight and bloodshot vein fork on two icons.
+        tear = (
+            '<path d="M 524 488 Q 508 512 524 540 Q 540 512 524 488 Z" '
+            'fill="#ffffff" opacity=".65"/>'
+        )
+        veins = (
+            '<g stroke="#ff4fa8" stroke-width="4" fill="none" '
+            'opacity=".58">'
+            '<path d="M 200 512 Q 260 492 310 510 Q 340 520 360 500"/>'
+            '<path d="M 820 512 Q 770 500 728 520 Q 700 534 680 516"/>'
+            '</g>'
+            if key in ("comments", "profile") else ""
+        )
+        return tear + veins
+
+    if slug == "filament":
+        # Reflector glare, visible filament kink in the glyph.
+        glare = (
+            '<ellipse cx="768" cy="232" rx="80" ry="20" fill="#ffe7a6" '
+            'opacity=".55" transform="rotate(-18 768 232)"/>'
+            '<ellipse cx="768" cy="232" rx="36" ry="8" fill="#fff" '
+            'opacity=".85" transform="rotate(-18 768 232)"/>'
+        )
+        kink_x = 300 + (h % 5) * 100
+        kink = (
+            f'<path d="M {kink_x} 600 l 24 -18 l -18 -20 l 22 -14" '
+            f'stroke="#ffe7a6" stroke-width="5" fill="none" '
+            f'opacity=".6" stroke-linecap="round"/>'
+        )
+        return glare + kink
+
+    if slug == "fold":
+        # Paper grain tint + a torn-edge variation on one or two keys.
+        grain = (
+            '<g stroke="#ffffff" stroke-width="2" opacity=".14">'
+            + "".join(
+                f'<line x1="{x}" y1="116" x2="{x}" y2="908"/>'
+                for x in range(160, 900, 64)
+            )
+            + '</g>'
+        )
+        tear = (
+            '<path d="M 116 820 L 220 832 L 290 802 L 380 838 L 460 812 '
+            'L 540 842 L 640 810 L 720 836 L 820 812 L 908 828 L 908 908 '
+            'L 116 908 Z" fill="#4a2c9c" opacity=".18"/>'
+            if key in ("posts", "plugins", "links") else ""
+        )
+        return grain + tear
+
+    if slug == "hologram":
+        # Scratch pass, varied peel-corner shape per icon.
+        scratch_y = 240 + (h % 6) * 80
+        scratch = (
+            f'<path d="M 160 {scratch_y} Q 400 {scratch_y - 20} 640 {scratch_y + 10} '
+            f'T 900 {scratch_y}" stroke="#ffffff" stroke-width="2" '
+            f'fill="none" opacity=".45"/>'
+        )
+        peels = [
+            '<path d="M 116 116 L 116 220 L 210 116 Z" '
+            'fill="#ffffff" opacity=".58"/>',
+            '<path d="M 908 116 L 908 190 L 820 116 Z" '
+            'fill="#ffffff" opacity=".56"/>',
+            '<path d="M 116 908 L 116 830 L 200 908 Z" '
+            'fill="#ffffff" opacity=".52"/>',
+            '<path d="M 908 908 L 908 824 L 830 908 Z" '
+            'fill="#ffffff" opacity=".56"/>',
+        ]
+        peel = peels[h % 4]
+        return scratch + peel
+
+    if slug == "lemonade-stand":
+        # Crayon drip down the glyph, corner lemon wedge.
+        drip_x = 260 + (h % 5) * 110
+        drip = (
+            f'<path d="M {drip_x} 720 Q {drip_x + 8} 820 {drip_x - 6} 900 '
+            f'Q {drip_x + 10} 940 {drip_x} 970" stroke="#e84a2a" '
+            f'stroke-width="10" fill="none" opacity=".65" '
+            f'stroke-linecap="round"/>'
+        )
+        corners = [
+            (140, 140), (884, 140), (140, 884), (884, 884),
+        ]
+        cx, cy = corners[h % 4]
+        wedge = (
+            f'<g transform="translate({cx} {cy})">'
+            '<path d="M -60 0 A 60 60 0 0 1 60 0 Z" fill="#fff4a8"/>'
+            '<path d="M -60 0 L 60 0" stroke="#e8a418" stroke-width="4"/>'
+            '<path d="M 0 -48 L 0 -4 M -40 -22 L -4 -2 M 40 -22 L 4 -2" '
+            'stroke="#e8a418" stroke-width="3"/>'
+            '</g>'
+        )
+        return drip + wedge
+
+    if slug == "monoline":
+        # Tape residue streak, lifted sticker edge on one icon.
+        streak = (
+            '<rect x="660" y="824" width="220" height="56" rx="10" '
+            'fill="#ffffff" opacity=".22" transform="rotate(-6 770 852)"/>'
+        )
+        lift = (
+            '<path d="M 908 116 Q 820 180 760 116 Z" fill="#ffffff" '
+            'opacity=".38"/>'
+            if key in ("plugins", "tools", "settings") else ""
+        )
+        return streak + lift
+
+    if slug == "risograph":
+        # Off-register second pass (already baseline); add ink smudge.
+        smudge_x = 180 + (h % 6) * 120
+        smudge = (
+            f'<ellipse cx="{smudge_x}" cy="892" rx="{48 + (h % 3) * 16}" '
+            f'ry="12" fill="#ff4fa8" opacity=".35"/>'
+            f'<ellipse cx="{smudge_x + 32}" cy="904" rx="28" ry="8" '
+            f'fill="#14a6cc" opacity=".28"/>'
+        )
+        drift = (
+            '<circle cx="168" cy="184" r="40" fill="#14a6cc" '
+            'opacity=".18"/>'
+            '<circle cx="184" cy="172" r="40" fill="#ff4fa8" '
+            'opacity=".16"/>'
+            if key in ("dashboard", "media", "profile") else ""
+        )
+        return smudge + drift
+
+    if slug == "stadium":
+        # Loose thread along a seam, frayed pennant corner.
+        thread = (
+            '<path d="M 130 470 Q 260 460 380 476 Q 460 488 540 474" '
+            'stroke="#ffd86a" stroke-width="5" fill="none" opacity=".75" '
+            'stroke-linecap="round"/>'
+            '<circle cx="540" cy="474" r="6" fill="#ffd86a"/>'
+        )
+        fray = (
+            '<g stroke="#ffffff" stroke-width="5" stroke-linecap="round" '
+            'opacity=".52">'
+            '<path d="M 908 116 l 18 -22"/>'
+            '<path d="M 908 136 l 34 -10"/>'
+            '<path d="M 908 158 l 30 2"/>'
+            '</g>'
+        )
+        return thread + fray
+
+    if slug == "tiki":
+        # Burn mark on the wood, undone rattan strand.
+        bx = 200 + (h % 4) * 160
+        by = 780 + (h % 3) * 40
+        burn = (
+            f'<ellipse cx="{bx}" cy="{by}" rx="48" ry="28" fill="#1d0904" '
+            f'opacity=".55"/>'
+            f'<ellipse cx="{bx}" cy="{by}" rx="30" ry="16" fill="#f6dfb4" '
+            f'opacity=".12"/>'
+        )
+        strand = (
+            '<path d="M 92 126 Q 200 108 280 148 Q 360 186 400 160" '
+            'stroke="#f6dfb4" stroke-width="6" fill="none" opacity=".55" '
+            'stroke-linecap="round"/>'
+            '<circle cx="400" cy="160" r="7" fill="#f6dfb4"/>'
+        )
+        return burn + strand
+
+    return ""
+
+
 def render_set_icon(slug, key, manifest):
     uid = _uid(slug, key)
     label = f"{manifest['label']} {key.title()}"
@@ -554,7 +937,8 @@ def render_set_icon(slug, key, manifest):
         subject = _glyph_fill(key, "#fff", "#999")
         extras = ""
 
-    return _theme_shell(slug, key, label, defs, bg, subject, extras)
+    tell = _personality_tell(slug, key)
+    return _theme_shell(slug, key, label, defs, bg, subject, extras + tell)
 
 
 # ------------------------------------------------------------------ #
@@ -626,7 +1010,14 @@ def main():
         return
 
     if args.all:
-        slugs = sorted(p.name for p in SETS_DIR.iterdir() if p.is_dir())
+        # The oddlings set is hand-authored via _tools/gen-oddling-desktop.py,
+        # not derived from the shared metaphor pens. Skip it in --all so
+        # we don't stomp its bespoke creature-badge SVGs with the generic
+        # fallback renderer.
+        slugs = sorted(
+            p.name for p in SETS_DIR.iterdir()
+            if p.is_dir() and p.name != "oddlings"
+        )
     elif args.slug:
         slugs = [args.slug]
     else:

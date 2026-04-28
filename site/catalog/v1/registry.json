@@ -19,7 +19,7 @@
       "name": "Abyssal Aquarium",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Abyssal Aquarium \u2014 a painted ODD wallpaper scene.",
+      "description": "Bioluminescent drift through a deep-sea gallery, where specimens peek from inky depths and a luminous jellyfish bloom occasionally crosses the mid-water dark.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -30,8 +30,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-abyssal-aquarium.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-abyssal-aquarium.wp",
-      "sha256": "fd1ba999056bcfb230b33cf8f84c17f126adb80512fdb27a91a8c3c64fd1fd2e",
-      "size": 138836
+      "sha256": "78ac3ca95db6284141260b93870bc9f98c4d626a5f8582399d40f74bfc3f0625",
+      "size": 238143
     },
     {
       "type": "scene",
@@ -39,7 +39,7 @@
       "name": "Aurora",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Aurora \u2014 a painted ODD wallpaper scene.",
+      "description": "Electric ribbons of teal, chartreuse, and magenta drape over a frozen lake, with the occasional shooting star slipping above the aurora line.",
       "franchise": "Atmosphere",
       "tags": [
         "sky",
@@ -50,8 +50,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-aurora.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-aurora.wp",
-      "sha256": "40165af218f345eb6b268105a8da9e7515cf2d215ea01818e1c661e1d7ba21e7",
-      "size": 169814
+      "sha256": "e3e79fa90a8193adbd650ad0cade7368dc9e201940d97052a7b5ef713cfdcbab",
+      "size": 149020
     },
     {
       "type": "scene",
@@ -59,7 +59,7 @@
       "name": "Balcony Noon",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Balcony Noon \u2014 a painted ODD wallpaper scene.",
+      "description": "Sun-soaked anime balcony at high noon: laundry catches a gust, a tabby silhouette eases past the window, and the city hum keeps its distance.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -70,8 +70,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-balcony-noon.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-balcony-noon.wp",
-      "sha256": "781d152bb944146219058241744abeacd3a11e42addbe31070655ecaf7574a75",
-      "size": 257609
+      "sha256": "1db667e85f1df23d462a1e2e8d123f3b6cbb62f11c30c56124bafe2222287e1a",
+      "size": 257966
     },
     {
       "type": "scene",
@@ -79,7 +79,7 @@
       "name": "Beach Umbrellas",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Beach Umbrellas \u2014 a painted ODD wallpaper scene.",
+      "description": "Top-down travel-poster beach at bright midday with striped umbrella clusters, tide foam, and the occasional rogue beach ball rolling across the empty sand.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -90,8 +90,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-beach-umbrellas.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-beach-umbrellas.wp",
-      "sha256": "93f6b129359c140300753363d4b0b6e246d9fc17cd671f6cfc1cfe87e59258e5",
-      "size": 336690
+      "sha256": "47ddecc9e95383e680589523f1e1e83041a04b3464a409255c54fa531055eeba",
+      "size": 293157
     },
     {
       "type": "scene",
@@ -99,7 +99,7 @@
       "name": "Big Sky",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Big Sky \u2014 a painted ODD wallpaper scene.",
+      "description": "Prairie horizon under towering cumulus with a subtle iris-shaped cloud, a distant rain curtain, and a V-formation of birds drifting along the skyline.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -110,8 +110,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-big-sky.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-big-sky.wp",
-      "sha256": "e219a032bcfac005eb6e2005ce8ca66590aa92a48d193ddd44c3d6bfdbcd6bcc",
-      "size": 192202
+      "sha256": "e0f0944ee9deee324acc9cab225caa7e1b8b3df21b3faa0655c6c8dc95ea1e20",
+      "size": 245021
     },
     {
       "type": "scene",
@@ -119,7 +119,7 @@
       "name": "Circuit Garden",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Circuit Garden \u2014 a painted ODD wallpaper scene.",
+      "description": "A living motherboard overgrown with neon orchids and capacitor mushrooms, with a ladybug specimen that walks one glowing copper trace and disappears under a leaf.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -130,8 +130,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-circuit-garden.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-circuit-garden.wp",
-      "sha256": "cf92cbb00c7e844dcbdda8fdbb01c44afa060bce51cff3db7fd7ef06cfdebdda",
-      "size": 324532
+      "sha256": "adfbfd33a6e3ce46ab7525479ef09cf96aa798d385bbc64b57c7cb2c45dcdb7b",
+      "size": 367047
     },
     {
       "type": "scene",
@@ -139,7 +139,7 @@
       "name": "Cloud City",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Cloud City \u2014 a painted ODD wallpaper scene.",
+      "description": "Warm brass gondola deck of a Ghibli-lineage cloud city at pastel sunrise, where a single paper airplane glides between the peach and mint cumulus layers.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -150,8 +150,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-cloud-city.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-cloud-city.wp",
-      "sha256": "addcfdd0e517ecf59456c06c7c72bd4d2a61064a93514537cac106f722e21aba",
-      "size": 291284
+      "sha256": "39de6ca76975b9da66c968db952352c9e749fb83005fa68fc8ebdf5c4b10f694",
+      "size": 176613
     },
     {
       "type": "scene",
@@ -159,7 +159,7 @@
       "name": "Flux",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Flux \u2014 a painted ODD wallpaper scene.",
+      "description": "Marbled ink currents in navy, crimson, and amber with a silent central hollow. A slow-cadence ink-drop splash ripples outward whenever the painting breathes.",
       "franchise": "Generative",
       "tags": [
         "abstract",
@@ -170,8 +170,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-flux.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-flux.wp",
-      "sha256": "08f5c83e608b8b98d2edf3ce9d79b7cc3b96c886337239ba3746759020a10cb8",
-      "size": 83649
+      "sha256": "ba576e3d6950d81a9e5d1ca857dc320e083ed4505d3ff6dca29ca08579ffbcea",
+      "size": 233464
     },
     {
       "type": "scene",
@@ -179,7 +179,7 @@
       "name": "Iris Observatory",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Iris Observatory \u2014 a painted ODD wallpaper scene.",
+      "description": "Mountaintop brass telescope pointed at a plum-and-cobalt night, with one pulsing iris-eye star and a lens that focuses itself every forty-odd seconds.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -190,8 +190,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-iris-observatory.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-iris-observatory.wp",
-      "sha256": "83d912416cb1a0b21bcfdc4fe7307c9792ba810e27edfa71d46ffc0cb59738bb",
-      "size": 179819
+      "sha256": "8f066120e4846ac157025c07e9dcc8fc57c03a58d91d1af061420ef5e7bc6a0b",
+      "size": 247661
     },
     {
       "type": "scene",
@@ -199,7 +199,7 @@
       "name": "Mercado",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Mercado \u2014 a painted ODD wallpaper scene.",
+      "description": "Mexican mercado aisle in marigold, cobalt, and cream, where a sudden sway of papel picado drops a brief burst of confetti through the sunbeam bands.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -210,8 +210,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-mercado.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-mercado.wp",
-      "sha256": "e3adccf3d81127cc6b66c68fcd936a3496bb4dfa78182e208fe0ba8cf2e2f16d",
-      "size": 461979
+      "sha256": "dc94168be793e39f07054008558c57f7ac7718b4105c306678609a2093c7c4d3",
+      "size": 302629
     },
     {
       "type": "scene",
@@ -219,7 +219,7 @@
       "name": "Oddling Desktop",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "A living desktop terrarium. Tiny specimens drift over a plum CRT horizon while curious eyes blink from the edges.",
+      "description": "The ODD default: a plum CRT terrarium alive with drifting specimens, curious edge-eyes, and tiny file-tab fossils that slow-orbit the desktop.",
       "franchise": "ODD Defaults",
       "tags": [
         "weird",
@@ -230,8 +230,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-oddling-desktop.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-oddling-desktop.wp",
-      "sha256": "0a3f6c33168a0d3d9b8f45d515e3b2f726e34d7987853ca908618211e0bc55b2",
-      "size": 27260
+      "sha256": "c507d860762a470e18e7a3a2b8dd909d96571eed61587ace69a267fc185b63b7",
+      "size": 69321
     },
     {
       "type": "scene",
@@ -239,7 +239,7 @@
       "name": "Origami",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Origami \u2014 a painted ODD wallpaper scene.",
+      "description": "Soft sakura-and-mint paper-craft tabletop, with one paper shape that quietly opens and refolds itself for any patient watcher.",
       "franchise": "Paper",
       "tags": [
         "soft",
@@ -250,8 +250,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-origami.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-origami.wp",
-      "sha256": "9f516339ab69ab70b171051bf0e9a67731b0adcd2d3013904eca2769bc554151",
-      "size": 35116
+      "sha256": "32176d47b7f7e46e179f6b74eafd3b4ec21028690fccdfa2cd17df00d58de13c",
+      "size": 215964
     },
     {
       "type": "scene",
@@ -259,7 +259,7 @@
       "name": "Pocket Dimension",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Pocket Dimension \u2014 a painted ODD wallpaper scene.",
+      "description": "A Victorian drawing room shattered into floating islands orbiting a luminous oval portal that iris-blinks at the viewer between long stretches of nebula calm.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -270,8 +270,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-pocket-dimension.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-pocket-dimension.wp",
-      "sha256": "74440a97b14cb8729d1b3162af1f7db761e12561c77c0723d3c28bd1f9400049",
-      "size": 202616
+      "sha256": "4aa6db61f04a7b83c4e834e2e8f6ff692f25a5f9737718cf014995204e9d7cf2",
+      "size": 188837
     },
     {
       "type": "scene",
@@ -279,7 +279,7 @@
       "name": "Rainfall",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Rainfall \u2014 a painted ODD wallpaper scene.",
+      "description": "Painterly noir rain scene that splashes on every real desktop surface, with a rare silent heat-lightning flash punctuating the upper sky.",
       "franchise": "Atmosphere",
       "tags": [
         "rain",
@@ -290,8 +290,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-rainfall.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-rainfall.wp",
-      "sha256": "32d1393646e2346e134a306176aac8745f6506ce69b4c2fa997a07e4c5cb16ac",
-      "size": 19564
+      "sha256": "d47ead22631ed6c2136b31da845f256231c8ffb03d086cb4c2d8e72623c0912d",
+      "size": 238011
     },
     {
       "type": "scene",
@@ -299,7 +299,7 @@
       "name": "Sun Print",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Sun Print \u2014 a painted ODD wallpaper scene.",
+      "description": "Cyanotype prints drying on a cotton line above a sunlit lawn; the subject shadow beneath redraws itself as if the sun had just crept across.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -310,8 +310,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-sun-print.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-sun-print.wp",
-      "sha256": "f9b6297f6e630f943171816c44c47fd50093c7f39ce003040d39713709ad4baf",
-      "size": 620171
+      "sha256": "670df359fa7e54c2a12adc390f26546de5e6474c1c371b222c11a0f98c530b47",
+      "size": 638482
     },
     {
       "type": "scene",
@@ -319,7 +319,7 @@
       "name": "Terrazzo",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Terrazzo \u2014 a painted ODD wallpaper scene.",
+      "description": "Polished terrazzo floor in cream with coral, teal, mustard, and slime-green confetti chips, where one rogue chip slowly rotates in place on a clean stone island.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -330,8 +330,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-terrazzo.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-terrazzo.wp",
-      "sha256": "1121fa8916065a94955416654b4b35e1770ad5f60ea28c518b840c120525f356",
-      "size": 408955
+      "sha256": "32e99ddbfec77097585950c66657fa79f6b9058f0199d857e60d01d2ec7ac460",
+      "size": 463466
     },
     {
       "type": "scene",
@@ -339,7 +339,7 @@
       "name": "Tide Pool",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Tide Pool \u2014 a painted ODD wallpaper scene.",
+      "description": "Overhead macro tide pool in turquoise and lavender with one pearlescent eye-gleam hidden in a shell, and a hermit crab that occasionally scuttles across the clear sand.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -350,8 +350,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-tide-pool.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-tide-pool.wp",
-      "sha256": "62ca7ca4c4bcb3fe805d547e6f7d1a4feb796f403b1778e841f7ff3a1c2633d1",
-      "size": 500739
+      "sha256": "abe09754bc5cd49531722cbc4eef9f0ee7bd0d92110c300b0195f8e593e809c9",
+      "size": 439621
     },
     {
       "type": "scene",
@@ -359,7 +359,7 @@
       "name": "Tropical Greenhouse",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Tropical Greenhouse \u2014 a painted ODD wallpaper scene.",
+      "description": "Victorian palm-house light pouring through monstera, banana, and tree fern, with a soft mist puff that rolls through the center every so often.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -370,8 +370,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-tropical-greenhouse.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-tropical-greenhouse.wp",
-      "sha256": "6f2ec3a8450dde3a23d1ff085f504d0301c1c7b6dec2ad50c062772a317e8aa9",
-      "size": 573760
+      "sha256": "0d16905771722dbbf2d84111587063ecbe83fcc49a65a6c7192e40a7c88861af",
+      "size": 532166
     },
     {
       "type": "scene",
@@ -379,7 +379,7 @@
       "name": "Weather Factory",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Weather Factory \u2014 a painted ODD wallpaper scene.",
+      "description": "Steampunk cloud-machine conveyor of raindrops, snowflakes, and autumn leaves over a pastel sky; every long cycle it runs the wrong weather on purpose.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -390,8 +390,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-weather-factory.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-weather-factory.wp",
-      "sha256": "3cb6e6fae479ec425a27a3adac46b47ec9b0d48a6e9985e2d5a57e4d32546b91",
-      "size": 268868
+      "sha256": "dc45c0c02f17c5bee23681242d6fa717048354ffb607f4005811e82a50d559f6",
+      "size": 254019
     },
     {
       "type": "scene",
@@ -399,7 +399,7 @@
       "name": "Wildflower Meadow",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Wildflower Meadow \u2014 a painted ODD wallpaper scene.",
+      "description": "Monet-meets-Pixar hillside of coreopsis, poppies, and cornflower, where a painted butterfly lingers on a bloom before drifting off toward the sun.",
       "franchise": "ODD Originals",
       "tags": [
         "gpt-image-2",
@@ -410,8 +410,8 @@
       ],
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/scene-wildflower-meadow.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/scene-wildflower-meadow.wp",
-      "sha256": "7d070550730e7ad15c92bebc0d40d09e24ff451c864ac108d9e3920b056a8b10",
-      "size": 326644
+      "sha256": "4d419941d37ebea3d9f55ee91ba5a912686af42d197096913472b2dbff66f159",
+      "size": 254994
     },
     {
       "type": "icon-set",
@@ -419,13 +419,13 @@
       "name": "Arcade Tokens",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Embossed bronze-and-gold coin icons with every glyph pressed in as a relief. Jingles in your pocket.",
+      "description": "Embossed bronze-and-gold coin icons with pressed-in glyphs, hairline relief cracks, scuff glints, and one subtly bent coin in the set. Jingles in your pocket.",
       "franchise": "Retro",
       "accent": "#b07a2a",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-arcade-tokens.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-arcade-tokens.wp",
-      "sha256": "7551ae3ebcaf0f14f76e9d6b47af5b7225dbd4cb167272f335700d6df91c0a94",
-      "size": 12187
+      "sha256": "7fef7e93694f9c6480fe7346132e69712d456f81d90da9d81c562e9da29ca9be",
+      "size": 13251
     },
     {
       "type": "icon-set",
@@ -433,13 +433,13 @@
       "name": "Arctic",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Full-color frosted-glass app tiles with icy gradients, snow highlights, and saturated role glyphs built for high contrast on busy wallpapers.",
+      "description": "Frosted-glass app tiles with icy gradients and a creeping frost crystal in one corner of every tile. High contrast for busy wallpapers.",
       "franchise": "Crystal OS",
       "accent": "#7ddcff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-arctic.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-arctic.wp",
-      "sha256": "fe7fbf0f7a403cb375a59c3f335a68da6ab462ffcacf450326cfc858fa75463f",
-      "size": 11659
+      "sha256": "34094d677f1c62ac4b8d15e34e86d60c5e4493921fc70d7496fcc8e987690d24",
+      "size": 12443
     },
     {
       "type": "icon-set",
@@ -447,13 +447,13 @@
       "name": "Blueprint",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Full-color blueprint tiles: cobalt glass, cyan construction lines, brass labels, and dimensional admin glyphs.",
+      "description": "Cobalt blueprint tiles with cyan construction lines, brass margin rulers, a coffee-ring stain, and a handwritten key caption on every icon.",
       "franchise": "Drafting",
       "accent": "#4da3ff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-blueprint.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-blueprint.wp",
-      "sha256": "19a23b8364d63413ca24be05cb9462dadc716a3e090f5251f509c7fa1c26c7dd",
-      "size": 12280
+      "sha256": "abc25c220ab19eb283a6fdacec64a3c222501e733996413721befe7e00e5be49",
+      "size": 13708
     },
     {
       "type": "icon-set",
@@ -461,13 +461,13 @@
       "name": "Botanical Plate",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Copperplate ink + soft green watercolor wash on aged paper, like a naturalist's field guide.",
+      "description": "Copperplate ink and green watercolor wash on aged paper, each plate pinned, foxed, and labeled like a specimen from a naturalist's field guide.",
       "franchise": "Illustrated",
       "accent": "#6a8f3b",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-botanical-plate.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-botanical-plate.wp",
-      "sha256": "b3a60839a571d45c81c10d7b688760d73ae8bcb5b7a2d68f41509969850ae450",
-      "size": 14514
+      "sha256": "675b657193e0d5e9f7d43d1dbc8beb2f8c60abde4c7dab7049b67571623ea1cb",
+      "size": 16157
     },
     {
       "type": "icon-set",
@@ -475,13 +475,13 @@
       "name": "Brutalist Stencil",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Chunky full-color stencil badges with concrete shadows, hazard accents, and bold shapes that read clearly at dock size.",
+      "description": "Chunky stencil badges with concrete shadows, hazard yellow, and wheat-paste torn corners; a few icons sport a fresh spray-paint drip.",
       "franchise": "Concrete Arcade",
       "accent": "#ff5f4f",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-brutalist-stencil.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-brutalist-stencil.wp",
-      "sha256": "4e8d0034a0257aa3146ca352cc89f8eb00f63d6f82b9882f855f10f569c6400f",
-      "size": 11455
+      "sha256": "e0a83762fdf62a6654a586e5767e1973487cbb48c90e37da410eb1645eeb77b1",
+      "size": 12084
     },
     {
       "type": "icon-set",
@@ -489,13 +489,13 @@
       "name": "Circuit Bend",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "PCB-green tiles with gold traces, solder pads, and a tiny red LED in the corner. Pairs with Circuit Garden.",
+      "description": "PCB-green tiles with gold traces, solder blobs, one bent rerouted trace, and a red LED that rotates position per icon. Pairs with Circuit Garden.",
       "franchise": "Technical",
       "accent": "#2fb37a",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-circuit-bend.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-circuit-bend.wp",
-      "sha256": "39aefbb7d78549729a2583684c8dc12734818fd4fb47028dc8e72e7e64532ca2",
-      "size": 12884
+      "sha256": "4f136cdf0bf68b0f084c4d917029bc75b55a3aa2ef034611b7efdd1987c843c3",
+      "size": 13887
     },
     {
       "type": "icon-set",
@@ -503,13 +503,13 @@
       "name": "Claymation",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Puffy stop-motion clay sculpts with soft speculars on warm primaries. Feels pressed by hand.",
+      "description": "Puffy stop-motion clay sculpts with hand fingerprints pressed into each piece and a stray crumb or two on the baseplate.",
       "franchise": "Handmade",
       "accent": "#ffb84d",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-claymation.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-claymation.wp",
-      "sha256": "76c933b28b4fd625145d6a4474da935207124b9e391df69dc3506deb2e91b330",
-      "size": 13548
+      "sha256": "e5a1368f95ca2835dae0486b2d6d77c2163e501be8d2369fe76e89f7b2c3d5b6",
+      "size": 14578
     },
     {
       "type": "icon-set",
@@ -517,13 +517,13 @@
       "name": "Cross-Stitch",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Rose cross-stitch pixel art on linen, each glyph rendered in tiny x-shaped thread stamps.",
+      "description": "Rose cross-stitch pixel art on linen, with one deliberately skipped stitch per icon, a linen fray tuft, and a threaded needle resting on the tools tile.",
       "franchise": "Craft",
       "accent": "#e87ca7",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-cross-stitch.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-cross-stitch.wp",
-      "sha256": "112fefcd764e31d04c4d900dd22436571eef80e720220d9bbf8c7cea04ad4485",
-      "size": 14211
+      "sha256": "03210f09a004925d7f8f6b9aa25eca72f3b3224b70a350ba185cc120c55649ef",
+      "size": 15255
     },
     {
       "type": "icon-set",
@@ -531,13 +531,13 @@
       "name": "Eyeball Avenue",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Full-color surreal eyeball tiles: glossy pupils, neon lids, little role props, and enough contrast to stare back from the desktop.",
+      "description": "Glossy surreal eyeball tiles with neon lids, role props, a fresh tear highlight, and a bloodshot vein fork on a few of the more stressed icons.",
       "franchise": "ODD Original",
       "accent": "#b35cff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-eyeball-avenue.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-eyeball-avenue.wp",
-      "sha256": "57c58e327a93e849e4ffa0545050332333b305b2e4c55be225703447892d29e1",
-      "size": 12207
+      "sha256": "e3cf45e22584aafc0c5b53cc01e41cad4a68cd68597720b507cae0b442cf59e1",
+      "size": 12779
     },
     {
       "type": "icon-set",
@@ -545,13 +545,13 @@
       "name": "Filament",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Glowing full-color neon tubes over dark glass, with warm highlights and layered app symbols instead of hairline monochrome strokes.",
+      "description": "Glowing neon filament tubes over dark glass with warm reflector glare and a visible filament kink baked into every glyph.",
       "franchise": "Lightbox",
       "accent": "#ffb000",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-filament.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-filament.wp",
-      "sha256": "258b7df4c48c613cbacfb8220e5cdd2afa16def13ed71300dfcc7b830a66420a",
-      "size": 11758
+      "sha256": "fd275035cf8ff6f42e7455f10f7caa22c7da7a527d26d87217b29dca1ad87a4e",
+      "size": 12993
     },
     {
       "type": "icon-set",
@@ -559,13 +559,13 @@
       "name": "Fold",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Origami-inspired full-color tiles with folded paper facets, inked role glyphs, and playful dimensional shadows.",
+      "description": "Origami-inspired tiles with folded paper facets, inked role glyphs, visible paper grain, and torn-edge variations on a handful of keys.",
       "franchise": "Paper Arcade",
       "accent": "#7c5cff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-fold.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-fold.wp",
-      "sha256": "d1270c7591c3d7ff86453737e3a81c0b576c6377201849c66b0ef8ddf6cdf787",
-      "size": 11260
+      "sha256": "ac352b480b463f82bd7c9f201aac20a3459ba86b20dfd7f86008dfb7cec5bb71",
+      "size": 12881
     },
     {
       "type": "icon-set",
@@ -573,13 +573,13 @@
       "name": "Hologram",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Iridescent foil-sticker glyphs with a pastel-rainbow gradient and a peel corner. Sparkly without being dark.",
+      "description": "Iridescent foil-sticker glyphs with rainbow shift, a scratched surface pass, and a peel corner that varies from icon to icon.",
       "franchise": "Synthetic",
       "accent": "#9fd0ff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-hologram.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-hologram.wp",
-      "sha256": "c0abf73c4338bb9f82d8fefb7e6db285fe997379c63f1fe645772fd2bddbb77d",
-      "size": 10983
+      "sha256": "a1ee76edce8301fac2a9cbe45426494e8f6f871ce6a158fe0383d0eabc573a32",
+      "size": 11773
     },
     {
       "type": "icon-set",
@@ -587,13 +587,13 @@
       "name": "Lemonade Stand",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Crayon-stroke glyphs on a sunny yellow gingham backplate. Kid-drawn, summer-bright.",
+      "description": "Crayon glyphs on sunny yellow gingham, each with a dripping crayon streak and a lemon wedge tucked into one corner.",
       "franchise": "Summer",
       "accent": "#ffd64b",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-lemonade-stand.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-lemonade-stand.wp",
-      "sha256": "18dd4a225d83b2fe5ae8d1e90af679ebd31bb5e4969123d076c103f59ef0f2db",
-      "size": 13580
+      "sha256": "9a19e9123d40b1fcad8a01f395887260618af536bc3d64d6dcddf09e5e6cb072",
+      "size": 15250
     },
     {
       "type": "icon-set",
@@ -601,13 +601,13 @@
       "name": "Monoline",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "No longer monochrome: glossy full-color UI stickers with thick glyphs, candy gradients, and readable dark backing plates.",
+      "description": "Glossy full-color UI stickers with thick glyphs, candy gradients, a tape residue streak, and a slightly lifted sticker edge on a few icons.",
       "franchise": "Pop UI",
       "accent": "#00c2ff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-monoline.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-monoline.wp",
-      "sha256": "09ae74278693afa16461caa3cca5ab7d3c77576ef81b00092bd41fd6236e9094",
-      "size": 11342
+      "sha256": "65e136f48c6e95ab769365c2004c13b8ac065c03fe63f55d7409c70c7a8a15b8",
+      "size": 11987
     },
     {
       "type": "icon-set",
@@ -615,13 +615,13 @@
       "name": "Oddlings",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Dashicons-readable admin icons wearing little creature traits: peeking eyes, teeth, antennae, and gelatin highlights on a specimen-plum glass base.",
+      "description": "Dashicons-readable admin icons on a specimen-plum glass base, each wearing one creature trait: eyes, teeth, antennae, slit pupils, or a curious tongue. Recognizable first, weird second.",
       "franchise": "ODD Defaults",
       "accent": "#38e8ff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-oddlings.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-oddlings.wp",
-      "sha256": "4c25b1e1794a048a3844a2072bd28b8a414b4234c6e5e5fa38e36b802172ce68",
-      "size": 12892
+      "sha256": "6a126ce65a6882af97828543fde6a0af0aa5fc31d809a981ede3a78542d45d8e",
+      "size": 12917
     },
     {
       "type": "icon-set",
@@ -629,13 +629,13 @@
       "name": "Risograph",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Two-color riso print look \u2014 fluorescent pink and cyan off-register on dust-grit paper. Loud and cheerful.",
+      "description": "Two-color riso print look in fluorescent pink and cyan with a baked-in off-register second pass and an ink smudge along the bottom edge.",
       "franchise": "Print",
       "accent": "#ff4fa8",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-risograph.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-risograph.wp",
-      "sha256": "99e0ba7ebcfbca6cf469eacc932984ffa91ab86ef2cbba280c5b79feac5d6456",
-      "size": 15909
+      "sha256": "87d1fdd56f2a7cf2f94cfe4376ae11d1c63dcb80c606fda96fef1ac40967ecaf",
+      "size": 16584
     },
     {
       "type": "icon-set",
@@ -643,13 +643,13 @@
       "name": "Stadium",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Chenille varsity-patch icons on crimson backing with dashed stitched outlines and a pennant corner.",
+      "description": "Chenille varsity-patch icons on crimson backing with dashed stitching, a loose thread dangling from one seam, and a frayed pennant corner.",
       "franchise": "Sport",
       "accent": "#d73a3a",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-stadium.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-stadium.wp",
-      "sha256": "dcfdb6fd197b1ecb70cbca59340f7a513e8720dca6943e676e1b35933d927c26",
-      "size": 11374
+      "sha256": "a8f72e721d42a888bd925d0aa216ca3a33284b0d8b19562f0855fdda984618c6",
+      "size": 12807
     },
     {
       "type": "icon-set",
@@ -657,13 +657,13 @@
       "name": "Tiki",
       "version": "1.1.1",
       "author": "Regionally Famous",
-      "description": "Mid-century tiki lounge \u2014 warm wood-grain backplate with a rattan weave frame and cocoa-engraved glyphs.",
+      "description": "Mid-century tiki-lounge tiles with wood grain, rattan frame, a burn mark on every piece, and one undone rattan strand catching the light.",
       "franchise": "Lounge",
       "accent": "#c47a3c",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-tiki.svg",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-tiki.wp",
-      "sha256": "9569235b010206114240662b8e3482a998930cec5fc0c03938ec97894b7aab08",
-      "size": 11945
+      "sha256": "bab2b1a1cb0a65a63c711f454449e5b9019353dec5e204c95dabaea1fb979f73",
+      "size": 13187
     },
     {
       "type": "widget",

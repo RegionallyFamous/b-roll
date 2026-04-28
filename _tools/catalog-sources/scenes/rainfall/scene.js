@@ -39,6 +39,38 @@
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
 
+	// Signature moment: rare silent heat-lightning flash in the upper
+	// sky band. Skipped at perf low and in reduced motion. Fires
+	// roughly once every 40-90 seconds.
+	function signatureTick( state, env ) {
+		if ( env.perfTier === 'low' || env.reducedMotion ) return;
+		var app = env.app, PIXI = env.PIXI, dt = env.dt || 1;
+		var s = state.__sig;
+		if ( ! s || ! s.layer || ! s.layer.parent ) {
+			s = state.__sig = {
+				layer: new PIXI.Graphics(),
+				timer: 12 + Math.random() * 20,
+				life: 0,
+			};
+			s.layer.blendMode = 'add';
+			app.stage.addChild( s.layer );
+		}
+		if ( s.life <= 0 ) {
+			s.timer -= dt / 60;
+			if ( s.timer > 0 ) return;
+			s.life  = 1;
+			s.timer = 40 + Math.random() * 50;
+		}
+		s.life = Math.max( 0, s.life - dt * 0.035 );
+		var w = app.renderer.width, hh = app.renderer.height;
+		s.layer.clear();
+		var glow = s.life * ( 0.55 + Math.sin( s.life * 20 ) * 0.25 );
+		s.layer.rect( 0, 0, w, hh * 0.45 )
+			.fill( { color: 0xbfd0ea, alpha: glow * 0.35 } );
+		s.layer.rect( 0, 0, w, hh * 0.18 )
+			.fill( { color: 0xffffff, alpha: glow * 0.25 } );
+	}
+
 	var MID_COUNT_HIGH    = 140;
 	var MID_COUNT_NORMAL  = 95;
 	var MID_COUNT_LOW     = 55;
@@ -332,6 +364,8 @@
 
 			// Keep the stored wind in case it changes tier next frame.
 			state.wind = wind - state.windOffset;
+
+			signatureTick( state, env );
 		},
 
 		onResize: function ( state, env ) {
