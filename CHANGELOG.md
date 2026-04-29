@@ -16,6 +16,15 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.6"></a>
+## [3.5.6] — 2026-04-28
+
+### Fixed
+- **Degraded-mode activation** now works when WP Desktop Mode is missing.
+  ODD still clearly warns admins and pauses desktop integrations, but no
+  longer uses WordPress's `Requires Plugins` header because that prevents
+  activation before ODD's own dependency guards and recovery UI can run.
+
 <a id="v3.5.5"></a>
 ## [3.5.5] — 2026-04-28
 

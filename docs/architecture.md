@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: v3.5.5. Mirrored to the
+> Status: v3.5.6. Mirrored to the
 > [Architecture](https://github.com/RegionallyFamous/odd/wiki/Architecture)
 > wiki page. For the agent-focused overview see
 > [`CLAUDE.md`](../CLAUDE.md).
