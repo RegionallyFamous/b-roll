@@ -162,7 +162,7 @@ jobs:
           wp eval '$n = count( odd_wallpaper_scene_slugs() ); echo "scene slugs after starter: $n\n"; exit( $n >= 1 ? 0 : 1 );'
           wp eval 'if ( ! function_exists( "odd_icons_get_sets" ) ) { echo "no icons API; skipping\n"; exit( 0 ); } $n = count( odd_icons_get_sets() ); echo "icon sets after starter: $n\n"; exit( $n >= 1 ? 0 : 1 );'
           wp eval 'if ( ! function_exists( "odd_cursors_get_sets" ) ) { echo "no cursors API\n"; exit( 1 ); } $n = count( odd_cursors_get_sets() ); echo "cursor sets after starter: $n\n"; exit( $n >= 1 ? 0 : 1 );'
-          wp eval '$css = odd_cursors_build_css( odd_cursors_get_set( "oddlings" ) ); echo substr( $css, 0, 80 ) . "\n"; exit( false !== strpos( $css, "ODD custom cursors" ) ? 0 : 1 );'
+          wp eval '$css = odd_cursors_build_css( odd_cursors_get_set( "oddlings-cursors" ) ); echo substr( $css, 0, 80 ) . "\n"; exit( false !== strpos( $css, "ODD custom cursors" ) ? 0 : 1 );'
 
       - name: Assert apps API is loaded
         working-directory: /tmp/wp
