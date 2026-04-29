@@ -601,7 +601,7 @@ function odd_starter_seed_host_wallpaper( $user_id ) {
 	if ( $user_id <= 0 ) {
 		return false;
 	}
-	if ( ! function_exists( 'odd_desktop_mode_supports' ) || ! odd_desktop_mode_supports( 'os_settings' ) ) {
+	if ( ! function_exists( 'odd_desktop_mode_supports' ) || ! odd_desktop_mode_supports( 'os_settings' ) || ! odd_desktop_mode_supports( 'wallpaper' ) ) {
 		return false;
 	}
 

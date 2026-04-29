@@ -28,6 +28,18 @@ add_action(
 		$icon_url = odd_control_icon_url();
 		$uid      = get_current_user_id();
 
+		if ( function_exists( 'desktop_mode_register_wallpaper' ) ) {
+			desktop_mode_register_wallpaper(
+				'odd',
+				array(
+					'label'   => __( 'ODD', 'odd' ),
+					'preview' => 'linear-gradient(135deg, #10121a 0%, #2b1b4a 58%, #352b11 100%)',
+					'type'    => 'canvas',
+					'script'  => 'odd',
+				)
+			);
+		}
+
 		desktop_mode_register_window(
 			'odd',
 			array(

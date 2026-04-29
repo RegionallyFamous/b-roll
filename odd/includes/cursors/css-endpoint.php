@@ -28,6 +28,7 @@ function odd_cursors_css_url_value( array $cursor, $fallback ) {
 	if ( '' === $url ) {
 		return $fallback;
 	}
+	$url = set_url_scheme( $url );
 	return sprintf( 'url("%s") %d %d, %s', esc_url_raw( $url ), $x, $y, $fallback );
 }
 

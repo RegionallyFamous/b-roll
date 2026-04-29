@@ -9,7 +9,7 @@ if ( ! defined( 'ODD_CURSORSETS_DIR' ) ) {
 	define( 'ODD_CURSORSETS_DIR', trailingslashit( WP_CONTENT_DIR ) . 'odd-cursor-sets/' );
 }
 if ( ! defined( 'ODD_CURSORSETS_URL' ) ) {
-	define( 'ODD_CURSORSETS_URL', trailingslashit( content_url( 'odd-cursor-sets' ) ) );
+	define( 'ODD_CURSORSETS_URL', trailingslashit( set_url_scheme( content_url( 'odd-cursor-sets' ) ) ) );
 }
 if ( ! defined( 'ODD_CURSORSETS_OPTION_INDEX' ) ) {
 	define( 'ODD_CURSORSETS_OPTION_INDEX', 'odd_cursorsets_index' );

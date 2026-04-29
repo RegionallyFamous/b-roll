@@ -16,6 +16,16 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.6.1"></a>
+## [3.6.1] — 2026-04-29
+
+### Fixed
+- **Playground first boot** now registers ODD's canvas wallpaper with WP Desktop
+  Mode server-side before starter preferences select it, preventing the desktop
+  from booting into a blank shell.
+- **Cursor set assets** now inherit the current request scheme so HTTPS
+  Playground sessions do not emit mixed-content cursor SVG URLs.
+
 <a id="v3.6.0"></a>
 ## [3.6.0] — 2026-04-29
 

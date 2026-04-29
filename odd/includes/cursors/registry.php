@@ -207,5 +207,5 @@ function odd_cursors_active_stylesheet_url( $slug = null ) {
 	if ( '' !== $slug ) {
 		$args['set'] = $slug;
 	}
-	return esc_url_raw( add_query_arg( $args, rest_url( 'odd/v1/cursors/active.css' ) ) );
+	return esc_url_raw( set_url_scheme( add_query_arg( $args, rest_url( 'odd/v1/cursors/active.css' ) ) ) );
 }

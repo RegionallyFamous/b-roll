@@ -41,6 +41,9 @@ function odd_desktop_mode_capability_functions( $capability ) {
 		'registry'    => array(
 			'desktop_mode_native_window_registry',
 		),
+		'wallpaper'   => array(
+			'desktop_mode_register_wallpaper',
+		),
 	);
 	return isset( $map[ $capability ] ) ? $map[ $capability ] : array();
 }
