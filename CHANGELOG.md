@@ -16,6 +16,14 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.7"></a>
+## [3.5.7] — 2026-04-28
+
+### Fixed
+- **Main CI follow-up** for the reliability release: fixes the reconciliation
+  report's external-link regex and updates the PHP Desktop Mode test stubs so
+  app surface registration tests include `desktop_mode_is_enabled()`.
+
 <a id="v3.5.6"></a>
 ## [3.5.6] — 2026-04-28
 

@@ -407,6 +407,9 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 		define( 'ODD_TEST_DM_STUBS', 1 );
 		// phpcs:disable
 		eval(
+			'function desktop_mode_is_enabled() {' .
+			'  return true;' .
+			'}' .
 			'function desktop_mode_register_window( $id, $args = array() ) {' .
 			'  Test_Apps_Surfaces::$calls[] = array( "fn" => "window", "id" => $id, "args" => $args );' .
 			'  return true;' .

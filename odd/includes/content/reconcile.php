@@ -20,7 +20,7 @@ function odd_reconcile_app_asset_refs( $slug, array $manifest ) {
 	}
 	if ( preg_match_all( '#(?:src|href)=["\']([^"\']+)["\']#', $html, $matches ) ) {
 		foreach ( array_unique( $matches[1] ) as $ref ) {
-			if ( preg_match( '#^(?:https?:|data:|/|#)#', $ref ) ) {
+			if ( preg_match( '~^(?:https?:|data:|/|#)~', $ref ) ) {
 				continue;
 			}
 			$clean = ltrim( preg_replace( '#[?#].*$#', '', $ref ), './' );
