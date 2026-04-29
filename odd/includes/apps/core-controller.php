@@ -198,11 +198,13 @@ function odd_apps_rest_install_from_catalog( WP_REST_Request $req ) {
 	if ( function_exists( 'odd_apps_manifest_load' ) ) {
 		$manifest = odd_apps_manifest_load( $slug );
 		if ( ! is_wp_error( $manifest ) ) {
+			$data              = is_array( $data ) ? $data : array();
+			$data['installed'] = ! empty( $data['installed'] );
+			$data['manifest']  = $manifest;
+			$data['slug']      = isset( $data['slug'] ) ? $data['slug'] : $slug;
+			$data['type']      = isset( $data['type'] ) ? $data['type'] : 'app';
 			return rest_ensure_response(
-				array(
-					'installed' => ! empty( $data['installed'] ),
-					'manifest'  => $manifest,
-				)
+				$data
 			);
 		}
 	}

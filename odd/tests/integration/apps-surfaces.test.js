@@ -259,4 +259,51 @@ describe( 'ODD Shop · App surfaces', () => {
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
+
+	it( 'newly installed catalog apps require a reload before Open is offered', async () => {
+		seedConfig( [] );
+		fetchMock = vi.fn( ( url, opts ) => {
+			if ( opts && opts.method === 'POST' && /\/apps\/install-from-catalog$/.test( url ) ) {
+				return Promise.resolve( {
+					ok:   true,
+					json: () => Promise.resolve( {
+						installed: true,
+						manifest:  { slug: 'board', name: 'Board', version: '1.2.0' },
+					} ),
+				} );
+			}
+			if ( /\/apps\/catalog$/.test( url ) ) {
+				return Promise.resolve( {
+					ok:   true,
+					json: () => Promise.resolve( {
+						apps: [ { slug: 'board', name: 'Board', version: '1.2.0', installed: false } ],
+					} ),
+				} );
+			}
+			return Promise.resolve( {
+				ok:   true,
+				json: () => Promise.resolve( { apps: [] } ),
+			} );
+		} );
+		globalThis.fetch = fetchMock;
+
+		const { host, cleanup } = mountPanel();
+		await gotoAppsDepartment( host );
+
+		const install = Array.from( host.querySelectorAll( '.odd-shop__card-btn' ) )
+			.find( ( btn ) => btn.textContent.trim() === 'Install' );
+		expect( install ).toBeTruthy();
+		install.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		await tick( 0 );
+		await tick( 0 );
+		await tick( 0 );
+
+		const labels = Array.from( host.querySelectorAll( '.odd-shop__card-btn' ) )
+			.map( ( btn ) => btn.textContent.trim() );
+		expect( labels ).toContain( 'Reload to apply' );
+		expect( labels ).not.toContain( 'Open' );
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
 } );

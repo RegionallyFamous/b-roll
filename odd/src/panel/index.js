@@ -1053,8 +1053,17 @@
 		function onInstallSuccessInPanel( data, type, slug, name, message ) {
 			var noun = NOUN_FOR_TYPE[ type ] || 'bundle';
 			var row = data && data.row;
-			if ( 'app' === type && row ) {
-				row = Object.assign( {}, row, { requiresReload: true } );
+			if ( 'app' === type ) {
+				row = Object.assign(
+					{},
+					row || {},
+					{
+						slug: slug,
+						name: ( row && row.name ) || name || slug,
+						installed: true,
+						requiresReload: true,
+					}
+				);
 			}
 			spliceInstalledRow( type, slug, row, data && data.manifest );
 			state.justInstalled = { type: type, slug: slug, name: name, at: Date.now() };
@@ -4419,8 +4428,7 @@
 								return;
 							}
 							if ( btn ) { btn.disabled = false; btn.textContent = originalLabel; }
-							playShopSound( 'error' );
-							toast( ( res && res.message ) || 'Install failed.' );
+							onInstallFailure( res );
 						} );
 					} else {
 						installFromBundleCatalog( row.raw || row, btn );

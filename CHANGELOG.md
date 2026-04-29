@@ -16,6 +16,18 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.9"></a>
+## [3.5.9] — 2026-04-28
+
+### Fixed
+- **Catalog app installs** now preserve the unified installer response shape
+  when routed through the legacy `/apps/install-from-catalog` endpoint, so the
+  Shop marks freshly installed apps as **Reload to apply** instead of offering
+  a dead **Open** button before Desktop Mode has registered the native window.
+- **App install failures** now use the same detailed troubleshooting copy as
+  other bundle installs instead of falling back to a generic "Install failed"
+  toast.
+
 <a id="v3.5.8"></a>
 ## [3.5.8] — 2026-04-28
 
