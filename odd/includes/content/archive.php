@@ -2,7 +2,7 @@
 /**
  * ODD — shared `.wp` archive helpers.
  *
- * Every content type (apps, icon sets, scenes, widgets) installs from
+ * Every content type (apps, icon sets, cursor sets, scenes, widgets) installs from
  * the same kind of ZIP archive with the same security envelope:
  *
  *   1. Extension must be `.wp` (no `.odd`, no other aliases).
@@ -203,12 +203,12 @@ function odd_content_validate_header( $manifest ) {
 	if ( 'iconset' === $type ) {
 		$type = 'icon-set';
 	}
-	if ( ! in_array( $type, array( 'app', 'icon-set', 'scene', 'widget' ), true ) ) {
+	if ( ! in_array( $type, array( 'app', 'icon-set', 'cursor-set', 'scene', 'widget' ), true ) ) {
 		return new WP_Error(
 			'invalid_type',
 			sprintf(
 				/* translators: %s manifest.type value */
-				__( 'Unknown bundle type "%s". Supported: app, icon-set, scene, widget.', 'odd' ),
+				__( 'Unknown bundle type "%s". Supported: app, icon-set, cursor-set, scene, widget.', 'odd' ),
 				$type
 			)
 		);

@@ -6,7 +6,7 @@
  *
  *   odd_bundle_install( $tmp_path, $filename ) → array{ slug, type, manifest } | WP_Error
  *   odd_bundle_uninstall( $slug )              → true | WP_Error
- *   odd_bundle_type_for_slug( $slug )          → 'app' | 'icon-set' | 'scene' | 'widget' | ''
+ *   odd_bundle_type_for_slug( $slug )          → 'app' | 'icon-set' | 'cursor-set' | 'scene' | 'widget' | ''
  *   odd_bundle_slug_in_use( $slug )            → bool
  *
  * The dispatcher reads `manifest.type` (defaulting to `app` for
@@ -14,7 +14,7 @@
  * per-type validator for field-level checks, and then to the per-type
  * installer to extract + register.
  *
- * Slugs are a single global namespace across all four types — the
+ * Slugs are a single global namespace across all content types — the
  * same slug can't be installed as both a scene and a widget. That
  * guarantees uninstall is unambiguous: look up which of four indexes
  * holds the slug, dispatch.
@@ -36,25 +36,31 @@ defined( 'ABSPATH' ) || exit;
  */
 function odd_bundle_type_modules() {
 	return array(
-		'app'      => array(
+		'app'        => array(
 			'validate'  => 'odd_bundle_app_validate',
 			'install'   => 'odd_bundle_app_install',
 			'uninstall' => 'odd_bundle_app_uninstall',
 			'has'       => 'odd_bundle_app_has',
 		),
-		'icon-set' => array(
+		'icon-set'   => array(
 			'validate'  => 'odd_iconset_bundle_validate',
 			'install'   => 'odd_iconset_bundle_install',
 			'uninstall' => 'odd_iconset_bundle_uninstall',
 			'has'       => 'odd_iconset_bundle_has',
 		),
-		'scene'    => array(
+		'cursor-set' => array(
+			'validate'  => 'odd_cursorset_bundle_validate',
+			'install'   => 'odd_cursorset_bundle_install',
+			'uninstall' => 'odd_cursorset_bundle_uninstall',
+			'has'       => 'odd_cursorset_bundle_has',
+		),
+		'scene'      => array(
 			'validate'  => 'odd_scene_bundle_validate',
 			'install'   => 'odd_scene_bundle_install',
 			'uninstall' => 'odd_scene_bundle_uninstall',
 			'has'       => 'odd_scene_bundle_has',
 		),
-		'widget'   => array(
+		'widget'     => array(
 			'validate'  => 'odd_widget_bundle_validate',
 			'install'   => 'odd_widget_bundle_install',
 			'uninstall' => 'odd_widget_bundle_uninstall',
@@ -250,6 +256,31 @@ function odd_bundle_panel_row_for( array $manifest ) {
 				'description' => isset( $manifest['description'] ) ? (string) $manifest['description'] : '',
 				'preview'     => ( '' === $preview || '' === $base ) ? '' : $base . rawurlencode( $preview ),
 				'icons'       => $icons_map,
+				'installed'   => true,
+			);
+
+		case 'cursor-set':
+			$cursors_map = array();
+			$cursors     = isset( $manifest['cursors'] ) && is_array( $manifest['cursors'] ) ? $manifest['cursors'] : array();
+			$base        = function_exists( 'odd_cursorsets_url_for' ) ? odd_cursorsets_url_for( $slug ) : '';
+			foreach ( $cursors as $kind => $def ) {
+				if ( ! is_array( $def ) || empty( $def['file'] ) ) {
+					continue;
+				}
+				$cursors_map[ (string) $kind ] = array(
+					'url'     => '' === $base ? '' : $base . rawurlencode( (string) $def['file'] ),
+					'hotspot' => isset( $def['hotspot'] ) && is_array( $def['hotspot'] ) ? array_values( $def['hotspot'] ) : array( 0, 0 ),
+				);
+			}
+			$preview = isset( $manifest['preview'] ) ? (string) $manifest['preview'] : '';
+			return array(
+				'slug'        => $slug,
+				'label'       => isset( $manifest['label'] ) ? (string) $manifest['label'] : $slug,
+				'franchise'   => isset( $manifest['franchise'] ) ? (string) $manifest['franchise'] : 'Community',
+				'accent'      => isset( $manifest['accent'] ) ? (string) $manifest['accent'] : '',
+				'description' => isset( $manifest['description'] ) ? (string) $manifest['description'] : '',
+				'preview'     => ( '' === $preview || '' === $base ) ? '' : $base . rawurlencode( $preview ),
+				'cursors'     => $cursors_map,
 				'installed'   => true,
 			);
 

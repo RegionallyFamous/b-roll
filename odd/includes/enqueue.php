@@ -246,6 +246,19 @@ add_action(
 			);
 		}
 
+		$cursor_sets = array();
+		foreach ( odd_cursors_get_sets() as $set ) {
+			$cursor_sets[] = array(
+				'slug'        => $set['slug'],
+				'label'       => $set['label'],
+				'franchise'   => $set['franchise'],
+				'accent'      => $set['accent'],
+				'description' => $set['description'],
+				'preview'     => $set['preview'],
+				'cursors'     => $set['cursors'],
+			);
+		}
+
 		// Resolve once, reuse — the panel reads both `scene` (canonical)
 		// and `wallpaper` (alias for older consumers) off the same key.
 		$active_scene = odd_wallpaper_get_user_scene( $uid );
@@ -306,6 +319,11 @@ add_action(
 			// Icons.
 			'iconSets'         => $sets,
 			'iconSet'          => odd_icons_get_active_slug( $uid ),
+
+			// Cursors.
+			'cursorSets'       => $cursor_sets,
+			'cursorSet'        => odd_cursors_get_active_slug( $uid ),
+			'cursorStylesheet' => odd_cursors_active_stylesheet_url(),
 
 			// Registries for extension authors. Keys are *only* emitted
 			// when a third-party plugin has actually filtered them to
@@ -370,9 +388,10 @@ add_action(
 			// first paint. The `installed` flag is annotated so the
 			// "Install" → "Installed" toggle is decided server-side.
 			'bundleCatalog'    => function_exists( 'odd_bundle_catalog' ) ? array(
-				'scene'   => odd_bundle_catalog_for_type( 'scene' ),
-				'iconSet' => odd_bundle_catalog_for_type( 'icon-set' ),
-				'widget'  => odd_bundle_catalog_for_type( 'widget' ),
+				'scene'     => odd_bundle_catalog_for_type( 'scene' ),
+				'iconSet'   => odd_bundle_catalog_for_type( 'icon-set' ),
+				'cursorSet' => odd_bundle_catalog_for_type( 'cursor-set' ),
+				'widget'    => odd_bundle_catalog_for_type( 'widget' ),
 			) : array(),
 		);
 

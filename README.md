@@ -26,12 +26,12 @@ Out of the box:
 ### Make the desktop a place you want to open.
 
 - **Pick a wallpaper you actually want to look at.** Twenty live scenes — abstract ribbon fields, procedural auroras, rainfall that splashes on your real windows and dock, a tropical greenhouse at golden hour, and the Oddling Desktop starter scene. Every frame drawn fresh. Time-of-day aware. Optionally reacts to your microphone if you let it.
-- **Re-skin the whole desktop.** Eighteen icon packs swap every dock and shortcut icon in one click — Arctic frost blues, Blueprint construction strokes, Claymation, Hologram, Cross-Stitch, Arcade Tokens, Oddlings, and more. The current catalog uses full-color iOS-style SVGs with distinct silhouettes per set, not one recolored glyph system.
+- **Re-skin the whole desktop.** Eighteen icon packs swap every dock and shortcut icon in one click, and cursor sets carry the theme through Desktop Mode and classic wp-admin. Arctic frost blues, Blueprint construction strokes, Claymation, Hologram, Cross-Stitch, Arcade Tokens, Oddlings, and more. The current catalog uses full-color iOS-style SVGs with distinct silhouettes per set, not one recolored glyph system.
 - **Keep little things within reach.** Drop a handwritten sticky note, a Magic 8-Ball, or Spotify's official embed player onto the desktop and drag them wherever feels right.
 
 ### Try it before you commit.
 
-Every wallpaper and icon pack previews instantly. Wander the Shop, search across every department at once, let a scene run for a minute, then keep it or roll back with one click. The preview bar floats in the corner until you decide — it's the Mac App Store "try before you buy" flow, for your own desktop.
+Every wallpaper, icon pack, and cursor set previews instantly. Wander the Shop, search across every department at once, let a scene run for a minute, then keep it or roll back with one click. The preview bar floats in the corner until you decide — it's the Mac App Store "try before you buy" flow, for your own desktop.
 
 ---
 
@@ -50,28 +50,29 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 3. Make sure [WP Desktop Mode](https://github.com/WordPress/desktop-mode) is installed + active, then flip on desktop mode from the admin bar.
 4. Double-click the **ODD** desktop icon (or run `/odd-panel` from the ⌘K palette) to open the Shop.
 
-**Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.5.1+
+**Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.5.4+
 
 ---
 
 ## Build your own
 
-Anyone can ship a scene, icon set, widget, or app as a single `.wp` file and hand it to an ODD user — they drop it on the Shop and it installs. No companion plugin required. First-party content lives under `_tools/catalog-sources/` and is published to the remote catalog by GitHub Pages; plugin releases are only for runtime changes.
+Anyone can ship a scene, icon set, cursor set, widget, or app as a single `.wp` file and hand it to an ODD user — they drop it on the Shop and it installs. No companion plugin required. First-party content lives under `_tools/catalog-sources/` and is published to the remote catalog by GitHub Pages; plugin releases are only for runtime changes.
 
 - [Building an App](docs/building-an-app.md)
 - [Building a Scene](docs/building-a-scene.md)
 - [Building an Icon Set](docs/building-an-icon-set.md)
+- [Building a Cursor Set](docs/building-a-cursor-set.md)
 - [Building a Widget](docs/building-a-widget.md)
 - [`.wp` Manifest Reference](docs/wp-manifest.md)
 
 ## Repo layout
 
 - `odd/` — the plugin itself (what ships in `odd.zip`). **In v3.x this ships no catalog content** — just the PHP + JS runtime.
-- `_tools/catalog-sources/` — source of truth for every bundle (scene / icon set / widget / app). Rebuilt into `site/catalog/v1/` by `_tools/build-catalog.py`.
+- `_tools/catalog-sources/` — source of truth for every bundle (scene / icon set / cursor set / widget / app). Rebuilt into `site/catalog/v1/` by `_tools/build-catalog.py`.
 - `site/` — the [odd.regionallyfamous.com](https://odd.regionallyfamous.com) marketing site **and the remote catalog** (`site/catalog/v1/registry.json` + `bundles/` + `icons/`), deployed to GitHub Pages.
 - `docs/` — authoring guides and reference docs.
 - `ci/smoke/` — MU-plugin fixtures used by `install-smoke.yml` to test the starter-pack installer hermetically.
-- `bin/` → see `odd/bin/` — `validate-catalog`, `check-version`, `build-zip`, `make-pot`.
+- `bin/` → see `odd/bin/` — `validate-catalog`, `validate-blueprint`, `check-version`, `build-zip`, `make-pot`.
 
 ## License
 

@@ -1,6 +1,6 @@
 # `.wp` Manifest Reference
 
-Every ODD bundle — app, icon set, scene, or widget — ships a
+Every ODD bundle — app, icon set, cursor set, scene, or widget — ships a
 `manifest.json` at the root of its `.wp` archive. The manifest
 carries a shared header (identity, versioning, type) and a per-type
 body (entry points, icons, preview assets).
@@ -22,6 +22,7 @@ alongside:
 - [Building an App](building-an-app.md)
 - [Building a Scene](building-a-scene.md)
 - [Building an Icon Set](building-an-icon-set.md)
+- [Building a Cursor Set](building-a-cursor-set.md)
 - [Building a Widget](building-a-widget.md)
 
 ---
@@ -42,7 +43,7 @@ alongside:
 
 | Field         | Required | Pattern / Type                              | Notes                                                                  |
 |---------------|----------|---------------------------------------------|------------------------------------------------------------------------|
-| `type`        | no       | `"app" \| "icon-set" \| "scene" \| "widget"` | Defaults to `"app"` for back-compat with v1.7.x bundles.              |
+| `type`        | no       | `"app" \| "icon-set" \| "cursor-set" \| "scene" \| "widget"` | Defaults to `"app"` for back-compat with v1.7.x bundles.              |
 | `slug`        | yes      | `^[a-z0-9-]+$`, 1–64 chars                  | Globally unique across **all** installed bundles (any type).           |
 | `name`        | yes      | non-empty string                            | Display name on Shop cards + native window titles.                     |
 | `version`     | yes      | non-empty string                            | Semver recommended. Drives the `ver` query on every enqueued asset.    |
@@ -132,6 +133,37 @@ Covered in full by [Building an Icon Set](building-an-icon-set.md).
 Every SVG is scrubbed on install: no `<script>`, no `on*` attributes,
 no external `xlink:href`/`href`, no control bytes outside `\t\n\r`,
 valid `viewBox` or `width+height`.
+
+### Type: `cursor-set`
+
+Covered in full by [Building a Cursor Set](building-a-cursor-set.md).
+
+```json
+{
+    "type":      "cursor-set",
+    "slug":      "oddlings",
+    "name":      "Oddlings",
+    "version":   "1.0.0",
+    "franchise": "ODD Defaults",
+    "accent":    "#38e8ff",
+    "preview":   "preview.svg",
+    "cursors": {
+        "default": { "file": "default.svg", "hotspot": [2, 2] },
+        "pointer": { "file": "pointer.svg", "hotspot": [9, 3] },
+        "text":    { "file": "text.svg", "hotspot": [16, 16] }
+    }
+}
+```
+
+| Field     | Required | Notes                                                                      |
+|-----------|----------|----------------------------------------------------------------------------|
+| `accent`  | no       | `#hex`. Paints the Shop tile fallback and catalog metadata.                |
+| `preview` | no       | Relative path to an SVG preview tile.                                      |
+| `cursors` | yes      | Map of supported cursor kinds to `{ file, hotspot: [x, y] }`. `default` is required. |
+
+Cursor SVGs are scrubbed like icon SVGs. They apply to Desktop Mode and
+classic wp-admin chrome for the current user; editor iframes and the
+public front-end keep native cursors in v1.
 
 ### Type: `scene`
 

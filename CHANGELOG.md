@@ -16,6 +16,22 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.6.0"></a>
+## [3.6.0] — 2026-04-29
+
+### Added
+- **Cursor sets** are now a first-class ODD content type. `.wp` bundles can ship
+  SVG cursor themes with explicit hotspots, install from the Shop, preview
+  instantly, and persist per user through the existing preferences endpoint.
+- **Cursors Shop department** sits alongside Wallpapers and Icon Sets with the
+  same installed/catalog grids, global search coverage, and preview-before-commit
+  flow.
+- **Classic wp-admin cursor theming** applies the chosen cursor set across admin
+  chrome for the current user while leaving login, front-end pages, and editor
+  iframes on native cursors.
+- **Oddlings cursor set** joins starter content so fresh installs get a cohesive
+  wallpaper, icon, and cursor theme.
+
 <a id="v3.5.10"></a>
 ## [3.5.10] — 2026-04-28
 

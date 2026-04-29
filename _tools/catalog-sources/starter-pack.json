@@ -5,6 +5,9 @@
   "iconSets": [
     "oddlings"
   ],
+  "cursorSets": [
+    "oddlings"
+  ],
   "widgets": [],
   "apps": []
 }

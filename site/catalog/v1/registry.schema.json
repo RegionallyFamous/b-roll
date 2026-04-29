@@ -33,6 +33,12 @@
             "type": "string"
           }
         },
+        "cursorSets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "widgets": {
           "type": "array",
           "items": {
@@ -65,6 +71,7 @@
             "enum": [
               "scene",
               "icon-set",
+              "cursor-set",
               "widget",
               "app"
             ]

@@ -49,6 +49,7 @@
 	var SECTIONS = [
 		{ id: 'wallpaper', label: __( 'Wallpapers' ), icon: '🖼', tagline: __( 'Live generative scenes' ) },
 		{ id: 'icons',     label: __( 'Icon Sets' ),  icon: '🧩', tagline: __( 'Re-skin the dock' ) },
+		{ id: 'cursors',   label: __( 'Cursors' ),    icon: '➹', tagline: __( 'Point with personality' ) },
 		{ id: 'widgets',   label: __( 'Widgets' ),    icon: '🧷', tagline: __( 'Desktop companions' ) },
 		{ id: 'apps',      label: __( 'Apps' ),       icon: '📦', tagline: __( 'Mini apps that just run' ), gated: 'appsEnabled' },
 		{ id: 'install',   label: __( 'Install' ),  icon: '⇪', tagline: __( 'Add a .wp bundle' ),        gated: 'canInstall' },
@@ -61,12 +62,14 @@
 		// render functions can use them regardless of file order.
 		var DEPT_FOR_TYPE = {
 			'app':      'apps',
+			'cursor-set': 'cursors',
 			'icon-set': 'icons',
 			'scene':    'wallpaper',
 			'widget':   'widgets',
 		};
 		var NOUN_FOR_TYPE = {
 			'app':      'app',
+			'cursor-set': 'cursor set',
 			'icon-set': 'icon set',
 			'scene':    'scene',
 			'widget':   'widget',
@@ -114,7 +117,7 @@
 		var searchInput = el( 'input', {
 			type: 'search',
 			class: 'odd-shop__search-input',
-			placeholder: __( 'Search wallpapers, icons, widgets, apps…' ),
+			placeholder: __( 'Search wallpapers, icons, cursors, widgets, apps…' ),
 			'data-odd-search': '1',
 		} );
 		searchInput.addEventListener( 'input', function () {
@@ -151,11 +154,11 @@
 			cfg:           clone( window.odd || {} ),
 			posting:       false,
 			// Preview state: when non-null, the user has clicked a
-			// scene or icon-set card and the shell is showing the
+			// scene, icon-set, or cursor-set card and the shell is showing the
 			// live result without having committed yet. Confirming
 			// persists via REST; cancelling reverts to `original`.
 			//
-			//   { kind: 'wallpaper' | 'iconSet',
+			//   { kind: 'wallpaper' | 'iconSet' | 'cursorSet',
 			//     slug:         'aurora',
 			//     originalSlug: 'flux',
 			//     iconSnapshot: [ { img, src } ]   // iconSet only
@@ -340,7 +343,8 @@
 			// "About" to look at stats.
 			if ( state.preview ) {
 				var sameTab = ( id === 'wallpaper' && state.preview.kind === 'wallpaper' ) ||
-					( id === 'icons' && state.preview.kind === 'iconSet' );
+					( id === 'icons' && state.preview.kind === 'iconSet' ) ||
+					( id === 'cursors' && state.preview.kind === 'cursorSet' );
 				if ( ! sameTab ) cancelPreview();
 			}
 
@@ -366,6 +370,8 @@
 				content.appendChild( renderWallpaper() );
 			} else if ( id === 'icons' ) {
 				content.appendChild( renderIcons() );
+			} else if ( id === 'cursors' ) {
+				content.appendChild( renderCursors() );
 			} else if ( id === 'widgets' ) {
 				content.appendChild( renderWidgets() );
 			} else if ( id === 'apps' ) {
@@ -1110,7 +1116,7 @@
 			if ( ! slug ) return;
 			var cfg = state.cfg;
 			if ( ! cfg || ! cfg.bundleCatalog ) return;
-			var key = ( type === 'icon-set' ) ? 'iconSet' : type;
+			var key = ( type === 'icon-set' ) ? 'iconSet' : ( type === 'cursor-set' ? 'cursorSet' : type );
 			var rows = cfg.bundleCatalog[ key ];
 			if ( ! Array.isArray( rows ) ) return;
 			for ( var i = 0; i < rows.length; i++ ) {
@@ -1148,6 +1154,15 @@
 				return;
 			}
 
+			if ( 'cursor-set' === type ) {
+				row.label = row.label || ( manifest && ( manifest.label || manifest.name ) ) || slug;
+				var cursorSets = Array.isArray( state.cfg.cursorSets ) ? state.cfg.cursorSets.slice() : [];
+				cursorSets = cursorSets.filter( function ( s ) { return s && s.slug !== slug; } );
+				cursorSets.push( row );
+				state.cfg.cursorSets = cursorSets;
+				return;
+			}
+
 			if ( 'widget' === type ) {
 				row.id = row.id || ( 'odd/' + slug );
 				row.label = row.label || ( manifest && ( manifest.label || manifest.name ) ) || slug;
@@ -1181,6 +1196,7 @@
 					'[data-slug="' + slug + '"]',
 					'[data-scene-slug="' + slug + '"]',
 					'[data-set-slug="' + slug + '"]',
+					'[data-cursor-set-slug="' + slug + '"]',
 					'[data-widget-id="odd/' + slug + '"]',
 					'[data-catalog-slug="' + slug + '"]',
 				];
@@ -1502,7 +1518,7 @@
 		// as everything else, so the visual language is consistent.
 		function renderDiscoverShelf( type ) {
 			var catalog = ( state.cfg.bundleCatalog || {} );
-			var key = ( type === 'icon-set' ) ? 'iconSet' : type;
+			var key = ( type === 'icon-set' ) ? 'iconSet' : ( type === 'cursor-set' ? 'cursorSet' : type );
 			var raw = Array.isArray( catalog[ key ] ) ? catalog[ key ] : [];
 			if ( ! raw.length ) return null;
 
@@ -1543,6 +1559,7 @@
 			// Best-effort type detection from the source row.
 			if ( raw && raw.widget ) type = 'widget';
 			else if ( raw && raw.icons ) type = 'icon-set';
+			else if ( raw && raw.cursors ) type = 'cursor-set';
 			else if ( raw && raw.app )   type = 'app';
 			var row = normaliseShopRow( raw, type );
 			if ( ! row ) return el( 'div' );
@@ -1603,7 +1620,7 @@
 		/**
 		 * Dedicated "Install" department — one canonical surface
 		 * for dropping a .wp archive of any type (app, icon set,
-		 * scene, widget) instead of sprinkling "Install from
+		 * cursor set, scene, widget) instead of sprinkling "Install from
 		 * file…" affordances across every shelf. The topbar
 		 * Install pill and the Shop-wide drop overlay still work
 		 * from anywhere; this tab just makes the action a
@@ -1613,7 +1630,7 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--install' } );
 			wrap.appendChild( sectionHeader(
 				'Install a .wp bundle',
-				'Drop a .wp archive to add an app, icon set, scene, or widget. One manifest, one format, one install flow — no companion plugins needed. Authors: see the .wp manifest reference for the schema.',
+				'Drop a .wp archive to add an app, icon set, cursor set, scene, or widget. One manifest, one format, one install flow — no companion plugins needed. Authors: see the .wp manifest reference for the schema.',
 				{ eyebrow: 'ODD · Universal Installer' }
 			) );
 
@@ -1706,6 +1723,13 @@
 					tint: '#00a693',
 					desc: 'Themed SVG packs that re-skin the dock and desktop shortcuts.',
 					glyph: '<rect x="3" y="3" width="6" height="6" rx="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.4"/>',
+				},
+				{
+					type: 'cursor-set',
+					label: 'Cursors',
+					tint: '#38e8ff',
+					desc: 'Pointer themes that follow you through Desktop Mode and wp-admin.',
+					glyph: '<path d="M4 3l10 7-4 1.2 2.5 4.5-2.4 1.3-2.5-4.6L4 16z"/><path d="M13.5 4.5l2-2M16 8h2.5M12 2V.5"/>',
 				},
 				{
 					type: 'widget',
@@ -2414,6 +2438,7 @@
 			return [
 				{ type: 'scene',    label: 'Wallpapers', singular: 'scene',    plural: 'scenes' },
 				{ type: 'icon-set', label: 'Icon Sets',  singular: 'set',      plural: 'sets' },
+				{ type: 'cursor-set', label: 'Cursors',  singular: 'set',      plural: 'sets' },
 				{ type: 'widget',   label: 'Widgets',    singular: 'widget',   plural: 'widgets' },
 				{ type: 'app',      label: 'Apps',       singular: 'app',      plural: 'apps' },
 			];
@@ -2437,6 +2462,15 @@
 					inner.setAttribute( 'data-slug', row.slug );
 				}
 				card.classList.add( 'odd-catalog-row--iconset-wrap' );
+			}
+			if ( row.type === 'cursor-set' ) {
+				var cursorInner = card.querySelector( '.odd-shop__card' );
+				if ( cursorInner ) {
+					cursorInner.classList.add( 'odd-catalog-row--cursorset' );
+					cursorInner.setAttribute( 'data-slug', row.slug );
+					cursorInner.setAttribute( 'data-cursor-set-slug', row.slug );
+				}
+				card.classList.add( 'odd-catalog-row--cursorset-wrap' );
 			}
 			if ( row.type === 'app' ) {
 				card.classList.add( 'odd-card--app' );
@@ -3163,10 +3197,13 @@
 				pickSceneLive( state.preview.originalSlug );
 			} else if ( state.preview.kind === 'iconSet' ) {
 				restoreIconSnapshot();
+			} else if ( state.preview.kind === 'cursorSet' ) {
+				setActiveCursorLink( state.preview.originalSlug );
 			}
 			state.preview = null;
 			redecorateSceneGrid();
 			redecorateIconGrid();
+			redecorateCursorGrid();
 			renderPreviewBar();
 		}
 
@@ -3419,6 +3456,269 @@
 				}
 			}
 			return wrap;
+		}
+
+		/* --- Cursors section --- */
+
+		function renderCursors() {
+			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--cursors' } );
+			wrap.appendChild( sectionHeader(
+				'Cursors',
+				'Pointer themes for Desktop Mode and classic wp-admin. Preview swaps instantly; Apply saves it for every admin page you open.',
+				{ eyebrow: 'ODD · Pointer Wardrobe' }
+			) );
+
+			var sets = Array.isArray( state.cfg.cursorSets ) ? state.cfg.cursorSets.slice() : [];
+			var realSets = sets.filter( function ( s ) { return s && s.slug && s.slug !== 'none'; } );
+			var defaultSet = {
+				slug: 'none',
+				label: 'Default',
+				franchise: 'Browser',
+				description: 'Use the stock browser and operating-system cursors.',
+				preview: '',
+				cursors: {},
+			};
+			var heroPool = state.cfg.cursorSet === 'none' ? [ defaultSet ].concat( realSets ) : realSets;
+			var filtered = filterByQuery( realSets, state.query );
+
+			if ( heroPool.length ) {
+				var featured = pickFeaturedCursorSet( heroPool );
+				if ( featured ) wrap.appendChild( renderCursorHero( featured ) );
+			}
+
+			if ( state.cfg.cursorSet && state.cfg.cursorSet !== 'none' && ! state.query ) {
+				var resetRow = el( 'div', { class: 'odd-shop__reset-row' } );
+				var resetLeft = el( 'div', { class: 'odd-shop__reset-left' } );
+				var resetIcon = el( 'span', { class: 'odd-shop__reset-icon', 'aria-hidden': 'true' } );
+				resetIcon.textContent = '↺';
+				var resetText = el( 'span', { class: 'odd-shop__reset-text' } );
+				resetText.textContent = 'Want native browser cursors back?';
+				resetLeft.appendChild( resetIcon );
+				resetLeft.appendChild( resetText );
+				var resetBtn = el( 'button', { type: 'button', class: 'odd-shop__reset-btn' } );
+				resetBtn.textContent = 'Reset to default';
+				resetBtn.addEventListener( 'click', function () { previewCursorSet( 'none' ); } );
+				resetRow.appendChild( resetLeft );
+				resetRow.appendChild( resetBtn );
+				wrap.appendChild( resetRow );
+			}
+
+			if ( ! state.query ) {
+				wrap.appendChild( renderCategoryQuilt( realSets, 'cursors' ) );
+			}
+
+			if ( ! filtered.length ) {
+				if ( state.query ) {
+					wrap.appendChild( renderEmptyResults( 'No cursor sets match "' + state.query + '".' ) );
+					return wrap;
+				}
+				wrap.appendChild( renderEmptyDept(
+					'cursor sets',
+					'Install one from the Discover shelf below to theme the pointer across Desktop Mode and wp-admin.',
+					'➹'
+				) );
+				var discoverEmpty = renderDiscoverShelf( 'cursor-set' );
+				if ( discoverEmpty ) wrap.appendChild( discoverEmpty );
+				return wrap;
+			}
+
+			if ( ! state.query ) {
+				var discover = renderDiscoverShelf( 'cursor-set' );
+				if ( discover ) wrap.appendChild( discover );
+			}
+
+			var shelves = groupByCategory( filtered, 'cursors', 'More' );
+			shelves.forEach( function ( shelf ) {
+				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderCursorSetCard, { scope: 'cursors' } ) );
+			} );
+			return wrap;
+		}
+
+		function pickFeaturedCursorSet( sets ) {
+			var current = state.cfg.cursorSet;
+			if ( typeof current === 'string' && current !== '' ) {
+				for ( var i = 0; i < sets.length; i++ ) {
+					if ( sets[ i ] && sets[ i ].slug === current ) return sets[ i ];
+				}
+			}
+			for ( var j = 0; j < sets.length; j++ ) {
+				if ( sets[ j ] && sets[ j ].slug !== 'none' ) return sets[ j ];
+			}
+			return sets[ 0 ] || null;
+		}
+
+		function renderCursorHero( set ) {
+			var currentSlug = state.cfg.cursorSet || '';
+			var isActive = ( set.slug === 'none' && ! currentSlug ) || ( set.slug !== 'none' && set.slug === currentSlug );
+			var hero = el( 'div', {
+				class: 'odd-shop__hero odd-shop__hero--cursors',
+				'data-hero-slug': set.slug,
+				style: 'background-color:#14111f',
+			} );
+			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
+			bg.style.background = 'radial-gradient(circle at 72% 24%, rgba(56,232,255,.38), transparent 34%), linear-gradient(135deg,#241033,#111827)';
+			hero.appendChild( bg );
+			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
+
+			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
+			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
+			eyebrow.textContent = isActive ? 'Active cursor set' : 'Featured cursor set';
+			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
+			title.textContent = set.label || set.slug;
+			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
+			sub.textContent = set.description || 'A pointer theme for Desktop Mode and wp-admin.';
+			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
+			if ( isActive && ! state.preview ) {
+				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
+				active.textContent = '✓ Active';
+				actions.appendChild( active );
+			} else {
+				var previewBtn = el( 'button', { type: 'button', class: 'odd-shop__hero-btn odd-shop__hero-btn--primary' } );
+				previewBtn.innerHTML = '<span aria-hidden="true">▶</span> Preview';
+				previewBtn.addEventListener( 'click', function ( e ) {
+					e.stopPropagation();
+					previewCursorSet( set.slug );
+				} );
+				actions.appendChild( previewBtn );
+			}
+			inner.appendChild( eyebrow );
+			inner.appendChild( title );
+			inner.appendChild( sub );
+			inner.appendChild( actions );
+			hero.appendChild( inner );
+
+			var thumbUrl = set.preview || '';
+			if ( thumbUrl ) {
+				var thumb = el( 'div', { class: 'odd-shop__hero-thumb odd-shop__hero-thumb--cursors', 'aria-hidden': 'true' } );
+				thumb.appendChild( el( 'img', { src: thumbUrl, alt: '', loading: 'lazy' } ) );
+				hero.appendChild( thumb );
+			}
+			return hero;
+		}
+
+		function renderCursorSetCard( set ) {
+			var row = normaliseShopRow( set, 'cursor-set' );
+			if ( ! row ) return el( 'div' );
+			row.installed = true;
+			var wrap = renderShopCard( row );
+			if ( wrap ) {
+				var inner = wrap.querySelector( '.odd-shop__card' );
+				if ( inner ) {
+					inner.classList.add( 'odd-catalog-row--cursorset' );
+					inner.setAttribute( 'data-slug', set.slug );
+					inner.setAttribute( 'data-cursor-set-slug', set.slug );
+				}
+				wrap.classList.add( 'odd-catalog-row--cursorset-wrap' );
+				var isPreview = state.preview && state.preview.kind === 'cursorSet' && state.preview.slug === set.slug;
+				if ( isPreview ) {
+					wrap.classList.add( 'is-previewing' );
+					if ( inner ) inner.classList.add( 'is-previewing' );
+					var btn = wrap.querySelector( '.odd-shop__card-btn' );
+					if ( btn ) { btn.textContent = 'Previewing'; btn.disabled = true; }
+				}
+			}
+			return wrap;
+		}
+
+		function previewCursorSet( slug ) {
+			if ( state.posting ) return;
+			playShopSound( 'preview' );
+			var current = state.cfg.cursorSet || '';
+			if ( ! state.preview || state.preview.kind !== 'cursorSet' ) {
+				state.preview = {
+					kind: 'cursorSet',
+					slug: slug,
+					originalSlug: current,
+				};
+			} else {
+				state.preview.slug = slug;
+			}
+			setActiveCursorLink( slug );
+			redecorateCursorGrid();
+			renderPreviewBar();
+		}
+
+		function cursorStylesheetUrl( slug ) {
+			var base = ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/cursors/active.css';
+			var version = encodeURIComponent( ( state.cfg.version || '0' ) + '-' + ( slug || 'none' ) + '-' + Date.now() );
+			if ( ! slug || slug === 'none' ) return base + '?v=' + version;
+			return base + '?set=' + encodeURIComponent( slug ) + '&v=' + version;
+		}
+
+		function setActiveCursorLink( slug ) {
+			var href = cursorStylesheetUrl( slug );
+			var link = document.getElementById( 'odd-cursors-css' ) || document.querySelector( 'link[href*="/odd/v1/cursors/active.css"]' );
+			if ( slug === 'none' || slug === '' ) {
+				if ( link ) link.setAttribute( 'href', href );
+			} else {
+				if ( ! link ) {
+					link = document.createElement( 'link' );
+					link.id = 'odd-cursors-css';
+					link.rel = 'stylesheet';
+					document.head.appendChild( link );
+				}
+				link.setAttribute( 'href', href );
+			}
+			state.cfg.cursorStylesheet = href;
+			if ( window.wp && window.wp.hooks && typeof window.wp.hooks.doAction === 'function' ) {
+				try { window.wp.hooks.doAction( 'odd/cursorSet', slug, href ); } catch ( e ) {}
+			}
+		}
+
+		function redecorateCursorGrid() {
+			var rows = content.querySelectorAll( '.odd-catalog-row--cursorset' );
+			var currentSlug = state.cfg.cursorSet || '';
+			var previewSlug = state.preview && state.preview.kind === 'cursorSet' ? state.preview.slug : null;
+			for ( var i = 0; i < rows.length; i++ ) {
+				var row = rows[ i ];
+				var slug = row.getAttribute( 'data-slug' );
+				var isActive = ( slug === 'none' && ! currentSlug ) || ( slug !== 'none' && slug === currentSlug );
+				var isPreviewing = previewSlug && slug === previewSlug;
+				row.classList.toggle( 'is-active', !! ( isActive && ! previewSlug ) );
+				row.classList.toggle( 'is-previewing', !! isPreviewing );
+				var wrap = row.closest ? row.closest( '.odd-shop__card-wrap' ) : null;
+				if ( wrap ) {
+					wrap.classList.toggle( 'is-active', !! ( isActive && ! previewSlug ) );
+					wrap.classList.toggle( 'is-previewing', !! isPreviewing );
+				}
+				var btn = ( wrap && wrap.querySelector( '.odd-shop__card-btn' ) ) || row.querySelector( '.odd-shop__card-btn' );
+				if ( btn ) {
+					if ( isPreviewing ) {
+						btn.textContent = 'Previewing';
+						btn.disabled = true;
+						btn.classList.add( 'is-disabled' );
+					} else if ( isActive && ! previewSlug ) {
+						btn.textContent = 'Active';
+						btn.disabled = true;
+						btn.classList.add( 'is-disabled' );
+					} else {
+						btn.textContent = 'Preview';
+						btn.disabled = false;
+						btn.classList.remove( 'is-disabled' );
+					}
+				}
+			}
+		}
+
+		function confirmCursorPreview() {
+			if ( ! state.preview || state.preview.kind !== 'cursorSet' || state.posting ) return;
+			state.posting = true;
+			var slug = state.preview.slug;
+			savePrefs( { cursorSet: slug }, function ( data ) {
+				state.posting = false;
+				if ( data && typeof data.cursorSet === 'string' ) {
+					state.cfg.cursorSet = data.cursorSet;
+				} else {
+					state.cfg.cursorSet = slug === 'none' ? '' : slug;
+				}
+				if ( data && typeof data.cursorStylesheet === 'string' ) {
+					state.cfg.cursorStylesheet = data.cursorStylesheet;
+				}
+				state.preview = null;
+				playShopSound( 'success' );
+				redecorateCursorGrid();
+				renderPreviewBar();
+			} );
 		}
 
 		function previewIconSet( slug ) {
@@ -4126,13 +4426,22 @@
 				for ( var i = 0; i < scenes.length; i++ ) {
 					if ( scenes[ i ] && scenes[ i ].slug === slug ) { itemName = scenes[ i ].label || slug; break; }
 				}
-			} else {
+			} else if ( kind === 'iconSet' ) {
 				if ( slug === 'none' || slug === '' ) {
 					itemName = 'Default icons';
 				} else {
 					var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets : [];
 					for ( var j = 0; j < sets.length; j++ ) {
 						if ( sets[ j ] && sets[ j ].slug === slug ) { itemName = sets[ j ].label || slug; break; }
+					}
+				}
+			} else if ( kind === 'cursorSet' ) {
+				if ( slug === 'none' || slug === '' ) {
+					itemName = 'Default cursors';
+				} else {
+					var cursorSets = Array.isArray( state.cfg.cursorSets ) ? state.cfg.cursorSets : [];
+					for ( var k = 0; k < cursorSets.length; k++ ) {
+						if ( cursorSets[ k ] && cursorSets[ k ].slug === slug ) { itemName = cursorSets[ k ].label || slug; break; }
 					}
 				}
 			}
@@ -4146,6 +4455,8 @@
 			var text = el( 'div', { class: 'odd-preview-bar__text' } );
 			if ( kind === 'wallpaper' ) {
 				text.innerHTML = 'Previewing <em></em>. Keep to save, Cancel to revert.';
+			} else if ( kind === 'cursorSet' ) {
+				text.innerHTML = 'Previewing <em></em> cursors. Apply to save, Cancel to revert.';
 			} else if ( reload ) {
 				text.innerHTML = 'Applying <em></em> reloads the page to restore stock dock icons.';
 			} else {
@@ -4164,6 +4475,9 @@
 			if ( kind === 'wallpaper' ) {
 				commit.textContent = 'Keep';
 				commit.addEventListener( 'click', function () { confirmScenePreview(); } );
+			} else if ( kind === 'cursorSet' ) {
+				commit.textContent = 'Apply';
+				commit.addEventListener( 'click', function () { confirmCursorPreview(); } );
 			} else {
 				commit.textContent = reload ? 'Apply & reload' : 'Apply';
 				commit.addEventListener( 'click', function () { confirmIconPreview(); } );
@@ -4209,6 +4523,8 @@
 				subtitle = ( categoryOf( raw, 'wallpaper' ) || raw.franchise || 'Scene' ) + ' · Scene';
 			} else if ( type === 'icon-set' ) {
 				subtitle = ( raw.franchise || 'Icon set' ) + ' · Icon set';
+			} else if ( type === 'cursor-set' ) {
+				subtitle = ( raw.franchise || 'Cursor set' ) + ' · Cursor set';
 			} else if ( type === 'widget' ) {
 				subtitle = ( raw.franchise || 'Widget' ) + ' · Widget';
 			} else if ( type === 'app' ) {
@@ -4228,6 +4544,7 @@
 				wallpaperUrl:  raw.wallpaperUrl || '',
 				iconUrl:       raw.icon_url || raw.icon || '',
 				icons:         raw.icons && typeof raw.icons === 'object' ? raw.icons : null,
+				cursors:       raw.cursors && typeof raw.cursors === 'object' ? raw.cursors : null,
 				preview:       raw.preview || '',
 				accent:        raw.accent || '',
 				fallbackColor: raw.fallbackColor || '',
@@ -4254,6 +4571,9 @@
 			} else if ( type === 'icon-set' ) {
 				src = Array.isArray( cfg.iconSets ) ? cfg.iconSets : [];
 				src = src.filter( function ( s ) { return s && s.slug && s.slug !== 'none'; } );
+			} else if ( type === 'cursor-set' ) {
+				src = Array.isArray( cfg.cursorSets ) ? cfg.cursorSets : [];
+				src = src.filter( function ( s ) { return s && s.slug && s.slug !== 'none'; } );
 			} else if ( type === 'widget' ) {
 				src = Array.isArray( cfg.installedWidgets ) ? cfg.installedWidgets : [];
 			} else if ( type === 'app' ) {
@@ -4271,7 +4591,7 @@
 
 		function catalogRowsFor( type ) {
 			var catalog = ( state.cfg && state.cfg.bundleCatalog ) || {};
-			var key = ( type === 'icon-set' ) ? 'iconSet' : type;
+			var key = ( type === 'icon-set' ) ? 'iconSet' : ( type === 'cursor-set' ? 'cursorSet' : type );
 			var src = Array.isArray( catalog[ key ] ) ? catalog[ key ] : [];
 			var out = [];
 			for ( var i = 0; i < src.length; i++ ) {
@@ -4316,6 +4636,9 @@
 			if ( cat.icons && typeof cat.icons === 'object' && ! isEmptyIcons( cat.icons ) && isEmptyIcons( ins.icons ) ) {
 				ins.icons = cat.icons;
 			}
+			if ( cat.cursors && typeof cat.cursors === 'object' && ! isEmptyIcons( cat.cursors ) && isEmptyIcons( ins.cursors ) ) {
+				ins.cursors = cat.cursors;
+			}
 			if ( cat.description && ! ins.description ) ins.description = cat.description;
 
 			// Refresh subline copy when franchise/version arrive from catalog.
@@ -4327,6 +4650,8 @@
 				ins.subtitle = ( categoryOf( ins.raw, 'wallpaper' ) || ins.franchise || 'Scene' ) + ' · Scene';
 			} else if ( ins.type === 'icon-set' ) {
 				ins.subtitle = ( ins.franchise || 'Icon set' ) + ' · Icon set';
+			} else if ( ins.type === 'cursor-set' ) {
+				ins.subtitle = ( ins.franchise || 'Cursor set' ) + ' · Cursor set';
 			}
 		}
 
@@ -4372,6 +4697,9 @@
 			if ( row.type === 'icon-set' ) {
 				return row.slug === ( state.cfg.iconSet || '' );
 			}
+			if ( row.type === 'cursor-set' ) {
+				return row.slug === ( state.cfg.cursorSet || '' );
+			}
 			if ( row.type === 'widget' ) {
 				try {
 					var ids = enabledWidgetIds();
@@ -4402,6 +4730,7 @@
 			switch ( row.type ) {
 				case 'scene':
 				case 'icon-set':
+				case 'cursor-set':
 					return { label: 'Preview', kind: 'preview', disabled: false };
 				case 'widget':
 					return { label: 'Add', kind: 'add', disabled: false };
@@ -4437,6 +4766,7 @@
 				case 'preview':
 					if ( row.type === 'scene' )    { previewScene( row.slug );    break; }
 					if ( row.type === 'icon-set' ) { previewIconSet( row.slug );  break; }
+					if ( row.type === 'cursor-set' ) { previewCursorSet( row.slug ); break; }
 					break;
 				case 'add':
 					playShopSound( 'success' );
@@ -4461,6 +4791,7 @@
 		//               pages/media icons on the shared dark Shop
 		//               surface, so sets compare by glyph language
 		//               instead of competing background colours
+		//  - cursor-set → full-bleed preview tile, falling back to a glyph plate
 		//  - widget   → gradient plate with the widget's glyph
 		//  - app      → square app icon centered on a soft plate
 		function renderShopCardArt( row ) {
@@ -4511,6 +4842,21 @@
 				var fallback = el( 'div', { class: 'odd-shop__card-mono' } );
 				fallback.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
 				art.appendChild( fallback );
+				return art;
+			}
+
+			if ( row.type === 'cursor-set' ) {
+				art.style.background = row.accent || '#38e8ff';
+				var cursorUrl = row.preview || row.iconUrl;
+				if ( cursorUrl ) {
+					var cursorImg = el( 'img', { src: cursorUrl, alt: '', loading: 'lazy' } );
+					cursorImg.classList.add( 'odd-shop__card-art-fill' );
+					art.appendChild( cursorImg );
+					return art;
+				}
+				var cursorMono = el( 'div', { class: 'odd-shop__card-mono' } );
+				cursorMono.textContent = '➹';
+				art.appendChild( cursorMono );
 				return art;
 			}
 
@@ -4567,6 +4913,7 @@
 				'data-slug':          row.slug,
 				'data-scene-slug':    row.type === 'scene' ? row.slug : null,
 				'data-set-slug':      row.type === 'icon-set' ? row.slug : null,
+				'data-cursor-set-slug': row.type === 'cursor-set' ? row.slug : null,
 				'data-widget-id':     row.type === 'widget' ? ( 'odd/' + row.slug ) : null,
 				'data-catalog-slug':  row.installed ? null : row.slug,
 			} );
@@ -4581,6 +4928,7 @@
 			} );
 			if ( row.type === 'scene' )    card.setAttribute( 'data-scene-slug',  row.slug );
 			if ( row.type === 'icon-set' ) card.setAttribute( 'data-set-slug',    row.slug );
+			if ( row.type === 'cursor-set' ) card.setAttribute( 'data-cursor-set-slug', row.slug );
 			if ( row.type === 'widget' )   card.setAttribute( 'data-widget-id',   'odd/' + row.slug );
 			if ( ! row.installed )         card.setAttribute( 'data-catalog-slug', row.slug );
 			// Legacy hooks so existing selectors in tests + styles

@@ -13,7 +13,7 @@
 		},
 		"type": {
 			"type": "string",
-			"enum": ["app", "scene", "icon-set", "iconset", "widget"],
+			"enum": ["app", "scene", "icon-set", "iconset", "cursor-set", "widget"],
 			"default": "app",
 			"description": "Bundle type. `iconset` is accepted as a legacy alias for `icon-set`; installers canonicalise to the hyphenated form."
 		},
@@ -72,6 +72,34 @@
 				"^[a-z0-9_-]+$": {
 					"type": "string",
 					"pattern": "^[^\\0]+\\.svg$"
+				}
+			},
+			"additionalProperties": false
+		},
+		"cursors": {
+			"type": "object",
+			"description": "Cursor-set manifests only. Keys are cursor kinds and values declare an SVG file plus [x, y] hotspot.",
+			"patternProperties": {
+				"^(default|pointer|text|grab|grabbing|crosshair|not-allowed|wait|help|progress)$": {
+					"type": "object",
+					"required": ["file", "hotspot"],
+					"additionalProperties": false,
+					"properties": {
+						"file": {
+							"type": "string",
+							"pattern": "^[^\\0]+\\.svg$"
+						},
+						"hotspot": {
+							"type": "array",
+							"minItems": 2,
+							"maxItems": 2,
+							"items": {
+								"type": "integer",
+								"minimum": 0,
+								"maximum": 128
+							}
+						}
+					}
 				}
 			},
 			"additionalProperties": false
@@ -135,6 +163,17 @@
 							"appearance", "plugins", "users", "tools", "settings",
 							"fallback"
 						]
+					}
+				}
+			}
+		},
+		{
+			"if": { "properties": { "type": { "const": "cursor-set" } }, "required": ["type"] },
+			"then": {
+				"required": ["cursors"],
+				"properties": {
+					"cursors": {
+						"required": ["default"]
 					}
 				}
 			}

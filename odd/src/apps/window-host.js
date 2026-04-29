@@ -84,6 +84,30 @@
 		if ( ! ua || ! Array.isArray( ua.installed ) ) return [];
 		return ua.installed.slice();
 	}
+	function cursorStylesheetUrl() {
+		return typeof cfg().cursorStylesheet === 'string' ? cfg().cursorStylesheet : '';
+	}
+	function injectCursorStylesheet( frame, href ) {
+		href = href || cursorStylesheetUrl();
+		if ( ! href || ! frame ) return;
+		var doc;
+		try { doc = frame.contentDocument; } catch ( e ) { return; }
+		if ( ! doc || ! doc.head ) return;
+		var link = doc.getElementById( 'odd-cursors-css' );
+		if ( ! link ) {
+			link = doc.createElement( 'link' );
+			link.id = 'odd-cursors-css';
+			link.rel = 'stylesheet';
+			doc.head.appendChild( link );
+		}
+		link.setAttribute( 'href', href );
+	}
+	function injectCursorStylesheetIntoOpenFrames( href ) {
+		var frames = document.querySelectorAll( 'iframe.odd-app-frame' );
+		for ( var i = 0; i < frames.length; i++ ) {
+			injectCursorStylesheet( frames[ i ], href );
+		}
+	}
 
 	function slugFromWindowId( id ) {
 		if ( typeof id !== 'string' ) return '';
@@ -140,6 +164,7 @@
 		frame.addEventListener( 'load', function () {
 			var loading = mount.querySelector( '.odd-app-host__loading' );
 			if ( loading ) loading.style.display = 'none';
+			injectCursorStylesheet( frame );
 			// Empty-root watchdog. Most installed apps are Vite/React
 			// bundles with a `<div id="root">` that React mounts into
 			// on startup. If React never mounts (e.g. the importmap
@@ -389,6 +414,13 @@
 	// before DOMContentLoaded still finds its callback.
 	registerWpdmCallbacks();
 
+	if ( window.wp && window.wp.hooks && typeof window.wp.hooks.addAction === 'function' ) {
+		window.wp.hooks.addAction( 'odd/cursorSet', 'odd/apps/cursors', function ( slug, href ) {
+			if ( href ) cfg().cursorStylesheet = href;
+			injectCursorStylesheetIntoOpenFrames( href || cursorStylesheetUrl() );
+		} );
+	}
+
 	// Re-register after page load in case `window.odd` was
 	// populated by a late inline <script> (some WPDM shell
 	// orderings localize after ODD's scripts enqueue).
@@ -401,5 +433,6 @@
 	window.__odd.apps = window.__odd.apps || {};
 	window.__odd.apps.buildAndMount = buildAndMount;
 	window.__odd.apps.installFrame = installFrame;
+	window.__odd.apps.injectCursorStylesheet = injectCursorStylesheet;
 	window.__odd.apps.registerWpdmCallbacks = registerWpdmCallbacks;
 } )();

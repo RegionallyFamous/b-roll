@@ -1,0 +1,52 @@
+{
+  "slug": "oddlings",
+  "label": "Oddlings",
+  "franchise": "ODD Defaults",
+  "accent": "#38e8ff",
+  "preview": "preview.svg",
+  "description": "Native-feeling cursors with tiny Oddling eyes, plum glass bodies, and cyan gelatin highlights.",
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "cursors": {
+    "default": {
+      "file": "default.svg",
+      "hotspot": [2, 2]
+    },
+    "pointer": {
+      "file": "pointer.svg",
+      "hotspot": [9, 3]
+    },
+    "text": {
+      "file": "text.svg",
+      "hotspot": [16, 16]
+    },
+    "grab": {
+      "file": "grab.svg",
+      "hotspot": [16, 16]
+    },
+    "grabbing": {
+      "file": "grabbing.svg",
+      "hotspot": [16, 16]
+    },
+    "crosshair": {
+      "file": "crosshair.svg",
+      "hotspot": [16, 16]
+    },
+    "not-allowed": {
+      "file": "not-allowed.svg",
+      "hotspot": [16, 16]
+    },
+    "wait": {
+      "file": "wait.svg",
+      "hotspot": [16, 16]
+    },
+    "help": {
+      "file": "help.svg",
+      "hotspot": [2, 2]
+    },
+    "progress": {
+      "file": "progress.svg",
+      "hotspot": [2, 2]
+    }
+  }
+}

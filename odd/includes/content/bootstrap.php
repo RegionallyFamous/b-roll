@@ -11,6 +11,7 @@
  *   archive.php   shared ZIP + manifest primitives
  *   bundle.php    odd_bundle_install() / odd_bundle_uninstall()
  *   iconsets.php  type: icon-set
+ *   cursor-sets.php type: cursor-set
  *   scenes.php    type: scene
  *   widgets.php   type: widget
  *   rest.php      POST /odd/v1/bundles/upload + DELETE /.../<slug>
@@ -22,6 +23,7 @@ require_once ODD_DIR . 'includes/content/archive.php';
 require_once ODD_DIR . 'includes/content/rate-limit.php';
 require_once ODD_DIR . 'includes/content/bundle.php';
 require_once ODD_DIR . 'includes/content/iconsets.php';
+require_once ODD_DIR . 'includes/content/cursor-sets.php';
 require_once ODD_DIR . 'includes/content/scenes.php';
 require_once ODD_DIR . 'includes/content/widgets.php';
 require_once ODD_DIR . 'includes/content/rest.php';

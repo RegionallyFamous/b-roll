@@ -34,6 +34,8 @@ jobs:
         env:
           ODD_VALIDATE_REBUILD: '1'
         run: odd/bin/validate-catalog
+      - name: Validate cursor set sources
+        run: odd/bin/validate-cursor-sets
 
   json-valid:
     runs-on: ubuntu-latest
@@ -92,6 +94,7 @@ jobs:
           odd/bin/validate-manifest \
             odd/tests/fixtures/manifests/scene-ok.json \
             odd/tests/fixtures/manifests/iconset-ok.json \
+            odd/tests/fixtures/manifests/cursorset-ok.json \
             odd/tests/fixtures/manifests/widget-ok.json \
             odd/tests/fixtures/manifests/app-ok.json
       - name: Validate bad manifest fixture (must fail)

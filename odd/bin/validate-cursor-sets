@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Validate cursor-set catalog sources."""
+from __future__ import annotations
+
+import json
+import re
+import sys
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+SRC = ROOT / "_tools" / "catalog-sources" / "cursor-sets"
+KINDS = {"default", "pointer", "text", "grab", "grabbing", "crosshair", "not-allowed", "wait", "help", "progress"}
+CTRL = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def fail(problems: list[str], msg: str) -> None:
+    problems.append(msg)
+
+
+def main() -> int:
+    problems: list[str] = []
+    if not SRC.is_dir():
+        return 0
+    for folder in sorted(p for p in SRC.iterdir() if p.is_dir()):
+        manifest_path = folder / "manifest.json"
+        if not manifest_path.is_file():
+            fail(problems, f"{folder.name}: missing manifest.json")
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text())
+        except json.JSONDecodeError as exc:
+            fail(problems, f"{folder.name}: invalid manifest.json: {exc}")
+            continue
+        cursors = manifest.get("cursors")
+        if not isinstance(cursors, dict) or "default" not in cursors:
+            fail(problems, f"{folder.name}: cursors.default is required")
+            continue
+        for kind, spec in cursors.items():
+            if kind not in KINDS:
+                fail(problems, f"{folder.name}: unsupported cursor kind {kind!r}")
+                continue
+            if not isinstance(spec, dict):
+                fail(problems, f"{folder.name}: cursor {kind!r} must be an object")
+                continue
+            rel = spec.get("file")
+            hotspot = spec.get("hotspot")
+            if not isinstance(rel, str) or not rel or Path(rel).name != rel or "\\" in rel or ".." in rel:
+                fail(problems, f"{folder.name}: cursor {kind!r} has invalid file {rel!r}")
+                continue
+            if not (isinstance(hotspot, list) and len(hotspot) == 2 and all(isinstance(v, int) for v in hotspot)):
+                fail(problems, f"{folder.name}: cursor {kind!r} hotspot must be [x, y] ints")
+            path = folder / rel
+            if not path.is_file():
+                fail(problems, f"{folder.name}: missing {rel}")
+                continue
+            data = path.read_bytes()
+            if len(data) > 8192:
+                fail(problems, f"{folder.name}: {rel} exceeds 8 KB")
+            if CTRL.search(data):
+                fail(problems, f"{folder.name}: {rel} contains control bytes")
+            try:
+                root = ET.fromstring(data)
+            except ET.ParseError as exc:
+                fail(problems, f"{folder.name}: {rel} invalid XML: {exc}")
+                continue
+            if root.tag != "{http://www.w3.org/2000/svg}svg":
+                fail(problems, f"{folder.name}: {rel} root is not <svg>")
+    if problems:
+        print("Cursor-set validation failed:", file=sys.stderr)
+        for problem in problems:
+            print(f" - {problem}", file=sys.stderr)
+        return 1
+    print("Cursor sets OK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -28,6 +28,8 @@ Bundle types:
                 meta.json, wallpaper.webp, preview.webp}
     icon-set    source: catalog-sources/icon-sets/<slug>/ (manifest
                 + SVGs)
+    cursor-set  source: catalog-sources/cursor-sets/<slug>/ (manifest
+                + SVG cursors)
     widget      source: catalog-sources/widgets/<slug>/{widget.js,
                 widget.css?, manifest.json}
     app         source: catalog-sources/apps/<slug>/{bundle.wp, icon.svg,
@@ -517,6 +519,120 @@ def build_iconset(slug: str, src_dir: Path) -> dict:
     }
 
 
+CURSOR_KINDS = {
+    "default",
+    "pointer",
+    "text",
+    "grab",
+    "grabbing",
+    "crosshair",
+    "not-allowed",
+    "wait",
+    "help",
+    "progress",
+}
+CURSOR_SIZE_BUDGET = 8192
+
+
+def _validate_cursor_svg(slug: str, rel: str, data: bytes) -> None:
+    label = f"cursor-set {slug}: {rel}"
+    if len(data) > CURSOR_SIZE_BUDGET:
+        raise SystemExit(f"{label}: {len(data)} bytes exceeds {CURSOR_SIZE_BUDGET} budget")
+    if _ICON_CTRL.search(data):
+        raise SystemExit(f"{label}: SVG contains forbidden control bytes")
+    text = data.decode("utf-8", errors="replace")
+    for tag in ("<image", "<script", "<foreignObject"):
+        if tag in text:
+            raise SystemExit(f"{label}: contains forbidden element {tag!r}")
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as exc:
+        raise SystemExit(f"{label}: invalid XML: {exc}")
+    if root.tag != "{http://www.w3.org/2000/svg}svg":
+        raise SystemExit(f"{label}: root element is not <svg>")
+    if not (root.attrib.get("viewBox") or root.attrib.get("width")):
+        raise SystemExit(f"{label}: SVG must include viewBox or width")
+
+
+def build_cursorset(slug: str, src_dir: Path) -> dict:
+    meta = json.loads((src_dir / "manifest.json").read_text())
+    cursors = meta.get("cursors") or {}
+    if not isinstance(cursors, dict) or "default" not in cursors:
+        raise SystemExit(f"cursor-set {slug}: manifest must declare cursors.default")
+
+    files: dict[str, bytes] = {}
+    manifest = {
+        "$schema": "../../manifest.schema.json",
+        "type": "cursor-set",
+        "slug": meta["slug"],
+        "name": meta["label"],
+        "label": meta["label"],
+        "version": meta.get("version", "1.0.0"),
+        "author": meta.get("author", "Regionally Famous"),
+        "description": meta.get("description", ""),
+        "franchise": meta.get("franchise", "Community"),
+        "accent": meta.get("accent", "#38e8ff"),
+        "preview": meta.get("preview", "preview.svg"),
+        "cursors": cursors,
+    }
+    files["manifest.json"] = json.dumps(manifest, indent=2).encode() + b"\n"
+
+    rels: set[str] = set()
+    for kind, spec in cursors.items():
+        if kind not in CURSOR_KINDS:
+            raise SystemExit(f"cursor-set {slug}: unsupported cursor kind {kind!r}")
+        if not isinstance(spec, dict):
+            raise SystemExit(f"cursor-set {slug}: cursor {kind!r} must be an object")
+        rel = spec.get("file")
+        hotspot = spec.get("hotspot")
+        if not isinstance(rel, str) or not rel:
+            raise SystemExit(f"cursor-set {slug}: cursor {kind!r} missing file")
+        if Path(rel).name != rel or "\\" in rel or ".." in rel:
+            raise SystemExit(f"cursor-set {slug}: cursor path {rel!r} must be flat")
+        if Path(rel).suffix.lower() != ".svg":
+            raise SystemExit(f"cursor-set {slug}: cursor {rel!r} must be SVG")
+        if not (isinstance(hotspot, list) and len(hotspot) == 2 and all(isinstance(v, int) for v in hotspot)):
+            raise SystemExit(f"cursor-set {slug}: cursor {kind!r} hotspot must be [x, y] ints")
+        rels.add(rel)
+
+    preview = manifest["preview"]
+    if isinstance(preview, str) and preview:
+        rels.add(preview)
+
+    for rel in sorted(rels):
+        svg_path = src_dir / rel
+        if not svg_path.is_file():
+            raise SystemExit(f"cursor-set {slug}: missing {rel}")
+        data = svg_path.read_bytes()
+        _validate_cursor_svg(slug, rel, data)
+        files[rel] = data
+
+    bundle = OUT_BUNDLES / f"cursor-set-{slug}.wp"
+    write_zip(bundle, files)
+
+    icon_name = f"cursor-set-{slug}.svg"
+    preview_path = src_dir / preview if isinstance(preview, str) and preview else None
+    if preview_path and preview_path.is_file():
+        (OUT_ICONS / icon_name).write_bytes(preview_path.read_bytes())
+    else:
+        (OUT_ICONS / icon_name).write_text(widget_tile(slug, meta["label"]))
+
+    return {
+        "type": "cursor-set",
+        "slug": slug,
+        "name": meta["label"],
+        "version": manifest["version"],
+        "author": manifest["author"],
+        "description": manifest["description"],
+        "franchise": manifest["franchise"],
+        "accent": manifest["accent"],
+        "icon_url": f"{CATALOG_BASE}/icons/{icon_name}",
+        "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
+        "sha256": sha256_file(bundle),
+        "size": bundle.stat().st_size,
+    }
+
+
 def build_widget(slug: str, src_dir: Path) -> dict:
     meta = json.loads((src_dir / "manifest.json").read_text())
     widget_js = (src_dir / "widget.js").read_bytes()
@@ -625,6 +741,7 @@ SCHEMA = {
             "properties": {
                 "scenes": {"type": "array", "items": {"type": "string"}},
                 "iconSets": {"type": "array", "items": {"type": "string"}},
+                "cursorSets": {"type": "array", "items": {"type": "string"}},
                 "widgets": {"type": "array", "items": {"type": "string"}},
                 "apps": {"type": "array", "items": {"type": "string"}},
             },
@@ -644,7 +761,7 @@ SCHEMA = {
                 "properties": {
                     "type": {
                         "type": "string",
-                        "enum": ["scene", "icon-set", "widget", "app"],
+                        "enum": ["scene", "icon-set", "cursor-set", "widget", "app"],
                     },
                     "slug": {"type": "string"},
                     "name": {"type": "string"},
@@ -695,6 +812,13 @@ def main() -> int:
                 continue
             all_rows.append(build_iconset(folder.name, folder))
 
+    cursorsets_dir = SOURCES / "cursor-sets"
+    if cursorsets_dir.is_dir():
+        for folder in sorted(cursorsets_dir.iterdir()):
+            if not folder.is_dir():
+                continue
+            all_rows.append(build_cursorset(folder.name, folder))
+
     widgets_dir = SOURCES / "widgets"
     if widgets_dir.is_dir():
         for folder in sorted(widgets_dir.iterdir()):
@@ -720,6 +844,7 @@ def main() -> int:
         "starter_pack": {
             "scenes": starter.get("scenes", []),
             "iconSets": starter.get("iconSets", []),
+            "cursorSets": starter.get("cursorSets", []),
             "widgets": starter.get("widgets", []),
             "apps": starter.get("apps", []),
         },

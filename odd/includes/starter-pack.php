@@ -419,7 +419,7 @@ function odd_starter_install_now( array $prior_slugs = array() ) {
 		? $registry['starter_pack']
 		: array();
 	$want_slugs = array();
-	foreach ( array( 'scenes', 'iconSets', 'widgets', 'apps' ) as $group ) {
+	foreach ( array( 'scenes', 'iconSets', 'cursorSets', 'widgets', 'apps' ) as $group ) {
 		if ( ! empty( $starter[ $group ] ) && is_array( $starter[ $group ] ) ) {
 			foreach ( $starter[ $group ] as $slug ) {
 				$want_slugs[] = sanitize_key( (string) $slug );
@@ -506,14 +506,15 @@ function odd_starter_install_now( array $prior_slugs = array() ) {
 }
 
 /**
- * Apply the starter pack's default scene + icon set to every
+ * Apply the starter pack's default scene + icon/cursor set to every
  * existing user (so the desktop picks a wallpaper on first boot
  * without asking). Returns true if any pref was written.
  *
  * Two layers get seeded:
  *
  *   1. ODD's *inner* prefs — `odd_wallpaper` (which scene renders
- *      inside ODD's card) and `odd_icon_set` (which dock re-skin is
+ *      inside ODD's card), `odd_icon_set` (which dock re-skin is
+ *      active), and `odd_cursor_set` (which cursor theme is
  *      active). These are pure user meta.
  *
  *   2. WP Desktop Mode's *outer* wallpaper selection — the host
@@ -533,7 +534,8 @@ function odd_starter_install_now( array $prior_slugs = array() ) {
 function odd_starter_apply_prefs( array $starter ) {
 	$default_scene   = ! empty( $starter['scenes'] ) ? sanitize_key( (string) $starter['scenes'][0] ) : '';
 	$default_iconset = ! empty( $starter['iconSets'] ) ? sanitize_key( (string) $starter['iconSets'][0] ) : '';
-	if ( '' === $default_scene && '' === $default_iconset ) {
+	$default_cursor  = ! empty( $starter['cursorSets'] ) ? sanitize_key( (string) $starter['cursorSets'][0] ) : '';
+	if ( '' === $default_scene && '' === $default_iconset && '' === $default_cursor ) {
 		return false;
 	}
 
@@ -560,6 +562,13 @@ function odd_starter_apply_prefs( array $starter ) {
 			$current = get_user_meta( $uid, 'odd_icon_set', true );
 			if ( '' === $current ) {
 				update_user_meta( $uid, 'odd_icon_set', $default_iconset );
+				$wrote = true;
+			}
+		}
+		if ( '' !== $default_cursor ) {
+			$current = get_user_meta( $uid, 'odd_cursor_set', true );
+			if ( '' === $current ) {
+				update_user_meta( $uid, 'odd_cursor_set', $default_cursor );
 				$wrote = true;
 			}
 		}

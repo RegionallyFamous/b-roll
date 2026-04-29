@@ -3,11 +3,11 @@
  * ODD — unified REST endpoint.
  *
  * Registers `odd/v1/prefs` with:
- *   - GET  returns the current user's wallpaper + icon prefs plus the
- *          full catalog of installed scenes and icon sets so the panel
+ *   - GET  returns the current user's wallpaper + icon/cursor prefs plus the
+ *          full catalog of installed scenes, icon sets, and cursor sets so the panel
  *          can hydrate without re-fetching localized data.
  *   - POST accepts any subset of wallpaper/favorites/recents/shuffle/
- *          audioReactive/shopTaskbar/iconSet and writes each to its own user_meta
+ *          audioReactive/shopTaskbar/iconSet/cursorSet and writes each to its own user_meta
  *          key. Partial updates are fine.
  */
 
@@ -55,27 +55,43 @@ function odd_rest_prefs_get() {
 		);
 	}
 
+	$cursor_sets = array();
+	foreach ( odd_cursors_get_sets() as $set ) {
+		$cursor_sets[] = array(
+			'slug'        => $set['slug'],
+			'label'       => $set['label'],
+			'franchise'   => $set['franchise'],
+			'accent'      => $set['accent'],
+			'description' => $set['description'],
+			'preview'     => $set['preview'],
+			'cursors'     => $set['cursors'],
+		);
+	}
+
 	$apps_enabled = defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED;
 	$apps_list    = ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? odd_apps_list() : array();
 
 	return rest_ensure_response(
 		array(
-			'wallpaper'     => odd_wallpaper_get_user_scene( $uid ),
-			'favorites'     => odd_wallpaper_get_user_slug_list( $uid, 'odd_favorites' ),
-			'recents'       => odd_wallpaper_get_user_slug_list( $uid, 'odd_recents' ),
-			'shuffle'       => odd_wallpaper_get_user_shuffle( $uid ),
-			'screensaver'   => odd_wallpaper_get_user_screensaver( $uid ),
-			'audioReactive' => odd_wallpaper_get_user_audio_reactive( $uid ),
-			'shopTaskbar'   => function_exists( 'odd_shop_taskbar_enabled' ) ? odd_shop_taskbar_enabled( $uid ) : false,
-			'iconSet'       => odd_icons_get_active_slug( $uid ),
-			'initiated'     => (bool) get_user_meta( $uid, 'odd_initiated', true ),
-			'mascotQuiet'   => (bool) get_user_meta( $uid, 'odd_mascot_quiet', true ),
-			'winkUnlocked'  => (bool) get_user_meta( $uid, 'odd_wink_unlocked', true ),
-			'scenes'        => odd_wallpaper_scenes(),
-			'sets'          => $sets,
-			'appsEnabled'   => $apps_enabled,
-			'apps'          => $apps_list,
-			'userApps'      => array(
+			'wallpaper'        => odd_wallpaper_get_user_scene( $uid ),
+			'favorites'        => odd_wallpaper_get_user_slug_list( $uid, 'odd_favorites' ),
+			'recents'          => odd_wallpaper_get_user_slug_list( $uid, 'odd_recents' ),
+			'shuffle'          => odd_wallpaper_get_user_shuffle( $uid ),
+			'screensaver'      => odd_wallpaper_get_user_screensaver( $uid ),
+			'audioReactive'    => odd_wallpaper_get_user_audio_reactive( $uid ),
+			'shopTaskbar'      => function_exists( 'odd_shop_taskbar_enabled' ) ? odd_shop_taskbar_enabled( $uid ) : false,
+			'iconSet'          => odd_icons_get_active_slug( $uid ),
+			'cursorSet'        => odd_cursors_get_active_slug( $uid ),
+			'cursorStylesheet' => odd_cursors_active_stylesheet_url(),
+			'initiated'        => (bool) get_user_meta( $uid, 'odd_initiated', true ),
+			'mascotQuiet'      => (bool) get_user_meta( $uid, 'odd_mascot_quiet', true ),
+			'winkUnlocked'     => (bool) get_user_meta( $uid, 'odd_wink_unlocked', true ),
+			'scenes'           => odd_wallpaper_scenes(),
+			'sets'             => $sets,
+			'cursorSets'       => $cursor_sets,
+			'appsEnabled'      => $apps_enabled,
+			'apps'             => $apps_list,
+			'userApps'         => array(
 				'installed' => wp_list_pluck( $apps_list, 'slug' ),
 				'pinned'    => (array) get_user_meta( $uid, 'odd_apps_pinned', true ),
 			),
@@ -193,6 +209,20 @@ function odd_rest_prefs_post( WP_REST_Request $request ) {
 			);
 		}
 		$out['iconSet'] = odd_icons_get_active_slug( $uid );
+	}
+
+	if ( array_key_exists( 'cursorSet', $params ) ) {
+		$raw = is_string( $params['cursorSet'] ) ? $params['cursorSet'] : '';
+		$ok  = odd_cursors_set_active_slug( $raw, $uid );
+		if ( ! $ok ) {
+			return new WP_Error(
+				'odd_invalid_cursor_set',
+				__( 'Unknown cursor set.', 'odd' ),
+				array( 'status' => 400 )
+			);
+		}
+		$out['cursorSet']        = odd_cursors_get_active_slug( $uid );
+		$out['cursorStylesheet'] = odd_cursors_active_stylesheet_url();
 	}
 
 	return rest_ensure_response( $out );

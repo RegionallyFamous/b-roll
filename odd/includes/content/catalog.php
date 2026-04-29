@@ -2,8 +2,8 @@
 /**
  * ODD — remote bundle catalog.
  *
- * ODD 3.0 ships as an empty plugin; every scene, icon set, widget, and
- * app lives in a remote registry at `ODD_CATALOG_URL`. We fetch that
+ * ODD 3.0 ships as an empty plugin; every scene, icon set, cursor set,
+ * widget, and app lives in a remote registry at `ODD_CATALOG_URL`. We fetch that
  * registry over HTTPS, cache it in a 12h transient, and surface the
  * parsed rows through the same `/odd/v1/bundles/*` REST endpoints the
  * panel already consumes.
@@ -20,7 +20,7 @@
  *     },
  *     "bundles": [
  *       {
- *         "type":         "scene" | "icon-set" | "widget" | "app",
+ *         "type":         "scene" | "icon-set" | "cursor-set" | "widget" | "app",
  *         "slug":         "<unique>",
  *         "name":         "Human-readable name",
  *         "version":      "1.0.0",
@@ -455,16 +455,17 @@ function odd_catalog_normalise( $data ) {
 		'version'      => isset( $data['version'] ) ? (int) $data['version'] : 1,
 		'generated_at' => isset( $data['generated_at'] ) ? (string) $data['generated_at'] : '',
 		'starter_pack' => array(
-			'scenes'   => array(),
-			'iconSets' => array(),
-			'widgets'  => array(),
-			'apps'     => array(),
+			'scenes'     => array(),
+			'iconSets'   => array(),
+			'cursorSets' => array(),
+			'widgets'    => array(),
+			'apps'       => array(),
 		),
 		'bundles'      => array(),
 	);
 
 	if ( isset( $data['starter_pack'] ) && is_array( $data['starter_pack'] ) ) {
-		foreach ( array( 'scenes', 'iconSets', 'widgets', 'apps' ) as $key ) {
+		foreach ( array( 'scenes', 'iconSets', 'cursorSets', 'widgets', 'apps' ) as $key ) {
 			if ( isset( $data['starter_pack'][ $key ] ) && is_array( $data['starter_pack'][ $key ] ) ) {
 				$out['starter_pack'][ $key ] = array_values(
 					array_filter(
@@ -478,7 +479,7 @@ function odd_catalog_normalise( $data ) {
 		}
 	}
 
-	$allowed_types = array( 'scene', 'icon-set', 'widget', 'app' );
+	$allowed_types = array( 'scene', 'icon-set', 'cursor-set', 'widget', 'app' );
 	$rows_in       = isset( $data['bundles'] ) && is_array( $data['bundles'] ) ? $data['bundles'] : array();
 	foreach ( $rows_in as $entry ) {
 		if ( ! is_array( $entry ) ) {
@@ -548,17 +549,18 @@ function odd_bundle_catalog() {
  * odd/includes/starter-pack.php to pick which bundles to install on
  * first activation.
  *
- * @return array{scenes:string[],iconSets:string[],widgets:string[],apps:string[]}
+ * @return array{scenes:string[],iconSets:string[],cursorSets:string[],widgets:string[],apps:string[]}
  */
 function odd_catalog_starter_pack() {
 	$registry = odd_catalog_load();
 	return isset( $registry['starter_pack'] ) && is_array( $registry['starter_pack'] )
 		? $registry['starter_pack']
 		: array(
-			'scenes'   => array(),
-			'iconSets' => array(),
-			'widgets'  => array(),
-			'apps'     => array(),
+			'scenes'     => array(),
+			'iconSets'   => array(),
+			'cursorSets' => array(),
+			'widgets'    => array(),
+			'apps'       => array(),
 		);
 }
 
@@ -595,7 +597,7 @@ function odd_catalog_row_for( $slug ) {
 /**
  * Catalog rows for a given type, annotated with an `installed` flag.
  *
- * @param string $type One of 'scene' | 'icon-set' | 'widget' | 'app'.
+ * @param string $type One of 'scene' | 'icon-set' | 'cursor-set' | 'widget' | 'app'.
  * @return array<int, array<string, mixed>>
  */
 function odd_bundle_catalog_for_type( $type ) {
@@ -633,6 +635,14 @@ function odd_bundle_catalog_installed_versions() {
 
 	if ( function_exists( 'odd_icons_get_sets' ) ) {
 		foreach ( odd_icons_get_sets() as $row ) {
+			if ( ! empty( $row['slug'] ) ) {
+				$installed[ $row['slug'] ] = isset( $row['version'] ) ? (string) $row['version'] : '';
+			}
+		}
+	}
+
+	if ( function_exists( 'odd_cursors_get_sets' ) ) {
+		foreach ( odd_cursors_get_sets() as $row ) {
 			if ( ! empty( $row['slug'] ) ) {
 				$installed[ $row['slug'] ] = isset( $row['version'] ) ? (string) $row['version'] : '';
 			}

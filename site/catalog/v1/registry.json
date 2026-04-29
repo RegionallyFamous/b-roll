@@ -9,6 +9,9 @@
     "iconSets": [
       "oddlings"
     ],
+    "cursorSets": [
+      "oddlings"
+    ],
     "widgets": [],
     "apps": []
   },
@@ -664,6 +667,20 @@
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-tiki.wp",
       "sha256": "9569235b010206114240662b8e3482a998930cec5fc0c03938ec97894b7aab08",
       "size": 11945
+    },
+    {
+      "type": "cursor-set",
+      "slug": "oddlings",
+      "name": "Oddlings",
+      "version": "1.0.0",
+      "author": "Regionally Famous",
+      "description": "Native-feeling cursors with tiny Oddling eyes, plum glass bodies, and cyan gelatin highlights.",
+      "franchise": "ODD Defaults",
+      "accent": "#38e8ff",
+      "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/cursor-set-oddlings.svg",
+      "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/cursor-set-oddlings.wp",
+      "sha256": "5cf3858b47bbb0c288e821d353d2fad7dc177306faf67675d57270d2652fe201",
+      "size": 4923
     },
     {
       "type": "widget",
