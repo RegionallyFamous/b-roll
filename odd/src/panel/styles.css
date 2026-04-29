@@ -268,7 +268,7 @@
 .odd-panel.odd-shop .odd-shop__hero-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 .odd-panel.odd-shop .odd-shop__hero-btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.01em;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,background .16s ease,border-color .16s ease}
 .odd-panel.odd-shop .odd-shop__hero-btn--primary{background:#fff;color:#1d1d1f;box-shadow:0 8px 20px -14px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.5) inset}
-.odd-panel.odd-shop .odd-shop__hero-btn--primary:hover{background:linear-gradient(180deg,#fffaf2 0%,#fff2d9 100%);color:#7c2d12;transform:translateY(-1px);box-shadow:0 14px 28px -14px rgba(0,0,0,.55),0 0 0 1px rgba(245,158,11,.35) inset,0 1px 0 rgba(255,255,255,.75) inset}
+.odd-panel.odd-shop .odd-shop__hero-btn--primary:hover{background:#fff;color:#1d1d1f;transform:translateY(-1px);box-shadow:0 14px 28px -14px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.75) inset}
 .odd-panel.odd-shop .odd-shop__hero-btn--primary:active{transform:translateY(0)}
 .odd-panel.odd-shop .odd-shop__hero-btn--ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.38);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .odd-panel.odd-shop .odd-shop__hero-btn--ghost:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.55);transform:translateY(-1px)}

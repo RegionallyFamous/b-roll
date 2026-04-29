@@ -16,6 +16,16 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.10"></a>
+## [3.5.10] — 2026-04-28
+
+### Fixed
+- **App desktop shortcuts** now keep their app-specific icon even when an
+  ODD icon set is active. The icon-set filter already left the taskbar/native
+  window icon alone; it now skips `odd-app-*` desktop shortcuts too.
+- **Preview hero button hover** stays white instead of switching to the amber
+  hover treatment.
+
 <a id="v3.5.9"></a>
 ## [3.5.9] — 2026-04-28
 

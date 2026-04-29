@@ -111,6 +111,28 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$this->assertNotSame( 'original-posts.svg', $registry_after['posts']['icon'], 'Regular desktop icon gets re-themed.' );
 	}
 
+	public function test_desktop_icons_filter_skips_odd_app_shortcuts() {
+		$set_slug = $this->pick_set_with_fallback();
+		odd_icons_set_active_slug( $set_slug );
+
+		$registry_before = array(
+			'odd-app-board' => array(
+				'id'     => 'odd-app-board',
+				'icon'   => 'board-icon.svg',
+				'window' => 'odd-app-board',
+			),
+			'posts'         => array(
+				'id'     => 'posts',
+				'icon'   => 'original-posts.svg',
+				'window' => 'edit.php',
+			),
+		);
+		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
+
+		$this->assertSame( 'board-icon.svg', $registry_after['odd-app-board']['icon'], 'App desktop icon must stay app-specific.' );
+		$this->assertNotSame( 'original-posts.svg', $registry_after['posts']['icon'], 'Regular desktop icon still gets re-themed.' );
+	}
+
 	public function test_desktop_icons_filter_handles_empty_registry() {
 		$set_slug = $this->pick_set_with_fallback();
 		odd_icons_set_active_slug( $set_slug );

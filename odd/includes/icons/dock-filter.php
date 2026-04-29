@@ -99,13 +99,16 @@ add_filter(
 			if ( ! is_array( $entry ) ) {
 				continue;
 			}
-			// Skip the ODD control panel icon itself — keep its native gear.
+			// Skip ODD-owned native launchers — keep their app-specific art.
 			$entry_id = isset( $entry['id'] ) ? (string) $entry['id'] : (string) $id;
-			if ( 'odd' === $entry_id ) {
+			if ( 'odd' === $entry_id || 0 === strpos( $entry_id, 'odd-app-' ) ) {
 				continue;
 			}
 			$window = isset( $entry['window'] ) ? (string) $entry['window'] : '';
-			$key    = odd_icons_slug_to_key( $window );
+			if ( 0 === strpos( $window, 'odd-app-' ) ) {
+				continue;
+			}
+			$key = odd_icons_slug_to_key( $window );
 			if ( '' === $key ) {
 				// Desktop icons can also target URLs — try matching by the
 				// icon id as a last-ditch key.
