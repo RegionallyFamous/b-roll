@@ -23,7 +23,7 @@ function odd_reconcile_app_asset_refs( $slug, array $manifest ) {
 			if ( preg_match( '~^(?:https?:|data:|/|#)~', $ref ) ) {
 				continue;
 			}
-			$clean = ltrim( preg_replace( '#[?#].*$#', '', $ref ), './' );
+			$clean = ltrim( preg_replace( '~[?#].*$~', '', $ref ), './' );
 			if ( '' === $clean ) {
 				continue;
 			}

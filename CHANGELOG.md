@@ -16,6 +16,13 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.8"></a>
+## [3.5.8] — 2026-04-28
+
+### Fixed
+- **Reconciliation diagnostics** no longer trip PHP's regex delimiter parser
+  when stripping query strings or fragments from asset references.
+
 <a id="v3.5.7"></a>
 ## [3.5.7] — 2026-04-28
 
