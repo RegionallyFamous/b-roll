@@ -38,7 +38,7 @@ defined( 'ABSPATH' ) || exit;
 add_action(
 	'admin_enqueue_scripts',
 	function () {
-		if ( ! function_exists( 'desktop_mode_is_enabled' ) ) {
+		if ( ! odd_desktop_mode_available() ) {
 			return;
 		}
 
@@ -357,6 +357,14 @@ add_action(
 			'bundlesUploadUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/upload' ) ),
 			'bundleCatalogUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/catalog' ) ),
 			'bundleInstallUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/install-from-catalog' ) ),
+			'systemHealth'     => array(
+				'catalog' => function_exists( 'odd_catalog_meta' ) ? odd_catalog_meta() : array(),
+				'starter' => function_exists( 'odd_starter_get_state_for_rest' ) ? odd_starter_get_state_for_rest() : array(),
+				'apps'    => array(
+					'installed'  => is_array( $installed ) ? count( $installed ) : 0,
+					'lastRepair' => function_exists( 'odd_apps_repair_meta_all' ) ? odd_apps_repair_meta_all() : array(),
+				),
+			),
 			// Pre-compute the Discover shelves by type so the panel
 			// can render the catalog without a REST round-trip on
 			// first paint. The `installed` flag is annotated so the

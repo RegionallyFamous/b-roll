@@ -53,6 +53,20 @@ jobs:
               python3 -c "import json,sys; json.load(open('$f'))"
           done
 
+  # blueprint.json is the public Playground demo entry point. We
+  # enforce that it doesn't regress to CORS-fragile release URLs or
+  # unpinned plugin installs — both make first-run fatals common
+  # for new users. See odd/bin/validate-blueprint for the full rule
+  # list.
+  blueprint-valid:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - run: odd/bin/validate-blueprint
+
   check-licenses:
     runs-on: ubuntu-latest
     steps:

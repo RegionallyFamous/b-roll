@@ -51,6 +51,9 @@ if ( ! defined( 'ODD_CATALOG_TRANSIENT' ) ) {
 if ( ! defined( 'ODD_CATALOG_STALE_OPTION' ) ) {
 	define( 'ODD_CATALOG_STALE_OPTION', 'odd_catalog_v1_stale' );
 }
+if ( ! defined( 'ODD_CATALOG_META_OPTION' ) ) {
+	define( 'ODD_CATALOG_META_OPTION', 'odd_catalog_v1_meta' );
+}
 if ( ! defined( 'ODD_CATALOG_CACHE_TTL' ) ) {
 	// Twelve hours. The catalog changes infrequently (only when the
 	// plugin-catalog repo publishes GitHub Pages), but users who hit
@@ -65,6 +68,219 @@ if ( ! defined( 'ODD_CATALOG_CACHE_TTL' ) ) {
  */
 function odd_catalog_url() {
 	return (string) apply_filters( 'odd_catalog_url', ODD_CATALOG_URL );
+}
+
+function odd_catalog_empty_registry() {
+	return odd_catalog_normalise(
+		array(
+			'version' => 1,
+			'bundles' => array(),
+		)
+	);
+}
+
+function odd_catalog_default_meta() {
+	return array(
+		'source'             => 'empty',
+		'url_host'           => '',
+		'http_status'        => 0,
+		'bundle_count'       => 0,
+		'generated_at'       => '',
+		'last_success'       => 0,
+		'last_failure'       => 0,
+		'last_error_code'    => '',
+		'last_error_message' => '',
+		'fallback_available' => false,
+		'stale_available'    => false,
+		'empty_remote'       => false,
+	);
+}
+
+function odd_catalog_meta() {
+	$meta = get_option( ODD_CATALOG_META_OPTION, array() );
+	if ( ! is_array( $meta ) ) {
+		$meta = array();
+	}
+	return wp_parse_args( $meta, odd_catalog_default_meta() );
+}
+
+function odd_catalog_update_meta( array $changes ) {
+	$meta = array_merge( odd_catalog_meta(), $changes );
+	update_option( ODD_CATALOG_META_OPTION, $meta, false );
+	return $meta;
+}
+
+function odd_catalog_registry_bundle_count( $registry ) {
+	return isset( $registry['bundles'] ) && is_array( $registry['bundles'] )
+		? count( $registry['bundles'] )
+		: 0;
+}
+
+function odd_catalog_record_source( $source, $registry, array $extra = array() ) {
+	$stale = get_option( ODD_CATALOG_STALE_OPTION, array() );
+	return odd_catalog_update_meta(
+		array_merge(
+			array(
+				'source'             => sanitize_key( (string) $source ),
+				'bundle_count'       => odd_catalog_registry_bundle_count( $registry ),
+				'generated_at'       => isset( $registry['generated_at'] ) ? (string) $registry['generated_at'] : '',
+				'fallback_available' => function_exists( 'odd_catalog_fallback_available' ) ? (bool) odd_catalog_fallback_available() : false,
+				'stale_available'    => is_array( $stale ) && ! empty( $stale['bundles'] ),
+			),
+			$extra
+		)
+	);
+}
+
+function odd_catalog_record_failure( WP_Error $error, $url = '' ) {
+	$data = $error->get_error_data();
+	$data = is_array( $data ) ? $data : array();
+	$host = '' !== $url ? (string) wp_parse_url( $url, PHP_URL_HOST ) : '';
+	odd_catalog_update_meta(
+		array(
+			'url_host'           => $host,
+			'http_status'        => isset( $data['http_status'] ) ? (int) $data['http_status'] : 0,
+			'last_failure'       => time(),
+			'last_error_code'    => $error->get_error_code(),
+			'last_error_message' => $error->get_error_message(),
+		)
+	);
+}
+
+function odd_catalog_should_accept_empty_remote( $normalised, $raw ) {
+	if ( odd_catalog_registry_bundle_count( $normalised ) > 0 ) {
+		return true;
+	}
+	/**
+	 * Allow hosts with intentionally-empty private catalogs to accept
+	 * an empty remote response. First-party ODD keeps the last known
+	 * good mirror instead so a bad deploy cannot poison fresh installs.
+	 *
+	 * @param bool  $allow
+	 * @param array $normalised
+	 * @param array $raw
+	 */
+	return (bool) apply_filters( 'odd_catalog_allow_empty_remote', false, $normalised, $raw );
+}
+
+function odd_catalog_entry_requires_sha( array $entry ) {
+	/**
+	 * Catalog-owned installs require sha256 by default. Private mirrors
+	 * can relax this, but first-party rows must always be verifiable.
+	 *
+	 * @param bool  $requires_sha
+	 * @param array $entry
+	 */
+	return (bool) apply_filters( 'odd_bundle_catalog_requires_sha', true, $entry );
+}
+
+function odd_catalog_is_transient_download_error( WP_Error $error ) {
+	$code   = $error->get_error_code();
+	$data   = $error->get_error_data();
+	$data   = is_array( $data ) ? $data : array();
+	$status = isset( $data['code'] ) ? (int) $data['code'] : ( isset( $data['http_status'] ) ? (int) $data['http_status'] : 0 );
+	if ( in_array( $status, array( 408, 429, 500, 502, 503, 504 ), true ) ) {
+		return true;
+	}
+	return in_array( $code, array( 'http_request_failed', 'download_failed', 'http_429', 'http_500', 'http_502', 'http_503', 'http_504' ), true );
+}
+
+/**
+ * Download a catalog row to a temporary file and verify the envelope.
+ *
+ * Caller owns the returned temp path and must delete it with
+ * wp_delete_file().
+ *
+ * @return string|WP_Error Temporary file path.
+ */
+function odd_catalog_download_entry_file( array $entry, $context = 'install' ) {
+	$download_url = isset( $entry['download_url'] ) ? (string) $entry['download_url'] : '';
+	if ( '' === $download_url ) {
+		return new WP_Error( 'no_download', __( 'Catalog entry has no download URL.', 'odd' ), array( 'status' => 400 ) );
+	}
+
+	$scheme      = strtolower( (string) wp_parse_url( $download_url, PHP_URL_SCHEME ) );
+	$allow_plain = (bool) apply_filters( 'odd_bundle_allow_insecure_catalog', false, $entry );
+	if ( 'https' !== $scheme && ! $allow_plain ) {
+		return new WP_Error( 'insecure_download', __( 'Catalog downloads must use HTTPS.', 'odd' ), array( 'status' => 400 ) );
+	}
+	$download_url = apply_filters( 'odd_bundle_catalog_download_url', $download_url, $entry, $context );
+	if ( is_wp_error( $download_url ) ) {
+		return $download_url;
+	}
+
+	$expected_sha = isset( $entry['sha256'] ) ? strtolower( (string) $entry['sha256'] ) : '';
+	if ( '' === $expected_sha && odd_catalog_entry_requires_sha( $entry ) ) {
+		return new WP_Error(
+			'missing_sha256',
+			__( 'Catalog entry is missing a required sha256 digest.', 'odd' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	if ( ! function_exists( 'download_url' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+	}
+
+	$attempts = (int) apply_filters( 'odd_catalog_download_attempts', 3, $entry, $context );
+	$attempts = max( 1, min( 5, $attempts ) );
+	$tmp      = null;
+	$last     = null;
+	for ( $i = 1; $i <= $attempts; $i++ ) {
+		$tmp = download_url( (string) $download_url, 60 );
+		if ( ! is_wp_error( $tmp ) ) {
+			break;
+		}
+		$last = $tmp;
+		if ( $i >= $attempts || ! odd_catalog_is_transient_download_error( $tmp ) ) {
+			break;
+		}
+		usleep( 150000 * $i );
+	}
+	if ( is_wp_error( $tmp ) ) {
+		return new WP_Error(
+			'download_failed',
+			sprintf( /* translators: %s error message */ __( 'Could not download bundle: %s', 'odd' ), $last ? $last->get_error_message() : $tmp->get_error_message() ),
+			array(
+				'status'   => 502,
+				'attempts' => $attempts,
+				'context'  => (string) $context,
+			)
+		);
+	}
+
+	$fh = @fopen( $tmp, 'rb' );
+	if ( $fh ) {
+		$magic = (string) fread( $fh, 4 );
+		fclose( $fh );
+		if ( 0 !== strncmp( $magic, "PK\x03\x04", 4 ) && 0 !== strncmp( $magic, "PK\x05\x06", 4 ) ) {
+			wp_delete_file( $tmp );
+			return new WP_Error(
+				'not_a_zip',
+				__( 'The downloaded file is not a valid .wp archive.', 'odd' ),
+				array( 'status' => 502 )
+			);
+		}
+	}
+
+	if ( '' !== $expected_sha ) {
+		$actual_sha = hash_file( 'sha256', $tmp );
+		if ( ! is_string( $actual_sha ) || $actual_sha !== $expected_sha ) {
+			wp_delete_file( $tmp );
+			return new WP_Error(
+				'sha256_mismatch',
+				sprintf(
+					/* translators: 1: expected 2: actual */
+					__( 'Bundle sha256 mismatch. Expected %1$s, downloaded %2$s.', 'odd' ),
+					$expected_sha,
+					(string) $actual_sha
+				),
+				array( 'status' => 502 )
+			);
+		}
+	}
+
+	return $tmp;
 }
 
 /**
@@ -94,6 +310,7 @@ function odd_catalog_load( $force = false ) {
 		$fresh = get_transient( ODD_CATALOG_TRANSIENT );
 		if ( is_array( $fresh ) ) {
 			$runtime = $fresh;
+			odd_catalog_record_source( 'transient', $runtime );
 			return $runtime;
 		}
 	}
@@ -103,23 +320,67 @@ function odd_catalog_load( $force = false ) {
 
 	if ( ! is_wp_error( $registry ) ) {
 		$normalised = odd_catalog_normalise( $registry );
-		set_transient( ODD_CATALOG_TRANSIENT, $normalised, ODD_CATALOG_CACHE_TTL );
-		update_option( ODD_CATALOG_STALE_OPTION, $normalised, false );
-		$runtime = $normalised;
-		return $runtime;
+		if ( ! odd_catalog_should_accept_empty_remote( $normalised, $registry ) ) {
+			odd_catalog_update_meta(
+				array(
+					'source'             => 'empty',
+					'url_host'           => (string) wp_parse_url( $url, PHP_URL_HOST ),
+					'http_status'        => isset( $registry['_odd_http_status'] ) ? (int) $registry['_odd_http_status'] : 0,
+					'bundle_count'       => 0,
+					'generated_at'       => isset( $normalised['generated_at'] ) ? (string) $normalised['generated_at'] : '',
+					'last_failure'       => time(),
+					'last_error_code'    => 'empty_remote',
+					'last_error_message' => __( 'Remote catalog returned zero bundles; keeping the last known good catalog.', 'odd' ),
+					'empty_remote'       => true,
+				)
+			);
+		} else {
+			set_transient( ODD_CATALOG_TRANSIENT, $normalised, ODD_CATALOG_CACHE_TTL );
+			update_option( ODD_CATALOG_STALE_OPTION, $normalised, false );
+			$runtime = $normalised;
+			odd_catalog_record_source(
+				'remote',
+				$runtime,
+				array(
+					'url_host'           => (string) wp_parse_url( $url, PHP_URL_HOST ),
+					'http_status'        => isset( $registry['_odd_http_status'] ) ? (int) $registry['_odd_http_status'] : 0,
+					'last_success'       => time(),
+					'last_error_code'    => '',
+					'last_error_message' => '',
+					'empty_remote'       => false,
+				)
+			);
+			return $runtime;
+		}
+	} else {
+		odd_catalog_record_failure( $registry, $url );
 	}
 
 	// Remote failed. Fall back to the stale mirror so the Shop can
 	// still render what we knew last time.
-	$stale   = get_option( ODD_CATALOG_STALE_OPTION, array() );
-	$runtime = is_array( $stale ) && ! empty( $stale )
-		? $stale
-		: odd_catalog_normalise(
-			array(
-				'version' => 1,
-				'bundles' => array(),
-			)
-		);
+	$stale = get_option( ODD_CATALOG_STALE_OPTION, array() );
+	if ( is_array( $stale ) && ! empty( $stale['bundles'] ) ) {
+		$runtime = $stale;
+		odd_catalog_record_source( 'stale_option', $runtime );
+		return $runtime;
+	}
+
+	// No stale mirror: this is a fresh site whose very first catalog
+	// fetch failed (Playground without network, air-gapped WP, or a
+	// catalog host outage during activation). Fall through to the
+	// frozen in-plugin fallback so the Shop still has something to
+	// render and the starter pack can install.
+	if ( function_exists( 'odd_catalog_fallback_load' ) ) {
+		$fallback = odd_catalog_fallback_load();
+		if ( ! empty( $fallback['bundles'] ) ) {
+			$runtime = $fallback;
+			odd_catalog_record_source( 'fallback_file', $runtime );
+			return $runtime;
+		}
+	}
+
+	$runtime = odd_catalog_empty_registry();
+	odd_catalog_record_source( 'empty', $runtime );
 	return $runtime;
 }
 
@@ -134,19 +395,41 @@ function odd_catalog_fetch_remote( $url ) {
 	if ( '' === $url ) {
 		return new WP_Error( 'no_url', __( 'No catalog URL configured.', 'odd' ) );
 	}
-	$response = wp_remote_get(
-		$url,
-		array(
-			'timeout' => 10,
-			'headers' => array( 'Accept' => 'application/json' ),
-		)
-	);
+	$attempts = (int) apply_filters( 'odd_catalog_fetch_attempts', 3, $url );
+	$attempts = max( 1, min( 5, $attempts ) );
+	$response = null;
+	for ( $i = 1; $i <= $attempts; $i++ ) {
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 10,
+				'headers' => array( 'Accept' => 'application/json' ),
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			if ( $i < $attempts ) {
+				usleep( 150000 * $i );
+				continue;
+			}
+			break;
+		}
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		if ( in_array( $code, array( 408, 429, 500, 502, 503, 504 ), true ) && $i < $attempts ) {
+			usleep( 150000 * $i );
+			continue;
+		}
+		break;
+	}
 	if ( is_wp_error( $response ) ) {
 		return $response;
 	}
 	$code = (int) wp_remote_retrieve_response_code( $response );
 	if ( $code < 200 || $code >= 300 ) {
-		return new WP_Error( 'bad_status', sprintf( 'Catalog returned HTTP %d', $code ) );
+		return new WP_Error(
+			'bad_status',
+			sprintf( 'Catalog returned HTTP %d', $code ),
+			array( 'http_status' => $code )
+		);
 	}
 	$body = (string) wp_remote_retrieve_body( $response );
 	if ( '' === $body ) {
@@ -154,8 +437,9 @@ function odd_catalog_fetch_remote( $url ) {
 	}
 	$data = json_decode( $body, true );
 	if ( ! is_array( $data ) ) {
-		return new WP_Error( 'bad_json', 'Catalog body did not parse as JSON.' );
+		return new WP_Error( 'bad_json', 'Catalog body did not parse as JSON.', array( 'http_status' => $code ) );
 	}
+	$data['_odd_http_status'] = $code;
 	return $data;
 }
 
@@ -429,8 +713,22 @@ add_action(
 						array(
 							'refreshed' => true,
 							'count'     => isset( $registry['bundles'] ) ? count( $registry['bundles'] ) : 0,
+							'meta'      => odd_catalog_meta(),
 						)
 					);
+				},
+				'permission_callback' => function () {
+					return current_user_can( 'manage_options' );
+				},
+			)
+		);
+		register_rest_route(
+			'odd/v1',
+			'/bundles/catalog-meta',
+			array(
+				'methods'             => 'GET',
+				'callback'            => function () {
+					return rest_ensure_response( odd_catalog_meta() );
 				},
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' );
@@ -458,7 +756,11 @@ function odd_bundle_rest_catalog( WP_REST_Request $req ) {
 			&& odd_bundle_catalog_is_newer( $entry['version'], $installed_version );
 		$rows[]                     = $entry;
 	}
-	return rest_ensure_response( array( 'bundles' => $rows ) );
+	$response = array( 'bundles' => $rows );
+	if ( current_user_can( 'manage_options' ) ) {
+		$response['meta'] = odd_catalog_meta();
+	}
+	return rest_ensure_response( $response );
 }
 
 function odd_bundle_rest_install_from_catalog( WP_REST_Request $req ) {
@@ -543,74 +845,15 @@ function odd_bundle_rest_install_from_catalog( WP_REST_Request $req ) {
  * @return array|WP_Error On success: {slug, type, manifest}.
  */
 function odd_catalog_install_entry( array $entry ) {
-	$download_url = isset( $entry['download_url'] ) ? (string) $entry['download_url'] : '';
-	if ( '' === $download_url ) {
-		return new WP_Error( 'no_download', __( 'Catalog entry has no download URL.', 'odd' ), array( 'status' => 400 ) );
-	}
-
-	$scheme      = strtolower( (string) wp_parse_url( $download_url, PHP_URL_SCHEME ) );
-	$allow_plain = (bool) apply_filters( 'odd_bundle_allow_insecure_catalog', false, $entry );
-	if ( 'https' !== $scheme && ! $allow_plain ) {
-		return new WP_Error( 'insecure_download', __( 'Catalog downloads must use HTTPS.', 'odd' ), array( 'status' => 400 ) );
-	}
-	$download_url = apply_filters( 'odd_bundle_catalog_download_url', $download_url, $entry );
-	if ( is_wp_error( $download_url ) ) {
-		return $download_url;
-	}
-
-	if ( ! function_exists( 'download_url' ) ) {
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-	}
-	$tmp = download_url( $download_url, 60 );
+	$tmp = odd_catalog_download_entry_file( $entry, 'install' );
 	if ( is_wp_error( $tmp ) ) {
-		return new WP_Error(
-			'download_failed',
-			sprintf( /* translators: %s error message */ __( 'Could not download bundle: %s', 'odd' ), $tmp->get_error_message() ),
-			array( 'status' => 502 )
-		);
+		return $tmp;
 	}
 
-	$fh = @fopen( $tmp, 'rb' );
-	if ( $fh ) {
-		$magic = (string) fread( $fh, 4 );
-		fclose( $fh );
-		if ( 0 !== strncmp( $magic, "PK\x03\x04", 4 ) && 0 !== strncmp( $magic, "PK\x05\x06", 4 ) ) {
-			wp_delete_file( $tmp );
-			return new WP_Error(
-				'not_a_zip',
-				__( 'The downloaded file is not a valid .wp archive.', 'odd' ),
-				array( 'status' => 502 )
-			);
-		}
-	}
-
-	// Sha256 gate. Every catalog row in v1 carries a 64-char digest;
-	// a mismatch means an MITM rewrote the archive, GitHub Pages
-	// served a stale cached file after the author pushed an update,
-	// or the row predates the v1 schema migration. In every case
-	// refuse to install. The starter-pack installer passes
-	// "sha256" through the same path via odd_catalog_install_entry().
-	$expected_sha = isset( $entry['sha256'] ) ? strtolower( (string) $entry['sha256'] ) : '';
-	if ( '' !== $expected_sha ) {
-		$actual_sha = hash_file( 'sha256', $tmp );
-		if ( ! is_string( $actual_sha ) || $actual_sha !== $expected_sha ) {
-			wp_delete_file( $tmp );
-			return new WP_Error(
-				'sha256_mismatch',
-				sprintf(
-					/* translators: 1: expected 2: actual */
-					__( 'Bundle sha256 mismatch. Expected %1$s, downloaded %2$s.', 'odd' ),
-					$expected_sha,
-					(string) $actual_sha
-				),
-				array( 'status' => 502 )
-			);
-		}
-	}
-
-	$filename = wp_parse_url( $download_url, PHP_URL_PATH );
-	$filename = $filename ? basename( $filename ) : $entry['slug'] . '.wp';
-	$result   = odd_bundle_install( $tmp, $filename );
+	$download_url = isset( $entry['download_url'] ) ? (string) $entry['download_url'] : '';
+	$filename     = wp_parse_url( $download_url, PHP_URL_PATH );
+	$filename     = $filename ? basename( $filename ) : $entry['slug'] . '.wp';
+	$result       = odd_bundle_install( $tmp, $filename );
 	wp_delete_file( $tmp );
 	if ( is_wp_error( $result ) ) {
 		$data           = $result->get_error_data();

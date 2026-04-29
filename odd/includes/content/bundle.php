@@ -121,13 +121,22 @@ function odd_bundle_install( $tmp_path, $filename ) {
 
 	// Atomic install lock per slug — add_option returns false when
 	// the key already exists, so a concurrent install of the same
-	// slug fails fast.
+	// slug fails fast. The timestamp value lets later requests detect
+	// and replace locks stranded by a fatal error.
 	$lock_key = 'odd_bundle_install_lock_' . $slug;
-	if ( ! add_option( $lock_key, '1', '', false ) ) {
-		return new WP_Error(
-			'install_in_progress',
-			__( 'An installation of this bundle is already in progress.', 'odd' )
-		);
+	if ( ! add_option( $lock_key, (string) time(), '', false ) ) {
+		$started = (int) get_option( $lock_key, 0 );
+		if ( $started <= 0 || ( time() - $started ) <= 10 * MINUTE_IN_SECONDS ) {
+			return new WP_Error(
+				'install_in_progress',
+				__( 'An installation of this bundle is already in progress.', 'odd' ),
+				array(
+					'status'     => 409,
+					'started_at' => $started,
+				)
+			);
+		}
+		update_option( $lock_key, (string) time(), false );
 	}
 
 	$installed = call_user_func( $modules[ $type ]['install'], $tmp_path, $normalised );

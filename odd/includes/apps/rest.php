@@ -286,6 +286,14 @@ function odd_apps_rest_serve( WP_REST_Request $req ) {
 	$base      = odd_apps_dir_for( $slug );
 	$real_base = realpath( $base );
 	$full      = realpath( $base . $path );
+	if ( ( ! $real_base || ! $full ) && '' !== $path && function_exists( 'odd_apps_repair_from_catalog' ) ) {
+		$repair = odd_apps_repair_from_catalog( $slug, $path );
+		if ( true === $repair ) {
+			clearstatcache();
+			$real_base = realpath( $base );
+			$full      = realpath( $base . $path );
+		}
+	}
 	if ( ! $real_base || ! $full || 0 !== strpos( $full, $real_base ) ) {
 		return new WP_Error( 'not_found', __( 'File not found.', 'odd' ), array( 'status' => 404 ) );
 	}
@@ -388,6 +396,14 @@ function odd_apps_rest_icon( WP_REST_Request $req ) {
 	$base      = odd_apps_dir_for( $slug );
 	$real_base = realpath( $base );
 	$full      = realpath( $base . $icon );
+	if ( ( ! $real_base || ! $full ) && function_exists( 'odd_apps_repair_from_catalog' ) ) {
+		$repair = odd_apps_repair_from_catalog( $slug, $icon );
+		if ( true === $repair ) {
+			clearstatcache();
+			$real_base = realpath( $base );
+			$full      = realpath( $base . $icon );
+		}
+	}
 	if ( ! $real_base || ! $full || 0 !== strpos( $full, $real_base ) ) {
 		return new WP_Error( 'not_found', __( 'App not found.', 'odd' ), array( 'status' => 404 ) );
 	}
@@ -489,6 +505,8 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 		'odd_apps_render_window_template'   => function_exists( 'odd_apps_render_window_template' ),
 		'odd_apps_cookieauth_url_for'       => function_exists( 'odd_apps_cookieauth_url_for' ),
 		'odd_apps_cookieauth_maybe_serve'   => function_exists( 'odd_apps_cookieauth_maybe_serve' ),
+		'odd_apps_repair_from_catalog'      => function_exists( 'odd_apps_repair_from_catalog' ),
+		'odd_apps_repair_meta_for'          => function_exists( 'odd_apps_repair_meta_for' ),
 		'odd_apps_forbidden_extensions'     => function_exists( 'odd_apps_forbidden_extensions' ),
 		'odd_apps_mime_for'                 => function_exists( 'odd_apps_mime_for' ),
 		'odd_apps_inject_runtime_importmap' => function_exists( 'odd_apps_inject_runtime_importmap' ),
@@ -523,7 +541,10 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 	$installed = null !== $row;
 	$enabled   = $installed && ! empty( $row['enabled'] );
 
-	$manifest = function_exists( 'odd_apps_manifest_load' ) ? odd_apps_manifest_load( $slug ) : null;
+	$manifest    = function_exists( 'odd_apps_manifest_load' ) ? odd_apps_manifest_load( $slug ) : null;
+	$icon_health = function_exists( 'odd_apps_manifest_icon_health' )
+		? odd_apps_manifest_icon_health( $slug, $manifest )
+		: null;
 
 	$base      = function_exists( 'odd_apps_dir_for' ) ? odd_apps_dir_for( $slug ) : '';
 	$real_base = $base ? realpath( $base ) : false;
@@ -577,6 +598,7 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 			'manifest'  => $manifest ? array(
 				'name'           => isset( $manifest['name'] ) ? $manifest['name'] : null,
 				'entry'          => $entry,
+				'icon'           => isset( $manifest['icon'] ) ? $manifest['icon'] : null,
 				'has_extensions' => ! empty( $manifest['extensions'] ),
 			) : null,
 		),
@@ -593,6 +615,10 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 			'regex_matches' => $regex_matches,
 			'importmap_ok'  => $importmap_ok,
 		),
+		'repair'       => array(
+			'last' => function_exists( 'odd_apps_repair_meta_for' ) ? odd_apps_repair_meta_for( $slug ) : array(),
+		),
+		'icon'         => $icon_health,
 		'desktop_mode' => array(
 			'window_id'         => 'odd-app-' . $slug,
 			'window_registered' => $desktop_mode_registered,

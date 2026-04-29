@@ -315,6 +315,20 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 	$base      = odd_apps_dir_for( $slug );
 	$real_base = realpath( $base );
 	$full      = realpath( $base . $path );
+	if ( ( ! $real_base || ! $full ) && '' !== $path ) {
+		$repaired = function_exists( 'odd_apps_repair_from_catalog' )
+			? odd_apps_repair_from_catalog( $slug, $path )
+			: false;
+		if ( $debug_on ) {
+			$debug_trace['repair_attempted'] = true;
+			$debug_trace['repair_result']    = is_wp_error( $repaired ) ? $repaired->get_error_code() : ( $repaired ? 'ok' : 'skipped' );
+		}
+		if ( true === $repaired ) {
+			clearstatcache();
+			$real_base = realpath( $base );
+			$full      = realpath( $base . $path );
+		}
+	}
 	if ( $debug_on ) {
 		$debug_trace['base']      = $base;
 		$debug_trace['real_base'] = $real_base;

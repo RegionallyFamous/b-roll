@@ -1754,6 +1754,7 @@
 				'Tweak how the ODD desktop behaves — rotate scenes automatically, react to sound, or dim into a full-screen screensaver when you step away.',
 				{ eyebrow: 'ODD · Preferences' }
 			) );
+			wrap.appendChild( renderSystemHealth() );
 
 			var settings = el( 'div', { class: 'odd-wallpaper-settings' } );
 
@@ -1983,6 +1984,82 @@
 			wrap.appendChild( settings );
 
 			return wrap;
+		}
+
+		function renderSystemHealth() {
+			var health = state.cfg.systemHealth || {};
+			var catalog = health.catalog || {};
+			var starter = health.starter || {};
+			var apps = health.apps || {};
+			var source = catalog.source || 'unknown';
+			var warning = source === 'fallback_file' || source === 'stale_option' || source === 'empty' || !! catalog.last_error_message;
+			var strip = el( 'div', { class: 'odd-shop__health' + ( warning ? ' is-warning' : ' is-ok' ) } );
+			var body = el( 'div', { class: 'odd-shop__health-body' } );
+			var title = el( 'strong' );
+			title.textContent = source === 'remote' || source === 'transient'
+				? __( 'Catalog healthy' )
+				: __( 'Catalog needs attention' );
+			var detail = el( 'span' );
+			var parts = [
+				'Catalog: ' + source.replace( /_/g, ' ' ),
+				'Bundles: ' + ( catalog.bundle_count || 0 ),
+				'Starter: ' + ( starter.status || 'unknown' ),
+				'Apps: ' + ( apps.installed || 0 ),
+			];
+			if ( catalog.last_error_message ) {
+				parts.push( 'Last error: ' + catalog.last_error_message );
+			}
+			detail.textContent = parts.join( ' · ' );
+			body.appendChild( title );
+			body.appendChild( detail );
+			strip.appendChild( body );
+
+			var actions = el( 'div', { class: 'odd-shop__health-actions' } );
+			var refreshBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+			refreshBtn.textContent = __( 'Refresh catalog' );
+			refreshBtn.addEventListener( 'click', function () {
+				refreshBtn.disabled = true;
+				refreshBtn.textContent = __( 'Refreshing…' );
+				fetch( ( state.cfg.bundleCatalogUrl || '' ).replace( /\/catalog\/?$/, '/refresh' ), {
+					method: 'POST',
+					credentials: 'same-origin',
+					headers: { 'X-WP-Nonce': state.cfg.restNonce || '' },
+				} ).then( function ( res ) {
+					return res.ok ? res.json() : null;
+				} ).then( function ( res ) {
+					if ( res && res.meta ) {
+						state.cfg.systemHealth = state.cfg.systemHealth || {};
+						state.cfg.systemHealth.catalog = res.meta;
+					}
+					toast( __( 'Catalog refreshed.' ) );
+					renderSection( 'settings', { keepQuery: true } );
+				} ).catch( function () {
+					toast( __( 'Catalog refresh failed.' ), 'error' );
+				} ).finally( function () {
+					refreshBtn.disabled = false;
+					refreshBtn.textContent = __( 'Refresh catalog' );
+				} );
+			} );
+			actions.appendChild( refreshBtn );
+
+			var copyBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
+			copyBtn.textContent = __( 'Copy diagnostics' );
+			copyBtn.addEventListener( 'click', function () {
+				var d = window.__odd && window.__odd.diagnostics;
+				if ( d && typeof d.copy === 'function' ) {
+					copyBtn.disabled = true;
+					d.copy().then( function () {
+						copyBtn.textContent = __( 'Copied' );
+						setTimeout( function () {
+							copyBtn.disabled = false;
+							copyBtn.textContent = __( 'Copy diagnostics' );
+						}, 2000 );
+					} );
+				}
+			} );
+			actions.appendChild( copyBtn );
+			strip.appendChild( actions );
+			return strip;
 		}
 
 		function appsBaseUrl() {

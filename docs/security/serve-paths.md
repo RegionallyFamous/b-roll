@@ -2,7 +2,7 @@
 
 > Scope: every code path that returns file bytes from `wp-content/odd-*/`
 > on an authenticated or public request. Last reviewed after the
-> remote-catalog refactor (v3.5.0). The on-disk layout and serve paths
+> remote-catalog refactor (v3.5.5). The on-disk layout and serve paths
 > are unchanged from v1.9.x; only the **source** of the content moved
 > from bundled plugin assets to the remote catalog + SHA256-verified
 > `.wp` downloads.

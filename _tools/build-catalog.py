@@ -573,6 +573,13 @@ def build_app(slug: str, src_dir: Path) -> dict:
     icon_src = src_dir / "icon.svg"
     if not bundle_src.is_file():
         raise SystemExit(f"app {slug}: missing bundle.wp")
+    with zipfile.ZipFile(bundle_src, "r") as zf:
+        manifest = json.loads(zf.read("manifest.json"))
+        icon = manifest.get("icon")
+        if not isinstance(icon, str) or not icon:
+            raise SystemExit(f"app {slug}: manifest.json must declare icon")
+        if not icon.startswith(("http://", "https://")) and icon not in zf.namelist():
+            raise SystemExit(f"app {slug}: manifest icon {icon!r} missing from bundle.wp")
 
     bundle_dest = OUT_BUNDLES / f"{slug}.wp"
     shutil.copy2(bundle_src, bundle_dest)
@@ -724,6 +731,18 @@ def main() -> int:
     )
     (OUT_ROOT / "registry.schema.json").write_text(
         json.dumps(SCHEMA, indent=2) + "\n"
+    )
+
+    # Frozen in-plugin fallback. When the shipped plugin boots on a
+    # site with no network (Playground demo without outbound access,
+    # air-gapped WordPress, or a temporary catalog host outage), this
+    # file is the last-resort source for the registry. See
+    # odd/includes/content/catalog-fallback.php. Kept byte-identical
+    # to the published registry so determinism checks still pass.
+    FALLBACK_DIR = REPO / "odd" / "data"
+    FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
+    (FALLBACK_DIR / "fallback-registry.json").write_text(
+        json.dumps(registry, indent=2) + "\n"
     )
 
     # Summary.

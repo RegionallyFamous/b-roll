@@ -31,6 +31,12 @@
 .odd-panel .odd-setting-field{display:inline-flex;align-items:center;gap:8px;color:#50575e;font-size:12px;font-weight:600}
 .odd-panel .odd-minutes{width:88px;min-height:46px;padding:7px 12px;border:1px solid #d2d2d7;border-radius:14px;font:inherit;font-size:16px;font-weight:750;color:#1d2327;background:#fff;box-shadow:0 1px 0 rgba(255,255,255,.8) inset;text-align:center}
 .odd-panel .odd-minutes:focus,.odd-panel .odd-select:focus{border-color:#2271b1;box-shadow:0 0 0 2px rgba(34,113,177,.14);outline:none}
+.odd-panel.odd-shop .odd-shop__health{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;padding:16px 18px;border:1px solid rgba(60,60,67,.14);border-radius:18px;background:linear-gradient(180deg,#fff,#fafbff);box-shadow:0 14px 34px -28px rgba(20,14,40,.35)}
+.odd-panel.odd-shop .odd-shop__health.is-warning{border-color:rgba(217,119,6,.32);background:linear-gradient(180deg,#fffaf0,#fff)}
+.odd-panel.odd-shop .odd-shop__health-body{display:flex;min-width:0;flex-direction:column;gap:3px}
+.odd-panel.odd-shop .odd-shop__health-body strong{font-size:14px;font-weight:750;color:#1d2327}
+.odd-panel.odd-shop .odd-shop__health-body span{font-size:12px;line-height:1.45;color:#50575e}
+.odd-panel.odd-shop .odd-shop__health-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .odd-panel .odd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
 .odd-panel .odd-grid--icons{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
 .odd-panel .odd-card{all:unset;display:flex;flex-direction:column;background:#fff;border:1px solid #dcdcde;border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .12s ease,border-color .12s ease,box-shadow .18s ease;position:relative}

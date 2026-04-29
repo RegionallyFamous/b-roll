@@ -62,6 +62,9 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 		$zip->open( $path, ZipArchive::CREATE | ZipArchive::OVERWRITE );
 		$zip->addFromString( 'manifest.json', wp_json_encode( $manifest ) );
 		$zip->addFromString( 'index.html', '<!doctype html><h1>hi</h1>' );
+		if ( ! empty( $manifest['icon'] ) && false === strpos( (string) $manifest['icon'], '://' ) ) {
+			$zip->addFromString( (string) $manifest['icon'], '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#111"/></svg>' );
+		}
 		$zip->close();
 		$res = odd_apps_install( $path, $slug . '.wp' );
 		@unlink( $path );
@@ -316,6 +319,32 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 		$this->assertNotNull( $window );
 		$this->assertNotNull( $icon );
 		$this->assertSame( 'taskbar', $window['args']['placement'] );
+	}
+
+	public function test_register_surfaces_uses_manifest_icon_for_desktop_and_taskbar() {
+		$this->require_desktop_mode_stubs();
+		$this->install_fixture(
+			'register-icon-match',
+			array(
+				'icon'     => 'icon.svg',
+				'surfaces' => array(
+					'desktop' => true,
+					'taskbar' => true,
+				),
+			)
+		);
+
+		self::$calls = array();
+		odd_apps_register_surfaces( $this->find_row( 'register-icon-match' ) );
+
+		$window = $this->find_call( 'window', 'odd-app-register-icon-match' );
+		$icon   = $this->find_call( 'icon', 'odd-app-register-icon-match' );
+
+		$this->assertNotNull( $window );
+		$this->assertNotNull( $icon );
+		$this->assertNotEmpty( $window['args']['icon'] );
+		$this->assertSame( $window['args']['icon'], $icon['args']['icon'] );
+		$this->assertStringContainsString( '/odd/v1/apps/icon/register-icon-match', $window['args']['icon'] );
 	}
 
 	public function test_register_surfaces_legacy_row_without_field_keeps_current_behavior() {

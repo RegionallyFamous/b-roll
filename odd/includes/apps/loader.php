@@ -178,6 +178,41 @@ function odd_apps_validate_archive( $tmp_path, $filename ) {
 		return new WP_Error( 'missing_entry', sprintf( /* translators: %s entry */ __( 'Entry file "%s" not found in archive.', 'odd' ), $entry ) );
 	}
 
+	if ( isset( $manifest['icon'] ) && '' !== (string) $manifest['icon'] ) {
+		$icon = (string) $manifest['icon'];
+		if (
+			0 === stripos( $icon, 'http://' ) ||
+			0 === stripos( $icon, 'https://' )
+		) {
+			$safe_icon = esc_url_raw( $icon, array( 'http', 'https' ) );
+			if ( '' === $safe_icon ) {
+				$zip->close();
+				return new WP_Error( 'invalid_icon', __( 'Manifest icon URL is invalid.', 'odd' ) );
+			}
+			$manifest['icon'] = $safe_icon;
+		} else {
+			if (
+				false !== strpos( $icon, '..' ) ||
+				( strlen( $icon ) > 0 && '/' === $icon[0] ) ||
+				false !== strpos( $icon, "\0" ) ||
+				! preg_match( '#^[a-zA-Z0-9._/-]+$#', $icon )
+			) {
+				$zip->close();
+				return new WP_Error( 'invalid_icon', __( 'Manifest icon path contains invalid characters or path traversal.', 'odd' ) );
+			}
+			$ext = strtolower( pathinfo( $icon, PATHINFO_EXTENSION ) );
+			if ( ! in_array( $ext, array( 'svg', 'png', 'webp', 'jpg', 'jpeg', 'gif', 'ico' ), true ) ) {
+				$zip->close();
+				return new WP_Error( 'invalid_icon', __( 'Manifest icon must be an image file.', 'odd' ) );
+			}
+			if ( false === $zip->getFromName( $icon ) ) {
+				$zip->close();
+				return new WP_Error( 'missing_icon', sprintf( /* translators: %s icon */ __( 'Icon file "%s" not found in archive.', 'odd' ), $icon ) );
+			}
+			$manifest['icon'] = $icon;
+		}
+	}
+
 	$zip->close();
 	$manifest['entry'] = $entry;
 	return $manifest;

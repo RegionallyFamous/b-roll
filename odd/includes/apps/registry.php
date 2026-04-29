@@ -39,10 +39,22 @@ function odd_apps_install( $tmp_path, $filename ) {
 
 	// Atomic install lock: add_option returns false when the key
 	// already exists, so concurrent installs of the same slug fail
-	// the second caller fast.
+	// the second caller fast. The value is a timestamp so a fatal
+	// error cannot strand the lock forever.
 	$lock_key = 'odd_apps_install_lock_' . $slug;
-	if ( ! add_option( $lock_key, '1', '', false ) ) {
-		return new WP_Error( 'install_in_progress', __( 'An installation of this app is already in progress.', 'odd' ) );
+	if ( ! add_option( $lock_key, (string) time(), '', false ) ) {
+		$started = (int) get_option( $lock_key, 0 );
+		if ( $started <= 0 || ( time() - $started ) <= 10 * MINUTE_IN_SECONDS ) {
+			return new WP_Error(
+				'install_in_progress',
+				__( 'An installation of this app is already in progress.', 'odd' ),
+				array(
+					'status'     => 409,
+					'started_at' => $started,
+				)
+			);
+		}
+		update_option( $lock_key, (string) time(), false );
 	}
 
 	$extracted = odd_apps_extract_archive( $tmp_path, $slug );

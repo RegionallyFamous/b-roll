@@ -129,6 +129,13 @@
 		} catch ( _ ) { return {}; }
 	}
 
+	function systemHealthSnapshot() {
+		try {
+			var c = window.odd || {};
+			return c.systemHealth || {};
+		} catch ( _ ) { return {}; }
+	}
+
 	function collect() {
 		return {
 			collectedAt:   now(),
@@ -136,6 +143,7 @@
 			environment:   environment(),
 			registries:    registriesSnapshot(),
 			state:         storeSnapshot(),
+			systemHealth:  systemHealthSnapshot(),
 			recentLog:     buffer.slice().reverse().slice( 0, 50 ),
 		};
 	}
@@ -165,6 +173,13 @@
 			'## State',
 			'- wallpaper: `' + ( p.state.user && p.state.user.wallpaper || '' ) + '`',
 			'- iconSet: `' + ( p.state.user && p.state.user.iconSet || '' ) + '`',
+			'',
+			'## System Health',
+			'- catalog source: `' + ( p.systemHealth.catalog && p.systemHealth.catalog.source || '' ) + '`',
+			'- catalog bundles: `' + ( p.systemHealth.catalog && p.systemHealth.catalog.bundle_count || 0 ) + '`',
+			'- catalog last error: `' + ( p.systemHealth.catalog && p.systemHealth.catalog.last_error_message || '' ) + '`',
+			'- starter status: `' + ( p.systemHealth.starter && p.systemHealth.starter.status || '' ) + '`',
+			'- installed apps: `' + ( p.systemHealth.apps && p.systemHealth.apps.installed || 0 ) + '`',
 			'',
 			'## Recent log (' + p.recentLog.length + ' entries, newest first)',
 			'```',

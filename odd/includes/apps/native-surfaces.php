@@ -40,7 +40,7 @@ add_action(
 		if ( ! defined( 'ODD_APPS_ENABLED' ) || ! ODD_APPS_ENABLED ) {
 			return;
 		}
-		if ( ! function_exists( 'desktop_mode_register_window' ) || ! function_exists( 'desktop_mode_register_icon' ) ) {
+		if ( ! odd_desktop_mode_available() ) {
 			return;
 		}
 
@@ -55,6 +55,10 @@ add_action(
 );
 
 function odd_apps_register_surfaces( $row ) {
+	if ( ! odd_desktop_mode_available() ) {
+		return;
+	}
+
 	$slug = sanitize_key( $row['slug'] );
 	if ( '' === $slug ) {
 		return;
@@ -208,5 +212,16 @@ function odd_apps_icon_url( $slug, $manifest ) {
 	// standard capability-gated /apps/serve route would 401 when the
 	// dock renders the tile. The /apps/icon route serves only the
 	// manifest's declared icon with no auth.
+	if ( function_exists( 'odd_apps_icon_file_path' ) && '' === odd_apps_icon_file_path( $slug, $manifest ) ) {
+		if ( function_exists( 'odd_apps_repair_from_catalog' ) ) {
+			$repair = odd_apps_repair_from_catalog( $slug, $icon );
+			if ( true === $repair ) {
+				clearstatcache();
+			}
+		}
+		if ( '' === odd_apps_icon_file_path( $slug, $manifest ) ) {
+			return '';
+		}
+	}
 	return rest_url( 'odd/v1/apps/icon/' . $slug );
 }

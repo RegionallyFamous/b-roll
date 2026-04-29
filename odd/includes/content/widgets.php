@@ -259,7 +259,7 @@ function odd_widget_stylesheet_paths_for( $slug, array $row ) {
 add_action(
 	'admin_enqueue_scripts',
 	function () {
-		if ( ! function_exists( 'desktop_mode_is_enabled' ) ) {
+		if ( ! odd_desktop_mode_available() ) {
 			return;
 		}
 		$index = odd_widgets_index_load();

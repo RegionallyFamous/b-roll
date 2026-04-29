@@ -21,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
 add_action(
 	'init',
 	function () {
-		if ( ! function_exists( 'desktop_mode_register_window' ) || ! function_exists( 'desktop_mode_register_icon' ) ) {
+		if ( ! odd_desktop_mode_available() ) {
 			return;
 		}
 

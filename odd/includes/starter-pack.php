@@ -79,7 +79,7 @@ function odd_starter_get_state() {
 	if ( ! is_array( $state ) ) {
 		$state = array();
 	}
-	return wp_parse_args(
+	$state = wp_parse_args(
 		$state,
 		array(
 			'status'       => 'pending',
@@ -88,8 +88,103 @@ function odd_starter_get_state() {
 			'last_error'   => '',
 			'installed'    => array(),
 			'prefs_set'    => false,
+			'catalog'      => array(),
+			// Monotonic per-slug record: slug => {
+			//   status: 'done' | 'pending' | 'failed',
+			//   error:  string,
+			//   attempted_at: unix timestamp,
+			// }. Successful entries are never downgraded; retries
+			// only re-attempt 'pending' and 'failed'. See
+			// odd_starter_merge_slug_results().
+			'slugs'        => array(),
 		)
 	);
+	if ( ! is_array( $state['slugs'] ) ) {
+		$state['slugs'] = array();
+	}
+	return $state;
+}
+
+/**
+ * Fold per-slug install results into the monotonic state map. A
+ * successful attempt can flip pending/failed → done; a failed attempt
+ * can only flip pending → failed (never overwrite a prior done).
+ *
+ * @param array                $state   Starter state as returned by odd_starter_get_state().
+ * @param array<string,array>  $results Keyed by slug; each value
+ *                                      is { status, error?, attempted_at? }.
+ * @return array Updated state with merged slugs map.
+ */
+function odd_starter_merge_slug_results( array $state, array $results ) {
+	$slugs = isset( $state['slugs'] ) && is_array( $state['slugs'] ) ? $state['slugs'] : array();
+	$now   = time();
+	foreach ( $results as $slug => $row ) {
+		$slug = sanitize_key( (string) $slug );
+		if ( '' === $slug || ! is_array( $row ) ) {
+			continue;
+		}
+		$incoming = array(
+			'status'       => isset( $row['status'] ) ? (string) $row['status'] : 'pending',
+			'error'        => isset( $row['error'] ) ? (string) $row['error'] : '',
+			'attempted_at' => isset( $row['attempted_at'] ) ? (int) $row['attempted_at'] : $now,
+		);
+		$existing = isset( $slugs[ $slug ] ) && is_array( $slugs[ $slug ] ) ? $slugs[ $slug ] : null;
+		if ( $existing && isset( $existing['status'] ) && 'done' === $existing['status'] ) {
+			// Monotonic: already-done slugs are never overwritten by
+			// a later failed or pending result.
+			continue;
+		}
+		$slugs[ $slug ] = $incoming;
+	}
+	$state['slugs'] = $slugs;
+	return $state;
+}
+
+/**
+ * Derive the top-level status string from per-slug state.
+ *
+ * Returns one of:
+ *   - 'installed' — every wanted slug recorded as done.
+ *   - 'partial'   — at least one done AND at least one failed or pending.
+ *   - 'failed'    — nothing done, at least one failed.
+ *   - 'pending'   — nothing attempted yet.
+ *
+ * @param array    $state Starter state.
+ * @param string[] $wanted Expected slug list (empty means "trust slugs map").
+ * @return string
+ */
+function odd_starter_compute_status( array $state, array $wanted = array() ) {
+	$slugs = isset( $state['slugs'] ) && is_array( $state['slugs'] ) ? $state['slugs'] : array();
+	if ( empty( $wanted ) ) {
+		$wanted = array_keys( $slugs );
+	}
+	if ( empty( $wanted ) ) {
+		return 'pending';
+	}
+	$done   = 0;
+	$failed = 0;
+	foreach ( $wanted as $slug ) {
+		$row = isset( $slugs[ $slug ] ) ? $slugs[ $slug ] : null;
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$s = isset( $row['status'] ) ? (string) $row['status'] : 'pending';
+		if ( 'done' === $s ) {
+			++$done;
+		} elseif ( 'failed' === $s ) {
+			++$failed;
+		}
+	}
+	if ( $done === count( $wanted ) ) {
+		return 'installed';
+	}
+	if ( $done > 0 && ( $failed > 0 || $done < count( $wanted ) ) ) {
+		return 'partial';
+	}
+	if ( $failed > 0 ) {
+		return 'failed';
+	}
+	return 'pending';
 }
 
 function odd_starter_save_state( array $state ) {
@@ -115,7 +210,9 @@ function odd_activate_install_starter() {
 	}
 
 	// Reset counters on a fresh activation so attempt #1 gets a
-	// clean slate.
+	// clean slate — but PRESERVE the monotonic `slugs` map so
+	// previously-installed starter entries stay marked done and
+	// don't get re-attempted on activation.
 	$state['status']       = 'pending';
 	$state['attempts']     = 0;
 	$state['last_attempt'] = 0;
@@ -170,9 +267,12 @@ function odd_starter_ensure_installed( $force = false ) {
 		}
 	}
 
-	// Backoff: only enforced in the non-forced path. The activation
-	// hook and the REST retry endpoint both pass $force=true.
-	if ( ! $force && 'failed' === $state['status'] ) {
+	// Backoff: only enforced in the non-forced path. Both 'failed'
+	// and 'partial' states go through backoff so we don't hammer a
+	// chronically broken catalog host on every request. The
+	// activation hook and the REST retry endpoint both pass
+	// $force=true, bypassing backoff but still respecting the lock.
+	if ( ! $force && in_array( $state['status'], array( 'failed', 'partial' ), true ) ) {
 		$backoff = odd_starter_backoff_seconds();
 		$want    = max( 1, (int) $state['attempts'] + 1 );
 		$delay   = isset( $backoff[ $want ] ) ? $backoff[ $want ] : end( $backoff );
@@ -189,24 +289,74 @@ function odd_starter_ensure_installed( $force = false ) {
 	$state['last_attempt'] = $now;
 	odd_starter_save_state( $state );
 
-	$result = odd_starter_install_now();
+	$prior_slugs = isset( $state['slugs'] ) && is_array( $state['slugs'] ) ? $state['slugs'] : array();
+	$run         = odd_starter_install_now( $prior_slugs );
 
 	// Refetch in case another request stomped state while we ran.
 	$after = odd_starter_get_state();
 
-	if ( is_wp_error( $result ) ) {
+	// Fatal: we couldn't even load the catalog. Leave prior
+	// per-slug state intact, just mark the top-level status.
+	if ( ! empty( $run['fatal'] ) && is_wp_error( $run['fatal'] ) ) {
 		$after['status']     = 'failed';
-		$after['last_error'] = $result->get_error_message();
+		$after['last_error'] = $run['fatal']->get_error_message();
 		odd_starter_save_state( $after );
-		return $result;
+		return $run['fatal'];
 	}
 
-	$after['status']     = 'installed';
-	$after['last_error'] = '';
-	$after['installed']  = $result['installed'];
-	$after['prefs_set']  = (bool) $result['prefs_set'];
+	// Fold per-slug results into monotonic state.
+	$after = odd_starter_merge_slug_results( $after, $run['results'] );
+
+	$wanted             = isset( $run['wanted'] ) ? (array) $run['wanted'] : array();
+	$after['status']    = odd_starter_compute_status( $after, $wanted );
+	$after['prefs_set'] = $after['prefs_set'] || (bool) $run['prefs_set'];
+	$after['catalog']   = isset( $run['catalog'] ) && is_array( $run['catalog'] ) ? $run['catalog'] : array();
+
+	// Aggregate the last error for the top-level `last_error` field
+	// so old callers (Shop, install-smoke) still see a non-empty
+	// string when anything failed this run. Per-slug detail lives
+	// in `slugs`.
+	$run_errors = array();
+	foreach ( $run['results'] as $slug => $row ) {
+		if ( isset( $row['status'] ) && 'failed' === $row['status'] && ! empty( $row['error'] ) ) {
+			$run_errors[] = sprintf( '%s: %s', $slug, $row['error'] );
+		}
+	}
+	if ( empty( $run_errors ) ) {
+		$after['last_error'] = '';
+	} else {
+		$after['last_error'] = implode( '; ', $run_errors );
+	}
+
+	// Back-compat: keep the flat `installed` string list populated
+	// with the set of slugs currently marked `done` so callers that
+	// only read `state.installed` still see the complete slug list.
+	$installed_flat = array();
+	foreach ( $after['slugs'] as $slug => $row ) {
+		if ( isset( $row['status'] ) && 'done' === $row['status'] ) {
+			$installed_flat[] = $slug;
+		}
+	}
+	$after['installed'] = $installed_flat;
+
 	odd_starter_save_state( $after );
-	return $result;
+
+	if ( ! empty( $run_errors ) ) {
+		return new WP_Error(
+			'installed' === $after['status'] ? 'partial_failure' : 'starter_failed',
+			implode( '; ', $run_errors ),
+			array(
+				'state' => $after,
+			)
+		);
+	}
+
+	return array(
+		'installed' => $after['installed'],
+		'prefs_set' => $after['prefs_set'],
+		'slugs'     => $after['slugs'],
+		'status'    => $after['status'],
+	);
 }
 
 /**
@@ -219,23 +369,50 @@ function odd_starter_run() {
 
 /**
  * The actual installer. Walks the starter pack from the loaded
- * catalog, calls odd_catalog_install_entry() for each bundle, and
- * sets initial user prefs.
+ * catalog, calls odd_catalog_install_entry() for each bundle that
+ * isn't already installed, and sets initial user prefs.
  *
- * Idempotent: already-installed slugs are skipped, so partial
- * failures resume naturally on the next attempt.
+ * Monotonic: returns per-slug results so the caller can fold them
+ * into state without overwriting prior 'done' entries. A mix of
+ * successes and failures is reported as a partial run, never as a
+ * single aggregate error.
  *
- * @return array{installed:string[],prefs_set:bool}|WP_Error
+ * The caller is expected to pass the prior monotonic `slugs` map
+ * (from odd_starter_get_state()) so retries only touch pending /
+ * failed slugs — already-done slugs are not re-attempted, even when
+ * the installed-on-disk detection says otherwise.
+ *
+ * @param array $prior_slugs Monotonic prior state: [ slug => { status, ... } ].
+ * @return array {
+ *   results:   array<string, { status: 'done'|'failed', error: string, attempted_at: int }>,
+ *   wanted:    string[] complete starter-pack slug list,
+ *   prefs_set: bool,
+ *   fatal:     WP_Error|null (only when we couldn't even evaluate wanted slugs),
+ * }
  */
-function odd_starter_install_now() {
+function odd_starter_install_now( array $prior_slugs = array() ) {
+	$out = array(
+		'results'   => array(),
+		'wanted'    => array(),
+		'prefs_set' => false,
+		'fatal'     => null,
+		'catalog'   => array(),
+	);
 	if ( ! function_exists( 'odd_catalog_load' ) || ! function_exists( 'odd_catalog_install_entry' ) ) {
-		return new WP_Error( 'catalog_unavailable', 'Catalog module not loaded.' );
+		$out['fatal'] = new WP_Error( 'catalog_unavailable', 'Catalog module not loaded.' );
+		return $out;
 	}
-	// Force a fresh fetch so first-activation doesn't hit a stale
-	// empty cache.
-	$registry = odd_catalog_load( true );
+	// Prefer any usable cached/stale/fallback catalog first. A fresh
+	// remote fetch is only forced when that tier is empty or the
+	// starter slugs point at rows that are not present.
+	$registry = odd_catalog_load( false );
 	if ( empty( $registry['bundles'] ) ) {
-		return new WP_Error( 'empty_catalog', 'Remote catalog returned no bundles.' );
+		$registry = odd_catalog_load( true );
+		if ( empty( $registry['bundles'] ) ) {
+			$out['fatal']   = new WP_Error( 'empty_catalog', 'Catalog returned no bundles from remote, stale, or fallback sources.' );
+			$out['catalog'] = function_exists( 'odd_catalog_meta' ) ? odd_catalog_meta() : array();
+			return $out;
+		}
 	}
 
 	$starter    = isset( $registry['starter_pack'] ) && is_array( $registry['starter_pack'] )
@@ -249,44 +426,83 @@ function odd_starter_install_now() {
 			}
 		}
 	}
-	$want_slugs = array_values( array_filter( array_unique( $want_slugs ) ) );
+	$want_slugs     = array_values( array_filter( array_unique( $want_slugs ) ) );
+	$out['wanted']  = $want_slugs;
+	$out['catalog'] = function_exists( 'odd_catalog_meta' ) ? odd_catalog_meta() : array();
+
 	if ( empty( $want_slugs ) ) {
-		// No starter pack defined. Mark installed so we stop retrying.
-		return array(
-			'installed' => array(),
-			'prefs_set' => odd_starter_apply_prefs( $starter ),
-		);
+		// No starter pack defined. Apply prefs and report success
+		// with an empty slug set; odd_starter_compute_status will
+		// decide the top-level status.
+		$out['prefs_set'] = odd_starter_apply_prefs( $starter );
+		return $out;
 	}
 
-	$already       = odd_bundle_catalog_installed_slugs();
-	$installed_now = array();
-	$errors        = array();
+	$already_installed_on_disk = odd_bundle_catalog_installed_slugs();
+	$now                       = time();
+	$available_rows            = array();
+	foreach ( isset( $registry['bundles'] ) && is_array( $registry['bundles'] ) ? $registry['bundles'] : array() as $row ) {
+		if ( is_array( $row ) && ! empty( $row['slug'] ) ) {
+			$available_rows[ sanitize_key( (string) $row['slug'] ) ] = true;
+		}
+	}
+
+	if ( ! empty( $want_slugs ) && count( array_intersect( $want_slugs, array_keys( $available_rows ) ) ) < count( $want_slugs ) ) {
+		$refreshed = odd_catalog_load( true );
+		if ( ! empty( $refreshed['bundles'] ) ) {
+			$registry       = $refreshed;
+			$out['catalog'] = function_exists( 'odd_catalog_meta' ) ? odd_catalog_meta() : $out['catalog'];
+		}
+	}
+
 	foreach ( $want_slugs as $slug ) {
-		if ( isset( $already[ $slug ] ) ) {
+		// Monotonic skip: prior state says we completed this slug,
+		// do not re-run the install. Prevents retries from flapping
+		// on a slug that actually succeeded in an earlier attempt.
+		if ( isset( $prior_slugs[ $slug ]['status'] ) && 'done' === $prior_slugs[ $slug ]['status'] ) {
+			$out['results'][ $slug ] = array(
+				'status'       => 'done',
+				'error'        => '',
+				'attempted_at' => isset( $prior_slugs[ $slug ]['attempted_at'] ) ? (int) $prior_slugs[ $slug ]['attempted_at'] : $now,
+			);
+			continue;
+		}
+		// On-disk already installed — treat as done.
+		if ( isset( $already_installed_on_disk[ $slug ] ) ) {
+			$out['results'][ $slug ] = array(
+				'status'       => 'done',
+				'error'        => '',
+				'attempted_at' => $now,
+			);
 			continue;
 		}
 		$row = odd_catalog_row_for( $slug );
 		if ( null === $row ) {
-			$errors[] = sprintf( 'starter-pack slug %s not in registry', $slug );
+			$out['results'][ $slug ] = array(
+				'status'       => 'failed',
+				'error'        => sprintf( 'starter-pack slug %s not in registry', $slug ),
+				'attempted_at' => $now,
+			);
 			continue;
 		}
 		$res = odd_catalog_install_entry( $row );
 		if ( is_wp_error( $res ) ) {
-			$errors[] = sprintf( '%s: %s', $slug, $res->get_error_message() );
+			$out['results'][ $slug ] = array(
+				'status'       => 'failed',
+				'error'        => $res->get_error_message(),
+				'attempted_at' => $now,
+			);
 			continue;
 		}
-		$installed_now[] = $slug;
-	}
-	if ( ! empty( $errors ) ) {
-		return new WP_Error( 'partial_failure', implode( '; ', $errors ) );
+		$out['results'][ $slug ] = array(
+			'status'       => 'done',
+			'error'        => '',
+			'attempted_at' => $now,
+		);
 	}
 
-	$prefs_set = odd_starter_apply_prefs( $starter );
-
-	return array(
-		'installed' => $installed_now,
-		'prefs_set' => $prefs_set,
-	);
+	$out['prefs_set'] = odd_starter_apply_prefs( $starter );
+	return $out;
 }
 
 /**
@@ -376,9 +592,7 @@ function odd_starter_seed_host_wallpaper( $user_id ) {
 	if ( $user_id <= 0 ) {
 		return false;
 	}
-	if ( ! function_exists( 'desktop_mode_get_os_settings' )
-		|| ! function_exists( 'desktop_mode_save_os_settings' )
-		|| ! function_exists( 'desktop_mode_default_os_settings' ) ) {
+	if ( ! function_exists( 'odd_desktop_mode_supports' ) || ! odd_desktop_mode_supports( 'os_settings' ) ) {
 		return false;
 	}
 
@@ -405,6 +619,41 @@ function odd_starter_seed_host_wallpaper( $user_id ) {
 	$next['wallpaper'] = 'odd';
 
 	return (bool) desktop_mode_save_os_settings( $user_id, $next );
+}
+
+function odd_starter_get_state_for_rest() {
+	$state    = odd_starter_get_state();
+	$registry = function_exists( 'odd_catalog_load' ) ? odd_catalog_load( false ) : array();
+	$meta     = function_exists( 'odd_catalog_meta' ) ? odd_catalog_meta() : array();
+	$starter  = isset( $registry['starter_pack'] ) && is_array( $registry['starter_pack'] ) ? $registry['starter_pack'] : array();
+	$rows     = array();
+	foreach ( isset( $registry['bundles'] ) && is_array( $registry['bundles'] ) ? $registry['bundles'] : array() as $row ) {
+		if ( is_array( $row ) && ! empty( $row['slug'] ) ) {
+			$rows[ sanitize_key( (string) $row['slug'] ) ] = $row;
+		}
+	}
+	$next = array();
+	foreach ( array( 'scenes', 'iconSets', 'widgets', 'apps' ) as $group ) {
+		foreach ( isset( $starter[ $group ] ) && is_array( $starter[ $group ] ) ? $starter[ $group ] : array() as $slug ) {
+			$slug = sanitize_key( (string) $slug );
+			if ( '' === $slug ) {
+				continue;
+			}
+			$current       = isset( $state['slugs'][ $slug ]['status'] ) ? (string) $state['slugs'][ $slug ]['status'] : 'pending';
+			$next[ $slug ] = array(
+				'group'  => $group,
+				'status' => $current,
+				'action' => 'done' === $current ? 'none' : ( isset( $rows[ $slug ] ) ? 'install' : 'missing_from_catalog' ),
+			);
+		}
+	}
+	$state['catalog']      = array(
+		'source'       => isset( $meta['source'] ) ? $meta['source'] : '',
+		'bundle_count' => isset( $meta['bundle_count'] ) ? (int) $meta['bundle_count'] : 0,
+		'last_error'   => isset( $meta['last_error_message'] ) ? $meta['last_error_message'] : '',
+	);
+	$state['next_actions'] = $next;
+	return $state;
 }
 
 /**
@@ -467,7 +716,7 @@ add_action(
 			array(
 				'methods'             => 'GET',
 				'callback'            => function () {
-					return rest_ensure_response( odd_starter_get_state() );
+					return rest_ensure_response( odd_starter_get_state_for_rest() );
 				},
 				'permission_callback' => 'is_user_logged_in',
 			)

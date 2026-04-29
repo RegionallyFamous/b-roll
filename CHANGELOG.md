@@ -16,6 +16,36 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.5.5"></a>
+## [3.5.5] — 2026-04-28
+
+### Added
+- **Reliability hardening** for remote catalog installs, app asset serving,
+  starter-pack recovery, and admin diagnostics. ODD now records catalog source
+  metadata, keeps stale/fallback provenance, blocks empty remote catalogs from
+  poisoning the last known good mirror, and exposes health data through REST,
+  localized Shop state, and Copy Diagnostics.
+- **Self-healing catalog-owned apps** can re-download and re-extract their
+  SHA-verified bundle when `/odd-app/<slug>/assets/...` or a declared app icon
+  is missing on disk. Repair attempts are locked per slug and recorded for
+  diagnostics.
+- **Read-only reconciliation and repair endpoints** report app directory,
+  manifest, referenced asset, catalog ownership, and icon health before any
+  admin-triggered repair action.
+
+### Changed
+- Catalog-driven installs now require `sha256` by default, retry transient
+  catalog/download failures, and use expiring install locks so fatal errors
+  cannot strand future installs forever.
+- Starter-pack installs prefer usable cached, stale, or bundled fallback
+  catalog data before forcing a remote fetch, and report per-slug next actions
+  in `/odd/v1/starter`.
+
+### Fixed
+- First-party app bundles must declare a real icon and include it in the
+  archive; desktop and taskbar registrations now use the same app-specific
+  icon instead of silently falling back to generic chrome.
+
 <a id="v3.5.4"></a>
 ## [3.5.4] — 2026-04-28
 

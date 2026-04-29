@@ -49,6 +49,7 @@ if ( ! defined( 'ODD_APPS_ENABLED' ) ) {
 require_once ODD_DIR . 'includes/apps/storage.php';
 require_once ODD_DIR . 'includes/apps/registry.php';
 require_once ODD_DIR . 'includes/apps/loader.php';
+require_once ODD_DIR . 'includes/apps/repair.php';
 require_once ODD_DIR . 'includes/apps/rest.php';
 require_once ODD_DIR . 'includes/apps/serve-cookieauth.php';
 require_once ODD_DIR . 'includes/apps/native-surfaces.php';

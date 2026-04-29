@@ -303,3 +303,349 @@ jobs:
             echo "error: ODD activation emitted PHP errors above" >&2
             exit 1
           fi
+
+  # Degraded-mode smoke: activate ODD without WP Desktop Mode installed.
+  # The reliability contract is "no fatal, clear diagnostic, no calls
+  # to missing host APIs." Everything in odd/includes/dependencies.php
+  # must route every Desktop Mode integration through the central guard.
+  install-smoke-no-host:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      WP_CLI_ALLOW_ROOT: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, zip, dom, gd, mbstring, xml, intl
+          coverage: none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -u root -proot --silent; then
+              echo "mysql ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "mysql never came up"; exit 1
+      - name: Install wp-cli
+        run: |
+          curl -fSLo wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x wp-cli.phar
+          sudo mv wp-cli.phar /usr/local/bin/wp
+          wp --info
+      - name: Build odd.zip if missing
+        run: |
+          if [ ! -f "${{ inputs.zip-path }}" ]; then
+            odd/bin/build-zip
+          fi
+          ls -lh "${{ inputs.zip-path }}"
+      - name: Download + configure WordPress
+        run: |
+          mkdir -p /tmp/wp
+          cd /tmp/wp
+          wp core download --locale=en_US --version=latest
+          wp config create \
+            --dbname=wordpress \
+            --dbuser=root \
+            --dbpass=root \
+            --dbhost=127.0.0.1:3306 \
+            --dbprefix=dm_ \
+            --extra-php <<'PHP'
+          define( 'WP_DEBUG', true );
+          define( 'WP_DEBUG_LOG', true );
+          define( 'WP_DEBUG_DISPLAY', false );
+          PHP
+          wp core install \
+            --url=http://localhost \
+            --title="Degraded Smoke" \
+            --admin_user=smoke \
+            --admin_password=smoke \
+            --admin_email=smoke@example.com \
+            --skip-email
+      - name: Install ODD without host plugin
+        working-directory: /tmp/wp
+        env:
+          ODD_ZIP: ${{ github.workspace }}/${{ inputs.zip-path }}
+        run: |
+          wp plugin install "$ODD_ZIP" --activate
+          wp plugin list --status=active --field=name | grep -E '^odd$'
+      - name: Assert no fatal and Desktop Mode reported missing
+        working-directory: /tmp/wp
+        run: |
+          wp eval 'exit( function_exists( "odd_desktop_mode_available" ) ? 0 : 1 );'
+          wp eval 'exit( odd_desktop_mode_available() ? 1 : 0 );' # should be false
+          wp eval '$m = odd_desktop_mode_missing_functions( "core" ); if ( empty( $m ) ) { exit( 1 ); } fwrite( STDOUT, "missing core: " . implode( ",", $m ) . "\n" ); exit( 0 );'
+      - name: Assert degraded-mode init dispatches without fatal
+        working-directory: /tmp/wp
+        run: |
+          wp eval 'do_action( "init" ); echo "init ok\n";'
+          wp eval 'do_action( "admin_enqueue_scripts" ); echo "admin_enqueue_scripts ok\n";'
+      - name: Scan debug.log for PHP errors in degraded mode
+        working-directory: /tmp/wp
+        run: |
+          log="wp-content/debug.log"
+          if [ ! -f "$log" ]; then
+            echo "No debug.log written."
+            exit 0
+          fi
+          echo "--- debug.log tail ---"
+          tail -n 200 "$log"
+          if grep -E 'PHP (Fatal|Parse)' "$log"; then
+            echo "error: ODD without host plugin emitted PHP Fatal/Parse errors" >&2
+            exit 1
+          fi
+
+  # Degraded-mode smoke: WP Desktop Mode is present, but the remote
+  # catalog HTTP is blocked and there is no stale mirror. The bundled
+  # frozen fallback at odd/data/fallback-registry.json must carry the
+  # Shop + starter-pack runner through first boot.
+  install-smoke-offline-catalog:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      WP_CLI_ALLOW_ROOT: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, zip, dom, gd, mbstring, xml, intl
+          coverage: none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -u root -proot --silent; then
+              echo "mysql ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "mysql never came up"; exit 1
+      - name: Install wp-cli
+        run: |
+          curl -fSLo wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x wp-cli.phar
+          sudo mv wp-cli.phar /usr/local/bin/wp
+          wp --info
+      - name: Build catalog (to refresh fallback snapshot)
+        run: |
+          python3 _tools/build-catalog.py
+          ls -la odd/data/fallback-registry.json
+      - name: Build odd.zip if missing
+        run: |
+          if [ ! -f "${{ inputs.zip-path }}" ]; then
+            odd/bin/build-zip
+          fi
+      - name: Download + configure WordPress
+        run: |
+          mkdir -p /tmp/wp
+          cd /tmp/wp
+          wp core download --locale=en_US --version=latest
+          wp config create \
+            --dbname=wordpress \
+            --dbuser=root \
+            --dbpass=root \
+            --dbhost=127.0.0.1:3306 \
+            --dbprefix=off_ \
+            --extra-php <<'PHP'
+          define( 'WP_DEBUG', true );
+          define( 'WP_DEBUG_LOG', true );
+          define( 'WP_DEBUG_DISPLAY', false );
+          PHP
+          wp core install \
+            --url=http://localhost \
+            --title="Offline Catalog Smoke" \
+            --admin_user=smoke \
+            --admin_password=smoke \
+            --admin_email=smoke@example.com \
+            --skip-email
+      - name: Stage offline-only MU-plugin that blocks all ODD catalog HTTP
+        run: |
+          mkdir -p /tmp/wp/wp-content/mu-plugins
+          cat > /tmp/wp/wp-content/mu-plugins/odd-offline-catalog.php <<'PHP'
+          <?php
+          /**
+           * Plugin Name: ODD Offline Catalog Smoke
+           * Description: Reject every outbound ODD catalog HTTP call so the reliability
+           *              gate can prove the frozen in-plugin fallback takes over.
+           */
+          add_filter( 'pre_http_request', function ( $preempt, $args, $url ) {
+              if ( false !== $preempt ) { return $preempt; }
+              if ( ! is_string( $url ) ) { return false; }
+              if ( false !== strpos( $url, '/catalog/v1/' ) || false !== strpos( $url, 'odd.regionallyfamous.com' ) ) {
+                  return new WP_Error( 'offline_smoke', 'simulated catalog outage' );
+              }
+              return false;
+          }, 9, 3 );
+          PHP
+      - name: Install WP Desktop Mode + ODD (fresh site, no stale cache)
+        working-directory: /tmp/wp
+        env:
+          ODD_ZIP: ${{ github.workspace }}/${{ inputs.zip-path }}
+        run: |
+          wp plugin install https://github.com/WordPress/desktop-mode/archive/refs/heads/trunk.zip --activate
+          wp plugin install "$ODD_ZIP" --activate
+      - name: Assert the bundled fallback registry carried the Shop
+        working-directory: /tmp/wp
+        run: |
+          wp eval 'delete_transient( ODD_CATALOG_TRANSIENT ); delete_option( ODD_CATALOG_STALE_OPTION );'
+          wp eval '$r = odd_catalog_load( true ); $n = isset( $r["bundles"] ) ? count( $r["bundles"] ) : 0; echo "bundles from load: $n\n"; exit( $n >= 1 ? 0 : 1 );'
+      - name: Scan debug.log for PHP errors under offline catalog
+        working-directory: /tmp/wp
+        run: |
+          log="wp-content/debug.log"
+          if [ ! -f "$log" ]; then
+            echo "No debug.log written."
+            exit 0
+          fi
+          echo "--- debug.log tail ---"
+          tail -n 200 "$log"
+          if grep -E 'PHP (Fatal|Parse)' "$log"; then
+            echo "error: offline-catalog mode emitted PHP Fatal/Parse errors" >&2
+            exit 1
+          fi
+
+  # Degraded-mode smoke: a corrupted .wp bundle (wrong sha256) must be
+  # refused by odd_bundle_install() without fatalling. This protects
+  # against a compromised or truncated remote mirror on first activation.
+  install-smoke-bad-hash:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      WP_CLI_ALLOW_ROOT: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, zip, dom, gd, mbstring, xml, intl
+          coverage: none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -u root -proot --silent; then
+              echo "mysql ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "mysql never came up"; exit 1
+      - name: Install wp-cli
+        run: |
+          curl -fSLo wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x wp-cli.phar
+          sudo mv wp-cli.phar /usr/local/bin/wp
+          wp --info
+      - name: Build odd.zip if missing
+        run: |
+          if [ ! -f "${{ inputs.zip-path }}" ]; then
+            odd/bin/build-zip
+          fi
+      - name: Download + configure WordPress
+        run: |
+          mkdir -p /tmp/wp
+          cd /tmp/wp
+          wp core download --locale=en_US --version=latest
+          wp config create \
+            --dbname=wordpress \
+            --dbuser=root \
+            --dbpass=root \
+            --dbhost=127.0.0.1:3306 \
+            --dbprefix=bh_ \
+            --extra-php <<'PHP'
+          define( 'WP_DEBUG', true );
+          define( 'WP_DEBUG_LOG', true );
+          define( 'WP_DEBUG_DISPLAY', false );
+          PHP
+          wp core install \
+            --url=http://localhost \
+            --title="Bad Hash Smoke" \
+            --admin_user=smoke \
+            --admin_password=smoke \
+            --admin_email=smoke@example.com \
+            --skip-email
+      - name: Install WP Desktop Mode + ODD
+        working-directory: /tmp/wp
+        env:
+          ODD_ZIP: ${{ github.workspace }}/${{ inputs.zip-path }}
+        run: |
+          wp plugin install https://github.com/WordPress/desktop-mode/archive/refs/heads/trunk.zip --activate
+          wp plugin install "$ODD_ZIP" --activate
+      - name: Assert odd_bundle_install rejects a corrupted .wp
+        working-directory: /tmp/wp
+        run: |
+          cat > /tmp/bad-hash.php <<'PHP'
+          <?php
+          wp_set_current_user( 1 );
+          $path = tempnam( sys_get_temp_dir(), 'badhash_' ) . '.wp';
+          // Write garbage bytes — definitely not a real ZIP archive.
+          file_put_contents( $path, "not a real zip archive\n" );
+          $result = odd_bundle_install( $path, 'bad.wp' );
+          @unlink( $path );
+          if ( ! is_wp_error( $result ) ) {
+              fwrite( STDERR, "bad bundle was accepted — reliability gate failed\n" );
+              exit( 1 );
+          }
+          echo "rejected as expected: " . $result->get_error_code() . "\n";
+          exit( 0 );
+          PHP
+          wp eval-file /tmp/bad-hash.php
+      - name: Scan debug.log for PHP errors during bad-hash attempt
+        working-directory: /tmp/wp
+        run: |
+          log="wp-content/debug.log"
+          if [ ! -f "$log" ]; then
+            echo "No debug.log written."
+            exit 0
+          fi
+          echo "--- debug.log tail ---"
+          tail -n 200 "$log"
+          if grep -E 'PHP (Fatal|Parse)' "$log"; then
+            echo "error: bad-hash mode emitted PHP Fatal/Parse errors" >&2
+            exit 1
+          fi

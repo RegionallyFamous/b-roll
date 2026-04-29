@@ -323,8 +323,7 @@ describe( 'spotify widget', () => {
 			originalUrl: 'https://open.spotify.com/playlist/37i9dQZEVXbLp5XoPON0wI',
 		} );
 
-		const change = Array.from( container.querySelectorAll( '.odd-spotify__btn' ) )
-			.find( ( b ) => /change/i.test( b.textContent || '' ) );
+		const change = container.querySelector( '.odd-spotify__btn[aria-label="Change Spotify embed"]' );
 		expect( change ).toBeTruthy();
 		change.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
@@ -357,8 +356,7 @@ describe( 'spotify widget', () => {
 		document.body.appendChild( container );
 		def.mount( container, { persist: () => {}, restore: () => null } );
 
-		const change = Array.from( container.querySelectorAll( '.odd-spotify__btn' ) )
-			.find( ( b ) => /change/i.test( b.textContent || '' ) );
+		const change = container.querySelector( '.odd-spotify__btn[aria-label="Change Spotify embed"]' );
 		expect( change ).toBeTruthy();
 		change.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
@@ -393,8 +391,7 @@ describe( 'spotify widget', () => {
 		expect( iframe.getAttribute( 'src' ) )
 			.toBe( 'https://open.spotify.com/embed/track/4iV5W9uYEdYUVa79Axb7Rh?utm_source=odd' );
 
-		const clear = Array.from( container.querySelectorAll( '.odd-spotify__btn' ) )
-			.find( ( b ) => /clear/i.test( b.textContent || '' ) );
+		const clear = container.querySelector( '.odd-spotify__btn[aria-label="Clear Spotify embed"]' );
 		expect( clear ).toBeTruthy();
 		clear.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 

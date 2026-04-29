@@ -256,7 +256,7 @@ add_filter(
 add_action(
 	'admin_enqueue_scripts',
 	function () {
-		if ( ! function_exists( 'desktop_mode_is_enabled' ) ) {
+		if ( ! odd_desktop_mode_available() ) {
 			return;
 		}
 		$index = odd_scenes_index_load();

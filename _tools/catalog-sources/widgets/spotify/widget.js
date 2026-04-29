@@ -160,16 +160,16 @@
 	// ---------------------------------------------------------------
 
 	var STYLE_RULES =
-		'.odd-spotify{display:flex;flex-direction:column;height:100%;width:100%;box-sizing:border-box;' +
-			'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1d1d1f;}' +
+		'.odd-spotify{display:flex;flex-direction:column;height:auto;max-height:100%;width:100%;box-sizing:border-box;' +
+			'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1d1d1f;overflow:hidden;}' +
 		'.odd-spotify__head{display:flex;align-items:center;justify-content:space-between;gap:8px;' +
-			'padding:6px 8px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#555;}' +
+			'padding:6px 8px 8px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#555;}' +
 		'.odd-spotify__head strong{color:#1db954;letter-spacing:.08em;}' +
 		'.odd-spotify__kind{font-weight:600;color:#1d1d1f;text-transform:none;letter-spacing:0;font-size:12px;' +
 			'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}' +
-		'.odd-spotify__body{flex:1;display:flex;min-height:0;}' +
-		'.odd-spotify__iframe{flex:1;width:100%;height:100%;border:0;border-radius:12px;' +
-			'background:#121212;min-height:80px;}' +
+		'.odd-spotify__body{flex:0 0 auto;display:flex;height:152px;min-height:152px;}' +
+		'.odd-spotify__iframe{flex:1;width:100%;height:152px;border:0;border-radius:16px;' +
+			'background:#121212;box-shadow:0 16px 28px rgba(0,0,0,.2);}' +
 		'.odd-spotify__setup{flex:1;display:flex;flex-direction:column;gap:8px;padding:10px 12px;' +
 			'background:linear-gradient(145deg,#121212 0%,#1f1f1f 100%);color:#f5f5f7;border-radius:12px;}' +
 		'.odd-spotify__setup h4{margin:0;font-size:13px;font-weight:600;letter-spacing:.02em;}' +
@@ -178,24 +178,25 @@
 			'border:1px solid #3a3a3c;background:#2c2c2e;color:#f5f5f7;min-width:0;}' +
 		'.odd-spotify__input:focus{outline:none;border-color:#1db954;box-shadow:0 0 0 2px rgba(29,185,84,.35);}' +
 		'.odd-spotify__row{display:flex;gap:6px;align-items:stretch;}' +
-		'.odd-spotify__actions{display:flex;gap:6px;padding:6px 8px 8px;justify-content:flex-end;flex-wrap:wrap;}' +
-		'.odd-spotify__btn{font:inherit;font-size:11px;padding:5px 9px;border-radius:6px;cursor:pointer;' +
-			'border:1px solid rgba(0,0,0,.12);background:#fff;color:#1d1d1f;transition:background .15s;}' +
-		'.odd-spotify__btn:hover{background:#f2f2f2;}' +
+		'.odd-spotify__actions{display:flex;gap:8px;padding:10px 8px 0;justify-content:flex-end;align-items:center;}' +
+		'.odd-spotify__btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;' +
+			'font:inherit;font-size:16px;line-height:1;border-radius:999px;cursor:pointer;text-decoration:none;' +
+			'border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.1);color:#f5f5f7;' +
+			'box-shadow:inset 0 1px 0 rgba(255,255,255,.12);transition:background .15s,transform .15s,border-color .15s;}' +
+		'.odd-spotify__btn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.28);transform:translateY(-1px);}' +
+		'.odd-spotify__btn:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(29,185,84,.45);}' +
 		'.odd-spotify__btn--primary{background:#1db954;color:#fff;border-color:transparent;}' +
 		'.odd-spotify__btn--primary:hover{background:#17a34a;}' +
-		'.odd-spotify__btn--ghost{background:transparent;border-color:transparent;color:#555;}' +
-		'.odd-spotify__btn--ghost:hover{background:rgba(0,0,0,.05);color:#1d1d1f;}' +
+		'.odd-spotify__btn--open{background:#1db954;border-color:transparent;color:#07140b;}' +
+		'.odd-spotify__btn--open:hover{background:#28e56d;border-color:transparent;}' +
+		'.odd-spotify__btn--ghost{background:rgba(255,255,255,.05);color:rgba(245,245,247,.72);}' +
+		'.odd-spotify__btn--ghost:hover{background:rgba(255,255,255,.12);color:#fff;}' +
 		'.odd-spotify__error{margin:0;font-size:11px;color:#ff6b6b;min-height:1em;}' +
 		'.odd-spotify__hint{margin:0;font-size:10px;opacity:.6;line-height:1.35;}' +
 		'@media (prefers-color-scheme: dark){' +
 			'.odd-spotify{color:#f5f5f7;}' +
 			'.odd-spotify__head{color:#a1a1a6;}' +
 			'.odd-spotify__kind{color:#f5f5f7;}' +
-			'.odd-spotify__btn{background:#2c2c2e;color:#f5f5f7;border-color:#3a3a3c;}' +
-			'.odd-spotify__btn:hover{background:#3a3a3c;}' +
-			'.odd-spotify__btn--ghost{color:#a1a1a6;}' +
-			'.odd-spotify__btn--ghost:hover{background:rgba(255,255,255,.08);color:#f5f5f7;}' +
 		'}';
 
 	function injectStyles( container ) {
@@ -323,14 +324,26 @@
 			root.appendChild( body );
 
 			var actions = el( 'div', { class: 'odd-spotify__actions' } );
-			var change = el( 'button', { type: 'button', class: 'odd-spotify__btn' }, __( 'Change' ) );
+			var change = el( 'button', {
+				type:         'button',
+				class:        'odd-spotify__btn',
+				'aria-label': __( 'Change Spotify embed' ),
+				title:        __( 'Change' ),
+			}, '↻' );
 			var open   = el( 'a', {
-				href:   state.parsed.openUrl,
-				target: '_blank',
-				rel:    'noopener noreferrer',
-				class:  'odd-spotify__btn',
-			}, __( 'Open in Spotify' ) );
-			var clear  = el( 'button', { type: 'button', class: 'odd-spotify__btn odd-spotify__btn--ghost' }, __( 'Clear' ) );
+				href:         state.parsed.openUrl,
+				target:       '_blank',
+				rel:          'noopener noreferrer',
+				class:        'odd-spotify__btn odd-spotify__btn--open',
+				'aria-label': __( 'Open in Spotify' ),
+				title:        __( 'Open in Spotify' ),
+			}, '▶' );
+			var clear  = el( 'button', {
+				type:         'button',
+				class:        'odd-spotify__btn odd-spotify__btn--ghost',
+				'aria-label': __( 'Clear Spotify embed' ),
+				title:        __( 'Clear' ),
+			}, '×' );
 
 			change.addEventListener( 'click', function () {
 				renderSetup( state.parsed ? state.parsed.originalUrl : '', '' );
@@ -380,9 +393,9 @@
 			movable:       true,
 			resizable:     true,
 			minWidth:      300,
-			minHeight:     190,
+			minHeight:     245,
 			defaultWidth:  360,
-			defaultHeight: 460,
+			defaultHeight: 292,
 			mount:         safeMount( mountSpotify, 'widget.spotify' ),
 		} );
 	} );

@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, wallpaper, icons, widgets, admin
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.5.0
+Stable tag: 3.5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,9 @@ The ODD Shop → About tab has a **Copy diagnostics** button. Paste the markdown
 See [CHANGELOG.md](https://github.com/RegionallyFamous/odd/blob/main/CHANGELOG.md) for the full history. Version headings follow SemVer; API versioning is tracked separately (see [docs/api-versioning.md](https://github.com/RegionallyFamous/odd/blob/main/docs/api-versioning.md)).
 
 == Upgrade Notice ==
+
+= 3.5.5 =
+Hardens catalog installs, starter-pack recovery, app asset self-healing, app icon integrity, and Shop diagnostics so admins can see and repair drift without telemetry.
 
 = 3.5.0 =
 Adds unified Shop search across all departments, subtle generated sound effects with a local off switch, a Spotify Embed widget in the catalog, and darker no-background icon-set previews that read better in the Shop.

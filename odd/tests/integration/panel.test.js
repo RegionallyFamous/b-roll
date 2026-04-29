@@ -30,6 +30,7 @@ function seedConfig() {
 		restUrl:   '/wp-json/odd/v1/prefs',
 		restNonce: 'nonce-abc',
 		bundlesUploadUrl: '/wp-json/odd/v1/bundles/upload',
+		bundleCatalogUrl: '/wp-json/odd/v1/bundles/catalog',
 		canInstall:       true,
 		// v3.0+: widgets are installed as catalog bundles and the
 		// panel renders whatever the server reports in this list.
@@ -63,6 +64,11 @@ function seedConfig() {
 		appsEnabled: false,
 		apps:        [],
 		userApps:    { installed: [], pinned: [] },
+		systemHealth: {
+			catalog: { source: 'fallback_file', bundle_count: 12, last_error_message: 'offline' },
+			starter: { status: 'partial' },
+			apps: { installed: 2 },
+		},
 	};
 }
 
@@ -249,6 +255,27 @@ describe( 'ODD Shop', () => {
 		const shelfTitles = Array.from( host.querySelectorAll( '.odd-shop__shelf-title' ) )
 			.map( ( node ) => node.textContent.trim() );
 		expect( shelfTitles ).toContain( 'Icon Sets' );
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'Settings renders server-provided system health and copy diagnostics action', () => {
+		window.__odd = window.__odd || {};
+		window.__odd.diagnostics = { copy: vi.fn( () => Promise.resolve( true ) ) };
+		const { host, cleanup } = mountPanel();
+
+		const settingsTab = Array.from( host.querySelectorAll( '.odd-shop__rail-item' ) )
+			.find( ( b ) => b.querySelector( '.odd-shop__rail-label strong' )?.textContent.trim() === 'Settings' );
+		settingsTab.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		const health = host.querySelector( '.odd-shop__health' );
+		expect( health ).toBeTruthy();
+		expect( health.textContent ).toContain( 'fallback file' );
+		expect( health.textContent ).toContain( 'Starter: partial' );
+		const copy = Array.from( health.querySelectorAll( 'button' ) )
+			.find( ( b ) => b.textContent.trim() === 'Copy diagnostics' );
+		copy.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+		expect( window.__odd.diagnostics.copy ).toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

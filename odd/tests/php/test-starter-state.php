@@ -1,0 +1,132 @@
+<?php
+/**
+ * Tests for the monotonic starter-pack state machine.
+ *
+ * Covers the pure helpers introduced for per-slug tracking:
+ *
+ *   - odd_starter_merge_slug_results() never downgrades a 'done' slug.
+ *   - odd_starter_compute_status() derives the top-level status
+ *     from the per-slug map as `installed`, `partial`, `failed`, or
+ *     `pending`.
+ *
+ * The installer itself (odd_starter_install_now) is exercised by
+ * install-smoke.yml against the fixture catalog; this PHPUnit layer
+ * pins the state-transition rules so partial-install reliability
+ * is testable without real network I/O.
+ */
+
+class Test_Starter_State extends WP_UnitTestCase {
+
+	public function tear_down() {
+		if ( function_exists( 'odd_starter_reset' ) ) {
+			odd_starter_reset();
+		}
+		parent::tear_down();
+	}
+
+	public function test_initial_state_is_pending_and_has_slug_map() {
+		$state = odd_starter_get_state();
+		$this->assertSame( 'pending', $state['status'] );
+		$this->assertSame( 0, $state['attempts'] );
+		$this->assertIsArray( $state['slugs'] );
+		$this->assertSame( array(), $state['slugs'] );
+	}
+
+	public function test_merge_slug_results_marks_new_done_entries() {
+		$state = odd_starter_get_state();
+		$state = odd_starter_merge_slug_results(
+			$state,
+			array(
+				'alpha' => array( 'status' => 'done' ),
+				'beta'  => array(
+					'status' => 'failed',
+					'error'  => 'boom',
+				),
+			)
+		);
+		$this->assertSame( 'done', $state['slugs']['alpha']['status'] );
+		$this->assertSame( 'failed', $state['slugs']['beta']['status'] );
+		$this->assertSame( 'boom', $state['slugs']['beta']['error'] );
+	}
+
+	public function test_merge_slug_results_is_monotonic_for_done() {
+		$state = odd_starter_get_state();
+		$state = odd_starter_merge_slug_results(
+			$state,
+			array( 'alpha' => array( 'status' => 'done' ) )
+		);
+		$state = odd_starter_merge_slug_results(
+			$state,
+			array(
+				'alpha' => array(
+					'status' => 'failed',
+					'error'  => 'should-not-appear',
+				),
+			)
+		);
+		$this->assertSame( 'done', $state['slugs']['alpha']['status'], 'Done slugs must never be downgraded to failed.' );
+		$this->assertSame( '', $state['slugs']['alpha']['error'] );
+	}
+
+	public function test_merge_slug_results_allows_failed_to_done_upgrade() {
+		$state = odd_starter_get_state();
+		$state = odd_starter_merge_slug_results(
+			$state,
+			array(
+				'alpha' => array(
+					'status' => 'failed',
+					'error'  => 'first try',
+				),
+			)
+		);
+		$state = odd_starter_merge_slug_results(
+			$state,
+			array( 'alpha' => array( 'status' => 'done' ) )
+		);
+		$this->assertSame( 'done', $state['slugs']['alpha']['status'] );
+	}
+
+	public function test_compute_status_when_all_done_is_installed() {
+		$state = array(
+			'slugs' => array(
+				'a' => array( 'status' => 'done' ),
+				'b' => array( 'status' => 'done' ),
+			),
+		);
+		$this->assertSame( 'installed', odd_starter_compute_status( $state, array( 'a', 'b' ) ) );
+	}
+
+	public function test_compute_status_partial_when_some_done_and_some_failed() {
+		$state = array(
+			'slugs' => array(
+				'a' => array( 'status' => 'done' ),
+				'b' => array( 'status' => 'failed' ),
+			),
+		);
+		$this->assertSame( 'partial', odd_starter_compute_status( $state, array( 'a', 'b' ) ) );
+	}
+
+	public function test_compute_status_partial_when_some_done_and_some_pending() {
+		$state = array(
+			'slugs' => array(
+				'a' => array( 'status' => 'done' ),
+			),
+		);
+		$this->assertSame( 'partial', odd_starter_compute_status( $state, array( 'a', 'b' ) ) );
+	}
+
+	public function test_compute_status_failed_when_no_successes() {
+		$state = array(
+			'slugs' => array(
+				'a' => array( 'status' => 'failed' ),
+				'b' => array( 'status' => 'failed' ),
+			),
+		);
+		$this->assertSame( 'failed', odd_starter_compute_status( $state, array( 'a', 'b' ) ) );
+	}
+
+	public function test_compute_status_pending_when_nothing_attempted() {
+		$state = array( 'slugs' => array() );
+		$this->assertSame( 'pending', odd_starter_compute_status( $state, array( 'a' ) ) );
+	}
+}

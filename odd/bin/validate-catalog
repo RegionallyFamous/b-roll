@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import zipfile
@@ -171,6 +172,30 @@ def check_bundle_row(
                     f"bundle[{idx}] ({slug}): manifest version "
                     f"{manifest.get('version')!r} != row {version!r}"
                 )
+            if btype == "app":
+                if not row.get("icon_url"):
+                    problems.append(f"bundle[{idx}] ({slug}): app row missing icon_url")
+                icon = manifest.get("icon")
+                if not isinstance(icon, str) or not icon:
+                    problems.append(f"bundle[{idx}] ({slug}): app manifest missing icon")
+                elif not icon.startswith(("http://", "https://")) and icon not in zf.namelist():
+                    problems.append(
+                        f"bundle[{idx}] ({slug}): app manifest icon {icon!r} missing from archive"
+                    )
+                entry = manifest.get("entry") or "index.html"
+                if isinstance(entry, str):
+                    try:
+                        html = zf.read(entry).decode("utf-8", errors="replace")
+                    except KeyError:
+                        html = ""
+                    for ref in sorted(set(re.findall(r"""(?:src|href)=["']([^"']+)["']""", html))):
+                        if ref.startswith(("http://", "https://", "data:", "/", "#")):
+                            continue
+                        clean = ref.split("?", 1)[0].split("#", 1)[0].lstrip("./")
+                        if clean and clean not in zf.namelist():
+                            problems.append(
+                                f"bundle[{idx}] ({slug}): index.html references missing asset {ref!r}"
+                            )
     except zipfile.BadZipFile:
         problems.append(f"bundle[{idx}] ({slug}): .wp is not a valid ZIP")
 
