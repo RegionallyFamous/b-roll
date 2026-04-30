@@ -532,6 +532,7 @@ CURSOR_KINDS = {
     "progress",
 }
 CURSOR_SIZE_BUDGET = 8192
+CURSOR_RENDER_SIZE = 64
 
 
 def _svg_dimension(root: ET.Element, attr: str) -> int | None:
@@ -559,9 +560,9 @@ def _validate_cursor_svg(slug: str, rel: str, data: bytes, require_cursor_dimens
     if require_cursor_dimensions:
         width = _svg_dimension(root, "width")
         height = _svg_dimension(root, "height")
-        if width != 32 or height != 32:
+        if width != CURSOR_RENDER_SIZE or height != CURSOR_RENDER_SIZE:
             raise SystemExit(
-                f'{label}: CSS cursor SVGs must declare width="32" height="32"'
+                f'{label}: CSS cursor SVGs must declare width="{CURSOR_RENDER_SIZE}" height="{CURSOR_RENDER_SIZE}"'
             )
     if not (root.attrib.get("viewBox") or root.attrib.get("width")):
         raise SystemExit(f"{label}: SVG must include viewBox or width")

@@ -19,6 +19,8 @@
  *   - `odd-api`       shared client helpers on window.__odd.api
  *                     (setScene / setIconSet / shuffle / toast /
  *                     onSceneChange). All other surfaces depend on it.
+ *   - `odd-cursors`   installs/updates the active cursor stylesheet
+ *                     link in the current shell/admin document.
  *   - `odd`           wallpaper engine boot (Pixi + scene registrar).
  *                     Registers the `odd` wallpaper with WP Desktop Mode.
  *   - `odd-panel`     ODD Shop native-window render callback,
@@ -119,16 +121,23 @@ add_action(
 			true
 		);
 		wp_enqueue_script(
+			'odd-cursors',
+			ODD_URL . '/src/cursors/index.js',
+			$foundation_deps,
+			ODD_VERSION,
+			true
+		);
+		wp_enqueue_script(
 			'odd',
 			ODD_URL . '/src/wallpaper/index.js',
-			array_merge( $foundation_deps, array( 'odd-api' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'odd-cursors' ) ),
 			ODD_VERSION,
 			true
 		);
 		wp_enqueue_script(
 			'odd-panel',
 			ODD_URL . '/src/panel/index.js',
-			array_merge( $foundation_deps, array( 'odd-api', 'wp-i18n' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'odd-cursors', 'wp-i18n' ) ),
 			ODD_VERSION,
 			true
 		);
@@ -191,7 +200,7 @@ add_action(
 		wp_enqueue_script(
 			'odd-apps',
 			ODD_URL . '/src/apps/window-host.js',
-			array_merge( $foundation_deps, array( 'odd-api', 'wp-dom-ready' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'odd-cursors', 'wp-dom-ready' ) ),
 			ODD_VERSION,
 			true
 		);

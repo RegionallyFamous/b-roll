@@ -10,43 +10,43 @@
   "cursors": {
     "default": {
       "file": "default.svg",
-      "hotspot": [2, 2]
+      "hotspot": [4, 4]
     },
     "pointer": {
       "file": "pointer.svg",
-      "hotspot": [9, 3]
+      "hotspot": [18, 6]
     },
     "text": {
       "file": "text.svg",
-      "hotspot": [16, 16]
+      "hotspot": [32, 32]
     },
     "grab": {
       "file": "grab.svg",
-      "hotspot": [16, 16]
+      "hotspot": [32, 32]
     },
     "grabbing": {
       "file": "grabbing.svg",
-      "hotspot": [16, 16]
+      "hotspot": [32, 32]
     },
     "crosshair": {
       "file": "crosshair.svg",
-      "hotspot": [16, 16]
+      "hotspot": [32, 32]
     },
     "not-allowed": {
       "file": "not-allowed.svg",
-      "hotspot": [16, 16]
+      "hotspot": [32, 32]
     },
     "wait": {
       "file": "wait.svg",
-      "hotspot": [16, 16]
+      "hotspot": [32, 32]
     },
     "help": {
       "file": "help.svg",
-      "hotspot": [2, 2]
+      "hotspot": [4, 4]
     },
     "progress": {
       "file": "progress.svg",
-      "hotspot": [2, 2]
+      "hotspot": [4, 4]
     }
   }
 }

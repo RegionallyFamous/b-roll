@@ -26,6 +26,20 @@ function odd_cursors_enqueue_admin_stylesheet() {
 }
 add_action( 'admin_enqueue_scripts', 'odd_cursors_enqueue_admin_stylesheet', 1 );
 
+function odd_cursors_enqueue_runtime() {
+	if ( ! odd_cursors_should_enqueue_admin() ) {
+		return;
+	}
+	wp_enqueue_script(
+		'odd-cursors',
+		ODD_URL . '/src/cursors/index.js',
+		array( 'wp-hooks', 'odd-store', 'odd-events', 'odd-debug' ),
+		defined( 'ODD_VERSION' ) ? ODD_VERSION : '0',
+		true
+	);
+}
+add_action( 'admin_enqueue_scripts', 'odd_cursors_enqueue_runtime', 20 );
+
 add_filter(
 	'desktop_mode_shell_config',
 	function ( $config ) {
@@ -33,6 +47,7 @@ add_filter(
 		if ( '' === $slug || ! is_array( $config ) ) {
 			return $config;
 		}
+		$config['oddCursorSet']        = $slug;
 		$config['oddCursorStylesheet'] = odd_cursors_active_stylesheet_url( $slug );
 		return $config;
 	},

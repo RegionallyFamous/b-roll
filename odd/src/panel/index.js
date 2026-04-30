@@ -3641,27 +3641,37 @@
 		function cursorStylesheetUrl( slug ) {
 			var base = ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/cursors/active.css';
 			var version = encodeURIComponent( ( state.cfg.version || '0' ) + '-' + ( slug || 'none' ) + '-' + Date.now() );
-			if ( ! slug || slug === 'none' ) return base + '?v=' + version;
+			if ( ! slug || slug === 'none' ) return base + '?set=none&v=' + version;
 			return base + '?set=' + encodeURIComponent( slug ) + '&v=' + version;
 		}
 
 		function setActiveCursorLink( slug ) {
 			var href = cursorStylesheetUrl( slug );
-			var link = document.getElementById( 'odd-cursors-css' ) || document.querySelector( 'link[href*="/odd/v1/cursors/active.css"]' );
-			if ( slug === 'none' || slug === '' ) {
-				if ( link ) link.setAttribute( 'href', href );
+			var cursors = window.__odd && window.__odd.cursors;
+			if ( cursors && typeof cursors.apply === 'function' && typeof cursors.clear === 'function' ) {
+				if ( slug === 'none' || slug === '' ) cursors.clear();
+				else cursors.apply( href, slug );
 			} else {
-				if ( ! link ) {
-					link = document.createElement( 'link' );
-					link.id = 'odd-cursors-css';
-					link.rel = 'stylesheet';
-					document.head.appendChild( link );
+				var link = document.getElementById( 'odd-cursors-css' ) || document.querySelector( 'link[href*="/odd/v1/cursors/active.css"]' );
+				if ( slug === 'none' || slug === '' ) {
+					if ( link && link.parentNode ) link.parentNode.removeChild( link );
+				} else {
+					if ( ! link ) {
+						link = document.createElement( 'link' );
+						link.id = 'odd-cursors-css';
+						link.rel = 'stylesheet';
+						document.head.appendChild( link );
+					}
+					link.setAttribute( 'href', href );
 				}
-				link.setAttribute( 'href', href );
 			}
-			state.cfg.cursorStylesheet = href;
+			if ( slug === 'none' || slug === '' ) {
+				state.cfg.cursorStylesheet = '';
+			} else {
+				state.cfg.cursorStylesheet = href;
+			}
 			if ( window.wp && window.wp.hooks && typeof window.wp.hooks.doAction === 'function' ) {
-				try { window.wp.hooks.doAction( 'odd.cursorSet', slug, href ); } catch ( e ) {}
+				try { window.wp.hooks.doAction( 'odd.cursorSet', slug, state.cfg.cursorStylesheet ); } catch ( e ) {}
 			}
 		}
 

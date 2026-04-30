@@ -16,14 +16,19 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.6.5"></a>
+## [3.6.5] — 2026-04-29
+
 ### Changed
 - **Oddlings cursors** now use custom art for every cursor state instead of
   relying on mostly standard cursor silhouettes with small theme accents.
+- **Oddlings cursor assets** now render at 64x64 with updated hotspots for a
+  larger, easier-to-see pointer.
 
 ### Fixed
-- **Cursor state styling** now applies stronger Desktop Mode and wp-admin
-  selectors so pointer, text, grab, busy, help, and disabled states can win
-  over host UI cursor rules.
+- **Cursor stylesheet injection** now uses a dedicated runtime that installs
+  and updates the active cursor stylesheet in the shell, admin, and ODD app
+  frames without relying on broad `!important` overrides.
 - **Cursor SVG assets** now declare intrinsic dimensions, which improves CSS
   cursor compatibility in browsers that reject dimensionless SVG cursor images.
 

@@ -89,10 +89,21 @@
 	}
 	function injectCursorStylesheet( frame, href ) {
 		href = href || cursorStylesheetUrl();
-		if ( ! href || ! frame ) return;
+		if ( ! frame ) return;
 		var doc;
 		try { doc = frame.contentDocument; } catch ( e ) { return; }
 		if ( ! doc || ! doc.head ) return;
+		var runtime = window.__odd && window.__odd.cursors;
+		if ( runtime && typeof runtime.injectInto === 'function' ) {
+			if ( href ) runtime.injectInto( doc, href );
+			else if ( typeof runtime.clear === 'function' ) runtime.clear( doc );
+			return;
+		}
+		if ( ! href ) {
+			var existing = doc.getElementById( 'odd-cursors-css' );
+			if ( existing && existing.parentNode ) existing.parentNode.removeChild( existing );
+			return;
+		}
 		var link = doc.getElementById( 'odd-cursors-css' );
 		if ( ! link ) {
 			link = doc.createElement( 'link' );

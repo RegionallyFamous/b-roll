@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "_tools" / "catalog-sources" / "cursor-sets"
 KINDS = {"default", "pointer", "text", "grab", "grabbing", "crosshair", "not-allowed", "wait", "help", "progress"}
 CTRL = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+CURSOR_SIZE = 64
 
 
 def fail(problems: list[str], msg: str) -> None:
@@ -74,8 +75,8 @@ def main() -> int:
                 fail(problems, f"{folder.name}: {rel} root is not <svg>")
             width = svg_dimension(root, "width")
             height = svg_dimension(root, "height")
-            if width != 32 or height != 32:
-                fail(problems, f"{folder.name}: {rel} must declare width=\"32\" height=\"32\" for CSS cursor compatibility")
+            if width != CURSOR_SIZE or height != CURSOR_SIZE:
+                fail(problems, f"{folder.name}: {rel} must declare width=\"{CURSOR_SIZE}\" height=\"{CURSOR_SIZE}\" for CSS cursor compatibility")
     if problems:
         print("Cursor-set validation failed:", file=sys.stderr)
         for problem in problems:
