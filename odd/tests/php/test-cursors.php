@@ -67,6 +67,8 @@ class Test_Cursors extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'url("https://example.com/default.svg") 2 3, default', $css );
 		$this->assertStringContainsString( 'url("https://example.com/text.svg") 16 16, text', $css );
 		$this->assertStringContainsString( 'input:not([type="button"])', $css );
+		$this->assertStringContainsString( '.desktop-mode-window-titlebar', $css );
+		$this->assertStringContainsString( '!important', $css );
 	}
 
 	public function test_cursor_urls_upgrade_for_playground_https_proxy() {
