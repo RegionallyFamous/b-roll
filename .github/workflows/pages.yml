@@ -115,8 +115,14 @@ jobs:
               if not download_url:
                   raise SystemExit(f"{slug}: missing download_url")
               icon_body = fetch(icon_url)
-              if b"<svg" not in icon_body[:300]:
-                  raise SystemExit(f"{slug}: icon_url did not return SVG content")
+              icon_head = icon_body[:300].lstrip()
+              if not (
+                  b"<svg" in icon_head
+                  or icon_body.startswith(b"RIFF") and icon_body[8:12] == b"WEBP"
+                  or icon_body.startswith(b"\x89PNG\r\n\x1a\n")
+                  or icon_body.startswith(b"\xff\xd8\xff")
+              ):
+                  raise SystemExit(f"{slug}: icon_url did not return supported image content")
               bundle_head = fetch(download_url)[:4]
               if bundle_head not in (b"PK\x03\x04", b"PK\x05\x06"):
                   raise SystemExit(f"{slug}: download_url did not return a ZIP/.wp archive")
