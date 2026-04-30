@@ -16,6 +16,14 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.6.3"></a>
+## [3.6.3] — 2026-04-29
+
+### Fixed
+- **Deactivation cleanup** now restores WP Desktop Mode users whose host
+  wallpaper is set to `odd` back to the host default, preventing a blank desktop
+  if ODD is deactivated after starter content selected its canvas wallpaper.
+
 <a id="v3.6.2"></a>
 ## [3.6.2] — 2026-04-29
 

@@ -233,6 +233,44 @@ function odd_activate_install_starter() {
 register_activation_hook( ODD_FILE, 'odd_activate_install_starter' );
 
 /**
+ * ODD seeds WP Desktop Mode's host wallpaper setting to "odd" so the
+ * installed scene is visible on first boot. If ODD is deactivated while
+ * that host setting remains selected, Desktop Mode no longer has a matching
+ * canvas wallpaper registration and can boot into a blank shell. Restore
+ * only users currently pointing at ODD; leave every other wallpaper choice
+ * untouched.
+ */
+function odd_deactivate_restore_host_wallpaper() {
+	$default_wallpaper = odd_starter_host_default_wallpaper();
+	if ( '' === $default_wallpaper || 'odd' === $default_wallpaper ) {
+		$default_wallpaper = 'dark';
+	}
+
+	$offset = 0;
+	$number = 500;
+	do {
+		$users = get_users(
+			array(
+				'fields' => array( 'ID' ),
+				'number' => $number,
+				'offset' => $offset,
+			)
+		);
+		foreach ( $users as $u ) {
+			$uid      = (int) $u->ID;
+			$settings = odd_starter_get_host_settings_for_user( $uid );
+			if ( ! is_array( $settings ) || ( isset( $settings['wallpaper'] ) ? (string) $settings['wallpaper'] : '' ) !== 'odd' ) {
+				continue;
+			}
+			$settings['wallpaper'] = $default_wallpaper;
+			odd_starter_save_host_settings_for_user( $uid, $settings );
+		}
+		$offset += $number;
+	} while ( count( $users ) === $number );
+}
+register_deactivation_hook( ODD_FILE, 'odd_deactivate_restore_host_wallpaper' );
+
+/**
  * Core entry point: bring the site to a fully-installed starter-pack
  * state. Safe to call from anywhere; no-ops fast if we already
  * succeeded, are already running, or are inside the backoff window.
@@ -576,6 +614,41 @@ function odd_starter_apply_prefs( array $starter ) {
 	return $wrote;
 }
 
+function odd_starter_host_settings_meta_key() {
+	return defined( 'DESKTOP_MODE_OS_SETTINGS_META_KEY' ) ? DESKTOP_MODE_OS_SETTINGS_META_KEY : 'desktop_mode_os_settings';
+}
+
+function odd_starter_host_default_wallpaper() {
+	if ( function_exists( 'desktop_mode_default_os_settings' ) ) {
+		$defaults = desktop_mode_default_os_settings();
+		return isset( $defaults['wallpaper'] ) ? sanitize_key( (string) $defaults['wallpaper'] ) : 'dark';
+	}
+	return 'dark';
+}
+
+function odd_starter_get_host_settings_for_user( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return null;
+	}
+	if ( function_exists( 'desktop_mode_get_os_settings' ) ) {
+		return desktop_mode_get_os_settings( $user_id );
+	}
+	$settings = get_user_meta( $user_id, odd_starter_host_settings_meta_key(), true );
+	return is_array( $settings ) ? $settings : null;
+}
+
+function odd_starter_save_host_settings_for_user( $user_id, array $settings ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+	if ( function_exists( 'desktop_mode_save_os_settings' ) ) {
+		return (bool) desktop_mode_save_os_settings( $user_id, $settings );
+	}
+	return (bool) update_user_meta( $user_id, odd_starter_host_settings_meta_key(), $settings );
+}
+
 /**
  * Point WP Desktop Mode's outer wallpaper selection at `"odd"` for a
  * single user — but only if they haven't picked something non-default
@@ -605,14 +678,13 @@ function odd_starter_seed_host_wallpaper( $user_id ) {
 		return false;
 	}
 
-	$defaults = desktop_mode_default_os_settings();
-	$current  = desktop_mode_get_os_settings( $user_id );
+	$current = odd_starter_get_host_settings_for_user( $user_id );
 	if ( ! is_array( $current ) ) {
 		return false;
 	}
 
 	$current_wallpaper = isset( $current['wallpaper'] ) ? (string) $current['wallpaper'] : '';
-	$default_wallpaper = isset( $defaults['wallpaper'] ) ? (string) $defaults['wallpaper'] : 'dark';
+	$default_wallpaper = odd_starter_host_default_wallpaper();
 
 	// Already on ODD — nothing to do.
 	if ( 'odd' === $current_wallpaper ) {
@@ -627,7 +699,7 @@ function odd_starter_seed_host_wallpaper( $user_id ) {
 	$next              = $current;
 	$next['wallpaper'] = 'odd';
 
-	return (bool) desktop_mode_save_os_settings( $user_id, $next );
+	return odd_starter_save_host_settings_for_user( $user_id, $next );
 }
 
 function odd_starter_get_state_for_rest() {
