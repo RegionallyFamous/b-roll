@@ -18,6 +18,12 @@ def fail(problems: list[str], msg: str) -> None:
     problems.append(msg)
 
 
+def svg_dimension(root: ET.Element, attr: str) -> int | None:
+    raw = (root.attrib.get(attr) or "").strip()
+    match = re.fullmatch(r"(\d+)(?:px)?", raw)
+    return int(match.group(1)) if match else None
+
+
 def main() -> int:
     problems: list[str] = []
     if not SRC.is_dir():
@@ -66,6 +72,10 @@ def main() -> int:
                 continue
             if root.tag != "{http://www.w3.org/2000/svg}svg":
                 fail(problems, f"{folder.name}: {rel} root is not <svg>")
+            width = svg_dimension(root, "width")
+            height = svg_dimension(root, "height")
+            if width != 32 or height != 32:
+                fail(problems, f"{folder.name}: {rel} must declare width=\"32\" height=\"32\" for CSS cursor compatibility")
     if problems:
         print("Cursor-set validation failed:", file=sys.stderr)
         for problem in problems:

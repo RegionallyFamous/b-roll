@@ -534,7 +534,13 @@ CURSOR_KINDS = {
 CURSOR_SIZE_BUDGET = 8192
 
 
-def _validate_cursor_svg(slug: str, rel: str, data: bytes) -> None:
+def _svg_dimension(root: ET.Element, attr: str) -> int | None:
+    raw = (root.attrib.get(attr) or "").strip()
+    match = re.fullmatch(r"(\d+)(?:px)?", raw)
+    return int(match.group(1)) if match else None
+
+
+def _validate_cursor_svg(slug: str, rel: str, data: bytes, require_cursor_dimensions: bool = False) -> None:
     label = f"cursor-set {slug}: {rel}"
     if len(data) > CURSOR_SIZE_BUDGET:
         raise SystemExit(f"{label}: {len(data)} bytes exceeds {CURSOR_SIZE_BUDGET} budget")
@@ -550,6 +556,13 @@ def _validate_cursor_svg(slug: str, rel: str, data: bytes) -> None:
         raise SystemExit(f"{label}: invalid XML: {exc}")
     if root.tag != "{http://www.w3.org/2000/svg}svg":
         raise SystemExit(f"{label}: root element is not <svg>")
+    if require_cursor_dimensions:
+        width = _svg_dimension(root, "width")
+        height = _svg_dimension(root, "height")
+        if width != 32 or height != 32:
+            raise SystemExit(
+                f'{label}: CSS cursor SVGs must declare width="32" height="32"'
+            )
     if not (root.attrib.get("viewBox") or root.attrib.get("width")):
         raise SystemExit(f"{label}: SVG must include viewBox or width")
 
@@ -578,6 +591,7 @@ def build_cursorset(slug: str, src_dir: Path) -> dict:
     files["manifest.json"] = json.dumps(manifest, indent=2).encode() + b"\n"
 
     rels: set[str] = set()
+    cursor_rels: set[str] = set()
     for kind, spec in cursors.items():
         if kind not in CURSOR_KINDS:
             raise SystemExit(f"cursor-set {slug}: unsupported cursor kind {kind!r}")
@@ -594,6 +608,7 @@ def build_cursorset(slug: str, src_dir: Path) -> dict:
         if not (isinstance(hotspot, list) and len(hotspot) == 2 and all(isinstance(v, int) for v in hotspot)):
             raise SystemExit(f"cursor-set {slug}: cursor {kind!r} hotspot must be [x, y] ints")
         rels.add(rel)
+        cursor_rels.add(rel)
 
     preview = manifest["preview"]
     if isinstance(preview, str) and preview:
@@ -604,7 +619,7 @@ def build_cursorset(slug: str, src_dir: Path) -> dict:
         if not svg_path.is_file():
             raise SystemExit(f"cursor-set {slug}: missing {rel}")
         data = svg_path.read_bytes()
-        _validate_cursor_svg(slug, rel, data)
+        _validate_cursor_svg(slug, rel, data, rel in cursor_rels)
         files[rel] = data
 
     bundle = OUT_BUNDLES / f"cursor-set-{slug}.wp"

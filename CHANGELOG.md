@@ -16,6 +16,10 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+### Fixed
+- **Cursor SVG assets** now declare intrinsic dimensions, which improves CSS
+  cursor compatibility in browsers that reject dimensionless SVG cursor images.
+
 <a id="v3.6.4"></a>
 ## [3.6.4] — 2026-04-29
 
