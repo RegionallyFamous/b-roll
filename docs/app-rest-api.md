@@ -1,6 +1,6 @@
 # ODD REST API
 
-> Status: v3.5.10. Covers the `/apps/*`, `/bundles/*`, and `/starter/*` surfaces.
+> Status: v3.6.7. Covers the `/apps/*`, `/bundles/*`, and `/starter/*` surfaces.
 > Mirrored to the
 > [Apps REST API](https://github.com/RegionallyFamous/odd/wiki/Apps-REST-API)
 > wiki page.
@@ -33,16 +33,16 @@ Permission shorthand used below:
 |----------|----------------------------------------------|---------------|--------------------------------------------|
 | `GET`    | `/apps`                                      | login         | List installed apps.                       |
 | `GET`    | `/apps/{slug}`                               | login         | Full manifest for one app.                 |
-| `POST`   | `/apps/upload`                               | admin         | Install from a `.odd` / `.wp` archive.     |
+| `POST`   | `/apps/upload`                               | admin         | Legacy app upload endpoint for `.wp` archives. |
 | `DELETE` | `/apps/{slug}`                               | admin         | Uninstall an app and delete its files.     |
 | `POST`   | `/apps/{slug}/toggle`                        | admin         | Enable/disable an installed app or update its desktop/taskbar surfaces. |
 | `GET`    | `/apps/serve/{slug}/{path...}`               | per-app cap   | Serve a file from the app bundle.          |
 | `GET`    | `/apps/icon/{slug}`                          | public        | Serve the app's declared icon file.        |
 | `GET`    | `/apps/catalog`                              | login         | Compat shim — forwards to `/bundles/catalog?type=app`. |
 | `POST`   | `/apps/install-from-catalog`                 | admin         | Compat shim — forwards to `/bundles/install-from-catalog`. |
-| `POST`   | `/bundles/upload`                            | admin         | Install any `.wp` bundle (app, icon set, scene, widget). |
+| `POST`   | `/bundles/upload`                            | admin         | Install any `.wp` bundle (app, icon set, cursor set, scene, widget). |
 | `DELETE` | `/bundles/{slug}`                            | admin         | Uninstall any bundle regardless of type.   |
-| `GET`    | `/bundles/catalog`                           | login         | Browse the remote catalog (all bundle types). |
+| `GET`    | `/bundles/catalog`                           | login         | Browse the remote catalog (installer fields redacted for non-admins). |
 | `POST`   | `/bundles/install-from-catalog`              | admin         | Install a catalog bundle by slug, verified via SHA256. |
 | `POST`   | `/bundles/refresh`                           | admin         | Force-refresh the remote catalog transient. |
 | `GET`    | `/starter`                                   | login         | Read the starter-pack runner state.        |
@@ -107,7 +107,7 @@ was packaged plus the runtime fields `enabled`, `installed`, and
 
 ### `POST /apps/upload`
 
-Install an app from a `.odd` (or `.wp`) archive.
+Install an app from a `.wp` archive.
 
 **Auth:** admin
 **Content-Type:** `multipart/form-data`
@@ -138,7 +138,7 @@ SITE=$(wp option get siteurl)
 curl -X POST "${SITE}/wp-json/odd/v1/apps/upload" \
     -H "X-WP-Nonce: ${NONCE}" \
     -b cookie-jar.txt \
-    -F "file=@my-app.odd"
+    -F "file=@my-app.wp"
 ```
 
 **Response** — `200 OK`:
@@ -161,7 +161,7 @@ curl -X POST "${SITE}/wp-json/odd/v1/apps/upload" \
 | Status | Code                     | Meaning                                                   |
 |--------|--------------------------|-----------------------------------------------------------|
 | 400    | `no_file`                | No `file` field present in the multipart body.            |
-| 400    | `invalid_extension`      | Filename does not end in `.odd` or `.wp`.                 |
+| 400    | `invalid_extension`      | Filename does not end in `.wp`.                           |
 | 400    | `zip_unavailable`        | PHP `ZipArchive` extension not installed.                 |
 | 400    | `invalid_zip`            | File is not a valid ZIP archive.                          |
 | 400    | `too_many_files`         | Archive exceeds 2,000 files.                              |
@@ -250,12 +250,14 @@ keys keep their current values. Both keys are booleans.
 ### `GET /apps/serve/{slug}/{path...}`
 
 Serve a static file from an installed, enabled app's bundle. This is
-the endpoint the iframe's `src` points to, and the only way app files
-reach the browser — direct requests to `wp-content/odd-apps/` are
-blocked by an `.htaccess` that ODD writes on first install.
+the REST fallback for app serving; the normal iframe path is
+`/odd-app/<slug>/...` so relative assets can load with cookie auth.
+Direct requests to `wp-content/odd-apps/` are blocked by an `.htaccess`
+that ODD writes on first install.
 
-**Auth:** logged-in + the app's declared `capability` (default
-`manage_options`).
+**Auth:** logged-in + the app's normalized `capability` (default
+`manage_options`). Manifest capabilities cannot lower the access floor
+unless the site deliberately opts in with filters.
 
 **Path params:**
 
@@ -324,7 +326,9 @@ never honored, so there's no traversal surface.
 > working. New code should call `/bundles/catalog` directly.
 
 Return the app subset of the remote catalog, with an `installed` flag
-per entry so UIs can flip "Install" buttons straight to "Open".
+per entry so UIs can flip "Install" buttons straight to "Open". For
+non-admin users, installer-only fields such as `download_url` and
+`sha256` are redacted.
 
 The catalog is fetched from
 `https://odd.regionallyfamous.com/catalog/v1/registry.json` via
@@ -346,9 +350,7 @@ app downloads a remote `.wp` archive through `install-from-catalog`.
             "author":       "Regionally Famous",
             "description":  "Get paid. Track clients, generate invoices.",
             "icon_url":     "https://…/icon.svg",
-            "download_url": "https://…/ledger.wp",
             "tags":         [ "business", "invoicing" ],
-            "sha256":       "a1b2c3…",
             "size":         48241,
             "installed":    false
         }
@@ -365,7 +367,9 @@ app downloads a remote `.wp` archive through `install-from-catalog`.
 
 Install a catalog entry by slug. ODD downloads the bundle from
 `download_url`, verifies the SHA256 against the registry entry,
-validates the archive, and feeds it to `odd_apps_install()`.
+verifies the archive manifest still matches the catalog row's `slug`
+and `type`, validates the archive, and feeds it to the universal bundle
+installer.
 
 **Auth:** admin
 **Content-Type:** `application/json`
@@ -393,8 +397,12 @@ validates the archive, and feeds it to `odd_apps_install()`.
 | 404    | `not_in_catalog`      | Slug is not in the remote registry.                     |
 | 409    | `already_installed`   | Something with that slug is already installed.          |
 | 400    | `no_download`         | Catalog row has no `download_url`.                      |
-| 400    | `insecure_download`   | `download_url` is not HTTPS. Override with the `odd_apps_allow_insecure_catalog` filter on dev hosts. |
-| 400    | `checksum_mismatch`   | Downloaded bundle's SHA256 didn't match the registry.   |
+| 400    | `insecure_download`   | `download_url` is not HTTPS. Override with the `odd_bundle_allow_insecure_catalog` filter on controlled dev hosts. |
+| 400    | `missing_sha256`      | Catalog row is missing a required SHA256 digest.         |
+| 400    | `catalog_slug_mismatch` | Downloaded bundle slug did not match the catalog row.  |
+| 400    | `catalog_type_mismatch` | Downloaded bundle type did not match the catalog row.  |
+| 409    | `catalog_operation_in_progress` | Another refresh/install operation is already running. |
+| 502    | `sha256_mismatch`     | Downloaded bundle's SHA256 didn't match the registry.   |
 | 502    | `catalog_fetch_failed` | The registry could not be loaded and no cached copy exists. |
 | *varies* | (download errors)   | Any `WP_Error` from `download_url()` is passed through. |
 | *varies* | (install errors)    | Any validation error from `POST /apps/upload` applies.  |
@@ -404,8 +412,8 @@ validates the archive, and feeds it to `odd_apps_install()`.
 ### `POST /bundles/refresh`
 
 Force-refresh the remote-catalog transient. Use after publishing a
-new bundle to skip the 12-hour cache. Returns the freshly-fetched
-registry payload.
+new bundle to skip the 12-hour cache. Returns refresh status, bundle
+count, and catalog health metadata.
 
 **Auth:** admin
 
@@ -413,9 +421,9 @@ registry payload.
 
 ```json
 {
-    "refreshed":   true,
-    "fetched_at":  1766428800,
-    "entries":     42
+    "refreshed": true,
+    "count":     49,
+    "meta":      { "source": "remote", "bundle_count": 49 }
 }
 ```
 

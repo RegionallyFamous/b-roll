@@ -123,7 +123,7 @@
 			if ( ! window.__odd.store ) return {};
 			var snap = window.__odd.store.getState();
 			if ( snap && snap.user ) {
-				return { user: { wallpaper: snap.user.wallpaper, iconSet: snap.user.iconSet } };
+				return { user: { wallpaper: snap.user.wallpaper, iconSet: snap.user.iconSet, cursorSet: snap.user.cursorSet } };
 			}
 			return {};
 		} catch ( _ ) { return {}; }
@@ -180,6 +180,14 @@
 			'- catalog last error: `' + ( p.systemHealth.catalog && p.systemHealth.catalog.last_error_message || '' ) + '`',
 			'- starter status: `' + ( p.systemHealth.starter && p.systemHealth.starter.status || '' ) + '`',
 			'- installed apps: `' + ( p.systemHealth.apps && p.systemHealth.apps.installed || 0 ) + '`',
+			'- installed scenes/icon sets/cursor sets/widgets: `' + [
+				p.systemHealth.content && p.systemHealth.content.scenes || 0,
+				p.systemHealth.content && p.systemHealth.content.iconSets || 0,
+				p.systemHealth.content && p.systemHealth.content.cursorSets || 0,
+				p.systemHealth.content && p.systemHealth.content.widgets || 0,
+			].join( '/' ) + '`',
+			'- active cursor set: `' + ( p.systemHealth.cursors && p.systemHealth.cursors.active || ( p.state.user && p.state.user.cursorSet ) || '' ) + '`',
+			'- cursor stylesheet: `' + ( p.systemHealth.cursors && p.systemHealth.cursors.stylesheet ? '(present)' : '(missing)' ) + '`',
 			'',
 			'## Recent log (' + p.recentLog.length + ' entries, newest first)',
 			'```',

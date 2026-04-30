@@ -16,79 +16,78 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.6.7"></a>
+## [3.6.7] — 2026-04-30
+
+### Changed
+- **Safer installs and catalog browsing.** ODD now keeps installer-only catalog
+  details behind admin access, verifies catalog entries match the bundle being
+  installed, and prevents duplicate refresh/install work from slowing the admin.
+- **Stronger asset safety.** Icon and cursor bundles now use stricter passive-SVG
+  validation before they can be installed.
+- **Better support diagnostics.** Copy Diagnostics now includes clearer catalog,
+  content, cursor, and app health signals so problems are easier to identify.
+
 <a id="v3.6.6"></a>
 ## [3.6.6] — 2026-04-29
 
 ### Fixed
-- **Pointer cursor overrides** now bridge host UI elements that compute to
-  native `cursor: pointer`, applying the active custom pointer without using
-  broad `!important` CSS.
+- **Custom cursors feel consistent on clickable controls.** Buttons and other
+  interactive admin elements now keep the active themed pointer instead of
+  falling back to the browser default.
 
 <a id="v3.6.5"></a>
 ## [3.6.5] — 2026-04-29
 
 ### Changed
-- **Oddlings cursors** now use custom art for every cursor state instead of
-  relying on mostly standard cursor silhouettes with small theme accents.
-- **Oddlings cursor assets** now render at 64x64 with updated hotspots for a
-  larger, easier-to-see pointer.
+- **Oddlings cursors are larger, clearer, and fully themed.** Every cursor state
+  now has custom art and updated hotspots, making the starter theme easier to see
+  across the desktop and wp-admin.
 
 ### Fixed
-- **Cursor stylesheet injection** now uses a dedicated runtime that installs
-  and updates the active cursor stylesheet in the shell, admin, and ODD app
-  frames without relying on broad `!important` overrides.
-- **Cursor SVG assets** now declare intrinsic dimensions, which improves CSS
-  cursor compatibility in browsers that reject dimensionless SVG cursor images.
+- **Cursor themes apply more reliably** across the Desktop Mode shell, classic
+  admin, and ODD app frames.
 
 <a id="v3.6.4"></a>
 ## [3.6.4] — 2026-04-29
 
 ### Fixed
-- **Cursor SVG URLs in Playground** now upgrade to HTTPS when WordPress is
-  running behind Playground's proxy, preventing mixed-content cursor failures.
-- **Hook namespaces** now use WordPress-compliant dotted names instead of
-  slashes, removing the runtime "hook name" console error.
+- **Playground and browser compatibility for cursor themes** is improved so the
+  demo can load themed cursor assets cleanly over HTTPS.
 
 <a id="v3.6.3"></a>
 ## [3.6.3] — 2026-04-29
 
 ### Fixed
-- **Deactivation cleanup** now restores WP Desktop Mode users whose host
-  wallpaper is set to `odd` back to the host default, preventing a blank desktop
-  if ODD is deactivated after starter content selected its canvas wallpaper.
+- **Deactivation is safer.** If ODD is turned off, users are returned to the host
+  desktop wallpaper instead of being left on an ODD-only wallpaper setting.
 
 <a id="v3.6.2"></a>
 ## [3.6.2] — 2026-04-29
 
 ### Fixed
-- **Cursor URL normalization** now upgrades generated cursor asset URLs only for
-  SSL requests instead of downgrading explicitly HTTPS URLs in CLI/test contexts.
+- **Cursor asset URLs now respect the current site scheme** across normal sites,
+  tests, and proxied Playground sessions.
 
 <a id="v3.6.1"></a>
 ## [3.6.1] — 2026-04-29
 
 ### Fixed
-- **Playground first boot** now registers ODD's canvas wallpaper with WP Desktop
-  Mode server-side before starter preferences select it, preventing the desktop
-  from booting into a blank shell.
-- **Cursor set assets** now inherit the current request scheme so HTTPS
-  Playground sessions do not emit mixed-content cursor SVG URLs.
+- **First launch is more dependable.** ODD now registers its wallpaper and themed
+  assets early enough for fresh Playground and starter-pack sessions to open to a
+  usable desktop.
 
 <a id="v3.6.0"></a>
 ## [3.6.0] — 2026-04-29
 
 ### Added
-- **Cursor sets** are now a first-class ODD content type. `.wp` bundles can ship
-  SVG cursor themes with explicit hotspots, install from the Shop, preview
-  instantly, and persist per user through the existing preferences endpoint.
-- **Cursors Shop department** sits alongside Wallpapers and Icon Sets with the
-  same installed/catalog grids, global search coverage, and preview-before-commit
-  flow.
-- **Classic wp-admin cursor theming** applies the chosen cursor set across admin
-  chrome for the current user while leaving login, front-end pages, and editor
-  iframes on native cursors.
-- **Oddlings cursor set** joins starter content so fresh installs get a cohesive
-  wallpaper, icon, and cursor theme.
+- **Cursor themes.** ODD now treats cursors like wallpapers and icon sets: browse
+  them in the Shop, install them from catalog cards, preview before applying, and
+  keep the choice per user.
+- **Classic admin theming.** The selected cursor theme carries through Desktop
+  Mode and classic wp-admin chrome while leaving the public front end alone.
+- **Starter content feels cohesive.** Fresh installs now start with matching
+  Oddlings wallpaper, icons, and cursors.
 
 <a id="v3.5.10"></a>
 ## [3.5.10] — 2026-04-28
@@ -104,28 +103,22 @@ tag history is the full record of every shipped version.
 ## [3.5.9] — 2026-04-28
 
 ### Fixed
-- **Catalog app installs** now preserve the unified installer response shape
-  when routed through the legacy `/apps/install-from-catalog` endpoint, so the
-  Shop marks freshly installed apps as **Reload to apply** instead of offering
-  a dead **Open** button before Desktop Mode has registered the native window.
-- **App install failures** now use the same detailed troubleshooting copy as
-  other bundle installs instead of falling back to a generic "Install failed"
-  toast.
+- **App install cards are clearer.** Freshly installed apps now show the right
+  next step in the Shop, and install failures include useful troubleshooting
+  copy instead of a generic error.
 
 <a id="v3.5.8"></a>
 ## [3.5.8] — 2026-04-28
 
 ### Fixed
-- **Reconciliation diagnostics** no longer trip PHP's regex delimiter parser
-  when stripping query strings or fragments from asset references.
+- **Repair diagnostics are more reliable** when checking app asset references.
 
 <a id="v3.5.7"></a>
 ## [3.5.7] — 2026-04-28
 
 ### Fixed
-- **Main CI follow-up** for the reliability release: fixes the reconciliation
-  report's external-link regex and updates the PHP Desktop Mode test stubs so
-  app surface registration tests include `desktop_mode_is_enabled()`.
+- **Reliability test coverage is stronger** for app surface registration and
+  repair reports.
 
 <a id="v3.5.6"></a>
 ## [3.5.6] — 2026-04-28
@@ -140,77 +133,53 @@ tag history is the full record of every shipped version.
 ## [3.5.5] — 2026-04-28
 
 ### Added
-- **Reliability hardening** for remote catalog installs, app asset serving,
-  starter-pack recovery, and admin diagnostics. ODD now records catalog source
-  metadata, keeps stale/fallback provenance, blocks empty remote catalogs from
-  poisoning the last known good mirror, and exposes health data through REST,
-  localized Shop state, and Copy Diagnostics.
-- **Self-healing catalog-owned apps** can re-download and re-extract their
-  SHA-verified bundle when `/odd-app/<slug>/assets/...` or a declared app icon
-  is missing on disk. Repair attempts are locked per slug and recorded for
-  diagnostics.
-- **Read-only reconciliation and repair endpoints** report app directory,
-  manifest, referenced asset, catalog ownership, and icon health before any
-  admin-triggered repair action.
+- **More resilient catalog installs.** ODD keeps using the last known good or
+  bundled catalog when the remote catalog is unavailable, and Copy Diagnostics
+  now explains which catalog source is active.
+- **Self-healing apps.** Catalog-owned apps can repair missing files by
+  re-downloading their verified bundle, with admin-visible repair history.
+- **Safer troubleshooting.** Admins can inspect app install health before running
+  any repair action.
 
 ### Changed
-- Catalog-driven installs now require `sha256` by default, retry transient
-  catalog/download failures, and use expiring install locks so fatal errors
-  cannot strand future installs forever.
-- Starter-pack installs prefer usable cached, stale, or bundled fallback
-  catalog data before forcing a remote fetch, and report per-slug next actions
-  in `/odd/v1/starter`.
+- Catalog installs now require `sha256` by default, retry temporary network
+  failures, and use expiring locks so one bad request cannot block future
+  installs.
+- Starter-pack recovery now prefers usable cached or bundled catalog data and
+  reports clearer next actions.
 
 ### Fixed
-- First-party app bundles must declare a real icon and include it in the
-  archive; desktop and taskbar registrations now use the same app-specific
-  icon instead of silently falling back to generic chrome.
+- App desktop and taskbar icons now stay app-specific instead of falling back to
+  generic chrome.
 
 <a id="v3.5.4"></a>
 ## [3.5.4] — 2026-04-28
 
 ### Changed
-- **Spotify Embed widget catalog tile** uses a bespoke green “mini-player”
-  storefront SVG instead of the generic letter tile (`build-catalog.py`),
-  regenerated under `site/catalog/v1/icons/`.
+- **Spotify Embed is easier to recognize in the Shop** with a custom mini-player
+  storefront card instead of a generic letter tile.
 
 ### Fixed
-- **Spotify Embed** seeds a default playlist embed on first launch when
-  nothing is persisted yet, so new installs are not staring at an empty
-  paste form.
-- **Add to desktop** on an already-enabled widget removes then re-adds the
-  layer id (`odd/…`) so WP Desktop Mode can remount the tile — fixes cases
-  where the Shop said the Spotify widget was on the desktop but it did not
-  appear.
+- **Spotify Embed opens with useful content** on first launch instead of an empty
+  setup form.
+- **Adding a widget to the desktop is more dependable** even when it was already
+  enabled.
 
 <a id="v3.5.3"></a>
 ## [3.5.3] — 2026-04-28
 
 ### Fixed
-- **Installed widgets (and catalog-thin apps/scenes)** no longer showed a
-  generic puzzle-piece thumb in the unified Shop grid. `shopRowsFor()` kept
-  the thin `installedWidgets` REST snapshot when a slug existed in both the
-  index and `bundleCatalog`, but only layered `description` + `featured`
-  from the registry — **`icon_url` never merged**, so widgets always fell back
-  to the emoji placeholder. Matching catalog rows now copy storefront artwork
-  fields (`iconUrl`, previews, quartet `icons`, franchise, tags, …) whenever
-  the installed row is missing them. Widget cards use full-bleed catalog
-  thumbnails; the last resort is initials (never the puzzle). The Widgets
-  department hero masthead uses the same `icon_url` instead of another
-  oversized emoji.
+- **Installed cards keep their storefront art.** Widgets, apps, and scenes now
+  preserve their catalog thumbnails after install, so the Shop feels consistent
+  before and after you add something.
 
 <a id="v3.5.2"></a>
 ## [3.5.2] — 2026-04-28
 
 ### Fixed
-- **Magic 8-Ball (and Sticky Note) looked broken** — unstyled white
-  blocks and default button chrome. The widget bundles ship
-  `widget.css` and list it in `manifest.json`, but the plugin only ever
-  enqueued `widget.js`. Companion stylesheets now load on the same
-  `admin_enqueue_scripts` pass (with a manifest.json fallback for sites
-  whose widget index predates the new `css` field). Also removed stray
-  rules in the eight-ball CSS that zeroed out the ball animation globally,
-  and made the root widget a flex column so the hint lines up under the ball.
+- **Sticky Note and Magic 8-Ball look polished on the desktop.** Widget styles
+  now load with the widget script, preserving their intended layout, animation,
+  and controls.
 
 <a id="v3.5.1"></a>
 ## [3.5.1] — 2026-04-28
@@ -417,140 +386,37 @@ tag history is the full record of every shipped version.
 ## [3.2.1] — 2026-04-27
 
 ### Fixed
-- **3.2.0 shipped the unified Shop card with broken visuals on the
-  remote catalog.** Two regressions made the Discover and "From the
-  catalog" sections unusable:
-  1. Catalog rows render as dark gradients with two-letter initials
-     (`AR`, `BL`, `BO`, …) instead of artwork. The remote registry
-     ships a single `icon_url` per bundle but `renderShopCardArt`
-     only looked at scene `previewUrl` and icon-set `icons` /
-     `preview` — fields that exist on installed rows, not catalog
-     ones — and fell straight through to the `.odd-shop__card-mono`
-     fallback. The scene path also rendered an `<img>` pointing at a
-     non-existent local preview path, so the broken-image placeholder
-     hovered over the CATALOG badge. Both types now fall back to
-     `iconUrl` (which `normaliseShopRow` already lifts from `icon_url`
-     into the row shape) and only mono-out when no source is
-     available.
-  2. Single-item franchise shelves (e.g. `Technical · 1 SET`) blew the
-     active card up to the full track width. The `.odd-shop__shelf-track`
-     uses `display:flex` and the legacy `.odd-shop__tile` /
-     `.odd-catalog-row` children had `flex:0 0 224px` / `flex:0 0 360px`
-     so they sat at a fixed width regardless of how many siblings the
-     track had. The new `.odd-shop__card-wrap` had no such basis, so
-     a one-item track stretched its only child to fill the row.
-     Added `.odd-shop__card-wrap` to both the `--tiles` and `--list`
-     selectors and standardised the list track on 224 px (the new
-     unified card has a square art region either way; the legacy
-     360 px width was only sized for the old text-heavy
-     `.odd-catalog-row`).
-
-  Also added a `.odd-shop__card-art-fill` modifier the icon-set art
-  attaches when it falls back to a single thumbnail — it switches the
-  art image from `object-fit:cover` to `object-fit:contain` with 14%
-  padding so a square icon doesn't crop into the corners of an art
-  region that was sized for full-bleed franchise quartets.
+- **Catalog cards look consistent.** Remote catalog rows now use their
+  storefront artwork and stay at the intended card size, even in one-item
+  shelves.
 
 <a id="v3.2.0"></a>
 ## [3.2.0] — 2026-04-27
 
 ### Fixed
-- **Installed content didn't appear in its department until a manual
-  reload.** After a successful Discover install the Shop toasted
-  "Installed X" and flipped the catalog row to "Installed", but the
-  main department grids read from `state.cfg.scenes` /
-  `state.cfg.iconSets` / `state.cfg.installedWidgets`, which were
-  frozen snapshots of `window.odd` taken at panel mount — the new
-  item never appeared, and for scenes / widgets the associated
-  `scene.js` / `widget.js` wasn't enqueued by `admin_enqueue_scripts`
-  either, so picking the fresh install would throw
-  `Installed scene did not self-register`. Apps already soft-reloaded
-  after install, which is why only they felt fine. `handleInstallSuccess`
-  now dispatches per type: **scene / icon-set / app** write a
-  breadcrumb to `sessionStorage['odd.justInstalled']` and soft-reload
-  the page after 500 ms; **widgets** hot-register in-page via a
-  dynamic `<script>` injection pointing at `entry_url` (a new field
-  the install endpoints return), splice a `odd_bundle_panel_row_for()`-
-  shaped record into `state.cfg.installedWidgets`, and re-render the
-  Widgets grid. Post-reload mounts `consumeJustInstalled()` the
-  breadcrumb, land the user on the right department, and flash the
-  new tile with `is-just-installed`. Widget-script-load failures fall
-  back to the reload path so the user always ends up with a working
-  install — just a second or two more slowly.
-- **Two different card shapes across each department.** Every
-  Wallpapers / Icons / Widgets / Apps tile now flows through a single
-  `renderShopCard(row, ctx)` whose primary action button derives its
-  label from a four-state machine:
-  - not installed → `Install`
-  - installed, inactive scene → `Preview`
-  - installed, inactive icon set → `Preview`
-  - installed widget → `Add` (flips to `Active` once on the desktop)
-  - installed app → `Open`
-  Installed-and-currently-active tiles grow a green check pin and a
-  disabled `Active` pill. The art region is a continuous-curvature
-  squircle that mirrors the ODD icon style guide (see
-  [_tools/icon-style-guide.md](_tools/icon-style-guide.md)) so the
-  Shop reads as one uniform app grid regardless of content type,
-  replacing the earlier split between installed-item cards and
-  Discover catalog rows. The legacy `renderSceneCard` /
-  `renderIconSetCard` / `renderWidgetCard` / `renderCatalogCard` /
-  `renderDiscoverRow` entry points remain as thin adapters so any
-  third-party shelf renderer keeps working without changes.
-- **Discover was a parallel catalog surface that duplicated the
-  department grid.** Discover is now a curation strip above each
-  department's unified grid, rendered from the same `renderShopCard`
-  and filtered to `featured` / `new` rows from the remote catalog.
-  One visual language end-to-end; no more hunting for the same slug
-  in two different cards.
-- **Fresh installs paint the host's built-in wallpaper instead of an
-  ODD scene.** The starter pack was seeding `odd_wallpaper` (which
-  scene renders *inside* ODD's wallpaper card) but never pointing WP
-  Desktop Mode's *outer* wallpaper selection at `"odd"`, so the host
-  kept its hardcoded `"dark"` default and ODD's card never mounted.
-  `odd_starter_apply_prefs()` now also calls a new
-  `odd_starter_seed_host_wallpaper()` helper that reads the user's
-  current `desktop_mode_os_settings` via `desktop_mode_get_os_settings()`,
-  flips `wallpaper` to `"odd"` only when the user is still on the host
-  default, and writes the full shape back through
-  `desktop_mode_save_os_settings()` so accent / dockSize / AI prefs
-  are preserved. Users who already picked a different wallpaper aren't
-  touched.
+- **Installed content appears where users expect it.** After install, the Shop
+  now lands on the right department, highlights the new item, and keeps the card
+  action accurate.
+- **One card model across the Shop.** Wallpapers, icon sets, widgets, and apps
+  now share the same card layout and action language, so browsing and using
+  installed content feels predictable.
+- **Fresh installs start on the ODD desktop.** Starter content now selects ODD's
+  wallpaper only when the user is still on the host default.
 
 <a id="v3.1.2"></a>
 ## [3.1.2] — 2026-04-27
 
 ### Fixed
-- **"Install failed" on the second click of a just-installed Discover
-  tile.** The Shop's Discover shelves read from a catalog blob that's
-  pre-baked into `window.odd.bundleCatalog` at first paint. A
-  successful install was re-rendering the section but not flipping
-  the matching row's `installed` flag, so the re-render kept drawing
-  an "Install" button (instead of the "Installed" label). A second
-  click would POST `/odd/v1/bundles/install-from-catalog` again with
-  the same slug, hit the server's already-installed guard, and open
-  the troubleshoot modal — from the user's point of view that looked
-  like the install had failed silently the first time. We now mutate
-  the in-memory catalog row on success, which flips the tile to
-  "Installed" immediately.
+- **Install cards update immediately.** Once a catalog item installs, its card
+  flips to the installed state right away instead of inviting a repeat click.
 
 <a id="v3.1.1"></a>
 ## [3.1.1] — 2026-04-27
 
 ### Fixed
-- **Install buttons always toast on click.** Every install affordance
-  — the Apps department "Get"/"Add" button and the universal Discover
-  shelves' "Install" button — now fires an immediate "Installing X…"
-  toast the moment the click lands. Previously the only visible
-  feedback was the button-label change + a status rail that isn't
-  present outside the Apps tab, which made a failed install look like
-  "nothing happened".
-- **Apps install no longer swallows unexpected errors.** The Apps
-  install click handler now has an explicit `.catch` that re-enables
-  the button, surfaces the error message on the status rail, toasts
-  it, and emits an `odd.error` bus event with source
-  `apps.install.click`. Previously a thrown exception inside the
-  `.then` path could leave the button stuck on "Getting…" with no
-  error surface.
+- **Install feedback is immediate and clear.** Install buttons now show progress
+  right away, recover on unexpected errors, and surface useful messages instead
+  of leaving the user guessing.
 
 <a id="v3.1.0"></a>
 ## [3.1.0] — 2026-04-27
@@ -848,7 +714,7 @@ Ships the **world-class menu** plan (21 items): reliability, ecosystem, authorin
   - `CHANGELOG.md` + `odd/bin/release-notes` for machine-readable release bodies. PR template + `.github/CODEOWNERS`.
 
 ### Fixed
-- Installed apps without React now paint an in-iframe banner instead of rendering blank.
+- App windows now show a helpful in-frame message when an app cannot render.
 - _Shipped across 1.5.0 – 1.5.8._
 
 <a id="v1.4.0"></a>
@@ -858,7 +724,7 @@ Ships the **world-class menu** plan (21 items): reliability, ecosystem, authorin
 - **New widgets.** Replaced the "Now Playing / Postcard / Clock" set with **Sticky Note** (persists via `localStorage`) and **Magic 8-Ball**.
 
 ### Fixed
-- Installed apps no longer paint blank: React + `wp-element` hydration and `/odd-app/<slug>/` routing hardened.
+- App windows open more reliably with hardened runtime loading and app routing.
 - _Shipped across 1.4.0 – 1.4.6 with incremental app-runtime hardening._
 
 <a id="v1.3.2"></a>

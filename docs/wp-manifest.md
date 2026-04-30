@@ -75,7 +75,7 @@ Covered in full by the [Building an App](building-an-app.md) guide.
     "name":        "Ledger",
     "version":     "1.0.0",
     "entry":       "index.html",
-    "capability":  "read",
+    "capability":  "manage_options",
     "window":      { "width": 720, "height": 520, "min_width": 420, "min_height": 320 },
     "desktopIcon": { "title": "Ledger", "position": 300 },
     "surfaces":    { "desktop": true, "taskbar": false },
@@ -86,7 +86,7 @@ Covered in full by the [Building an App](building-an-app.md) guide.
 | Field         | Required | Notes                                                                        |
 |---------------|----------|------------------------------------------------------------------------------|
 | `entry`       | no       | Defaults to `"index.html"`. Path relative to archive root, no `..`.          |
-| `capability`  | no       | Defaults to `"manage_options"`. Checked on every serve request.              |
+| `capability`  | no       | Defaults to `"manage_options"`. Checked on every serve request. Manifest values are normalized against ODD's capability floor, so bundles cannot broaden access to all logged-in users by declaring `"read"` unless a site deliberately opts in with filters. |
 | `window`      | no       | `{ width, height, min_width, min_height, title }`.                           |
 | `desktopIcon` | no       | `{ title, position }`. Position is an ordering hint (lower = earlier).       |
 | `surfaces`    | no       | `{ desktop: bool, taskbar: bool }`. Install-time defaults for the app's two visible launch surfaces — desktop icon and Desktop Mode taskbar icon. Missing keys default to `{ desktop: true, taskbar: false }`. Users can override each independently from the ODD Shop. |
@@ -130,9 +130,11 @@ Covered in full by [Building an Icon Set](building-an-icon-set.md).
 | `preview`   | no       | Relative path to a hero SVG/PNG/WebP. Falls back to `icons.dashboard`.   |
 | `icons`     | yes      | Map of 13 required keys (see guide) → relative SVG paths.                |
 
-Every SVG is scrubbed on install: no `<script>`, no `on*` attributes,
-no external `xlink:href`/`href`, no control bytes outside `\t\n\r`,
-valid `viewBox` or `width+height`.
+Every SVG is validated on install as passive SVG: no `<script>`,
+`foreignObject`, embedded images, event attributes, external
+`xlink:href`/`href`, scriptable URL values, or control bytes outside
+`\t\n\r`. SVGs must be well-formed and use allowed drawing elements and
+attributes.
 
 ### Type: `cursor-set`
 
@@ -161,9 +163,10 @@ Covered in full by [Building a Cursor Set](building-a-cursor-set.md).
 | `preview` | no       | Relative path to an SVG preview tile.                                      |
 | `cursors` | yes      | Map of supported cursor kinds to `{ file, hotspot: [x, y] }`. `default` is required. |
 
-Cursor SVGs are scrubbed like icon SVGs. They apply to Desktop Mode and
-classic wp-admin chrome for the current user; editor iframes and the
-public front-end keep native cursors in v1.
+Cursor SVGs use the same passive-SVG validation as icon SVGs. They apply
+to Desktop Mode, ODD app frames, and classic wp-admin chrome for the
+current user; editor iframes and the public front end keep native
+cursors.
 
 ### Type: `scene`
 
@@ -212,7 +215,7 @@ Covered in full by [Building a Widget](building-a-widget.md).
     "version":     "1.0.0",
     "entry":       "widget.js",
     "icon":        "icon.svg",
-    "preview":     "preview.webp",
+    "preview":     "preview.svg",
     "defaultSize": { "width": 220, "height": 180 }
 }
 ```
@@ -221,7 +224,7 @@ Covered in full by [Building a Widget](building-a-widget.md).
 |---------------|----------|---------------------------------------------------------------------|
 | `entry`       | yes      | Relative path to the JS that calls `wp.desktop.registerWidget()`.   |
 | `icon`        | no       | SVG/PNG/WebP shown on the Shop tile.                                |
-| `preview`     | no       | Hero WebP shown on the detail sheet.                                |
+| `preview`     | no       | Optional preview art. First-party catalog widgets prefer `preview.svg` for card art; older bundles can still rely on generated tiles. |
 | `defaultSize` | no       | `{ width, height }` in CSS px.                                      |
 
 Widget JavaScript is enqueued on every admin page with `wp-desktop`
@@ -275,7 +278,7 @@ response and as friendly copy in the Shop topbar pill.
 | `manifest.json` parses as JSON                            | `invalid_manifest`      |
 | `name` / `slug` / `version` present and non-empty         | `missing_manifest_field`|
 | `slug` matches `^[a-z0-9-]+$`                             | `invalid_slug`          |
-| `type`, if set, is one of the four supported values       | `unsupported_type`      |
+| `type`, if set, is one of the five supported values       | `unsupported_type`      |
 | `slug` is not already installed (any type)                | `slug_exists`           |
 
 ### Per-type
@@ -283,7 +286,8 @@ response and as friendly copy in the Shop topbar pill.
 | Type       | Extra checks                                                                                   |
 |------------|------------------------------------------------------------------------------------------------|
 | `app`      | `entry` matches the entry regex + file exists in the archive.                                  |
-| `icon-set` | `icons` present, all 13 keys mapped, each path is a real SVG, each SVG passes the scrubber.    |
+| `icon-set` | `icons` present, all 13 keys mapped, each path is a real SVG, each SVG passes passive-SVG validation. |
+| `cursor-set` | `cursors` present, `default` mapped, each path is a real SVG, each SVG passes passive-SVG validation, hotspots are integer pairs. |
 | `scene`    | `entry`, `preview`, `wallpaper` all present in the archive; `fallbackColor` is a `#hex`.       |
 | `widget`   | `entry` matches the entry regex + file exists in the archive.                                  |
 

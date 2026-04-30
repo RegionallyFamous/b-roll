@@ -204,6 +204,35 @@ class Test_Apps_Install extends ODD_REST_Test_Case {
 		$this->assertContains( 'rest-list-app', $slugs );
 	}
 
+	public function test_app_manifest_capability_cannot_broaden_serve_access_by_default() {
+		$this->login_as();
+		$res = $this->install_fixture( 'low-cap-app', array( 'capability' => 'read' ) );
+		$this->assertIsArray( $res, is_wp_error( $res ) ? $res->get_error_message() : 'install returned non-array' );
+		$this->installed[] = 'low-cap-app';
+
+		$index = odd_apps_index_load();
+		$this->assertSame( 'manage_options', $index['low-cap-app']['capability'] );
+
+		$sub = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $sub );
+
+		$serve = $this->dispatch_json( 'GET', '/odd/v1/apps/serve/low-cap-app' );
+		$this->assertContains( $serve->get_status(), array( 401, 403 ) );
+	}
+
+	public function test_app_capability_filter_can_allow_deliberate_lower_privilege_apps() {
+		add_filter(
+			'odd_app_allowed_capabilities',
+			static function ( $allowed ) {
+				$allowed[] = 'read';
+				return $allowed;
+			}
+		);
+
+		$this->assertSame( 'read', odd_apps_normalize_capability( 'read' ) );
+		remove_all_filters( 'odd_app_allowed_capabilities' );
+	}
+
 	public function test_rest_delete_requires_manage_options() {
 		$this->install_fixture( 'subscriber-delete-target' );
 		$this->installed[] = 'subscriber-delete-target';
@@ -227,5 +256,14 @@ class Test_Apps_Install extends ODD_REST_Test_Case {
 		$res = $this->dispatch_json( 'POST', '/odd/v1/apps/toggle-me/toggle', array( 'enabled' => true ) );
 		$this->assertSame( 200, $res->get_status() );
 		$this->assertTrue( $res->get_data()['enabled'] );
+	}
+
+	public function test_app_cookieauth_csp_keeps_compat_allowances_but_blocks_plugins() {
+		$csp = odd_apps_cookieauth_csp( 'csp-app', array() );
+
+		$this->assertStringContainsString( "script-src 'self' 'unsafe-inline' https:", $csp );
+		$this->assertStringContainsString( "object-src 'none'", $csp );
+		$this->assertStringContainsString( "frame-ancestors 'self'", $csp );
+		$this->assertStringContainsString( "worker-src 'self' blob:", $csp );
 	}
 }

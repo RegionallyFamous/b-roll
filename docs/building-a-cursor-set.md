@@ -1,6 +1,6 @@
 # Building a Cursor Set
 
-Cursor sets are `.wp` bundles that theme the pointer across ODD Desktop Mode surfaces and classic wp-admin chrome for the current user.
+Cursor sets are `.wp` bundles that theme the pointer across ODD Desktop Mode surfaces, ODD app frames, and classic wp-admin chrome for the current user. They behave like wallpapers and icon sets in the Shop: install from a catalog card, preview, then keep or roll back.
 
 ## Manifest
 
@@ -30,16 +30,16 @@ Create `_tools/catalog-sources/cursor-sets/<slug>/manifest.json`:
 
 ## Asset Rules
 
-- Cursor files must be flat SVG files next to `manifest.json`.
+- Cursor files must be passive SVG files next to `manifest.json`.
 - Hotspots are `[x, y]` integer pairs, measured from the SVG's top-left corner.
-- Keep each cursor under 8 KB. Small, simple SVGs feel better and load faster.
-- Do not include scripts, external images, `foreignObject`, or event attributes.
+- Use intrinsic `width` and `height` attributes as well as a `viewBox`; browsers are picky about SVG cursors.
+- Keep each cursor simple. Small SVGs feel better and load faster.
+- Do not include scripts, external images, `foreignObject`, event attributes, external `href` references, or scriptable URL values. Runtime install and catalog validation reject active SVG surfaces.
 - Always provide a precise `text` cursor if your theme changes the default pointer heavily.
 
 ## Build And Validate
 
 ```bash
-odd/bin/validate-cursor-sets
 python3 _tools/build-catalog.py
 odd/bin/validate-catalog
 ```

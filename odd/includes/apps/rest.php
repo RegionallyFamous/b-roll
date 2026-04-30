@@ -15,7 +15,7 @@
  * Authorization:
  *
  *   - Management endpoints require manage_options.
- *   - serve/* requires the per-app `capability` (default manage_options)
+ *   - serve/* requires the normalized per-app `capability` (default manage_options)
  *     and confines the file read to realpath( odd_apps_dir_for($slug) ).
  *   - icon/* is intentionally public: &lt;img src&gt; cannot send an
  *     X-WP-Nonce header, and dock/desktop icons are public branding
@@ -255,8 +255,8 @@ function odd_apps_rest_serve_permission( WP_REST_Request $req ) {
 	if ( empty( $index[ $slug ]['enabled'] ) ) {
 		return false;
 	}
-	$cap = isset( $index[ $slug ]['capability'] ) && $index[ $slug ]['capability']
-		? $index[ $slug ]['capability']
+	$cap = function_exists( 'odd_apps_normalize_capability' )
+		? odd_apps_normalize_capability( isset( $index[ $slug ]['capability'] ) ? $index[ $slug ]['capability'] : '' )
 		: 'manage_options';
 	return current_user_can( $cap );
 }

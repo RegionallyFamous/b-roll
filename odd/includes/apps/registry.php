@@ -25,6 +25,58 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Minimum capability an installed app can require by default.
+ *
+ * App bundles are trusted code once installed, but their manifests must
+ * not be able to broaden access to all logged-in users by declaring
+ * `capability: "read"`. Hosts that intentionally run lower-privilege
+ * internal apps can opt in via filters.
+ *
+ * @return string
+ */
+function odd_apps_capability_floor() {
+	$floor = (string) apply_filters( 'odd_app_capability_floor', 'manage_options' );
+	$floor = sanitize_key( $floor );
+	return '' === $floor ? 'manage_options' : $floor;
+}
+
+/**
+ * Normalize an app manifest/index capability against the capability floor.
+ *
+ * @param string $capability Manifest-supplied capability.
+ * @return string Capability safe to pass to current_user_can().
+ */
+function odd_apps_normalize_capability( $capability ) {
+	$floor     = odd_apps_capability_floor();
+	$requested = sanitize_key( (string) $capability );
+	if ( '' === $requested ) {
+		$requested = $floor;
+	}
+
+	$allowed = apply_filters( 'odd_app_allowed_capabilities', array( $floor ), $floor );
+	if ( ! is_array( $allowed ) ) {
+		$allowed = array( $floor );
+	}
+	$allowed = array_values(
+		array_unique(
+			array_filter(
+				array_map(
+					static function ( $cap ) {
+						return sanitize_key( (string) $cap );
+					},
+					$allowed
+				)
+			)
+		)
+	);
+	if ( ! in_array( $floor, $allowed, true ) ) {
+		$allowed[] = $floor;
+	}
+
+	return in_array( $requested, $allowed, true ) ? $requested : $floor;
+}
+
+/**
  * Install and activate an app archive.
  *
  * @return array|WP_Error The parsed manifest on success.
@@ -81,7 +133,7 @@ function odd_apps_install( $tmp_path, $filename ) {
 		'enabled'     => true,
 		'icon'        => isset( $manifest['icon'] ) ? sanitize_text_field( (string) $manifest['icon'] ) : '',
 		'description' => isset( $manifest['description'] ) ? sanitize_text_field( (string) $manifest['description'] ) : '',
-		'capability'  => isset( $manifest['capability'] ) ? sanitize_text_field( (string) $manifest['capability'] ) : 'manage_options',
+		'capability'  => odd_apps_normalize_capability( isset( $manifest['capability'] ) ? (string) $manifest['capability'] : '' ),
 		'surfaces'    => $surfaces,
 		'installed'   => time(),
 	);

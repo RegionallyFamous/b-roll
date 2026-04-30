@@ -43,6 +43,8 @@ jobs:
           echo 'catalog bundles:' && ls site/catalog/v1/bundles/ | wc -l
 
       - name: Validate catalog before publishing
+        env:
+          ODD_VALIDATE_REBUILD: '1'
         run: odd/bin/validate-catalog
 
       - uses: actions/configure-pages@v6
@@ -55,3 +57,67 @@ jobs:
           path: site
       - id: deployment
         uses: actions/deploy-pages@v5
+
+      - name: Smoke test published catalog artifacts
+        run: |
+          python3 - <<'PY'
+          import json
+          import time
+          import urllib.request
+
+          registry_url = "https://odd.regionallyfamous.com/catalog/v1/registry.json"
+          required_types = {"scene", "icon-set", "cursor-set", "widget"}
+          required_widgets = {"sticky", "eight-ball"}
+
+          def fetch(url):
+              last = None
+              for attempt in range(5):
+                  try:
+                      with urllib.request.urlopen(url, timeout=20) as res:
+                          if res.status != 200:
+                              raise RuntimeError(f"{url} returned HTTP {res.status}")
+                          return res.read()
+                  except Exception as exc:
+                      last = exc
+                      time.sleep(2 * (attempt + 1))
+              raise SystemExit(f"failed to fetch {url}: {last}")
+
+          registry = json.loads(fetch(registry_url))
+          bundles = registry.get("bundles", [])
+          by_type = {}
+          for row in bundles:
+              by_type.setdefault(row.get("type"), []).append(row)
+          missing_types = sorted(required_types - set(by_type))
+          if missing_types:
+              raise SystemExit(f"missing bundle types in published registry: {missing_types}")
+
+          widget_rows = {
+              row.get("slug"): row
+              for row in bundles
+              if row.get("type") == "widget" and row.get("slug") in required_widgets
+          }
+          missing = required_widgets - set(widget_rows)
+          if missing:
+              raise SystemExit(f"missing widget rows: {sorted(missing)}")
+
+          representatives = []
+          for type_name in sorted(required_types):
+              representatives.append(by_type[type_name][0])
+          representatives.extend(widget_rows.values())
+
+          for row in representatives:
+              slug = row.get("slug")
+              icon_url = row.get("icon_url")
+              download_url = row.get("download_url")
+              if not icon_url:
+                  raise SystemExit(f"{slug}: missing icon_url")
+              if not download_url:
+                  raise SystemExit(f"{slug}: missing download_url")
+              icon_body = fetch(icon_url)
+              if b"<svg" not in icon_body[:300]:
+                  raise SystemExit(f"{slug}: icon_url did not return SVG content")
+              bundle_head = fetch(download_url)[:4]
+              if bundle_head not in (b"PK\x03\x04", b"PK\x05\x06"):
+                  raise SystemExit(f"{slug}: download_url did not return a ZIP/.wp archive")
+          print("published catalog artifacts ok")
+          PY

@@ -5,7 +5,7 @@
  * renders a single `renderShopCard(row)` tile whose primary action
  * button derives its label from four signals:
  *
- *   installed?   → "Install"
+ *   not installed? → "Install"
  *   active?      → "Active" (disabled)
  *   type=scene   → "Preview"
  *   type=icon-set→ "Preview"
@@ -61,6 +61,8 @@ function seed( overrides = {} ) {
 			scenes:    [],
 			iconSet:   '',
 			iconSets:  [],
+			cursorSet: '',
+			cursorSets: [],
 			installedWidgets: [],
 			favorites: [],
 			recents:   [],
@@ -70,7 +72,7 @@ function seed( overrides = {} ) {
 			appsEnabled:  false,
 			apps:         [],
 			userApps:     { installed: [], pinned: [] },
-			bundleCatalog: { scene: [], iconSet: [], widget: [] },
+			bundleCatalog: { scene: [], iconSet: [], cursorSet: [], widget: [], app: [] },
 		},
 		overrides
 	);
@@ -164,6 +166,24 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( btn.textContent.trim() ).toBe( 'Install' );
 	} );
 
+	it( 'catalog-only scene is canonical and not duplicated by Discover', () => {
+		seed( {
+			bundleCatalog: {
+				scene: [ { slug: 'gusts', label: 'Gusts', franchise: 'Atmosphere', featured: true, installed: false } ],
+				iconSet: [],
+				cursorSet: [],
+				widget: [],
+			},
+		} );
+		loadPanel();
+		const { host } = mount();
+
+		const cards = host.querySelectorAll( '[data-odd-shop-card][data-catalog-slug="gusts"]' );
+		expect( cards.length ).toBe( 1 );
+		expect( host.querySelector( '.odd-shop__hero-btn' ) ).toBeNull();
+		expect( cards[ 0 ].querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
+	} );
+
 	it( 'installed inactive scene renders a Preview button', () => {
 		seed( {
 			wallpaper: 'gusts',
@@ -216,6 +236,43 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( card, 'icon-set tile must render' ).toBeTruthy();
 		const btn = card.querySelector( '.odd-shop__card-btn' );
 		expect( btn.textContent.trim() ).toBe( 'Preview' );
+	} );
+
+	it( 'catalog-only icon set appears as the canonical Install card', () => {
+		seed( {
+			bundleCatalog: {
+				scene: [],
+				iconSet: [ { slug: 'filament', label: 'Filament', franchise: 'Filament', installed: false } ],
+				cursorSet: [],
+				widget: [],
+			},
+		} );
+		loadPanel();
+		const { host } = mount();
+		goToDepartment( host, 'Icon Sets' );
+
+		const cards = host.querySelectorAll( '[data-odd-shop-card][data-catalog-slug="filament"]' );
+		expect( cards.length ).toBe( 1 );
+		expect( cards[ 0 ].querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
+	} );
+
+	it( 'catalog-only cursor set appears as the canonical Install card', () => {
+		seed( {
+			bundleCatalog: {
+				scene: [],
+				iconSet: [],
+				cursorSet: [ { slug: 'oddlings-cursors', label: 'Oddlings Cursors', franchise: 'ODD Originals', installed: false } ],
+				widget: [],
+			},
+		} );
+		loadPanel();
+		const { host } = mount();
+		goToDepartment( host, 'Cursors' );
+
+		const cards = host.querySelectorAll( '[data-odd-shop-card][data-catalog-slug="oddlings-cursors"]' );
+		expect( cards.length ).toBe( 1 );
+		expect( cards[ 0 ].querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
+		expect( host.querySelector( '.odd-shop__hero-btn' ) ).toBeNull();
 	} );
 
 	it( 'installed widget renders an Add button that calls widgetLayer.add', () => {

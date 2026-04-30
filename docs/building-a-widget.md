@@ -177,8 +177,8 @@ need to integrate cleanly:
    adds your source folder at
    `_tools/catalog-sources/widgets/<slug>/` — the next Pages deploy
    publishes the bundle at
-   `https://odd.regionallyfamous.com/catalog/v1/`, where the Shop's
-   Discover shelf picks it up on next refresh.
+   `https://odd.regionallyfamous.com/catalog/v1/`, where the Widgets
+   department picks it up on next refresh.
 3. Confirm the JavaScript-execution prompt on the first widget or
    scene install of the session.
 4. On success, the Shop jumps to Widgets and flashes your widget's

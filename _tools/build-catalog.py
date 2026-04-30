@@ -31,7 +31,7 @@ Bundle types:
     cursor-set  source: catalog-sources/cursor-sets/<slug>/ (manifest
                 + SVG cursors)
     widget      source: catalog-sources/widgets/<slug>/{widget.js,
-                widget.css?, manifest.json}
+                widget.css?, manifest.json, preview.svg?}
     app         source: catalog-sources/apps/<slug>/{bundle.wp, icon.svg,
                 meta.json} — app .wp is prebuilt, we just publish it.
 """
@@ -81,6 +81,148 @@ ICON_SIZE_BUDGET = 10240  # bytes per SVG
 
 _ICON_CTRL = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 _ICON_WS = re.compile(r"\s+")
+_SVG_ALLOWED_ELEMENTS = {
+    "svg",
+    "g",
+    "defs",
+    "title",
+    "desc",
+    "path",
+    "rect",
+    "circle",
+    "ellipse",
+    "line",
+    "polyline",
+    "polygon",
+    "text",
+    "tspan",
+    "use",
+    "clipPath",
+    "mask",
+    "linearGradient",
+    "radialGradient",
+    "stop",
+    "filter",
+    "feBlend",
+    "feColorMatrix",
+    "feComposite",
+    "feDropShadow",
+    "feFlood",
+    "feGaussianBlur",
+    "feMerge",
+    "feMergeNode",
+    "feMorphology",
+    "feOffset",
+}
+_SVG_ALLOWED_ATTRS = {
+    "xmlns",
+    "viewBox",
+    "width",
+    "height",
+    "role",
+    "aria-label",
+    "id",
+    "class",
+    "x",
+    "y",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "cx",
+    "cy",
+    "r",
+    "rx",
+    "ry",
+    "d",
+    "points",
+    "fill",
+    "fill-opacity",
+    "fill-rule",
+    "stroke",
+    "stroke-width",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-miterlimit",
+    "stroke-opacity",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+    "opacity",
+    "transform",
+    "clip-path",
+    "clip-rule",
+    "mask",
+    "filter",
+    "offset",
+    "stop-color",
+    "stop-opacity",
+    "gradientUnits",
+    "gradientTransform",
+    "font-family",
+    "font-size",
+    "font-weight",
+    "letter-spacing",
+    "text-anchor",
+    "dominant-baseline",
+    "textLength",
+    "lengthAdjust",
+    "dx",
+    "dy",
+    "stdDeviation",
+    "flood-color",
+    "flood-opacity",
+    "in",
+    "in2",
+    "mode",
+    "operator",
+    "values",
+    "result",
+    "color-interpolation-filters",
+    "href",
+    "xlink:href",
+    "xmlns:xlink",
+}
+
+
+def _svg_name(name: str) -> str:
+    if name.startswith("{"):
+        uri, local = name[1:].split("}", 1)
+        if uri == "http://www.w3.org/1999/xlink":
+            return f"xlink:{local}"
+        return local
+    return name
+
+
+def _validate_basic_svg(label: str, data: bytes) -> ET.Element:
+    if _ICON_CTRL.search(data):
+        raise SystemExit(f"{label}: SVG contains forbidden control bytes")
+    text = data.decode("utf-8", errors="replace")
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as exc:
+        raise SystemExit(f"{label}: invalid XML: {exc}")
+    if root.tag != "{http://www.w3.org/2000/svg}svg":
+        raise SystemExit(f"{label}: root element is not <svg>")
+    if not (root.attrib.get("viewBox") or "").strip():
+        raise SystemExit(f"{label}: missing viewBox")
+    for node in root.iter():
+        tag = _svg_name(node.tag)
+        if tag not in _SVG_ALLOWED_ELEMENTS:
+            raise SystemExit(f"{label}: contains disallowed element <{tag}>")
+        for raw_name, raw_value in node.attrib.items():
+            name = _svg_name(raw_name)
+            value = (raw_value or "").strip()
+            if name.lower().startswith("on"):
+                raise SystemExit(f"{label}: contains event handler attribute {name!r}")
+            if name not in _SVG_ALLOWED_ATTRS and not name.startswith("data-"):
+                raise SystemExit(f"{label}: contains disallowed attribute {name!r}")
+            if name in {"href", "xlink:href"} and value and not value.startswith("#"):
+                raise SystemExit(f"{label}: contains external reference {name}={value!r}")
+            if "url(" in value.lower() and not re.search(r"url\(\s*#[^)]+\)", value, re.I):
+                raise SystemExit(f"{label}: contains external url() reference {value!r}")
+            if re.search(r"(?:javascript|data|vbscript)\s*:", value, re.I):
+                raise SystemExit(f"{label}: contains scriptable URL value {value!r}")
+    return root
 
 
 def _validate_icon_svg(slug: str, rel: str, data: bytes) -> None:
@@ -101,13 +243,7 @@ def _validate_icon_svg(slug: str, rel: str, data: bytes) -> None:
         raise SystemExit(
             f"{label}: {len(data)} bytes exceeds {ICON_SIZE_BUDGET} budget"
         )
-    if _ICON_CTRL.search(data):
-        raise SystemExit(f"{label}: SVG contains forbidden control bytes")
-
     text = data.decode("utf-8", errors="replace")
-    for tag in ("<image", "<script", "<foreignObject"):
-        if tag in text:
-            raise SystemExit(f"{label}: contains forbidden element {tag!r}")
     if 'clip-path="url(#sq)"' not in text:
         raise SystemExit(
             f"{label}: missing clip-path=\"url(#sq)\" wrapper"
@@ -118,17 +254,16 @@ def _validate_icon_svg(slug: str, rel: str, data: bytes) -> None:
             f"{label}: missing canonical iOS squircle <clipPath id=\"sq\">"
         )
 
-    try:
-        root = ET.fromstring(text)
-    except ET.ParseError as exc:
-        raise SystemExit(f"{label}: invalid XML: {exc}")
-    if root.tag != "{http://www.w3.org/2000/svg}svg":
-        raise SystemExit(f"{label}: root element is not <svg>")
+    root = _validate_basic_svg(label, data)
     viewbox = (root.attrib.get("viewBox") or "").strip()
     if viewbox != "0 0 1024 1024":
         raise SystemExit(
             f"{label}: viewBox must be \"0 0 1024 1024\", got {viewbox!r}"
         )
+
+
+def _validate_widget_preview_svg(slug: str, rel: str, data: bytes) -> None:
+    _validate_basic_svg(f"widget {slug}: {rel}", data)
 
 
 # ---------------------------------------------------------------- #
@@ -164,8 +299,9 @@ def sha256_file(path: Path) -> str:
 # icon-sets we compose a full-bleed preview from the set's own SVGs on
 # a shared dark stage. The individual icon backgrounds are stripped in
 # that preview so sets compare by glyph treatment instead of by a stack
-# of mismatched coloured plates. For widgets we hand-author a tile. For
-# apps we copy the .wp bundle's icon.svg alongside.
+# of mismatched coloured plates. Widgets can ship a preview.svg beside
+# the manifest; older widgets fall back to the generated tile below.
+# For apps we copy the .wp bundle's icon.svg alongside.
 # ---------------------------------------------------------------- #
 
 
@@ -682,7 +818,13 @@ def build_widget(slug: str, src_dir: Path) -> dict:
     write_zip(bundle, files)
 
     icon_name = f"widget-{slug}.svg"
-    (OUT_ICONS / icon_name).write_text(widget_tile(slug, meta["label"]))
+    preview_path = src_dir / "preview.svg"
+    if preview_path.is_file():
+        preview = preview_path.read_bytes()
+        _validate_widget_preview_svg(slug, "preview.svg", preview)
+        (OUT_ICONS / icon_name).write_bytes(preview)
+    else:
+        (OUT_ICONS / icon_name).write_text(widget_tile(slug, meta["label"]))
 
     return {
         "type": "widget",

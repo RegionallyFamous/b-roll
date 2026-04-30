@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: v3.5.10. Mirrored to the
+> Status: v3.6.7. Mirrored to the
 > [Architecture](https://github.com/RegionallyFamous/odd/wiki/Architecture)
 > wiki page. For the agent-focused overview see
 > [`CLAUDE.md`](../CLAUDE.md).
@@ -8,13 +8,13 @@
 ## The one-line summary
 
 ODD 3.x is an empty WordPress plugin whose content (wallpapers, icon
-sets, widgets, apps) lives in a remote catalog at
+sets, cursor sets, widgets, apps) lives in a remote catalog at
 `https://odd.regionallyfamous.com/catalog/v1/`. On activation the
-plugin reads the catalog's `starter_pack`, pulls a default scene + icon
-set as universal `.wp` bundles, and verifies their SHA256 before
-extracting. The starter path is synchronous with an inline safety net;
-it does not depend on WP-Cron. Everything else installs on demand from
-the ODD Shop.
+plugin reads the catalog's `starter_pack`, pulls the starter scene,
+icon set, and cursor set as universal `.wp` bundles, and verifies their
+SHA256 before extracting. The starter path is synchronous with an
+inline safety net; it does not depend on WP-Cron. Everything else
+installs on demand from the ODD Shop.
 
 ## File tree
 
@@ -31,9 +31,10 @@ odd/                                the plugin — JS/PHP/CSS only, no bundled c
 │   ├── content/
 │   │   ├── catalog.php             remote registry fetch + transient cache + install-from-catalog REST
 │   │   ├── scenes.php              installed-scene bundle loader (filter → odd_scene_registry)
-│   │   ├── icon-sets.php           installed-icon-set bundle loader
+│   │   ├── iconsets.php            installed-icon-set bundle loader
+│   │   ├── cursor-sets.php         installed-cursor-set bundle loader
 │   │   ├── widgets.php             installed-widget bundle loader + enqueue
-│   │   └── bundle-install.php      universal .wp installer (SHA256 verify + extract + register)
+│   │   └── bundle.php              universal .wp installer (validate + extract + register)
 │   ├── wallpaper/
 │   │   ├── registry.php            filter-driven odd_wallpaper_scenes()
 │   │   └── prefs.php               per-user pref getters (odd_wallpaper_*)
@@ -51,7 +52,8 @@ odd/                                the plugin — JS/PHP/CSS only, no bundled c
 │                                   to /bundles/*
 └── src/
     ├── shared/api.js               window.__odd.api — setScene / setIconSet / shuffle / openPanel / toast
-    ├── panel/index.js              Shop native-window render callback (Discover + Installed departments)
+    ├── panel/index.js              Shop native-window render callback (unified catalog/installed cards)
+    ├── cursors/index.js            active cursor stylesheet + pointer bridge runtime
     ├── wallpaper/
     │   ├── index.js                registerWallpaper('odd') + shared mount runner + 'odd-pending' fallback
     │   ├── picker.js               legacy in-canvas picker (hidden, kept for fallback)
@@ -60,11 +62,12 @@ odd/                                the plugin — JS/PHP/CSS only, no bundled c
 
 _tools/                             author-side content, never shipped to users
 ├── catalog-sources/                source of truth for every bundle
-│   ├── starter-pack.json           { scenes:[…], iconSets:[…], widgets:[…], apps:[…] }
+│   ├── starter-pack.json           { scenes:[…], iconSets:[…], cursorSets:[…], widgets:[…], apps:[…] }
 │   ├── scenes/<slug>/              scene.js + meta.json + preview.webp + wallpaper.webp
-│   ├── icon-sets/<slug>/           manifest.json + icons/*.svg + preview.svg
-│   ├── widgets/<slug>/             widget.js + widget.css + manifest.json + preview.webp
-│   └── apps/<slug>/                full static bundle + manifest.json
+│   ├── icon-sets/<slug>/           manifest.json + SVGs
+│   ├── cursor-sets/<slug>/         manifest.json + SVG cursors + preview.svg
+│   ├── widgets/<slug>/             widget.js + widget.css? + manifest.json + preview.svg?
+│   └── apps/<slug>/                prebuilt bundle.wp + icon.svg + meta.json
 ├── build-catalog.py                deterministic builder → site/catalog/v1/
 └── (legacy generators for icons, wallpaper painters, etc.)
 
@@ -91,7 +94,8 @@ odd/bin/
 
 Extracted bundles (installed by users) live **outside** the plugin at
 `wp-content/odd-apps/<slug>/`, `wp-content/odd-scenes/<slug>/`,
-`wp-content/odd-icon-sets/<slug>/`, `wp-content/odd-widgets/<slug>/`.
+`wp-content/odd-icon-sets/<slug>/`, `wp-content/odd-cursor-sets/<slug>/`,
+`wp-content/odd-widgets/<slug>/`.
 They survive plugin reinstalls.
 
 ## Single-window contract
@@ -105,7 +109,7 @@ WP Desktop Mode's window manager reuses any window with a matching
 The Shop body renders from `window.wpDesktopNativeWindows.odd = body
 => { … }` in `src/panel/index.js`. The layout is the Mac App
 Store-style design: top search bar, sidebar (Wallpapers / Icon Sets /
-Widgets / Apps / Install / Settings / About), content pane, and detail
+Cursors / Widgets / Apps / Install / Settings / About), content pane, and detail
 or preview surfaces where needed.
 
 Apps break the single-window rule intentionally: each installed app
@@ -115,12 +119,12 @@ have the Shop plus any number of app windows open simultaneously
 
 ## REST surface
 
-`odd/v1` hosts three groups of endpoints:
+`odd/v1` hosts four groups of endpoints:
 
 | Group       | Base path                         | Purpose                                                     |
 |-------------|-----------------------------------|-------------------------------------------------------------|
 | Prefs       | `/odd/v1/prefs`                   | GET + POST user prefs (wallpaper, icon set, shuffle, …)     |
-| Bundles     | `/odd/v1/bundles/*`               | Universal .wp catalog + upload + install + uninstall        |
+| Bundles     | `/odd/v1/bundles/*`               | Universal .wp catalog + upload + install                    |
 | Starter     | `/odd/v1/starter`, `/starter/retry` | Read starter-pack state + force a retry                   |
 | Apps (compat) | `/odd/v1/apps/*`                | Legacy apps surface — forwards to /bundles/* + serves files |
 
@@ -134,19 +138,20 @@ have the Shop plus any number of app windows open simultaneously
 | `shuffle`       | `{ enabled: bool, minutes: 1..240 }`                        | `odd_shuffle`        |
 | `audioReactive` | bool                                                        | `odd_audio_reactive` |
 | `iconSet`       | set slug or `"none"`                                        | `odd_icon_set`       |
+| `cursorSet`     | set slug or `"none"`                                        | `odd_cursor_set`     |
 
 Permission callback across the whole namespace is `is_user_logged_in`,
 with per-endpoint capability escalation where needed
-(`manage_options` for installs, `upload_files` for uploads).
+(`manage_options` for installs, uploads, refresh, and diagnostics).
 
 ## Remote catalog
 
 `includes/content/catalog.php`:
 
 ```php
-odd_catalog_load();          // wp_remote_get(ODD_CATALOG_URL) + transient cache (12h, stale-on-fail)
+odd_catalog_load();          // wp_remote_get(ODD_CATALOG_URL) + transient cache (12h, stale/fallback-on-fail)
 odd_catalog_starter_pack();  // reads starter_pack block from the registry
-odd_catalog_install_entry( $slug ); // download_url() + SHA256 verify + odd_bundle_install()
+odd_catalog_install_entry( $row ); // download_url() + SHA256 + catalog/manifest match + odd_bundle_install()
 ```
 
 | Constant             | Default                                                     | Override via             |
@@ -154,9 +159,12 @@ odd_catalog_install_entry( $slug ); // download_url() + SHA256 verify + odd_bund
 | `ODD_CATALOG_URL`    | `https://odd.regionallyfamous.com/catalog/v1/registry.json` | `odd_catalog_url` filter |
 | `odd_catalog` transient | 12 hours                                                 | `delete_transient('odd_catalog')` or `POST /odd/v1/bundles/refresh` |
 
-Downloads are HTTPS-only; SHA256 is compared against the registry
-entry before extraction. A mismatch aborts the install with
-`odd_bundle_checksum_mismatch` and never touches the filesystem.
+Downloads are HTTPS-only by default; SHA256 is compared against the
+registry entry before extraction, and the downloaded archive manifest
+must match the catalog row's `slug` and `type`. A mismatch aborts the
+install and never touches the final filesystem. Non-admin catalog
+responses are redacted so installer-only fields stay behind the same
+capability boundary as install actions.
 
 ## Starter pack
 
@@ -194,9 +202,9 @@ install heals itself without depending on external schedulers.
 
 ## Live scene swaps
 
-Panel clicks fire `wp.hooks.doAction( 'odd/pickScene', slug )` in
+Panel clicks fire `wp.hooks.doAction( 'odd.pickScene', slug )` in
 parallel with the REST POST. The wallpaper engine subscribes under the
-`odd/wallpaper` namespace and swaps the scene immediately — no reload.
+`odd.wallpaper` namespace and swaps the scene immediately — no reload.
 
 ## Icon swaps (server-canonical)
 
@@ -310,8 +318,8 @@ clamps it to 2.5 before `tick` receives it.
 ```
 ODD Shop → Install (remote catalog)
   → POST /odd/v1/bundles/install-from-catalog
-  → odd_catalog_install_entry( $slug )
-       download_url() → SHA256 verify against registry
+  → odd_catalog_install_entry( $row )
+       download_url() → SHA256 verify + catalog/manifest slug/type match
        → odd_apps_validate_archive()  ZIP integrity, limits, forbidden exts,
                                       path traversal, symlinks, manifest shape
        → odd_apps_extract_archive()   unzip to .tmp-<slug>-<rand>/, symlink sweep,
@@ -325,7 +333,7 @@ ODD Shop → Install (remote catalog)
 User double-clicks the desktop icon
   → WP Desktop Mode opens odd-app-<slug> window
   → native-surfaces renders a <div class="odd-app-host"
-     data-odd-app-src="…?_wpnonce=<fresh>">
+     data-odd-app-src="/odd-app/<slug>/?_wpnonce=<fresh>">
   → src/apps/window-host.js sees odd.window-opened with a matching id,
      injects an <iframe sandbox="allow-scripts allow-forms allow-popups
      allow-same-origin allow-downloads"> pointing at the serve URL,
@@ -359,24 +367,30 @@ wp-content/
 │   ├── <slug>/                      extracted bundle — manifest.json + assets
 │   └── .tmp-<slug>-<rand>/          transient staging dir (removed after extract)
 ├── odd-scenes/<slug>/               scene.js + preview.webp + wallpaper.webp + manifest.json
-├── odd-icon-sets/<slug>/            manifest.json + icons/*.svg
+├── odd-icon-sets/<slug>/            manifest.json + SVG icons
+├── odd-cursor-sets/<slug>/          manifest.json + SVG cursors
 └── odd-widgets/<slug>/              widget.js + widget.css + manifest.json
 ```
 
-`.htaccess` is written on first install and blocks direct HTTP access
-to the `odd-apps/` tree. Every app file must go through the REST
-serve endpoint so capability + forbidden-extension checks apply per
-request. Scenes / icon sets / widgets are served via `content_url()`
-directly — they ship no PHP and their public visibility is equivalent
-to any other `wp-content/` asset.
+`.htaccess` is written on first app install and blocks direct HTTP
+access to the `odd-apps/` tree. App files are served through the
+cookie-auth `/odd-app/<slug>/...` path, with `/apps/serve/...` kept as
+the REST fallback/diagnostic path, so capability and forbidden-extension
+checks apply per request. Scenes, icon sets, cursor sets, and widgets
+are served via `content_url()` directly — they ship no PHP and their
+public visibility is equivalent to any other `wp-content/` asset.
 
 ### File serving (apps only)
 
-`GET /odd/v1/apps/serve/<slug>/<path>` (see
-[Apps REST API](app-rest-api.md#get-appsserveslugpath)):
+`/odd-app/<slug>/<path>` from `serve-cookieauth.php` is the primary app
+serve path. `GET /odd/v1/apps/serve/<slug>/<path>` remains available
+for REST callers and diagnostics (see
+[Apps REST API](app-rest-api.md#get-appsserveslugpath)).
 
 1. Permission callback: logged-in + app exists + app enabled +
-   `current_user_can( $manifest.capability )`.
+   `current_user_can( normalized app capability )`. Manifest
+   capabilities cannot broaden access below the configured floor by
+   default.
 2. Path validation: reject `..`, leading `/`, NUL bytes, and anything
    outside `[a-zA-Z0-9._/-]`.
 3. Extension re-check against the forbidden list (belt-and-braces;
@@ -400,11 +414,14 @@ is ever honored), with a long public cache header.
 
 ### Iframe nonce handoff
 
-`native-surfaces.php` appends a fresh `?_wpnonce=<wp_rest_nonce>` to
-the iframe's `src`. Apps read it once with
+`native-surfaces.php` points app iframes at `/odd-app/<slug>/` and
+appends a fresh `?_wpnonce=<wp_rest_nonce>` to the iframe's `src`.
+Apps read it once with
 `new URLSearchParams( window.location.search ).get( '_wpnonce' )` and
 include it as `X-WP-Nonce` on outgoing `fetch()` calls to
-`/wp-json/...`. Nonces are user-scoped and expire after 12 hours.
+`/wp-json/...`. App assets rely on cookie auth at `/odd-app/<slug>/...`;
+REST writes still need the nonce. Nonces are user-scoped and expire
+after 12 hours.
 
 ### `manifest.extensions` re-application
 

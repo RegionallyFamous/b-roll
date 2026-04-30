@@ -70,4 +70,27 @@ class Test_Odd_Svg_Scrub_Fuzz extends WP_UnitTestCase {
 		$c = self::adversarial_svg_corpus();
 		$this->assertGreaterThanOrEqual( 25, count( $c ) );
 	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function rejected_svg_payloads() {
+		return array(
+			'script'          => array( '<svg viewBox="0 0 1 1"><script>alert(1)</script></svg>' ),
+			'foreign_object'  => array( '<svg viewBox="0 0 1 1"><foreignObject><p>x</p></foreignObject></svg>' ),
+			'embedded_image'  => array( '<svg viewBox="0 0 1 1"><image href="data:image/svg+xml,PHN2Zz4"/></svg>' ),
+			'external_href'   => array( '<svg viewBox="0 0 1 1"><use href="https://bad.test/icon.svg#x"/></svg>' ),
+			'event_handler'   => array( '<svg viewBox="0 0 1 1" onclick="alert(1)"><rect width="1" height="1"/></svg>' ),
+			'style_attribute' => array( '<svg viewBox="0 0 1 1" style="behavior:url(xss.htc)"/>' ),
+		);
+	}
+
+	/**
+	 * @dataProvider rejected_svg_payloads
+	 */
+	public function test_active_svg_surfaces_are_rejected( $svg ) {
+		require_once ODD_DIR . 'includes/content/iconsets.php';
+		$result = odd_iconset_svg_scrub( $svg );
+		$this->assertWPError( $result );
+	}
 }

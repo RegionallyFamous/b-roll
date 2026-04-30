@@ -409,13 +409,6 @@
 			var status = el( 'div', { class: 'odd-apps-status', 'data-odd-apps-status': '1' } );
 			wrap.appendChild( status );
 
-			// Discover strip of remote catalog apps (curation band).
-			// Lives above the unified grid so new-and-exciting entries
-			// get a dedicated editorial slot without duplicating the
-			// tile treatment between strip + grid.
-			var discover = renderDiscoverShelf( 'app' );
-			if ( discover ) wrap.appendChild( discover );
-
 			// Unified grid — one tile per slug, merged across
 			// installed + catalog. `data-odd-apps-gallery` is kept so
 			// existing selectors (e.g. bulk refresh via
@@ -628,7 +621,10 @@
 				headers: { 'X-WP-Nonce': state.cfg.restNonce || '' },
 			} ).then( function ( r ) { return r.ok ? r.json() : { apps: [] }; } )
 			  .then( function ( d ) { return ( d && Array.isArray( d.apps ) ) ? d.apps : []; } )
-			  .catch( function () { return []; } );
+			  .catch( function ( err ) {
+				reportError( 'apps.catalog', err );
+				return [];
+			} );
 		}
 		function installFromCatalog( slug, opts ) {
 			opts = opts || {};
@@ -2066,7 +2062,8 @@
 					}
 					toast( __( 'Catalog refreshed.' ) );
 					renderSection( 'settings', { keepQuery: true } );
-				} ).catch( function () {
+				} ).catch( function ( err ) {
+					reportError( 'bundles.refresh', err );
 					toast( __( 'Catalog refresh failed.' ), 'error' );
 				} ).finally( function () {
 					refreshBtn.disabled = false;
@@ -2107,7 +2104,10 @@
 				headers: { 'X-WP-Nonce': state.cfg.restNonce || '' },
 			} ).then( function ( r ) { return r.ok ? r.json() : { apps: [] }; } )
 			  .then( function ( data ) { return ( data && Array.isArray( data.apps ) ) ? data.apps : []; } )
-			  .catch( function () { return []; } );
+			  .catch( function ( err ) {
+				reportError( 'apps.list', err );
+				return [];
+			} );
 		}
 		function toggleApp( slug, enabled ) {
 			return fetch( appsBaseUrl() + '/' + encodeURIComponent( slug ) + '/toggle', {
@@ -2218,19 +2218,25 @@
 				{ eyebrow: 'ODD · Living Art' }
 			) );
 
-			// v3.0+: scenes all come from installed bundles (plus the
-			// built-in "pending" fallback exposed by the runtime for
-			// first-boot safety). Filter the pending slug out of the
-			// shop — users shouldn't see or pick it as a real scene.
-			var allScenes = ( Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [] )
+			// v3.0+: scenes on disk come from installed bundles (plus
+			// the built-in "pending" fallback exposed by the runtime
+			// for first-boot safety). The main product shelves below
+			// use shopRowsFor('scene') so catalog-only scenes appear in
+			// the same card lane they turn into after install.
+			var installedScenes = ( Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [] )
 				.filter( function ( s ) { return s && s.slug && s.slug !== 'odd-pending'; } );
-			var scenes = filterByQuery( allScenes, state.query );
+			var rows = shopRowsFor( 'scene' );
+			if ( state.query ) {
+				rows = filterByQuery( rows, state.query );
+			}
 
 			// Hero — the currently-active scene, or the first result
-			// if the user has filtered away the active one. No hero
-			// when the filter eliminates everything.
-			if ( scenes.length ) {
-				var featured = pickFeaturedScene( scenes );
+			// from installed content. Catalog-only rows stay in the
+			// product shelves until installed, so the hero never offers
+			// a Preview action for a scene that does not exist on disk.
+			var heroScenes = filterByQuery( installedScenes, state.query );
+			if ( heroScenes.length ) {
+				var featured = pickFeaturedScene( heroScenes );
 				if ( featured ) wrap.appendChild( renderWallpaperHero( featured ) );
 			}
 
@@ -2238,21 +2244,19 @@
 			// to their shelf when clicked. Hidden while searching so
 			// the result-focused view stays tight.
 			if ( ! state.query ) {
-				wrap.appendChild( renderCategoryQuilt( allScenes, 'wallpaper' ) );
+				wrap.appendChild( renderCategoryQuilt( rows, 'wallpaper' ) );
 			}
 
-			if ( ! scenes.length ) {
+			if ( ! rows.length ) {
 				if ( state.query ) {
 					wrap.appendChild( renderEmptyResults( 'No scenes match "' + state.query + '".' ) );
 					return wrap;
 				}
 				wrap.appendChild( renderEmptyDept(
 					'scenes',
-					'Install one from the Discover shelf below — or wait a moment while ODD finishes its first-run setup.',
+					'Install one from the catalog below — or wait a moment while ODD finishes its first-run setup.',
 					'🎨'
 				) );
-				var discoverEmpty = renderDiscoverShelf( 'scene' );
-				if ( discoverEmpty ) wrap.appendChild( discoverEmpty );
 				return wrap;
 			}
 
@@ -2262,21 +2266,13 @@
 			// sits closest to the hero. Hidden while searching so the
 			// result-focused view stays tight.
 			if ( ! state.query ) {
-				var recentsShelf = renderPersonalShelf( 'Recents', state.cfg.recents, allScenes, 'wallpaper' );
+				var recentsShelf = renderPersonalShelf( 'Recents', state.cfg.recents, installedScenes, 'wallpaper' );
 				if ( recentsShelf ) wrap.appendChild( recentsShelf );
-				var favShelf = renderPersonalShelf( 'Favorites', state.cfg.favorites, allScenes, 'wallpaper' );
+				var favShelf = renderPersonalShelf( 'Favorites', state.cfg.favorites, installedScenes, 'wallpaper' );
 				if ( favShelf ) wrap.appendChild( favShelf );
 			}
 
-			// Discover shelf — server-curated remote scenes from the
-			// catalog. Skipped entirely when the user is searching so
-			// the query only filters what they actually have on disk.
-			if ( ! state.query ) {
-				var discover = renderDiscoverShelf( 'scene' );
-				if ( discover ) wrap.appendChild( discover );
-			}
-
-			var shelves = groupByCategory( scenes, 'wallpaper', 'More' );
+			var shelves = groupByCategory( rows, 'wallpaper', 'More' );
 			shelves.forEach( function ( shelf ) {
 				wrap.appendChild( renderShelf( shelf.franchise, shelf.items, renderSceneCard, { scope: 'wallpaper' } ) );
 			} );
@@ -2995,7 +2991,6 @@
 		function renderSceneCard( scene ) {
 			var row  = normaliseShopRow( scene, 'scene' );
 			if ( ! row ) return el( 'div' );
-			row.installed = true;
 			var wrap = renderShopCard( row );
 			// Scene card gets additional preview-state affordances
 			// that the generic renderer doesn't know about — the
@@ -3003,7 +2998,7 @@
 			// mid-preview tile grows a `is-previewing` class the
 			// preview-bar logic keys off. Layer these on after the
 			// unified render returns its DOM.
-			if ( wrap ) decorateSceneCard( wrap, scene );
+			if ( wrap && row.installed ) decorateSceneCard( wrap, scene );
 			return wrap;
 		}
 
@@ -3218,6 +3213,9 @@
 			) );
 
 			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets.slice() : [];
+			var rows = shopRowsFor( 'icon-set' ).filter( function ( s ) {
+				return s && s.slug && s.slug !== 'none';
+			} );
 
 			// Quilt + shelves only feature real, themed sets so each
 			// category has actual siblings instead of a 1-item shelf.
@@ -3240,7 +3238,7 @@
 				? [ defaultSet ].concat( realSets )
 				: realSets;
 
-			var filtered = filterByQuery( realSets, state.query );
+			var filtered = filterByQuery( rows, state.query );
 
 			if ( heroPool.length ) {
 				var featuredSet = pickFeaturedSet( heroPool );
@@ -3273,7 +3271,7 @@
 			}
 
 			if ( ! state.query ) {
-				wrap.appendChild( renderCategoryQuilt( realSets, 'icons' ) );
+				wrap.appendChild( renderCategoryQuilt( rows, 'icons' ) );
 			}
 
 			if ( ! filtered.length ) {
@@ -3283,17 +3281,10 @@
 				}
 				wrap.appendChild( renderEmptyDept(
 					'icon sets',
-					'Install one from the Discover shelf below to re-skin the dock and desktop shortcuts.',
+					'Install one from the catalog below to re-skin the dock and desktop shortcuts.',
 					'🎛️'
 				) );
-				var discoverIconsEmpty = renderDiscoverShelf( 'icon-set' );
-				if ( discoverIconsEmpty ) wrap.appendChild( discoverIconsEmpty );
 				return wrap;
-			}
-
-			if ( ! state.query ) {
-				var discoverIcons = renderDiscoverShelf( 'icon-set' );
-				if ( discoverIcons ) wrap.appendChild( discoverIcons );
 			}
 
 			var shelves = groupByCategory( filtered, 'icons', 'More' );
@@ -3435,7 +3426,6 @@
 		function renderIconSetCard( set ) {
 			var row = normaliseShopRow( set, 'icon-set' );
 			if ( ! row ) return el( 'div' );
-			row.installed = true;
 			var wrap = renderShopCard( row );
 			if ( wrap ) {
 				// Legacy marker + data-slug on the inner card so the
@@ -3447,7 +3437,7 @@
 					inner.setAttribute( 'data-slug', set.slug );
 				}
 				wrap.classList.add( 'odd-catalog-row--iconset-wrap' );
-				var isPreview = state.preview && state.preview.kind === 'iconSet' && state.preview.slug === set.slug;
+				var isPreview = row.installed && state.preview && state.preview.kind === 'iconSet' && state.preview.slug === set.slug;
 				if ( isPreview ) {
 					wrap.classList.add( 'is-previewing' );
 					if ( inner ) inner.classList.add( 'is-previewing' );
@@ -3469,6 +3459,7 @@
 			) );
 
 			var sets = Array.isArray( state.cfg.cursorSets ) ? state.cfg.cursorSets.slice() : [];
+			var rows = shopRowsFor( 'cursor-set' ).filter( function ( s ) { return s && s.slug && s.slug !== 'none'; } );
 			var realSets = sets.filter( function ( s ) { return s && s.slug && s.slug !== 'none'; } );
 			var defaultSet = {
 				slug: 'none',
@@ -3479,7 +3470,7 @@
 				cursors: {},
 			};
 			var heroPool = state.cfg.cursorSet === 'none' ? [ defaultSet ].concat( realSets ) : realSets;
-			var filtered = filterByQuery( realSets, state.query );
+			var filtered = filterByQuery( rows, state.query );
 
 			if ( heroPool.length ) {
 				var featured = pickFeaturedCursorSet( heroPool );
@@ -3504,7 +3495,7 @@
 			}
 
 			if ( ! state.query ) {
-				wrap.appendChild( renderCategoryQuilt( realSets, 'cursors' ) );
+				wrap.appendChild( renderCategoryQuilt( rows, 'cursors' ) );
 			}
 
 			if ( ! filtered.length ) {
@@ -3514,17 +3505,10 @@
 				}
 				wrap.appendChild( renderEmptyDept(
 					'cursor sets',
-					'Install one from the Discover shelf below to theme the pointer across Desktop Mode and wp-admin.',
+					'Install one from the catalog below to theme the pointer across Desktop Mode and wp-admin.',
 					'➹'
 				) );
-				var discoverEmpty = renderDiscoverShelf( 'cursor-set' );
-				if ( discoverEmpty ) wrap.appendChild( discoverEmpty );
 				return wrap;
-			}
-
-			if ( ! state.query ) {
-				var discover = renderDiscoverShelf( 'cursor-set' );
-				if ( discover ) wrap.appendChild( discover );
 			}
 
 			var shelves = groupByCategory( filtered, 'cursors', 'More' );
@@ -3599,7 +3583,6 @@
 		function renderCursorSetCard( set ) {
 			var row = normaliseShopRow( set, 'cursor-set' );
 			if ( ! row ) return el( 'div' );
-			row.installed = true;
 			var wrap = renderShopCard( row );
 			if ( wrap ) {
 				var inner = wrap.querySelector( '.odd-shop__card' );
@@ -3609,7 +3592,7 @@
 					inner.setAttribute( 'data-cursor-set-slug', set.slug );
 				}
 				wrap.classList.add( 'odd-catalog-row--cursorset-wrap' );
-				var isPreview = state.preview && state.preview.kind === 'cursorSet' && state.preview.slug === set.slug;
+				var isPreview = row.installed && state.preview && state.preview.kind === 'cursorSet' && state.preview.slug === set.slug;
 				if ( isPreview ) {
 					wrap.classList.add( 'is-previewing' );
 					if ( inner ) inner.classList.add( 'is-previewing' );
@@ -4108,20 +4091,12 @@
 				) );
 			}
 
-			// Discover strip of uninstalled catalog picks, followed
-			// by the unified grid (installed + remaining catalog
-			// rows). Same card renderer drives both surfaces.
-			if ( ! state.query ) {
-				var discover = renderDiscoverShelf( 'widget' );
-				if ( discover ) wrap.appendChild( discover );
-			}
-
 			if ( ! rows.length ) {
 				wrap.appendChild( renderEmptyDept(
 					'widgets',
 					state.query
 						? 'Nothing matched "' + state.query + '".'
-						: 'Browse the catalog above, or drop a .wp widget bundle to add one.',
+						: 'Install one from the catalog below, or drop a .wp widget bundle to add one.',
 					'🧷'
 				) );
 				return wrap;

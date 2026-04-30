@@ -391,6 +391,18 @@ add_action(
 					'installed'  => is_array( $installed ) ? count( $installed ) : 0,
 					'lastRepair' => function_exists( 'odd_apps_repair_meta_all' ) ? odd_apps_repair_meta_all() : array(),
 				),
+				'content' => array(
+					'scenes'     => is_array( $scenes ) ? count( $scenes ) : 0,
+					'iconSets'   => is_array( $sets ) ? count( $sets ) : 0,
+					'cursorSets' => is_array( $cursor_sets ) ? count( $cursor_sets ) : 0,
+					'widgets'    => function_exists( 'odd_widgets_index_load' ) ? count( odd_widgets_index_load() ) : 0,
+				),
+				'cursors' => array(
+					'active'          => odd_cursors_get_active_slug( $uid ),
+					'stylesheet'      => odd_cursors_active_stylesheet_url(),
+					'registeredSets'  => is_array( $cursor_sets ) ? count( $cursor_sets ) : 0,
+					'runtimeExpected' => true,
+				),
 			),
 			// Pre-compute the Discover shelves by type so the panel
 			// can render the catalog without a REST round-trip on

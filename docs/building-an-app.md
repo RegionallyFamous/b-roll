@@ -110,7 +110,7 @@ The fastest path to a working app. No tools, no npm, no bundler.
     "description": "A tiny hello-world app.",
     "icon":        "icon.svg",
     "entry":       "index.html",
-    "capability":  "read",
+    "capability":  "manage_options",
     "window":      { "width": 520, "height": 360 },
     "surfaces":    { "desktop": true, "taskbar": false }
 }
@@ -180,7 +180,7 @@ open a PR against the plugin repo with your source folder dropped
 into `_tools/catalog-sources/apps/<slug>/` (plus a prebuilt `.wp`
 committed into that folder). The next GitHub Pages deploy publishes
 it at `https://odd.regionallyfamous.com/catalog/v1/` and the Shop's
-Discover shelf lists it on next refresh — no plugin release required.
+Apps department lists it on next refresh — no plugin release required.
 
 That's the whole workflow.
 
@@ -219,7 +219,7 @@ export default defineConfig({
 `/assets/index-abc.js`, which a sandboxed iframe will try to resolve
 against the WordPress root instead of the serve endpoint. Relative
 paths work because the iframe's `src` is
-`/wp-json/odd/v1/apps/serve/<slug>/` — every `./assets/...` is resolved
+`/odd-app/<slug>/` — every `./assets/...` is resolved
 against that.
 
 ### 3. `manifest.json` (lives in the project root, copied into `dist/` at package time)
@@ -234,7 +234,7 @@ against that.
     "description": "My first ODD app, built with React.",
     "icon":        "icon.svg",
     "entry":       "index.html",
-    "capability":  "read",
+    "capability":  "manage_options",
     "window":      { "width": 720, "height": 520 }
 }
 ```
@@ -282,9 +282,9 @@ different origin, but your layout and interactions render identically.
 ## Communicating with WordPress
 
 Your app runs in a same-origin iframe served from
-`/wp-json/odd/v1/apps/serve/<slug>/`. The WordPress session cookie is
-sent with every `fetch()`, and ODD injects a fresh REST nonce into the
-iframe's URL as `?_wpnonce=…` so your app can make authenticated writes.
+`/odd-app/<slug>/`. The WordPress session cookie is sent with app asset
+requests, and ODD injects a fresh REST nonce into the iframe's URL as
+`?_wpnonce=…` so your app can make authenticated WordPress REST writes.
 
 ### Reading the nonce
 
@@ -406,6 +406,12 @@ layer of hardening:
 - `X-Frame-Options: SAMEORIGIN`
 - `Referrer-Policy: no-referrer`
 - `Cache-Control` driven by `nocache_headers()`
+- `Content-Security-Policy` with `object-src 'none'`, same-origin framing,
+  and compatibility allowances for inline bootstraps and HTTPS assets.
+
+Apps are trusted first-party code once installed. The sandbox and CSP are
+defense in depth, not a promise that hostile app code is isolated from the
+WordPress origin.
 
 ---
 
@@ -607,10 +613,13 @@ of the following fail:
 - `slug` matches `^[a-z0-9-]+$`.
 - `slug` is not already installed — globally, across apps, icon sets,
   scenes, and widgets.
-- `type` (if set) is one of `"app"`, `"icon-set"`, `"scene"`, `"widget"`.
+- `type` (if set) is one of `"app"`, `"icon-set"`, `"cursor-set"`, `"scene"`, `"widget"`.
 - The `entry` file (default `index.html`) exists.
 - The `entry` path doesn't contain `..`, leading `/`, or invalid
   characters.
+- `capability` is normalized against ODD's app capability floor. By default,
+  app bundles cannot make themselves available to all logged-in users by
+  declaring `"read"`; site owners can opt into lower capabilities with filters.
 
 ---
 

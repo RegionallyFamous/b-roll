@@ -8,7 +8,7 @@ they track different numbers on different cadences.
 
 | Number | Source of truth | Bumped when |
 |--------|-----------------|-------------|
-| `ODD_VERSION` (plugin) | `odd/odd.php` header + constant (kept in sync by `odd/bin/check-version`) | Any release — new scene, new icon set, bug fix, API change, anything at all. |
+| `ODD_VERSION` (plugin) | `odd/odd.php` header + constant (kept in sync by `odd/bin/check-version`) | Any plugin release — bug fix, runtime feature, API change, or other shipped zip change. |
 | `window.__odd.api.version` (extension surface) | `API_VERSION` constant in `odd/src/shared/api.js` | Only when the surface described in [api-versioning.md](api-versioning.md) changes. |
 
 Since v3.0, shipping new scenes / icon sets / widgets / apps doesn't
@@ -17,6 +17,49 @@ updates on the next `pages.yml` deploy (see
 [ADR 0005](adr/0005-remote-catalog-empty-plugin.md)). A plugin
 release that adds a new `window.__odd.api` method bumps both — plugin
 minor (new feature) and API minor (new surface).
+
+## Content-only store updates
+
+Use the Pages/catalog path when the change is limited to catalog content:
+new or updated bundles, widget card art, icon/cursor previews, metadata,
+starter-pack slugs, or other registry fields that older plugin versions
+already understand. Do **not** bump `ODD_VERSION`, add a plugin
+`CHANGELOG.md` entry, or tag a GitHub plugin release for these changes.
+Merge to `main`; `.github/workflows/pages.yml` rebuilds and validates
+`site/catalog/v1/`, then publishes it to GitHub Pages.
+
+Installed sites read the remote registry through the Shop's catalog
+fetch. They may see the update after the 12-hour transient expires, or
+immediately after an admin uses **Refresh catalog**. The bundled
+`odd/data/fallback-registry.json` is only a last-resort offline snapshot
+inside future plugin zips; updating it in the repo does not change the
+fallback embedded in already-installed plugin copies.
+
+Use a plugin release instead when the change requires plugin runtime
+code, panel layout/CSS/JS behavior, REST contract changes, a new catalog
+schema requirement, or a change older plugins cannot safely ignore.
+
+## Catalog Trust Model
+
+ODD treats the configured catalog host as part of the trusted computing
+base. SHA256 checks prove the downloaded `.wp` bytes match the registry
+row, and install-time validation proves the archive shape is safe, but a
+compromised registry can still publish new trusted code for admins to
+install. Scenes, widgets, and apps are therefore trusted code after
+installation, not untrusted marketplace content.
+
+The app iframe sandbox and CSP are defense in depth. Apps run in a
+sandboxed iframe and app files are served through authenticated PHP
+routes, but `allow-scripts` plus `allow-same-origin` is intentionally
+enabled so first-party apps can load same-origin assets and call ODD/WP
+REST endpoints with the user session. Do not describe apps as hostile
+code isolation; describe them as first-party, capability-gated code.
+
+Filters that weaken catalog safety — custom catalog URLs, download URL
+rewrites, insecure download/catalog allowances, SHA requirement changes,
+or lower app capability allowlists — are enterprise escape hatches. They
+should be owned by the site operator, documented in that deployment, and
+kept off by default.
 
 ## Plugin SemVer rules
 

@@ -185,6 +185,40 @@ function odd_catalog_is_transient_download_error( WP_Error $error ) {
 	return in_array( $code, array( 'http_request_failed', 'download_failed', 'http_429', 'http_500', 'http_502', 'http_503', 'http_504' ), true );
 }
 
+function odd_catalog_lock_acquire( $key, $ttl ) {
+	$key = sanitize_key( (string) $key );
+	$ttl = max( 1, (int) $ttl );
+	if ( '' === $key ) {
+		return true;
+	}
+
+	if ( add_option( $key, (string) time(), '', false ) ) {
+		return true;
+	}
+
+	$started = (int) get_option( $key, 0 );
+	if ( $started > 0 && ( time() - $started ) > $ttl ) {
+		update_option( $key, (string) time(), false );
+		return true;
+	}
+
+	return new WP_Error(
+		'catalog_operation_in_progress',
+		__( 'A catalog operation is already in progress. Please try again in a moment.', 'odd' ),
+		array(
+			'status'     => 409,
+			'started_at' => $started,
+		)
+	);
+}
+
+function odd_catalog_lock_release( $key ) {
+	$key = sanitize_key( (string) $key );
+	if ( '' !== $key ) {
+		delete_option( $key );
+	}
+}
+
 /**
  * Download a catalog row to a temporary file and verify the envelope.
  *
@@ -222,12 +256,14 @@ function odd_catalog_download_entry_file( array $entry, $context = 'install' ) {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 	}
 
-	$attempts = (int) apply_filters( 'odd_catalog_download_attempts', 3, $entry, $context );
+	$attempts = (int) apply_filters( 'odd_catalog_download_attempts', 2, $entry, $context );
 	$attempts = max( 1, min( 5, $attempts ) );
+	$timeout  = (int) apply_filters( 'odd_catalog_download_timeout', 20, $entry, $context );
+	$timeout  = max( 5, min( 60, $timeout ) );
 	$tmp      = null;
 	$last     = null;
 	for ( $i = 1; $i <= $attempts; $i++ ) {
-		$tmp = download_url( (string) $download_url, 60 );
+		$tmp = download_url( (string) $download_url, $timeout );
 		if ( ! is_wp_error( $tmp ) ) {
 			break;
 		}
@@ -395,14 +431,16 @@ function odd_catalog_fetch_remote( $url ) {
 	if ( '' === $url ) {
 		return new WP_Error( 'no_url', __( 'No catalog URL configured.', 'odd' ) );
 	}
-	$attempts = (int) apply_filters( 'odd_catalog_fetch_attempts', 3, $url );
+	$attempts = (int) apply_filters( 'odd_catalog_fetch_attempts', 2, $url );
 	$attempts = max( 1, min( 5, $attempts ) );
+	$timeout  = (int) apply_filters( 'odd_catalog_fetch_timeout', 5, $url );
+	$timeout  = max( 2, min( 15, $timeout ) );
 	$response = null;
 	for ( $i = 1; $i <= $attempts; $i++ ) {
 		$response = wp_remote_get(
 			$url,
 			array(
-				'timeout' => 10,
+				'timeout' => $timeout,
 				'headers' => array( 'Accept' => 'application/json' ),
 			)
 		);
@@ -530,8 +568,23 @@ function odd_catalog_normalise( $data ) {
  * transient). Called by the "Refresh catalog" REST endpoint.
  */
 function odd_catalog_refresh() {
+	$lock_key = 'odd_catalog_refresh_lock';
+	$lock     = odd_catalog_lock_acquire( $lock_key, 60 );
+	if ( is_wp_error( $lock ) ) {
+		odd_catalog_update_meta(
+			array(
+				'last_failure'       => time(),
+				'last_error_code'    => $lock->get_error_code(),
+				'last_error_message' => $lock->get_error_message(),
+			)
+		);
+		return odd_catalog_load( false );
+	}
+
 	delete_transient( ODD_CATALOG_TRANSIENT );
-	return odd_catalog_load( true );
+	$registry = odd_catalog_load( true );
+	odd_catalog_lock_release( $lock_key );
+	return $registry;
 }
 
 /**
@@ -595,6 +648,21 @@ function odd_catalog_row_for( $slug ) {
 }
 
 /**
+ * Redact installer-only fields from catalog rows for non-admin users.
+ *
+ * The Shop can still render catalog cards from labels, descriptions,
+ * tags, and preview/icon URLs, but direct install instructions stay
+ * behind the same manage_options boundary as the install endpoint.
+ */
+function odd_bundle_catalog_row_for_response( array $entry ) {
+	if ( current_user_can( 'manage_options' ) ) {
+		return $entry;
+	}
+	unset( $entry['download_url'], $entry['sha256'] );
+	return $entry;
+}
+
+/**
  * Catalog rows for a given type, annotated with an `installed` flag.
  *
  * @param string $type One of 'scene' | 'icon-set' | 'cursor-set' | 'widget' | 'app'.
@@ -609,7 +677,7 @@ function odd_bundle_catalog_for_type( $type ) {
 			continue;
 		}
 		$entry['installed'] = isset( $installed[ $entry['slug'] ] );
-		$rows[]             = $entry;
+		$rows[]             = odd_bundle_catalog_row_for_response( $entry );
 	}
 	return $rows;
 }
@@ -764,7 +832,7 @@ function odd_bundle_rest_catalog( WP_REST_Request $req ) {
 		$entry['installed_version'] = $installed_version;
 		$entry['update_available']  = $installed
 			&& odd_bundle_catalog_is_newer( $entry['version'], $installed_version );
-		$rows[]                     = $entry;
+		$rows[]                     = odd_bundle_catalog_row_for_response( $entry );
 	}
 	$response = array( 'bundles' => $rows );
 	if ( current_user_can( 'manage_options' ) ) {
@@ -855,16 +923,31 @@ function odd_bundle_rest_install_from_catalog( WP_REST_Request $req ) {
  * @return array|WP_Error On success: {slug, type, manifest}.
  */
 function odd_catalog_install_entry( array $entry ) {
+	$slug     = isset( $entry['slug'] ) ? sanitize_key( (string) $entry['slug'] ) : '';
+	$lock_key = 'odd_catalog_install_lock_' . $slug;
+	$lock     = odd_catalog_lock_acquire( $lock_key, 10 * MINUTE_IN_SECONDS );
+	if ( is_wp_error( $lock ) ) {
+		return $lock;
+	}
+
 	$tmp = odd_catalog_download_entry_file( $entry, 'install' );
 	if ( is_wp_error( $tmp ) ) {
+		odd_catalog_lock_release( $lock_key );
 		return $tmp;
 	}
 
 	$download_url = isset( $entry['download_url'] ) ? (string) $entry['download_url'] : '';
 	$filename     = wp_parse_url( $download_url, PHP_URL_PATH );
 	$filename     = $filename ? basename( $filename ) : $entry['slug'] . '.wp';
-	$result       = odd_bundle_install( $tmp, $filename );
+	$matches      = odd_catalog_download_matches_entry( $tmp, $filename, $entry );
+	if ( is_wp_error( $matches ) ) {
+		wp_delete_file( $tmp );
+		odd_catalog_lock_release( $lock_key );
+		return $matches;
+	}
+	$result = odd_bundle_install( $tmp, $filename );
 	wp_delete_file( $tmp );
+	odd_catalog_lock_release( $lock_key );
 	if ( is_wp_error( $result ) ) {
 		$data           = $result->get_error_data();
 		$data           = is_array( $data ) ? $data : array();
@@ -873,4 +956,61 @@ function odd_catalog_install_entry( array $entry ) {
 		return $result;
 	}
 	return $result;
+}
+
+/**
+ * Verify a downloaded archive's manifest still matches the catalog row.
+ *
+ * SHA256 proves the downloaded bytes match the registry, but this check
+ * proves the registry row itself did not advertise one type/slug while
+ * installing a different manifest.
+ *
+ * @param string $tmp_path
+ * @param string $filename
+ * @param array  $entry Normalised catalog row.
+ * @return true|WP_Error
+ */
+function odd_catalog_download_matches_entry( $tmp_path, $filename, array $entry ) {
+	list( $zip, $open_err ) = odd_content_archive_open( $tmp_path, $filename );
+	if ( $open_err ) {
+		return $open_err;
+	}
+
+	$manifest = odd_content_archive_read_manifest( $zip );
+	$zip->close();
+	if ( is_wp_error( $manifest ) ) {
+		return $manifest;
+	}
+
+	$header = odd_content_validate_header( $manifest );
+	if ( is_wp_error( $header ) ) {
+		return $header;
+	}
+
+	$expected_slug = isset( $entry['slug'] ) ? sanitize_key( (string) $entry['slug'] ) : '';
+	$expected_type = isset( $entry['type'] ) ? sanitize_text_field( (string) $entry['type'] ) : '';
+	if ( $expected_slug !== $header['slug'] ) {
+		return new WP_Error(
+			'catalog_slug_mismatch',
+			__( 'Downloaded bundle slug does not match the catalog entry.', 'odd' ),
+			array(
+				'status'   => 400,
+				'catalog'  => $expected_slug,
+				'manifest' => $header['slug'],
+			)
+		);
+	}
+	if ( $expected_type !== $header['type'] ) {
+		return new WP_Error(
+			'catalog_type_mismatch',
+			__( 'Downloaded bundle type does not match the catalog entry.', 'odd' ),
+			array(
+				'status'   => 400,
+				'catalog'  => $expected_type,
+				'manifest' => $header['type'],
+			)
+		);
+	}
+
+	return true;
 }

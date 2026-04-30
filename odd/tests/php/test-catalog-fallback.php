@@ -121,4 +121,88 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		$this->assertSame( 'stale_option', $meta['source'] );
 		$this->assertSame( 'empty_remote', $meta['last_error_code'] );
 	}
+
+	public function test_catalog_rest_redacts_install_fields_for_non_admins() {
+		$registry = odd_catalog_normalise(
+			array(
+				'version' => 1,
+				'bundles' => array(
+					array(
+						'type'         => 'widget',
+						'slug'         => 'catalog-widget',
+						'name'         => 'Catalog Widget',
+						'download_url' => 'https://example.test/catalog-widget.wp',
+						'sha256'       => str_repeat( 'a', 64 ),
+						'icon_url'     => 'https://example.test/catalog-widget.svg',
+					),
+				),
+			)
+		);
+		set_transient( ODD_CATALOG_TRANSIENT, $registry, HOUR_IN_SECONDS );
+
+		$user = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $user );
+
+		global $wp_rest_server;
+		$wp_rest_server = new WP_REST_Server();
+		do_action( 'rest_api_init' );
+
+		$request  = new WP_REST_Request( 'GET', '/odd/v1/bundles/catalog' );
+		$response = $wp_rest_server->dispatch( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertArrayNotHasKey( 'download_url', $data['bundles'][0] );
+		$this->assertArrayNotHasKey( 'sha256', $data['bundles'][0] );
+		$this->assertSame( 'https://example.test/catalog-widget.svg', $data['bundles'][0]['icon_url'] );
+		$this->assertArrayNotHasKey( 'meta', $data );
+	}
+
+	public function test_catalog_rest_keeps_install_fields_for_admins() {
+		$registry = odd_catalog_normalise(
+			array(
+				'version' => 1,
+				'bundles' => array(
+					array(
+						'type'         => 'widget',
+						'slug'         => 'admin-catalog-widget',
+						'name'         => 'Admin Catalog Widget',
+						'download_url' => 'https://example.test/admin-catalog-widget.wp',
+						'sha256'       => str_repeat( 'b', 64 ),
+					),
+				),
+			)
+		);
+		set_transient( ODD_CATALOG_TRANSIENT, $registry, HOUR_IN_SECONDS );
+
+		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $user );
+
+		global $wp_rest_server;
+		$wp_rest_server = new WP_REST_Server();
+		do_action( 'rest_api_init' );
+
+		$request  = new WP_REST_Request( 'GET', '/odd/v1/bundles/catalog' );
+		$response = $wp_rest_server->dispatch( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'https://example.test/admin-catalog-widget.wp', $data['bundles'][0]['download_url'] );
+		$this->assertSame( str_repeat( 'b', 64 ), $data['bundles'][0]['sha256'] );
+		$this->assertArrayHasKey( 'meta', $data );
+	}
+
+	public function test_catalog_lock_suppresses_duplicate_operations_until_stale() {
+		$key = 'odd_catalog_test_lock';
+		delete_option( $key );
+
+		$this->assertTrue( odd_catalog_lock_acquire( $key, 60 ) );
+		$second = odd_catalog_lock_acquire( $key, 60 );
+		$this->assertWPError( $second );
+		$this->assertSame( 'catalog_operation_in_progress', $second->get_error_code() );
+
+		update_option( $key, (string) ( time() - 120 ), false );
+		$this->assertTrue( odd_catalog_lock_acquire( $key, 60 ) );
+		odd_catalog_lock_release( $key );
+	}
 }

@@ -1,8 +1,8 @@
 # ODD — Outlandish Desktop Decorator
 
-**The missing app store for WP Desktop Mode.**
+**A desktop shop for WP Desktop Mode.**
 
-[WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes your WordPress admin feel like a real desktop. ODD gives that desktop somewhere to go.
+[WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a safe, updateable shop for wallpapers, icons, cursors, widgets, and small apps.
 
 ### [Try it live in WordPress Playground](https://odd.regionallyfamous.com/playground/)
 
@@ -10,28 +10,23 @@ No install, no signup, nothing to uninstall. Boots ODD + WP Desktop Mode in your
 
 ---
 
-## What you can do with it
+## Why Use ODD
 
-### Actually do the work — right inside WordPress.
+### Make WordPress Feel Personal
 
-Click install in the Shop and the app is on your desktop. Its own icon. Its own window. Its own taskbar icon if you want one. No ZIP upload, no FTP, no plugin-upload dance.
+ODD turns the admin desktop into a place people actually want to use. Pick a live wallpaper, switch the dock icons, theme the cursor, and keep small desktop widgets nearby. New users get a starter look right away; admins can refresh the catalog as new content ships.
 
-Out of the box:
+### Add Useful Tools Without More Plugins
 
-- **Plan your week and ship it.** Run Pomodoro sessions with ambient sound and a show-up heatmap (**Flow**). Move client work across kanban columns (**Board**). Track invoices and payments without leaving WordPress (**Ledger**).
-- **Write together.** Keep the whole team's knowledge in a fast markdown wiki with search (**Tome**) and close one more SaaS tab.
-- **Design stuff.** Build a color system with harmony rules + WCAG contrast checks and export to CSS, Tailwind, or SVG (**Swatch**). Paint a 32×32 icon with real drawing tools and PNG export (**Mosaic**). Make actual sounds — four-waveform synth with ADSR, a resonant filter, and a step sequencer (**Sine**).
-- **Add anything else.** Any `.wp` bundle drops straight into the Shop and installs. The catalog grows from there.
+Apps install from the same card you use to open them. Each app gets its own desktop icon, native window, and optional taskbar icon, but it does not require a separate WordPress plugin. The catalog includes tools for focus, planning, invoices, writing, color systems, pixel art, and sound design.
 
-### Make the desktop a place you want to open.
+### Keep The Shop Fresh Without Plugin Releases
 
-- **Pick a wallpaper you actually want to look at.** Twenty live scenes — abstract ribbon fields, procedural auroras, rainfall that splashes on your real windows and dock, a tropical greenhouse at golden hour, and the Oddling Desktop starter scene. Every frame drawn fresh. Time-of-day aware. Optionally reacts to your microphone if you let it.
-- **Re-skin the whole desktop.** Eighteen icon packs swap every dock and shortcut icon in one click, and cursor sets carry the theme through Desktop Mode and classic wp-admin. Arctic frost blues, Blueprint construction strokes, Claymation, Hologram, Cross-Stitch, Arcade Tokens, Oddlings, and more. The current catalog uses full-color iOS-style SVGs with distinct silhouettes per set, not one recolored glyph system.
-- **Keep little things within reach.** Drop a handwritten sticky note, a Magic 8-Ball, or Spotify's official embed player onto the desktop and drag them wherever feels right.
+Visual content and app bundles live in a remote catalog. That means new wallpapers, card art, widgets, apps, icon sets, and cursor sets can publish through GitHub Pages without forcing every site to install a new plugin zip. Plugin releases are reserved for runtime changes and security fixes.
 
-### Try it before you commit.
+### Preview Before You Commit
 
-Every wallpaper, icon pack, and cursor set previews instantly. Wander the Shop, search across every department at once, let a scene run for a minute, then keep it or roll back with one click. The preview bar floats in the corner until you decide — it's the Mac App Store "try before you buy" flow, for your own desktop.
+Wallpapers, icon sets, and cursor sets preview instantly. Try a scene, theme, or cursor set, then keep it or roll back from the preview bar. Catalog cards update in place after install, so the thing you install is the thing you use.
 
 ---
 
@@ -56,7 +51,7 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 
 ## Build your own
 
-Anyone can ship a scene, icon set, cursor set, widget, or app as a single `.wp` file and hand it to an ODD user — they drop it on the Shop and it installs. No companion plugin required. First-party content lives under `_tools/catalog-sources/` and is published to the remote catalog by GitHub Pages; plugin releases are only for runtime changes.
+Anyone can ship a scene, icon set, cursor set, widget, or app as a single `.wp` file. ODD validates the archive, checks catalog downloads against SHA256, and keeps app files behind authenticated serve paths. First-party content lives under `_tools/catalog-sources/` and publishes to the remote catalog through GitHub Pages; plugin releases are only for runtime/API changes.
 
 - [Building an App](docs/building-an-app.md)
 - [Building a Scene](docs/building-a-scene.md)

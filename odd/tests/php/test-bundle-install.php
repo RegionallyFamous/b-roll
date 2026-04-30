@@ -200,4 +200,36 @@ class Test_Bundle_Install extends ODD_REST_Test_Case {
 			'type' => 'app',
 		);
 	}
+
+	public function test_catalog_download_manifest_type_must_match_catalog_row() {
+		$zip = $this->make_scene_zip( 'mismatch-scene' );
+		$res = odd_catalog_download_matches_entry(
+			$zip,
+			'mismatch-scene.wp',
+			array(
+				'slug' => 'mismatch-scene',
+				'type' => 'app',
+			)
+		);
+		@unlink( $zip );
+
+		$this->assertWPError( $res );
+		$this->assertSame( 'catalog_type_mismatch', $res->get_error_code() );
+	}
+
+	public function test_catalog_download_manifest_slug_must_match_catalog_row() {
+		$zip = $this->make_scene_zip( 'actual-scene' );
+		$res = odd_catalog_download_matches_entry(
+			$zip,
+			'actual-scene.wp',
+			array(
+				'slug' => 'advertised-scene',
+				'type' => 'scene',
+			)
+		);
+		@unlink( $zip );
+
+		$this->assertWPError( $res );
+		$this->assertSame( 'catalog_slug_mismatch', $res->get_error_code() );
+	}
 }

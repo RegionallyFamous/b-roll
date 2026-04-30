@@ -56,6 +56,8 @@ function seed( overrides = {} ) {
 			scenes:    [],
 			iconSet:   '',
 			iconSets:  [],
+			cursorSet: '',
+			cursorSets: [],
 			installedWidgets: [],
 			favorites: [],
 			recents:   [],
@@ -65,7 +67,7 @@ function seed( overrides = {} ) {
 			appsEnabled:  false,
 			apps:         [],
 			userApps:     { installed: [], pinned: [] },
-			bundleCatalog: { scene: [], iconSet: [], widget: [] },
+			bundleCatalog: { scene: [], iconSet: [], cursorSet: [], widget: [], app: [] },
 		},
 		overrides
 	);
@@ -158,6 +160,7 @@ describe( 'ODD Shop · install flows', () => {
 			bundleCatalog: {
 				scene: [],
 				iconSet: [ { slug: 'filament', label: 'Filament', installed: false } ],
+				cursorSet: [],
 				widget: [],
 			},
 		} );
@@ -194,11 +197,54 @@ describe( 'ODD Shop · install flows', () => {
 		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
 	} );
 
+	it( 'cursor-set install updates the canonical card without reloading', async () => {
+		seed( {
+			bundleCatalog: {
+				scene: [],
+				iconSet: [],
+				cursorSet: [ { slug: 'oddlings-cursors', label: 'Oddlings Cursors', installed: false } ],
+				widget: [],
+			},
+		} );
+
+		globalThis.fetch = vi.fn( () => Promise.resolve( {
+			ok:   true,
+			json: () => Promise.resolve( {
+				installed: true,
+				slug:      'oddlings-cursors',
+				type:      'cursor-set',
+				manifest:  { slug: 'oddlings-cursors', label: 'Oddlings Cursors' },
+				entry_url: null,
+				row:       { slug: 'oddlings-cursors', label: 'Oddlings Cursors', installed: true },
+			} ),
+		} ) );
+
+		loadPanel();
+		const { host } = mount();
+
+		rail( host, 'Cursors' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-catalog-slug="oddlings-cursors"]' );
+		expect( card, 'catalog cursor-set tile must render' ).toBeTruthy();
+		card.querySelector( '.odd-shop__card-btn' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		await flush();
+		await new Promise( ( r ) => setTimeout( r, 10 ) );
+
+		const installedTile = host.querySelector( '[data-odd-shop-card][data-cursor-set-slug="oddlings-cursors"]' );
+		expect( installedTile, 'installed cursor set must appear in the grid' ).toBeTruthy();
+		expect( installedTile.querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Preview' );
+		expect( reloadSpy ).not.toHaveBeenCalled();
+		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
+	} );
+
 	it( 'widget install hot-registers without reloading and adds the tile in-page', async () => {
 		seed( {
 			bundleCatalog: {
 				scene: [],
 				iconSet: [],
+				cursorSet: [],
 				widget: [ { slug: 'clock', label: 'Clock', installed: false } ],
 			},
 		} );

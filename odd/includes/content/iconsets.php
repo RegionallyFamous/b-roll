@@ -12,9 +12,9 @@
  * consumer (panel, dock filter, tinted-SVG endpoint) sees them
  * identically to the plugin-bundled sets.
  *
- * SVG scrubbing strips `<script>` blocks, `on*` attributes, and
- * external `xlink:href` so installing a third-party set can't inject
- * JavaScript into admin pages that render the icon.
+ * SVG validation rejects scriptable or externally-loaded content so
+ * installing a third-party set can't inject JavaScript into admin pages
+ * that render the icon.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -271,15 +271,16 @@ function odd_iconset_bundle_uninstall( $slug ) {
 }
 
 /**
- * Scrub an SVG payload. Returns the cleaned string, or a WP_Error if
- * the input isn't a well-formed SVG.
+ * Validate and normalize an SVG payload. Returns the cleaned string, or
+ * a WP_Error if the input isn't a well-formed, passive SVG.
  *
- * Stripped surfaces:
- *   - `<script>…</script>` blocks (including self-closing).
+ * Rejected surfaces:
+ *   - Script-capable/foreign content (`script`, `foreignObject`, `image`, etc.).
  *   - Any `on*=` event attribute (onload, onclick, etc.).
  *   - `xlink:href`/`href` whose value isn't a fragment (`#…`).
- *   - Control bytes outside `\t\n\r` — same byte filter the existing
- *     validate-icon-sets CI check uses.
+ *   - Attributes outside the passive drawing allowlist.
+ *   - Control bytes outside `\t\n\r` — same byte filter the catalog
+ *     validators use.
  *
  * Tinting scenes still work: `currentColor` is a literal string and
  * our scrubber leaves it intact.
@@ -298,27 +299,159 @@ function odd_iconset_svg_scrub( $svg ) {
 		return new WP_Error( 'invalid_svg', __( 'File is not an SVG.', 'odd' ) );
 	}
 
-	// Strip <script> blocks.
-	$svg = preg_replace( '#<script\b[^>]*>.*?</script>#is', '', $svg );
-	$svg = preg_replace( '#<script\b[^>]*/\s*>#is', '', $svg );
+	if ( ! class_exists( 'DOMDocument' ) ) {
+		return new WP_Error( 'svg_parser_unavailable', __( 'Server cannot safely validate SVG files.', 'odd' ) );
+	}
 
-	// Strip on* event attributes. Matches ` onclick="…"`, ` on-load='…'`, ` ONFOO=…` etc.
-	$svg = preg_replace( '#\son[a-zA-Z-]+\s*=\s*"[^"]*"#i', '', $svg );
-	$svg = preg_replace( "#\son[a-zA-Z-]+\s*=\s*'[^']*'#i", '', $svg );
-	$svg = preg_replace( '#\son[a-zA-Z-]+\s*=\s*[^\s>]+#i', '', $svg );
+	$doc = new DOMDocument();
+	$old = libxml_use_internal_errors( true );
+	$ok  = $doc->loadXML( $svg, LIBXML_NONET );
+	libxml_clear_errors();
+	libxml_use_internal_errors( $old );
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMDocument API property.
+	$document_element = $doc->documentElement;
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMElement API property.
+	if ( ! $ok || ! $document_element || 'svg' !== strtolower( $document_element->localName ) ) {
+		return new WP_Error( 'invalid_svg', __( 'File is not a well-formed SVG.', 'odd' ) );
+	}
 
-	// Strip href/xlink:href that aren't fragment links.
-	$svg = preg_replace_callback(
-		'#\s(xlink:href|href)\s*=\s*(["\'])([^"\']*)\2#i',
-		function ( $m ) {
-			$val = $m[3];
-			if ( '' !== $val && '#' === $val[0] ) {
-				return $m[0];
-			}
-			return '';
-		},
-		$svg
+	$allowed_elements = array_flip(
+		array(
+			'svg',
+			'g',
+			'defs',
+			'title',
+			'desc',
+			'path',
+			'rect',
+			'circle',
+			'ellipse',
+			'line',
+			'polyline',
+			'polygon',
+			'text',
+			'tspan',
+			'use',
+			'clipPath',
+			'mask',
+			'linearGradient',
+			'radialGradient',
+			'stop',
+			'filter',
+			'feBlend',
+			'feColorMatrix',
+			'feComposite',
+			'feDropShadow',
+			'feFlood',
+			'feGaussianBlur',
+			'feMerge',
+			'feMergeNode',
+			'feMorphology',
+			'feOffset',
+		)
 	);
+	$allowed_attrs    = array_flip(
+		array(
+			'xmlns',
+			'viewBox',
+			'width',
+			'height',
+			'role',
+			'aria-label',
+			'id',
+			'class',
+			'x',
+			'y',
+			'x1',
+			'y1',
+			'x2',
+			'y2',
+			'cx',
+			'cy',
+			'r',
+			'rx',
+			'ry',
+			'd',
+			'points',
+			'fill',
+			'fill-opacity',
+			'fill-rule',
+			'stroke',
+			'stroke-width',
+			'stroke-linecap',
+			'stroke-linejoin',
+			'stroke-miterlimit',
+			'stroke-opacity',
+			'stroke-dasharray',
+			'stroke-dashoffset',
+			'opacity',
+			'transform',
+			'clip-path',
+			'clip-rule',
+			'mask',
+			'filter',
+			'offset',
+			'stop-color',
+			'stop-opacity',
+			'gradientUnits',
+			'gradientTransform',
+			'font-family',
+			'font-size',
+			'font-weight',
+			'letter-spacing',
+			'text-anchor',
+			'dominant-baseline',
+			'textLength',
+			'lengthAdjust',
+			'dx',
+			'dy',
+			'stdDeviation',
+			'flood-color',
+			'flood-opacity',
+			'in',
+			'in2',
+			'mode',
+			'operator',
+			'values',
+			'result',
+			'color-interpolation-filters',
+			'href',
+			'xlink:href',
+			'xmlns:xlink',
+		)
+	);
+
+	$nodes = $doc->getElementsByTagName( '*' );
+	foreach ( $nodes as $node ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMElement API property.
+		$tag = $node->localName;
+		if ( ! isset( $allowed_elements[ $tag ] ) ) {
+			return new WP_Error( 'disallowed_svg_element', sprintf( /* translators: %s SVG element */ __( 'SVG contains disallowed element: %s', 'odd' ), $tag ) );
+		}
+		if ( ! $node->hasAttributes() ) {
+			continue;
+		}
+		foreach ( iterator_to_array( $node->attributes ) as $attr ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMAttr API property.
+			$name  = '' !== $attr->prefix ? $attr->prefix . ':' . $attr->localName : $attr->localName;
+			$value = trim( (string) $attr->value );
+			if ( 0 === stripos( $name, 'on' ) ) {
+				return new WP_Error( 'disallowed_svg_attribute', __( 'SVG event handler attributes are not allowed.', 'odd' ) );
+			}
+			if ( ! isset( $allowed_attrs[ $name ] ) && 0 !== strpos( $name, 'data-' ) ) {
+				return new WP_Error( 'disallowed_svg_attribute', sprintf( /* translators: %s SVG attribute */ __( 'SVG contains disallowed attribute: %s', 'odd' ), $name ) );
+			}
+			if ( in_array( $name, array( 'href', 'xlink:href' ), true ) && '' !== $value && '#' !== $value[0] ) {
+				return new WP_Error( 'disallowed_svg_reference', __( 'SVG external references are not allowed.', 'odd' ) );
+			}
+			if ( false !== stripos( $value, 'url(' ) && ! preg_match( '/url\(\s*#[^)]+\)/i', $value ) ) {
+				return new WP_Error( 'disallowed_svg_reference', __( 'SVG external url() references are not allowed.', 'odd' ) );
+			}
+			if ( preg_match( '/(?:javascript|data|vbscript)\s*:/i', $value ) ) {
+				return new WP_Error( 'disallowed_svg_reference', __( 'SVG scriptable URL values are not allowed.', 'odd' ) );
+			}
+		}
+	}
 
 	return $svg;
 }

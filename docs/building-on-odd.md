@@ -516,8 +516,9 @@ allow-popups allow-same-origin allow-downloads"`. The host never
 exposes ODD's store, events, or lifecycle to the iframe directly —
 cross-frame communication is your choice (`postMessage` is the
 recommended pattern). The iframe's `src` is
-`/wp-json/odd/v1/apps/serve/<slug>/?_wpnonce=<fresh-nonce>` so apps
-can authenticate REST calls on their own (see the
+`/odd-app/<slug>/?_wpnonce=<fresh-nonce>` so relative app assets load
+through the cookie-auth serve path and apps can authenticate REST calls
+on their own (see the
 [authentication section](app-rest-api.md#authentication) of the REST
 API page).
 

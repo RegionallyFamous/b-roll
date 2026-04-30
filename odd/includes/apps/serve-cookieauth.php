@@ -40,7 +40,7 @@
  * --------
  *   - Cookie auth is validated via `wp_validate_auth_cookie` — we
  *     don't trust a bare cookie, we re-validate the HMAC.
- *   - Capability is the app's own `capability` field (default
+ *   - Capability is the app's normalized `capability` field (default
  *     `manage_options`) — same surface as the REST serve route.
  *   - Path is regex-constrained; realpath() confines the read to
  *     the app's own directory.
@@ -257,8 +257,8 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 		status_header( 404 );
 		exit;
 	}
-	$cap = isset( $index[ $slug ]['capability'] ) && $index[ $slug ]['capability']
-		? (string) $index[ $slug ]['capability']
+	$cap = function_exists( 'odd_apps_normalize_capability' )
+		? odd_apps_normalize_capability( isset( $index[ $slug ]['capability'] ) ? $index[ $slug ]['capability'] : '' )
 		: 'manage_options';
 	if ( $debug_on ) {
 		$debug_trace['required_cap'] = $cap;
@@ -609,7 +609,7 @@ function odd_apps_serve_runtime_module( $name ) {
 function odd_apps_cookieauth_csp( $slug, array $manifest ) {
 	$slug = sanitize_key( (string) $slug );
 	// phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- long policy string.
-	$default = "default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'";
+	$default = "default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https:; worker-src 'self' blob:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'";
 	$policy  = (string) apply_filters( 'odd_app_cookieauth_csp', $default, $slug, $manifest );
 	if ( ! empty( $manifest['csp'] ) && is_string( $manifest['csp'] ) ) {
 		$extra = odd_apps_sanitize_csp_fragment( $manifest['csp'] );
