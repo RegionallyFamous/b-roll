@@ -131,9 +131,9 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 						'type'         => 'widget',
 						'slug'         => 'catalog-widget',
 						'name'         => 'Catalog Widget',
-						'download_url' => 'https://example.test/catalog-widget.wp',
+						'download_url' => 'https://example.com/catalog-widget.wp',
 						'sha256'       => str_repeat( 'a', 64 ),
-						'icon_url'     => 'https://example.test/catalog-widget.svg',
+						'icon_url'     => 'https://example.com/catalog-widget.svg',
 					),
 				),
 			)
@@ -154,7 +154,7 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertArrayNotHasKey( 'download_url', $data['bundles'][0] );
 		$this->assertArrayNotHasKey( 'sha256', $data['bundles'][0] );
-		$this->assertSame( 'https://example.test/catalog-widget.svg', $data['bundles'][0]['icon_url'] );
+		$this->assertSame( 'https://example.com/catalog-widget.svg', $data['bundles'][0]['icon_url'] );
 		$this->assertArrayNotHasKey( 'meta', $data );
 	}
 
@@ -167,7 +167,7 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 						'type'         => 'widget',
 						'slug'         => 'admin-catalog-widget',
 						'name'         => 'Admin Catalog Widget',
-						'download_url' => 'https://example.test/admin-catalog-widget.wp',
+						'download_url' => 'https://example.com/admin-catalog-widget.wp',
 						'sha256'       => str_repeat( 'b', 64 ),
 					),
 				),
@@ -187,7 +187,7 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		$data     = $response->get_data();
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( 'https://example.test/admin-catalog-widget.wp', $data['bundles'][0]['download_url'] );
+		$this->assertSame( 'https://example.com/admin-catalog-widget.wp', $data['bundles'][0]['download_url'] );
 		$this->assertSame( str_repeat( 'b', 64 ), $data['bundles'][0]['sha256'] );
 		$this->assertArrayHasKey( 'meta', $data );
 	}
