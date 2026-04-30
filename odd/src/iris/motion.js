@@ -83,7 +83,7 @@
 
 	var hooks = window.wp && window.wp.hooks;
 	if ( hooks && typeof hooks.addFilter === 'function' ) {
-		hooks.addFilter( 'odd.motionPrimitives', 'odd/iris-motion', function ( list ) {
+		hooks.addFilter( 'odd.motionPrimitives', 'odd.iris-motion', function ( list ) {
 			var arr = Array.isArray( list ) ? list.slice() : [];
 			PRIMITIVES.forEach( function ( spec ) {
 				var exists = false;

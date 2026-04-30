@@ -148,7 +148,7 @@
 
 	var hooks = window.wp && window.wp.hooks;
 	if ( hooks && typeof hooks.addFilter === 'function' ) {
-		hooks.addFilter( 'odd.rituals', 'odd/iris-rituals', function ( list ) {
+		hooks.addFilter( 'odd.rituals', 'odd.iris-rituals', function ( list ) {
 			var arr = Array.isArray( list ) ? list.slice() : [];
 			RITUALS.forEach( function ( r ) {
 				var exists = arr.some( function ( e ) { return e && e.slug === r.slug; } );

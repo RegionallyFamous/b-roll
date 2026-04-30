@@ -24,7 +24,7 @@
 	function on( name, cb ) {
 		var hooks = window.wp && window.wp.hooks;
 		if ( ! hooks || typeof hooks.addAction !== 'function' ) return;
-		try { hooks.addAction( name, 'odd/iris-reactivity', cb ); } catch ( e ) { /* bad name */ }
+		try { hooks.addAction( name, 'odd.iris-reactivity', cb ); } catch ( e ) { /* bad name */ }
 	}
 	function emit( name, payload ) {
 		var evt = window.__odd.events;

@@ -16,6 +16,15 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.6.4"></a>
+## [3.6.4] — 2026-04-29
+
+### Fixed
+- **Cursor SVG URLs in Playground** now upgrade to HTTPS when WordPress is
+  running behind Playground's proxy, preventing mixed-content cursor failures.
+- **Hook namespaces** now use WordPress-compliant dotted names instead of
+  slashes, removing the runtime "hook name" console error.
+
 <a id="v3.6.3"></a>
 ## [3.6.3] — 2026-04-29
 

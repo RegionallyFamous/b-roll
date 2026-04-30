@@ -817,7 +817,7 @@
 
 			// ---------- Visibility + wp.hooks bridge ---------------- //
 
-			var visHook = 'odd/visibility';
+			var visHook = 'odd.visibility';
 			function onVis( detail ) {
 				if ( ! detail || detail.id !== ctx.id ) return;
 				if ( detail.state === 'hidden' ) app.ticker.stop();
@@ -830,7 +830,7 @@
 				// Panel / widgets / slash commands all fire this action
 				// to swap the live scene without waiting on REST. The
 				// caller still persists via POST /odd/v1/prefs.
-				window.wp.hooks.addAction( 'odd.pickScene', 'odd/wallpaper', function ( slug ) {
+				window.wp.hooks.addAction( 'odd.pickScene', 'odd.wallpaper', function ( slug ) {
 					if ( ! slug || slug === currentSlug ) return;
 					swap( slug ).then( function ( res ) {
 						if ( res && res.ok ) recordRecent( slug );
@@ -875,7 +875,7 @@
 				}
 				if ( window.wp && window.wp.hooks ) {
 					window.wp.hooks.removeAction( 'wp-desktop.wallpaper.visibility', visHook );
-					window.wp.hooks.removeAction( 'odd.pickScene', 'odd/wallpaper' );
+					window.wp.hooks.removeAction( 'odd.pickScene', 'odd.wallpaper' );
 				}
 				document.removeEventListener( 'visibilitychange', onDocVis );
 				window.removeEventListener( 'pointermove', onPointerMove );

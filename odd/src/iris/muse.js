@@ -70,7 +70,7 @@
 
 	var hooks = window.wp && window.wp.hooks;
 	if ( hooks && typeof hooks.addFilter === 'function' ) {
-		hooks.addFilter( 'odd.muses', 'odd/iris-muse', function ( muses ) {
+		hooks.addFilter( 'odd.muses', 'odd.iris-muse', function ( muses ) {
 			var list = Array.isArray( muses ) ? muses.slice() : [];
 			for ( var i = 0; i < list.length; i++ ) {
 				if ( list[ i ] && list[ i ].slug === 'iris' ) return list;

@@ -68,4 +68,23 @@ class Test_Cursors extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'url("https://example.com/text.svg") 16 16, text', $css );
 		$this->assertStringContainsString( 'input:not([type="button"])', $css );
 	}
+
+	public function test_cursor_urls_upgrade_for_playground_https_proxy() {
+		$server = $_SERVER;
+		try {
+			unset( $_SERVER['HTTPS'], $_SERVER['HTTP_X_FORWARDED_PROTO'], $_SERVER['SERVER_PORT'] );
+			$_SERVER['HTTP_HOST'] = 'playground.wordpress.net';
+
+			$this->assertSame(
+				'https://playground.wordpress.net/scope:test/wp-content/odd-cursor-sets/default.svg',
+				odd_cursors_url_current_scheme( 'http://playground.wordpress.net/scope:test/wp-content/odd-cursor-sets/default.svg' )
+			);
+			$this->assertSame(
+				'https://example.com/default.svg',
+				odd_cursors_url_current_scheme( 'https://example.com/default.svg' )
+			);
+		} finally {
+			$_SERVER = $server;
+		}
+	}
 }

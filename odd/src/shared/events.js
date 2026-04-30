@@ -49,8 +49,8 @@
  *   Errors:
  *     odd.error               { source, err, severity, message, stack }
  *
- * Legacy pre-0.14.0 actions `odd/pickScene` + `odd/pickIconSet` are
- * still fired by api.js for backward compatibility, but new code
+ * Legacy pre-0.14.0 actions `odd.pickScene` + `odd.pickIconSet` are
+ * still fired by api.js during the transition period, but new code
  * should subscribe to `odd.scene-changed` / `odd.icon-set-changed`.
  *
  * The `log()` accessor exposes the most recent 200 events when debug
@@ -122,7 +122,7 @@
 		var h = hooks();
 		if ( ! h || typeof h.addAction !== 'function' ) return function () {};
 		subCounter++;
-		var ns = 'odd/sub-' + subCounter + '-' + Math.random().toString( 36 ).slice( 2, 8 );
+		var ns = 'odd.sub-' + subCounter + '-' + Math.random().toString( 36 ).slice( 2, 8 );
 		try { h.addAction( name, ns, cb ); } catch ( e ) {}
 		return function () {
 			try { h.removeAction( name, ns ); } catch ( e ) {}

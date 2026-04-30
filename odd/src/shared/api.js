@@ -19,7 +19,7 @@
  *   api.iconSets()        — live icon-set list
  *   api.currentIconSet()  — active slug or '' for default
  *   api.savePrefs(p, cb)  — POST /odd/v1/prefs, merges response
- *   api.setScene(slug)    — save + broadcast 'odd/pickScene' + toast
+ *   api.setScene(slug)    — save + broadcast 'odd.pickScene' + toast
  *   api.setIconSet(slug)  — save + soft reload so dock rebuilds
  *   api.shuffle()         — setScene() with a random non-current slug
  *   api.toast(msg, o?)    — wp.desktop.toast('odd-muse', …) if available
@@ -211,10 +211,10 @@
 	}
 
 	function onSceneChange( cb ) {
-		return addAction( HOOK_SCENE, 'odd/api-sub-' + Math.random().toString( 36 ).slice( 2 ), cb );
+		return addAction( HOOK_SCENE, 'odd.api-sub-' + Math.random().toString( 36 ).slice( 2 ), cb );
 	}
 	function onIconSetChange( cb ) {
-		return addAction( HOOK_ICONSET, 'odd/api-sub-' + Math.random().toString( 36 ).slice( 2 ), cb );
+		return addAction( HOOK_ICONSET, 'odd.api-sub-' + Math.random().toString( 36 ).slice( 2 ), cb );
 	}
 
 	function openPanel() {

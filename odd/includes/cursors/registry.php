@@ -199,12 +199,41 @@ function odd_cursors_set_active_slug( $slug, $user_id = 0 ) {
 	return (bool) update_user_meta( $user_id, 'odd_cursor_set', $slug );
 }
 
+function odd_cursors_request_uses_https() {
+	if ( is_ssl() ) {
+		return true;
+	}
+
+	$forwarded = isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ? strtolower( (string) wp_unslash( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ) : '';
+	if ( preg_match( '/(^|,\s*)https(\s*,|$)/', $forwarded ) ) {
+		return true;
+	}
+
+	$https = isset( $_SERVER['HTTPS'] ) ? strtolower( (string) wp_unslash( $_SERVER['HTTPS'] ) ) : '';
+	if ( in_array( $https, array( 'on', '1', 'https' ), true ) ) {
+		return true;
+	}
+
+	$port = isset( $_SERVER['SERVER_PORT'] ) ? (string) wp_unslash( $_SERVER['SERVER_PORT'] ) : '';
+	if ( '443' === $port ) {
+		return true;
+	}
+
+	$host = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( (string) wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
+	$host = preg_replace( '/:\d+$/', '', $host );
+	return 'playground.wordpress.net' === $host || '.playground.wordpress.net' === substr( $host, -25 );
+}
+
 function odd_cursors_url_current_scheme( $url ) {
 	$url = (string) $url;
 	if ( '' === $url ) {
 		return '';
 	}
-	return is_ssl() ? set_url_scheme( $url, 'https' ) : $url;
+	$parts = wp_parse_url( $url );
+	if ( ! is_array( $parts ) || ! isset( $parts['scheme'] ) || 'http' !== strtolower( (string) $parts['scheme'] ) ) {
+		return $url;
+	}
+	return odd_cursors_request_uses_https() ? set_url_scheme( $url, 'https' ) : $url;
 }
 
 function odd_cursors_active_stylesheet_url( $slug = null ) {

@@ -328,8 +328,8 @@
 			// section on every widget add/remove.
 			try {
 				if ( window.wp && window.wp.hooks ) {
-					window.wp.hooks.removeAction( 'wp-desktop.widget.added',   'odd/widgets' );
-					window.wp.hooks.removeAction( 'wp-desktop.widget.removed', 'odd/widgets' );
+					window.wp.hooks.removeAction( 'wp-desktop.widget.added',   'odd.widgets' );
+					window.wp.hooks.removeAction( 'wp-desktop.widget.removed', 'odd.widgets' );
 				}
 			} catch ( e ) {}
 		};
@@ -3661,7 +3661,7 @@
 			}
 			state.cfg.cursorStylesheet = href;
 			if ( window.wp && window.wp.hooks && typeof window.wp.hooks.doAction === 'function' ) {
-				try { window.wp.hooks.doAction( 'odd/cursorSet', slug, href ); } catch ( e ) {}
+				try { window.wp.hooks.doAction( 'odd.cursorSet', slug, href ); } catch ( e ) {}
 			}
 		}
 
@@ -4047,10 +4047,10 @@
 			state.widgetHooksInstalled = true;
 			try {
 				if ( window.wp && window.wp.hooks ) {
-					window.wp.hooks.addAction( 'wp-desktop.widget.added', 'odd/widgets', function () {
+					window.wp.hooks.addAction( 'wp-desktop.widget.added', 'odd.widgets', function () {
 						if ( state.active === 'widgets' ) renderSection( 'widgets', { keepQuery: true } );
 					} );
-					window.wp.hooks.addAction( 'wp-desktop.widget.removed', 'odd/widgets', function () {
+					window.wp.hooks.addAction( 'wp-desktop.widget.removed', 'odd.widgets', function () {
 						if ( state.active === 'widgets' ) renderSection( 'widgets', { keepQuery: true } );
 					} );
 				}

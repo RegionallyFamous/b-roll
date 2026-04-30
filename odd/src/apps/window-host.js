@@ -415,7 +415,7 @@
 	registerWpdmCallbacks();
 
 	if ( window.wp && window.wp.hooks && typeof window.wp.hooks.addAction === 'function' ) {
-		window.wp.hooks.addAction( 'odd/cursorSet', 'odd/apps/cursors', function ( slug, href ) {
+		window.wp.hooks.addAction( 'odd.cursorSet', 'odd.apps.cursors', function ( slug, href ) {
 			if ( href ) cfg().cursorStylesheet = href;
 			injectCursorStylesheetIntoOpenFrames( href || cursorStylesheetUrl() );
 		} );
