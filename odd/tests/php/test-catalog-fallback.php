@@ -123,22 +123,33 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 	}
 
 	public function test_catalog_rest_redacts_install_fields_for_non_admins() {
-		$registry = odd_catalog_normalise(
-			array(
-				'version' => 1,
-				'bundles' => array(
-					array(
-						'type'         => 'widget',
-						'slug'         => 'catalog-widget',
-						'name'         => 'Catalog Widget',
-						'download_url' => 'https://example.com/catalog-widget.wp',
-						'sha256'       => str_repeat( 'a', 64 ),
-						'icon_url'     => 'https://example.com/catalog-widget.svg',
-					),
+		$raw = array(
+			'version' => 1,
+			'bundles' => array(
+				array(
+					'type'         => 'widget',
+					'slug'         => 'catalog-widget',
+					'name'         => 'Catalog Widget',
+					'download_url' => 'https://example.com/catalog-widget.wp',
+					'sha256'       => str_repeat( 'a', 64 ),
+					'icon_url'     => 'https://example.com/catalog-widget.svg',
 				),
-			)
+			),
 		);
-		set_transient( ODD_CATALOG_TRANSIENT, $registry, HOUR_IN_SECONDS );
+		add_filter(
+			'pre_http_request',
+			static function () use ( $raw ) {
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode( $raw ),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			}
+		);
+		odd_catalog_load( true );
 
 		$user = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		wp_set_current_user( $user );
@@ -159,21 +170,32 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 	}
 
 	public function test_catalog_rest_keeps_install_fields_for_admins() {
-		$registry = odd_catalog_normalise(
-			array(
-				'version' => 1,
-				'bundles' => array(
-					array(
-						'type'         => 'widget',
-						'slug'         => 'admin-catalog-widget',
-						'name'         => 'Admin Catalog Widget',
-						'download_url' => 'https://example.com/admin-catalog-widget.wp',
-						'sha256'       => str_repeat( 'b', 64 ),
-					),
+		$raw = array(
+			'version' => 1,
+			'bundles' => array(
+				array(
+					'type'         => 'widget',
+					'slug'         => 'admin-catalog-widget',
+					'name'         => 'Admin Catalog Widget',
+					'download_url' => 'https://example.com/admin-catalog-widget.wp',
+					'sha256'       => str_repeat( 'b', 64 ),
 				),
-			)
+			),
 		);
-		set_transient( ODD_CATALOG_TRANSIENT, $registry, HOUR_IN_SECONDS );
+		add_filter(
+			'pre_http_request',
+			static function () use ( $raw ) {
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode( $raw ),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			}
+		);
+		odd_catalog_load( true );
 
 		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $user );
