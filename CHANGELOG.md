@@ -16,6 +16,14 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.6.6"></a>
+## [3.6.6] — 2026-04-29
+
+### Fixed
+- **Pointer cursor overrides** now bridge host UI elements that compute to
+  native `cursor: pointer`, applying the active custom pointer without using
+  broad `!important` CSS.
+
 <a id="v3.6.5"></a>
 ## [3.6.5] — 2026-04-29
 

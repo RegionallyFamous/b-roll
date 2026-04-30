@@ -20,6 +20,7 @@
 		status: 'idle',
 		error:  '',
 	};
+	var bridged = [];
 
 	function cfg() {
 		return ( window.odd && typeof window.odd === 'object' ) ? window.odd : {};
@@ -44,6 +45,29 @@
 		if ( typeof c.cursorSet === 'string' ) return c.cursorSet;
 		if ( typeof shell.oddCursorSet === 'string' ) return shell.oddCursorSet;
 		return '';
+	}
+
+	function activeSet() {
+		var slug = state.slug || configuredSlug();
+		var sets = cfg().cursorSets;
+		if ( ! slug || ! Array.isArray( sets ) ) return null;
+		for ( var i = 0; i < sets.length; i++ ) {
+			if ( sets[ i ] && sets[ i ].slug === slug ) return sets[ i ];
+		}
+		return null;
+	}
+
+	function cursorValue( kind ) {
+		var set = activeSet();
+		var cursors = set && set.cursors;
+		var spec = cursors && ( cursors[ kind ] || cursors.default );
+		if ( ! spec || ! spec.url ) return '';
+		var hotspot = Array.isArray( spec.hotspot ) ? spec.hotspot : [ 0, 0 ];
+		var x = parseInt( hotspot[ 0 ], 10 );
+		var y = parseInt( hotspot[ 1 ], 10 );
+		if ( isNaN( x ) ) x = 0;
+		if ( isNaN( y ) ) y = 0;
+		return 'url("' + spec.url + '") ' + x + ' ' + y + ', ' + kind;
 	}
 
 	function headFor( doc ) {
@@ -99,6 +123,29 @@
 		}
 	}
 
+	function rememberBridge( node ) {
+		if ( ! node || node.__oddCursorBridged ) return;
+		node.__oddCursorBridged = true;
+		node.__oddCursorOriginal = node.style ? node.style.cursor || '' : '';
+		bridged.push( node );
+	}
+
+	function clearBridged() {
+		for ( var i = 0; i < bridged.length; i++ ) {
+			var node = bridged[ i ];
+			if ( ! node || ! node.style ) continue;
+			node.style.cursor = node.__oddCursorOriginal || '';
+			try {
+				delete node.__oddCursorBridged;
+				delete node.__oddCursorOriginal;
+			} catch ( e ) {
+				node.__oddCursorBridged = false;
+				node.__oddCursorOriginal = '';
+			}
+		}
+		bridged = [];
+	}
+
 	function apply( href, slug, doc ) {
 		doc = doc || document;
 		href = typeof href === 'string' ? href : configuredHref();
@@ -106,6 +153,7 @@
 
 		if ( shouldClear( href, slug ) ) {
 			removeLink( doc );
+			if ( doc === document ) clearBridged();
 			state.slug = slug === 'none' ? '' : slug;
 			state.href = '';
 			state.status = 'idle';
@@ -124,7 +172,10 @@
 		}
 		state.slug = slug;
 		state.href = href;
-		if ( doc === document ) setConfig( href, slug );
+		if ( doc === document ) {
+			clearBridged();
+			setConfig( href, slug );
+		}
 		return link;
 	}
 
@@ -145,6 +196,45 @@
 			return node ? window.getComputedStyle( node ).cursor : '';
 		} catch ( e ) {
 			return '';
+		}
+	}
+
+	function nativeKind( cursor ) {
+		cursor = typeof cursor === 'string' ? cursor : '';
+		if ( cursor.indexOf( 'url(' ) !== -1 ) return '';
+		if ( cursor === 'pointer' ) return 'pointer';
+		if ( cursor === 'text' || cursor === 'vertical-text' ) return 'text';
+		if ( cursor === 'grab' || cursor === 'move' ) return 'grab';
+		if ( cursor === 'grabbing' ) return 'grabbing';
+		if ( cursor === 'crosshair' ) return 'crosshair';
+		if ( cursor === 'not-allowed' || cursor === 'no-drop' ) return 'not-allowed';
+		if ( cursor === 'wait' ) return 'wait';
+		if ( cursor === 'progress' ) return 'progress';
+		if ( cursor === 'help' ) return 'help';
+		return '';
+	}
+
+	function bridgeNativeCursor( event ) {
+		bridgeTarget( event && event.target );
+	}
+
+	function bridgeTarget( node ) {
+		if ( ! state.href || ! node ) return;
+		var limit = document.body;
+		while ( node && node !== document && node.nodeType === 1 ) {
+			var computed = '';
+			try { computed = window.getComputedStyle( node ).cursor; } catch ( e ) {}
+			var kind = nativeKind( computed );
+			if ( kind ) {
+				var value = cursorValue( kind );
+				if ( value && node.style && node.style.cursor !== value ) {
+					rememberBridge( node );
+					node.style.cursor = value;
+				}
+				return;
+			}
+			if ( node === limit ) return;
+			node = node.parentNode;
 		}
 	}
 
@@ -175,6 +265,7 @@
 			status:         state.status,
 			error:          state.error,
 			iframes:        iframeStatuses(),
+			bridged:        bridged.length,
 			samples:        {
 				body:   sampleCursor( 'body' ),
 				button: sampleCursor( 'button, a, [role="button"]' ),
@@ -186,10 +277,16 @@
 
 	function boot() {
 		apply( configuredHref(), configuredSlug(), document );
+		if ( document.addEventListener && ! document.__oddCursorBridge ) {
+			document.__oddCursorBridge = true;
+			document.addEventListener( 'pointerover', bridgeNativeCursor, true );
+			document.addEventListener( 'mouseover', bridgeNativeCursor, true );
+		}
 	}
 
 	window.__odd.cursors = {
 		apply:      apply,
+		bridgeTarget: bridgeTarget,
 		clear:      clear,
 		injectInto: injectInto,
 		status:     status,
