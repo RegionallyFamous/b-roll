@@ -199,6 +199,14 @@ function odd_cursors_set_active_slug( $slug, $user_id = 0 ) {
 	return (bool) update_user_meta( $user_id, 'odd_cursor_set', $slug );
 }
 
+function odd_cursors_url_current_scheme( $url ) {
+	$url = (string) $url;
+	if ( '' === $url ) {
+		return '';
+	}
+	return is_ssl() ? set_url_scheme( $url, 'https' ) : $url;
+}
+
 function odd_cursors_active_stylesheet_url( $slug = null ) {
 	$slug = null === $slug ? odd_cursors_get_active_slug() : sanitize_key( (string) $slug );
 	$args = array(
@@ -207,5 +215,5 @@ function odd_cursors_active_stylesheet_url( $slug = null ) {
 	if ( '' !== $slug ) {
 		$args['set'] = $slug;
 	}
-	return esc_url_raw( set_url_scheme( add_query_arg( $args, rest_url( 'odd/v1/cursors/active.css' ) ) ) );
+	return esc_url_raw( odd_cursors_url_current_scheme( add_query_arg( $args, rest_url( 'odd/v1/cursors/active.css' ) ) ) );
 }

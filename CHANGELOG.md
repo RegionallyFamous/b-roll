@@ -16,6 +16,13 @@ tag history is the full record of every shipped version.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v3.6.2"></a>
+## [3.6.2] — 2026-04-29
+
+### Fixed
+- **Cursor URL normalization** now upgrades generated cursor asset URLs only for
+  SSL requests instead of downgrading explicitly HTTPS URLs in CLI/test contexts.
+
 <a id="v3.6.1"></a>
 ## [3.6.1] — 2026-04-29
 
