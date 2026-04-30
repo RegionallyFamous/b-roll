@@ -31,6 +31,9 @@ Checks (all emit bullets; any failure → exit code 1):
      plugin headers.
   5. Any `installPlugin` with `resource: "url"` must be HTTPS and
      cannot point at `github.com/*/releases/latest/download/…`.
+  6. WP Desktop Mode must not be installed from `git:directory` because
+     its source archives do not include the compiled desktop shell JS
+     (`assets/js/desktop.min.js`). Use a packaged zip instead.
 """
 from __future__ import annotations
 
@@ -97,6 +100,12 @@ def main() -> int:
                 )
 
         elif resource == "git:directory":
+            url = str(plugin.get("url", ""))
+            if "github.com/WordPress/desktop-mode" in url:
+                problems.append(
+                    f"step[{idx}] installs WP Desktop Mode from git:directory — "
+                    "source archives miss compiled shell assets; use a packaged zip URL"
+                )
             if not plugin.get("ref"):
                 problems.append(
                     f"step[{idx}] git:directory resource is missing `ref` — "
