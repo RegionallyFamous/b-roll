@@ -555,6 +555,13 @@ def render_set_icon(slug, key, manifest):
         subject = _glyph_fill(key, "#fff", "#999")
         extras = ""
 
+    if key == "fallback":
+        # Desktop Mode supplies its own rounded tile with padding. Fallback
+        # glyphs need to draw larger than normal so unknown shortcuts do not
+        # collapse into tiny marks inside that shell.
+        subject = f'<g transform="translate(512 512) scale(1.42) translate(-512 -512)">{subject}{extras}</g>'
+        extras = ""
+
     return _theme_shell(slug, key, label, defs, bg, subject, extras)
 
 

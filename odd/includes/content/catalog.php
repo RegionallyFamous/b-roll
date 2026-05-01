@@ -29,6 +29,7 @@
  *         "franchise":    "Category",
  *         "tags":         ["optional"],
  *         "icon_url":     "https://.../icons/<name>.svg",
+ *         "card_url":     "https://.../cards/<name>.webp",
  *         "download_url": "https://.../bundles/<name>.wp",
  *         "sha256":       "<64 hex chars>",
  *         "size":         12345
@@ -543,6 +544,7 @@ function odd_catalog_normalise( $data ) {
 			'description'  => isset( $entry['description'] ) ? wp_kses_post( (string) $entry['description'] ) : '',
 			'franchise'    => isset( $entry['franchise'] ) ? sanitize_text_field( (string) $entry['franchise'] ) : '',
 			'icon_url'     => isset( $entry['icon_url'] ) ? esc_url_raw( (string) $entry['icon_url'] ) : '',
+			'card_url'     => isset( $entry['card_url'] ) ? esc_url_raw( (string) $entry['card_url'] ) : '',
 			'download_url' => isset( $entry['download_url'] ) ? esc_url_raw( (string) $entry['download_url'] ) : '',
 			'sha256'       => $sha,
 			'size'         => isset( $entry['size'] ) ? (int) $entry['size'] : 0,

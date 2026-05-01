@@ -37,6 +37,7 @@ function odd_icons_slug_to_key( $slug ) {
 		'options-general.php'     => 'settings',
 		'profile.php'             => 'profile',
 		'link-manager.php'        => 'links',
+		'wpdc-editor'             => 'tools',
 	);
 	if ( isset( $map[ $slug ] ) ) {
 		return $map[ $slug ];

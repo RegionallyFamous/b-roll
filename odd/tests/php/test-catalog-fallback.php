@@ -169,6 +169,28 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'meta', $data );
 	}
 
+	public function test_catalog_normalise_preserves_card_url_for_shop_art() {
+		$registry = odd_catalog_normalise(
+			array(
+				'version' => 1,
+				'bundles' => array(
+					array(
+						'type'     => 'icon-set',
+						'slug'     => 'sample-icons',
+						'name'     => 'Sample Icons',
+						'icon_url' => 'https://example.com/catalog/v1/icons/iconset-sample-icons.webp',
+						'card_url' => 'https://example.com/catalog/v1/cards/iconset-sample-icons.webp',
+					),
+				),
+			)
+		);
+
+		$this->assertSame(
+			'https://example.com/catalog/v1/cards/iconset-sample-icons.webp',
+			$registry['bundles'][0]['card_url']
+		);
+	}
+
 	public function test_catalog_rest_keeps_install_fields_for_admins() {
 		$raw = array(
 			'version' => 1,
