@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Regenerate ODD icon sets as iOS-style app icons.
+"""Regenerate ODD icon sets as standalone SVG glyphs.
 
-Each of the 17 sets is authored by its own render function so the sets
+Each set is authored by its own render function so the sets
 read as genuinely different visual languages, not one glyph system
 under 17 palettes. Same 13 metaphors (dashboard = 2x2 blocks, settings
 = gear, etc. — see _tools/gen-icon-sets.py SYMBOLS for the archetypes)
-but the subject treatment, background texture, stroke vocabulary, and
-decorative overlay are each their own thing.
+but the subject treatment, stroke vocabulary, material, and decorative
+overlay are each their own thing.
 
 Usage:
     python3 _tools/regen-icon-set.py <slug>
@@ -20,8 +20,9 @@ Every generated SVG is run through the catalog validator (viewBox,
 squircle clipPath, <=10 KB, no control bytes, no <image>/<script>).
 A failing icon blocks the whole set so bad output can't land.
 
-Canvas + shape spec lives in `_tools/icon-style-guide.md`. The
-squircle clipPath is baked into `_tools/icon-sets/_base.svg.tmpl`.
+Canvas + shape spec lives in `_tools/icon-style-guide.md`. The squircle
+clipPath remains in every file for compatibility, but the visible art is
+transparent standalone glyph work without app-tile backgrounds.
 """
 
 from __future__ import annotations
@@ -363,6 +364,15 @@ def _glyph_stroke(key, stroke, accent, width=34, dash=None):
     )
 
 
+def _glyph_outline(key, stroke, width=34, dash=None):
+    dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
+    body = _glyph_fill(key, "none", "none", "none")
+    return (
+        f'<g fill="none" stroke="{stroke}" stroke-width="{width}" '
+        f'stroke-linecap="round" stroke-linejoin="round"{dash_attr}>{body}</g>'
+    )
+
+
 def _glow_filter(uid, color, opacity=".72"):
     return (
         f'<filter id="gl{uid}" x="-30%" y="-30%" width="160%" height="160%">'
@@ -459,98 +469,89 @@ def _theme_shell(slug, key, label, bg_defs, bg, subject, extras="", defs_extra="
 def render_set_icon(slug, key, manifest):
     uid = _uid(slug, key)
     label = f"{manifest['label']} {key.title()}"
+    bg = ""
 
     if slug == "arcade-tokens":
-        defs = _bg_linear(uid, "#6d3c12", "#f4c66d") + _shadow_filter(uid, 10, 10, ".35")
-        bg = _bg_rect(uid) + '<circle cx="512" cy="512" r="372" fill="#b07a2a"/><circle cx="512" cy="512" r="318" fill="#f6d27d" opacity=".72"/><circle cx="512" cy="512" r="372" fill="none" stroke="#fff3bf" stroke-width="28" opacity=".6"/>'
-        subject = f'<g filter="url(#sh{uid})" transform="translate(512 512) scale(.74) translate(-512 -512)">{_glyph_fill(key, "#7a4a17", "#fff1b8")}</g>'
-        extras = '<circle cx="248" cy="248" r="22" fill="#fff1b8" opacity=".45"/><circle cx="776" cy="776" r="22" fill="#5b310f" opacity=".35"/>'
+        defs = _shadow_filter(uid, 12, 10, ".28")
+        subject = (
+            f'<g filter="url(#sh{uid})">{_glyph_outline(key, "#e2a31a", 62)}'
+            f'<g transform="translate(512 512) scale(.84) translate(-512 -512)">'
+            f'{_glyph_fill(key, "#1366d8", "#f43b31", "#ffd531")}</g></g>'
+        )
+        extras = '<circle cx="806" cy="218" r="26" fill="#ffe58b"/><circle cx="226" cy="798" r="18" fill="#2ac45f"/>'
     elif slug == "arctic":
-        defs = _bg_linear(uid, "#f4fcff", "#74bce2") + _specular_defs(uid, ".38") + _shadow_filter(uid, 18, 18, ".18")
-        bg = _bg_rect(uid) + '<path d="M120 720 L900 250" stroke="#ffffff" stroke-width="38" opacity=".18"/><path d="M160 280 L820 780" stroke="#ffffff" stroke-width="24" opacity=".14"/>'
-        subject = f'<g filter="url(#sh{uid})">{_glyph_fill(key, "#ffffff", "#17415d", "#7ddcff")}</g>'
-        extras = _specular_rect(uid)
+        defs = _shadow_filter(uid, 16, 16, ".18")
+        subject = (
+            f'<g filter="url(#sh{uid})">{_glyph_outline(key, "#ffffff", 42)}'
+            f'<g opacity=".86">{_glyph_fill(key, "#9edcff", "#eaffff", "#7ddcff")}</g></g>'
+        )
+        extras = _noise_dots("#ffffff", ".36", 146)
     elif slug == "blueprint":
-        defs = _bg_linear(uid, "#0b3763", "#04182c")
-        bg = _bg_rect(uid) + _grid_lines("#74d7ff", ".16", 86) + '<path d="M96 830 H928 M190 96 V928" stroke="#f0c96a" stroke-width="8" opacity=".55"/>'
-        subject = _glyph_stroke(key, "#7ee4ff", "#f0c96a", 26, "12 18")
-        extras = '<path d="M116 116 H252 M116 116 V252" stroke="#f0c96a" stroke-width="10" stroke-linecap="round"/>'
+        defs = ""
+        subject = _glyph_stroke(key, "#0099e6", "#c99721", 24, "14 18")
+        extras = '<path d="M164 860 H860 M164 164 V860" stroke="#0099e6" stroke-width="5" opacity=".32" stroke-dasharray="18 18"/>'
     elif slug == "botanical-plate":
-        defs = _bg_linear(uid, "#f5edd8", "#d6c790")
-        bg = _bg_rect(uid) + _noise_dots("#6a8f3b", ".10", 116)
-        subject = f'<g transform="rotate(-4 512 512)">{_glyph_fill(key, "#2d3822", "#6a8f3b")}</g>'
+        defs = _shadow_filter(uid, 8, 6, ".15")
+        subject = f'<g filter="url(#sh{uid})" transform="rotate(-4 512 512)">{_glyph_outline(key, "#5a4827", 18)}{_glyph_fill(key, "#e8dfbf", "#7c9855")}</g>'
         extras = '<path d="M166 810 C260 620 300 480 230 250" fill="none" stroke="#6a8f3b" stroke-width="18" opacity=".55"/><path d="M220 500 C315 470 350 392 348 320" fill="none" stroke="#6a8f3b" stroke-width="16" opacity=".45"/>'
     elif slug == "brutalist-stencil":
-        defs = _bg_linear(uid, "#ffdf3d", "#ff5f4f", "d")
-        bg = _bg_rect(uid) + '<path d="M0 816 H1024 V1024 H0 Z" fill="#111" opacity=".16"/>' + "".join(f'<path d="M{x} 0 L{x-260} 1024" stroke="#111" stroke-width="34" opacity=".10"/>' for x in range(180, 1320, 180))
+        defs = ""
         subject = f'<g transform="skewX(-6) translate(52 0)">{_glyph_fill(key, "#111111", "#ffffff")}</g>'
-        extras = '<path d="M112 120 H912" stroke="#111" stroke-width="24" opacity=".22" stroke-dasharray="42 28"/>'
+        extras = '<rect x="716" y="716" width="98" height="98" fill="#e84a2a" transform="rotate(-8 765 765)"/>'
     elif slug == "circuit-bend":
-        defs = _bg_linear(uid, "#0d4329", "#03150d") + _glow_filter(uid, "#2fb37a", ".48")
-        bg = _bg_rect(uid) + _grid_lines("#2fb37a", ".12", 128)
-        subject = f'<g filter="url(#gl{uid})">{_glyph_stroke(key, "#f4c24c", "#e04a3b", 28)}</g>'
-        extras = ''.join(f'<circle cx="{x}" cy="{y}" r="14" fill="#e04a3b"/>' for x, y in ((210, 210), (814, 246), (240, 808), (790, 780)))
+        defs = _glow_filter(uid, "#2fb37a", ".42")
+        subject = f'<g filter="url(#gl{uid})">{_glyph_outline(key, "#f4c24c", 28)}<g opacity=".82">{_glyph_fill(key, "#063d2a", "#063d2a")}</g></g>'
+        extras = ''.join(f'<circle cx="{x}" cy="{y}" r="14" fill="{c}"/>' for x, y, c in ((210, 210, "#4cff6a"), (814, 246, "#40a8ff"), (240, 808, "#4cff6a"), (790, 780, "#40a8ff")))
     elif slug == "claymation":
-        defs = _bg_linear(uid, "#ffd77b", "#ff8a3a") + _shadow_filter(uid, 22, 18, ".26") + _specular_defs(uid, ".28")
-        bg = _bg_rect(uid)
-        subject = f'<g filter="url(#sh{uid})" transform="rotate(2 512 512)">{_glyph_fill(key, "#fff7e8", "#b24a1a", "#ffcf70")}</g>'
-        extras = _specular_rect(uid) + _noise_dots("#ffffff", ".12", 160)
+        defs = _shadow_filter(uid, 20, 18, ".24")
+        subject = f'<g filter="url(#sh{uid})" transform="rotate(2 512 512)">{_glyph_outline(key, "#b95524", 26)}{_glyph_fill(key, "#276ec8", "#e84833", "#f2c72d")}</g>'
+        extras = _noise_dots("#ffffff", ".20", 160)
     elif slug == "cross-stitch":
-        defs = _bg_linear(uid, "#f6e7d7", "#d9c1a4")
-        bg = _bg_rect(uid) + _grid_lines("#8b725d", ".10", 48)
+        defs = ""
         subject = _cross_stitches(key, "#e87ca7", "#4a4a6a")
-        extras = '<rect x="116" y="116" width="792" height="792" rx="92" fill="none" stroke="#8b725d" stroke-width="12" opacity=".22" stroke-dasharray="18 18"/>'
+        extras = '<path d="M228 824 H796" stroke="#8b725d" stroke-width="10" opacity=".18" stroke-dasharray="16 18"/>'
     elif slug == "eyeball-avenue":
-        defs = _bg_linear(uid, "#23084d", "#8d2bdd") + _shadow_filter(uid, 14, 16, ".30") + _specular_defs(uid, ".26")
-        bg = _bg_rect(uid) + '<ellipse cx="512" cy="512" rx="400" ry="284" fill="#ffffff"/><circle cx="512" cy="512" r="182" fill="#38d7ff"/><circle cx="512" cy="512" r="82" fill="#150320"/>'
-        subject = f'<g filter="url(#sh{uid})" transform="translate(512 512) scale(.54) translate(-512 -512)">{_glyph_fill(key, "#ff4fa8", "#ffffff")}</g>'
-        extras = _specular_rect(uid)
+        defs = _shadow_filter(uid, 14, 16, ".28")
+        subject = f'<g filter="url(#sh{uid})">{_glyph_outline(key, "#26113f", 28)}{_glyph_fill(key, "#8b5cf6", "#27c7c9", "#ff66b3")}</g>'
+        extras = '<ellipse cx="512" cy="500" rx="112" ry="72" fill="#fff"/><circle cx="512" cy="500" r="38" fill="#1b0f33"/><path d="M392 405 Q512 332 632 405" fill="none" stroke="#1b0f33" stroke-width="18" stroke-linecap="round"/>'
     elif slug == "filament":
-        defs = _bg_linear(uid, "#160d22", "#040206") + _glow_filter(uid, "#ffb000", ".82") + _specular_defs(uid, ".18")
-        bg = _bg_rect(uid)
+        defs = _glow_filter(uid, "#ffb000", ".82")
         subject = f'<g filter="url(#gl{uid})">{_glyph_stroke(key, "#ffb000", "#ffe7a6", 24)}</g>'
-        extras = _specular_rect(uid)
+        extras = '<circle cx="820" cy="220" r="18" fill="#fff2b8" opacity=".72"/>'
     elif slug == "fold":
-        defs = _bg_linear(uid, "#eee6ff", "#9f82ff") + _shadow_filter(uid, 16, 12, ".24")
-        facets = '<path d="M0 0 H1024 L620 360 Z" fill="#ffffff" opacity=".22"/><path d="M1024 1024 H0 L420 650 Z" fill="#4a2c9c" opacity=".18"/>'
-        bg = _bg_rect(uid) + facets
-        subject = f'<g filter="url(#sh{uid})">{_glyph_fill(key, "#ffffff", "#4a2c9c")}</g>'
-        extras = '<path d="M180 220 L830 780" stroke="#ffffff" stroke-width="12" opacity=".28"/>'
+        defs = _shadow_filter(uid, 16, 12, ".22")
+        subject = f'<g filter="url(#sh{uid})">{_glyph_outline(key, "#5a35a6", 22)}{_glyph_fill(key, "#f4e9c5", "#7b4acb", "#e0a33b")}</g>'
+        extras = '<path d="M210 240 L790 812" stroke="#5a35a6" stroke-width="10" opacity=".22"/>'
     elif slug == "hologram":
-        defs = _bg_linear(uid, "#c8e7ff", "#ffd1f5", "d") + _specular_defs(uid, ".40")
-        bg = _bg_rect(uid) + '<path d="M86 778 L778 86 H938 V246 L246 938 H86 Z" fill="#ffffff" opacity=".22"/>'
-        subject = f'<g transform="rotate(-8 512 512)">{_glyph_fill(key, "#5a7ea8", "#d45fc9", "#9fd0ff")}</g>'
-        extras = _specular_rect(uid) + '<path d="M766 116 L908 116 L908 258 Z" fill="#ffffff" opacity=".62"/>'
+        defs = _bg_linear(uid, "#9fd0ff", "#ffb8f2", "d") + _shadow_filter(uid, 10, 8, ".18")
+        subject = f'<g filter="url(#sh{uid})" transform="rotate(-5 512 512)">{_glyph_outline(key, "#ffffff", 34)}{_glyph_fill(key, f"url(#bg{uid})", "#fff7a8", "#9fd0ff")}</g>'
+        extras = '<path d="M756 162 L884 162 L884 290 Z" fill="#ffffff" opacity=".70"/><circle cx="224" cy="792" r="20" fill="#fff" opacity=".72"/>'
     elif slug == "lemonade-stand":
-        defs = _bg_linear(uid, "#fff174", "#ffbd38")
-        gingham = ''.join(f'<rect x="{i}" y="0" width="42" height="1024" fill="#fff" opacity=".12"/><rect x="0" y="{i}" width="1024" height="42" fill="#fff" opacity=".12"/>' for i in range(0, 1024, 126))
-        bg = _bg_rect(uid) + gingham
-        subject = f'<g transform="rotate(-3 512 512)">{_glyph_stroke(key, "#7a3a0f", "#e84a2a", 36)}</g>'
-        extras = _noise_dots("#e84a2a", ".16", 150)
+        defs = _shadow_filter(uid, 12, 8, ".16")
+        subject = f'<g filter="url(#sh{uid})" transform="rotate(-3 512 512)">{_glyph_outline(key, "#e46a54", 24)}{_glyph_fill(key, "#ffd529", "#79cbb8", "#e46a54")}</g>'
+        extras = '<circle cx="790" cy="248" r="46" fill="#ffd529"/><path d="M790 202 V294 M744 248 H836" stroke="#fff4a2" stroke-width="10" opacity=".72"/>'
     elif slug == "monoline":
-        defs = _bg_linear(uid, "#14d6ff", "#4a5cff", "d") + _shadow_filter(uid, 18, 10, ".22")
-        bg = _bg_rect(uid) + '<circle cx="802" cy="182" r="160" fill="#ffffff" opacity=".18"/>'
-        subject = f'<g filter="url(#sh{uid})">{_glyph_stroke(key, "#ffffff", "#001f3f", 44)}</g>'
-        extras = ''
+        defs = _glow_filter(uid, "#62b7ff", ".60")
+        subject = f'<g filter="url(#gl{uid})">{_glyph_outline(key, "#fff4df", 30)}<g transform="translate(10 12)">{_glyph_outline(key, "#62b7ff", 18)}</g></g>'
+        extras = '<path d="M810 206 L810 260 M783 233 H837" stroke="#ff8cc8" stroke-width="18" stroke-linecap="round"/>'
+    elif slug == "oddlings":
+        defs = _shadow_filter(uid, 14, 14, ".26")
+        subject = f'<g filter="url(#sh{uid})">{_glyph_outline(key, "#28113f", 28)}{_glyph_fill(key, "#1fb7c9", "#7a3aa4", "#ff4fa8")}</g>'
+        extras = '<circle cx="512" cy="430" r="58" fill="#fff"/><circle cx="512" cy="430" r="22" fill="#171027"/><path d="M430 330 L456 250 M594 330 L568 250" stroke="#ff4fa8" stroke-width="18" stroke-linecap="round"/><path d="M470 560 L512 620 L554 560" fill="#fff"/>'
     elif slug == "risograph":
-        defs = _bg_linear(uid, "#f4ecd8", "#eadfca")
-        bg = _bg_rect(uid) + _noise_dots("#6d5c4a", ".12", 94)
+        defs = ""
         subject = f'<g transform="translate(-16 12)" opacity=".84">{_glyph_fill(key, "#14a6cc", "#14a6cc")}</g><g transform="translate(18 -14)" opacity=".86">{_glyph_fill(key, "#ff4fa8", "#ff4fa8")}</g>'
-        extras = '<rect width="1024" height="1024" fill="#f4ecd8" opacity=".10"/>'
+        extras = _noise_dots("#111111", ".18", 104)
     elif slug == "stadium":
-        defs = _bg_linear(uid, "#a62632", "#610911") + _shadow_filter(uid, 12, 10, ".25")
-        bg = _bg_rect(uid) + '<path d="M0 768 H1024 V1024 H0 Z" fill="#ffffff" opacity=".08"/>'
-        subject = f'<g filter="url(#sh{uid})">{_glyph_fill(key, "#ffd86a", "#ffffff")}</g>'
-        extras = '<rect x="116" y="116" width="792" height="792" rx="116" fill="none" stroke="#ffffff" stroke-width="18" opacity=".56" stroke-dasharray="22 22"/>'
+        defs = _shadow_filter(uid, 12, 10, ".25")
+        subject = f'<g filter="url(#sh{uid})">{_glyph_outline(key, "#ffffff", 30)}{_glyph_fill(key, "#0b8a35", "#ff7a00", "#1463d8")}</g>'
+        extras = '<path d="M260 804 H764" stroke="#ffffff" stroke-width="20" opacity=".72" stroke-dasharray="34 22"/>'
     elif slug == "tiki":
-        defs = _bg_linear(uid, "#8a5426", "#311808")
-        grain = ''.join(f'<path d="M{x} 0 C{x-80} 260 {x+80} 520 {x} 1024" stroke="#f6dfb4" stroke-width="8" opacity=".10" fill="none"/>' for x in range(120, 1000, 140))
-        bg = _bg_rect(uid) + grain + '<rect x="96" y="96" width="832" height="832" rx="112" fill="none" stroke="#f6dfb4" stroke-width="26" opacity=".32"/>'
-        subject = f'<g>{_glyph_stroke(key, "#f6dfb4", "#c47a3c", 38, "70 22")}</g>'
-        extras = ''
+        defs = _shadow_filter(uid, 10, 8, ".22")
+        subject = f'<g filter="url(#sh{uid})">{_glyph_outline(key, "#5a3218", 28)}{_glyph_fill(key, "#a96a32", "#1d8f8b", "#df7532")}</g>'
+        extras = ''.join(f'<path d="M{x} 232 C{x-38} 360 {x+28} 580 {x-12} 802" stroke="#f6dfb4" stroke-width="8" opacity=".22" fill="none"/>' for x in range(300, 780, 160))
     else:
-        defs = _bg_linear(uid, "#222", "#000")
-        bg = _bg_rect(uid)
+        defs = _shadow_filter(uid, 12, 10, ".22")
         subject = _glyph_fill(key, "#fff", "#999")
         extras = ""
 

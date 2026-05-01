@@ -239,10 +239,68 @@ function odd_cursors_url_current_scheme( $url ) {
 function odd_cursors_active_stylesheet_url( $slug = null ) {
 	$slug = null === $slug ? odd_cursors_get_active_slug() : sanitize_key( (string) $slug );
 	$args = array(
-		'v' => ( defined( 'ODD_VERSION' ) ? ODD_VERSION : '0' ) . '-' . ( '' === $slug ? 'none' : $slug ),
+		'v' => odd_cursors_stylesheet_version( $slug ),
 	);
 	if ( '' !== $slug ) {
 		$args['set'] = $slug;
 	}
 	return esc_url_raw( odd_cursors_url_current_scheme( add_query_arg( $args, rest_url( 'odd/v1/cursors/active.css' ) ) ) );
+}
+
+function odd_cursors_stylesheet_version( $slug = null ) {
+	$slug = null === $slug ? odd_cursors_get_active_slug() : sanitize_key( (string) $slug );
+	$set  = '' === $slug ? null : odd_cursors_get_set( $slug );
+	if ( ! $set ) {
+		return ( defined( 'ODD_VERSION' ) ? ODD_VERSION : '0' ) . '-none';
+	}
+
+	$parts = array(
+		defined( 'ODD_VERSION' ) ? ODD_VERSION : '0',
+		$slug,
+		isset( $set['version'] ) ? (string) $set['version'] : '',
+	);
+	if ( isset( $set['cursors'] ) && is_array( $set['cursors'] ) ) {
+		foreach ( odd_cursors_allowed_kinds() as $kind ) {
+			if ( empty( $set['cursors'][ $kind ] ) || ! is_array( $set['cursors'][ $kind ] ) ) {
+				continue;
+			}
+			$cursor  = $set['cursors'][ $kind ];
+			$parts[] = $kind . ':' . ( isset( $cursor['url'] ) ? (string) $cursor['url'] : '' ) . ':' . implode( ',', isset( $cursor['hotspot'] ) && is_array( $cursor['hotspot'] ) ? array_map( 'intval', $cursor['hotspot'] ) : array() );
+		}
+	}
+	return substr( md5( implode( '|', $parts ) ), 0, 16 );
+}
+
+function odd_cursors_token_map( $slug = null ) {
+	$slug = null === $slug ? odd_cursors_get_active_slug() : sanitize_key( (string) $slug );
+	$set  = '' === $slug ? null : odd_cursors_get_set( $slug );
+	if ( ! $set ) {
+		return array();
+	}
+
+	$out = array();
+	foreach ( odd_cursors_allowed_kinds() as $kind ) {
+		$fallback     = 'not-allowed' === $kind ? 'not-allowed' : $kind;
+		$out[ $kind ] = odd_cursors_css_cursor( $set, $kind, $fallback );
+	}
+	return $out;
+}
+
+function odd_cursors_shell_contract( $slug = null ) {
+	$slug = null === $slug ? odd_cursors_get_active_slug() : sanitize_key( (string) $slug );
+	if ( '' === $slug ) {
+		return array(
+			'slug'       => '',
+			'stylesheet' => '',
+			'version'    => odd_cursors_stylesheet_version( '' ),
+			'tokens'     => array(),
+		);
+	}
+
+	return array(
+		'slug'       => $slug,
+		'stylesheet' => odd_cursors_active_stylesheet_url( $slug ),
+		'version'    => odd_cursors_stylesheet_version( $slug ),
+		'tokens'     => odd_cursors_token_map( $slug ),
+	);
 }

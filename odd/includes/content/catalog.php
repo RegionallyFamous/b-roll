@@ -785,6 +785,10 @@ add_action(
 			array(
 				'methods'             => 'POST',
 				'callback'            => function () {
+					$rl = odd_bundle_rate_limit_check( 'bundle_catalog_refresh' );
+					if ( is_wp_error( $rl ) ) {
+						return $rl;
+					}
 					$registry = odd_catalog_refresh();
 					return rest_ensure_response(
 						array(

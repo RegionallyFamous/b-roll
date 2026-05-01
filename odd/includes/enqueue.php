@@ -454,6 +454,7 @@ add_action(
 				'iconSet'   => odd_bundle_catalog_for_type( 'icon-set' ),
 				'cursorSet' => odd_bundle_catalog_for_type( 'cursor-set' ),
 				'widget'    => odd_bundle_catalog_for_type( 'widget' ),
+				'app'       => odd_bundle_catalog_for_type( 'app' ),
 			) : array(),
 		);
 

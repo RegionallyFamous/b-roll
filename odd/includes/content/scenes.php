@@ -34,7 +34,7 @@ if ( ! defined( 'ODD_SCENES_DIR' ) ) {
 	define( 'ODD_SCENES_DIR', trailingslashit( WP_CONTENT_DIR ) . 'odd-scenes/' );
 }
 if ( ! defined( 'ODD_SCENES_URL' ) ) {
-	define( 'ODD_SCENES_URL', trailingslashit( content_url( 'odd-scenes' ) ) );
+	define( 'ODD_SCENES_URL', trailingslashit( set_url_scheme( content_url( 'odd-scenes' ) ) ) );
 }
 if ( ! defined( 'ODD_SCENES_OPTION_INDEX' ) ) {
 	define( 'ODD_SCENES_OPTION_INDEX', 'odd_scenes_index' );

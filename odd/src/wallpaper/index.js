@@ -655,6 +655,9 @@
 				}
 				swapping = true;
 				var swapStart = ( window.performance && window.performance.now ) ? window.performance.now() : Date.now();
+				var stopSwapMetric = window.__odd && window.__odd.diagnostics && typeof window.__odd.diagnostics.time === 'function'
+					? window.__odd.diagnostics.time( 'wallpaper.scene.swap', { to: nextSlug, from: currentSlug || '' } )
+					: function () {};
 				var prev = {
 					slug: currentSlug, impl: currentImpl, state: currentState, tick: currentTick,
 				};
@@ -738,12 +741,20 @@
 					announce( nextSlug );
 					var swapMs = ( ( window.performance && window.performance.now ) ? window.performance.now() : Date.now() ) - swapStart;
 					emitBus( 'odd.scene-swap-completed', { from: prev.slug, to: nextSlug, ms: Math.round( swapMs ) } );
+					stopSwapMetric( { status: 'ok', ms: Math.round( swapMs ) } );
+					if ( window.__odd && window.__odd.diagnostics && typeof window.__odd.diagnostics.count === 'function' ) {
+						window.__odd.diagnostics.count( 'wallpaper.scene.swap.ok' );
+					}
 					emitBus( 'odd.scene-changed', { from: prev.slug, to: nextSlug } );
 					drainPending();
 					return { ok: true };
 				} catch ( err ) {
 					if ( window.console ) window.console.error( 'ODD: swap failed', nextSlug, err );
 					emitBus( 'odd.scene-mount-failed', { slug: nextSlug, err: err, message: err && err.message } );
+					stopSwapMetric( { status: 'error' } );
+					if ( window.__odd && window.__odd.diagnostics && typeof window.__odd.diagnostics.count === 'function' ) {
+						window.__odd.diagnostics.count( 'wallpaper.scene.swap.error' );
+					}
 					if ( crossfadeNode && crossfadeNode.parentNode ) {
 						crossfadeNode.parentNode.removeChild( crossfadeNode );
 					}

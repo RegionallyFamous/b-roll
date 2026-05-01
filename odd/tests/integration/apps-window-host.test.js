@@ -42,5 +42,24 @@ describe( 'ODD app window host', () => {
 
 		frame.dispatchEvent( new Event( 'load' ) );
 		expect( markContentLoaded ).toHaveBeenCalledTimes( 1 );
+		const metrics = window.__odd.diagnostics.metrics();
+		expect( metrics.counters[ 'app.iframe.loaded' ] ).toBe( 1 );
+		expect( metrics.timings.some( ( row ) => row.name === 'app.iframe.load' && row.meta.slug === 'demo' ) ).toBe( true );
+	} );
+
+	it( 'surfaces a visible error when an app has no serve URL', () => {
+		window.odd.appServeUrls = {};
+		loadWindowHost();
+		const body = document.createElement( 'div' );
+		document.body.appendChild( body );
+		const errors = [];
+		window.__odd.events.on( 'odd.iframe-error', ( payload ) => errors.push( payload ) );
+
+		window.wpDesktopNativeWindows[ 'odd-app-demo' ]( body, {} );
+
+		expect( body.querySelector( 'iframe.odd-app-frame' ) ).toBeNull();
+		expect( body.textContent ).toContain( 'No serve URL is registered' );
+		expect( errors.some( ( row ) => row.message === 'odd-apps: missing app serve URL' ) ).toBe( true );
+		expect( window.__odd.diagnostics.metrics().counters[ 'app.iframe.skipped' ] ).toBe( 1 );
 	} );
 } );

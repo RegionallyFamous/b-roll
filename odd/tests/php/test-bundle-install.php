@@ -179,6 +179,65 @@ class Test_Bundle_Install extends ODD_REST_Test_Case {
 		$this->assertSame( 'invalid_extension', $res->get_error_code() );
 	}
 
+	public function test_path_traversal_entries_are_rejected_before_extract() {
+		$zip = $this->build_bundle_zip(
+			array(
+				'type'    => 'widget',
+				'slug'    => 'bad-path',
+				'name'    => 'Bad Path',
+				'version' => '1.0.0',
+			),
+			array(
+				'../escape.txt' => 'nope',
+			)
+		);
+		$res = odd_bundle_install( $zip, 'bad-path.wp' );
+		@unlink( $zip );
+		$this->assertWPError( $res );
+		$this->assertSame( 'path_traversal', $res->get_error_code() );
+	}
+
+	public function test_server_executable_entries_are_rejected() {
+		$zip = $this->build_bundle_zip(
+			array(
+				'type'    => 'widget',
+				'slug'    => 'bad-php',
+				'name'    => 'Bad PHP',
+				'version' => '1.0.0',
+			),
+			array(
+				'payload.php' => '<?php echo "nope";',
+			)
+		);
+		$res = odd_bundle_install( $zip, 'bad-php.wp' );
+		@unlink( $zip );
+		$this->assertWPError( $res );
+		$this->assertSame( 'forbidden_file_type', $res->get_error_code() );
+	}
+
+	public function test_catalog_entry_requires_https_and_sha256() {
+		$missing_sha = odd_catalog_download_entry_file(
+			array(
+				'type'         => 'widget',
+				'slug'         => 'missing-sha',
+				'download_url' => 'https://example.com/missing-sha.wp',
+			)
+		);
+		$this->assertWPError( $missing_sha );
+		$this->assertSame( 'missing_sha256', $missing_sha->get_error_code() );
+
+		$insecure = odd_catalog_download_entry_file(
+			array(
+				'type'         => 'widget',
+				'slug'         => 'insecure',
+				'download_url' => 'http://example.com/insecure.wp',
+				'sha256'       => str_repeat( 'a', 64 ),
+			)
+		);
+		$this->assertWPError( $insecure );
+		$this->assertSame( 'insecure_download', $insecure->get_error_code() );
+	}
+
 	public function test_unknown_type_defaults_to_app() {
 		// Omitting manifest.type falls back to "app" — preserves the
 		// v1.7.2-era contract so existing .wp bundles keep installing.

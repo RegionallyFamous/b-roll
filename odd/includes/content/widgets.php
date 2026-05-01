@@ -29,7 +29,7 @@ if ( ! defined( 'ODD_WIDGETS_DIR' ) ) {
 	define( 'ODD_WIDGETS_DIR', trailingslashit( WP_CONTENT_DIR ) . 'odd-widgets/' );
 }
 if ( ! defined( 'ODD_WIDGETS_URL' ) ) {
-	define( 'ODD_WIDGETS_URL', trailingslashit( content_url( 'odd-widgets' ) ) );
+	define( 'ODD_WIDGETS_URL', trailingslashit( set_url_scheme( content_url( 'odd-widgets' ) ) ) );
 }
 if ( ! defined( 'ODD_WIDGETS_OPTION_INDEX' ) ) {
 	define( 'ODD_WIDGETS_OPTION_INDEX', 'odd_widgets_index' );

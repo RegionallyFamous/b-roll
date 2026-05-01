@@ -66,9 +66,27 @@ class Test_Cursors extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'url("https://example.com/default.svg") 2 3, default', $css );
 		$this->assertStringContainsString( 'url("https://example.com/text.svg") 16 16, text', $css );
+		$this->assertStringContainsString( '--odd-cursor-default:', $css );
+		$this->assertStringContainsString( '[data-odd-cursor="text"]', $css );
 		$this->assertStringContainsString( 'input:not([type="button"])', $css );
-		$this->assertStringContainsString( '.desktop-mode-window-titlebar', $css );
 		$this->assertStringNotContainsString( '!important', $css );
+	}
+
+	public function test_cursor_stylesheet_version_and_shell_contract_include_active_tokens() {
+		$this->add_fixture_cursor_set();
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		odd_cursors_set_active_slug( 'test-cursors', $user_id );
+
+		$version  = odd_cursors_stylesheet_version( 'test-cursors' );
+		$contract = odd_cursors_shell_contract( 'test-cursors' );
+
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{16}$/', $version );
+		$this->assertSame( 'test-cursors', $contract['slug'] );
+		$this->assertSame( $version, $contract['version'] );
+		$this->assertStringContainsString( 'set=test-cursors', $contract['stylesheet'] );
+		$this->assertArrayHasKey( 'default', $contract['tokens'] );
+		$this->assertStringContainsString( 'default.svg', $contract['tokens']['default'] );
 	}
 
 	public function test_cursor_urls_upgrade_for_playground_https_proxy() {

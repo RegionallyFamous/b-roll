@@ -26,6 +26,8 @@ function odd_bundle_rate_limit_check( $action ) {
 	$defaults = array(
 		'bundle_upload'          => 10,
 		'bundle_catalog_install' => 10,
+		'bundle_catalog_refresh' => 6,
+		'starter_retry'          => 3,
 	);
 	$max      = (int) apply_filters( 'odd_bundle_rate_limit_max', $defaults[ $action ] ?? 20, $action, $uid );
 	if ( $max < 1 ) {
@@ -39,7 +41,10 @@ function odd_bundle_rate_limit_check( $action ) {
 		return new WP_Error(
 			'rest_too_many_requests',
 			__( 'Too many requests. Please wait a minute and try again.', 'odd' ),
-			array( 'status' => 429 )
+			array(
+				'status'      => 429,
+				'retry_after' => max( 1, 60 - ( time() % 60 ) ),
+			)
 		);
 	}
 

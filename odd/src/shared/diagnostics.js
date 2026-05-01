@@ -28,7 +28,12 @@
 	if ( window.__odd.diagnostics ) return;
 
 	var MAX_ENTRIES = 100;
+	var MAX_METRICS = 80;
 	var buffer = [];
+	var metrics = {
+		timings: [],
+		counters: {},
+	};
 
 	function now() {
 		return new Date().toISOString();
@@ -52,6 +57,75 @@
 			buffer.push( { at: now(), level: level, message: line.slice( 0, 2000 ) } );
 			while ( buffer.length > MAX_ENTRIES ) buffer.shift();
 		} catch ( _ ) {}
+	}
+
+	function monotonicNow() {
+		try {
+			return ( window.performance && typeof window.performance.now === 'function' ) ? window.performance.now() : Date.now();
+		} catch ( _ ) {
+			return Date.now();
+		}
+	}
+
+	function metricName( name ) {
+		return String( name || '' ).replace( /[^a-zA-Z0-9_.:-]/g, '-' ).slice( 0, 96 );
+	}
+
+	function timing( name, ms, meta ) {
+		name = metricName( name );
+		if ( ! name ) return null;
+		var row = {
+			at:   now(),
+			name: name,
+			ms:   Math.max( 0, Math.round( Number( ms ) || 0 ) ),
+		};
+		if ( meta && typeof meta === 'object' ) {
+			row.meta = {};
+			Object.keys( meta ).slice( 0, 12 ).forEach( function ( key ) {
+				var value = meta[ key ];
+				if ( value === null || [ 'string', 'number', 'boolean' ].indexOf( typeof value ) !== -1 ) {
+					row.meta[ key ] = value;
+				}
+			} );
+		}
+		metrics.timings.push( row );
+		while ( metrics.timings.length > MAX_METRICS ) metrics.timings.shift();
+		return row;
+	}
+
+	function count( name, by ) {
+		name = metricName( name );
+		if ( ! name ) return 0;
+		by = Number( by );
+		if ( ! by ) by = 1;
+		metrics.counters[ name ] = ( metrics.counters[ name ] || 0 ) + by;
+		return metrics.counters[ name ];
+	}
+
+	function time( name, meta ) {
+		var start = monotonicNow();
+		return function ( doneMeta ) {
+			var merged = {};
+			var key;
+			if ( meta && typeof meta === 'object' ) {
+				for ( key in meta ) {
+					if ( Object.prototype.hasOwnProperty.call( meta, key ) ) merged[ key ] = meta[ key ];
+				}
+			}
+			if ( doneMeta && typeof doneMeta === 'object' ) {
+				for ( key in doneMeta ) {
+					if ( Object.prototype.hasOwnProperty.call( doneMeta, key ) ) merged[ key ] = doneMeta[ key ];
+				}
+			}
+			return timing( name, monotonicNow() - start, merged );
+		};
+	}
+
+	function metricsSnapshot() {
+		return {
+			timings:  metrics.timings.slice(),
+			counters: Object.assign( {}, metrics.counters ),
+		};
 	}
 
 	var c = window.console;
@@ -154,6 +228,7 @@
 			state:         storeSnapshot(),
 			systemHealth:  systemHealthSnapshot(),
 			desktop:       desktopSnapshot(),
+			metrics:       metricsSnapshot(),
 			recentLog:     buffer.slice().reverse().slice( 0, 50 ),
 		};
 	}
@@ -208,6 +283,10 @@
 				p.desktop.palettes && p.desktop.palettes.length || 0,
 			].join( '/' ) + '`',
 			'',
+			'## Local Metrics',
+			'- timings captured: `' + ( p.metrics.timings && p.metrics.timings.length || 0 ) + '`',
+			'- counters: `' + Object.keys( p.metrics.counters || {} ).map( function ( key ) { return key + '=' + p.metrics.counters[ key ]; } ).join( ', ' ) + '`',
+			'',
 			'## Recent log (' + p.recentLog.length + ' entries, newest first)',
 			'```',
 		];
@@ -245,7 +324,11 @@
 		collect:         collect,
 		collectMarkdown: collectMarkdown,
 		copy:            copy,
+		count:           count,
+		metrics:         metricsSnapshot,
 		record:          record,
 		recent:          function () { return buffer.slice(); },
+		time:            time,
+		timing:          timing,
 	};
 } )();

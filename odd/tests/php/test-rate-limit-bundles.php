@@ -40,5 +40,26 @@ class Test_Odd_Rate_Limit_Bundles extends WP_UnitTestCase {
 		}
 		$this->assertInstanceOf( WP_Error::class, $err, 'expected 429 after ' . ( $max + 1 ) . ' attempts' );
 		$this->assertSame( 'rest_too_many_requests', $err->get_error_code() );
+		$data = $err->get_error_data();
+		$this->assertSame( 429, $data['status'] );
+		$this->assertGreaterThanOrEqual( 1, $data['retry_after'] );
+	}
+
+	public function test_rate_limit_covers_refresh_and_starter_retry_actions() {
+		foreach ( array( 'bundle_catalog_refresh', 'starter_retry' ) as $action ) {
+			$bucket = (int) floor( time() / 60 );
+			delete_transient( 'odd_rl_v2_' . $action . '_' . $this->admin_id . '_' . $bucket );
+			add_filter(
+				'odd_bundle_rate_limit_max',
+				static function ( $max, $seen_action ) use ( $action ) {
+					return $seen_action === $action ? 1 : $max;
+				},
+				10,
+				2
+			);
+			$this->assertTrue( odd_bundle_rate_limit_check( $action ) );
+			$this->assertWPError( odd_bundle_rate_limit_check( $action ) );
+			remove_all_filters( 'odd_bundle_rate_limit_max' );
+		}
 	}
 }

@@ -55,6 +55,11 @@ under `_tools/catalog-sources/` or generated files under `site/catalog/v1/`.
 4. Commit and push to `main`.
 5. Confirm `.github/workflows/pages.yml` publishes the catalog.
 
+`validate-catalog` also checks that every bundle has a published `card_url` and
+that card assets stay small enough for Shop use. If it fails on card size,
+recompress the source `card.webp` files under `_tools/catalog-sources/` and
+rebuild instead of raising the limit.
+
 Do not bump `ODD_VERSION`, tag a GitHub release, or edit `CHANGELOG.md` for
 catalog-only changes.
 
@@ -75,6 +80,10 @@ catalog-only changes.
 - Bundle extraction blocks traversal, symlinks, unexpected file types, and slug
   or type mismatches.
 - Catalog downloads verify SHA256 before install.
+- Catalog refresh, catalog install, bundle upload, and starter retry routes are
+  rate-limited per user.
+- App iframe serving sends `nosniff`, `noindex`, `no-referrer`, `SAMEORIGIN`,
+  and a restrictive permissions policy.
 - SVG and cursor assets are passive and validated.
 - Diagnostics are local-only, user initiated, and redact secrets/nonces.
 - ODD makes no telemetry, analytics, beacon, or remote error-reporting calls.
@@ -91,8 +100,49 @@ catalog-only changes.
 - `dist/odd.zip` stays below the 2 MB budget.
 - The Shop first paint uses localized state and does not block on remote
   catalog refresh.
+- Shop diagnostics include local-only render, catalog fetch/install, iframe
+  load, and wallpaper scene-swap timing counters. Use them for regressions, but
+  do not add remote telemetry.
+- Shop card art uses `card_url` when present and lazy/async image loading.
 - Scenes, widgets, apps, and iframes clean up timers, listeners, and resources.
 - The static marketing site remains low-dependency and passes `site-lint`.
+
+## Troubleshooting And Recovery
+
+### Catalog Unavailable
+
+1. Open ODD Shop → Settings and check the System Health card.
+2. Click **Refresh catalog** once. If it rate-limits, wait for the retry window.
+3. If `source` is `stale_option`, the Shop is using the last known good catalog.
+4. If `source` is `fallback_file`, the bundled fallback registry is active.
+5. Run `ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog` before publishing a
+   catalog fix.
+
+### Starter Pack Stuck
+
+1. Copy diagnostics from ODD Shop.
+2. Use the starter retry action in the Shop or call `POST /odd/v1/starter/retry`
+   as an admin.
+3. If retry reports missing starter slugs, rebuild the catalog and confirm
+   `starter_pack` entries resolve to real bundle rows.
+
+### App Opens Blank
+
+1. Confirm the app iframe shows an ODD diagnostic card instead of a blank frame.
+2. Copy diagnostics; check local metrics for `app.iframe.load`,
+   `app.iframe.emptyRoot`, or `app.iframe.skipped`.
+3. Reinstall or update the app from the catalog if the serve URL is missing.
+4. Inspect the iframe console only after the visible diagnostic confirms the
+   host path loaded.
+
+### Broken Bundle Install
+
+1. Trust the first `WP_Error` code: `sha256_mismatch`, `path_traversal`,
+   `forbidden_file_type`, `catalog_slug_mismatch`, and `catalog_type_mismatch`
+   are security blockers, not retry noise.
+2. Check that no partial bundle directory remains under `wp-content/odd-*`.
+3. Rebuild the bundle from `_tools/catalog-sources/` and rerun catalog
+   validation.
 
 ## Rollback
 

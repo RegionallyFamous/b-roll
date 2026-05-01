@@ -94,16 +94,35 @@ describe( 'ODD cursor runtime', () => {
 
 	it( 'bridges host elements that compute to native pointer cursors', () => {
 		loadRuntime();
-		const button = document.createElement( 'button' );
-		button.style.cursor = 'pointer';
-		document.body.appendChild( button );
+		const item = document.createElement( 'div' );
+		item.style.cursor = 'pointer';
+		document.body.appendChild( item );
 
-		window.__odd.cursors.bridgeTarget( button );
+		window.__odd.cursors.bridgeTarget( item );
 
-		expect( button.style.cursor ).toContain( 'pointer.svg' );
+		expect( item.style.cursor ).toContain( 'pointer.svg' );
 		expect( window.__odd.cursors.status().bridged ).toBe( 1 );
 
 		window.__odd.cursors.clear();
-		expect( button.style.cursor ).toBe( 'pointer' );
+		expect( item.style.cursor ).toBe( 'pointer' );
+	} );
+
+	it( 'stamps semantic roles and does not bridge known Desktop Mode surfaces', () => {
+		loadRuntime();
+		const shell = document.createElement( 'div' );
+		shell.className = 'wp-desktop-root';
+		const tile = document.createElement( 'button' );
+		tile.style.cursor = 'pointer';
+		shell.appendChild( tile );
+		document.body.appendChild( shell );
+
+		window.__odd.cursors.markRoot( shell );
+		window.__odd.cursors.mark( tile, 'pointer' );
+		window.__odd.cursors.bridgeTarget( tile );
+
+		expect( tile.getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
+		expect( tile.style.cursor ).toBe( 'pointer' );
+		expect( window.__odd.cursors.status().bridged ).toBe( 0 );
+		expect( window.__odd.cursors.status().semantics.pointer ).toBeGreaterThan( 0 );
 	} );
 } );

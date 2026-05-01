@@ -54,12 +54,13 @@ SOURCES = HERE / "catalog-sources"
 OUT_ROOT = REPO / "site" / "catalog" / "v1"
 OUT_BUNDLES = OUT_ROOT / "bundles"
 OUT_ICONS = OUT_ROOT / "icons"
+OUT_CARDS = OUT_ROOT / "cards"
 
 FIXED_DATE = (2025, 1, 1, 0, 0, 0)
 CATALOG_BASE = "https://odd.regionallyfamous.com/catalog/v1"
 SCHEMA_URL = f"{CATALOG_BASE}/registry.schema.json"
 
-# The iOS-style icons must all carry this exact squircle path (see
+# The catalog icon SVGs must all carry this exact squircle path (see
 # `_tools/icon-style-guide.md` and `_tools/icon-sets/_base.svg.tmpl`).
 # The validator matches on a normalized whitespace-collapsed version
 # so authors can wrap the path onto multiple lines without failing.
@@ -228,7 +229,7 @@ def _validate_basic_svg(label: str, data: bytes) -> ET.Element:
 def _validate_icon_svg(slug: str, rel: str, data: bytes) -> None:
     """Fail-loud check applied to every icon-set SVG before zipping.
 
-    Enforces the iOS-app-icon contract spec'd in
+    Enforces the standalone desktop glyph contract spec'd in
     `_tools/icon-style-guide.md`:
     - viewBox="0 0 1024 1024"
     - contains the canonical squircle clipPath verbatim
@@ -289,6 +290,16 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: fh.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def publish_card(src_dir: Path, type_prefix: str, slug: str) -> str:
+    """Publish optional generated Shop card art for a catalog row."""
+    card = src_dir / "card.webp"
+    if not card.is_file():
+        return ""
+    name = f"{type_prefix}-{slug}.webp"
+    shutil.copy2(card, OUT_CARDS / name)
+    return f"{CATALOG_BASE}/cards/{name}"
 
 
 # ---------------------------------------------------------------- #
@@ -444,9 +455,9 @@ def widget_tile(slug: str, label: str) -> str:
 def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[str, str]) -> str:
     """Compose a full-bleed catalog preview for an icon set.
 
-    The individual set SVGs are iOS-style squircles. That works for the
-    dock, but the Shop reads better when every set shares the same dark
-    stage and the preview compares only the glyph language.
+    The individual set SVGs are transparent standalone glyphs. The Shop
+    reads better when every set shares the same dark stage and the
+    preview compares only the glyph language.
     """
 
     ET.register_namespace("", "http://www.w3.org/2000/svg")
@@ -595,6 +606,7 @@ def build_scene(slug: str, src_dir: Path) -> dict:
         "franchise": manifest["franchise"],
         "tags": manifest["tags"],
         "icon_url": f"{CATALOG_BASE}/icons/{icon_webp_name}",
+        "card_url": publish_card(src_dir, "scene", slug),
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,
@@ -632,8 +644,8 @@ def build_iconset(slug: str, src_dir: Path) -> dict:
     write_zip(bundle, files)
 
     # Use a dedicated full-bleed preview as the Discover tile. Reusing
-    # the set's app-icon-shaped dashboard.svg leaves transparent
-    # squircle corners on large Shop catalog cards.
+    # the set's transparent dashboard.svg would disappear on large Shop
+    # catalog cards and would not show the set language as clearly.
     icon_name = f"iconset-{slug}.svg"
     (OUT_ICONS / icon_name).write_text(
         iconset_tile(slug, meta["label"], meta.get("accent", "#888"), src_dir, meta["icons"])
@@ -649,6 +661,7 @@ def build_iconset(slug: str, src_dir: Path) -> dict:
         "franchise": manifest["franchise"],
         "accent": manifest["accent"],
         "icon_url": f"{CATALOG_BASE}/icons/{icon_name}",
+        "card_url": publish_card(src_dir, "iconset", slug),
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,
@@ -779,6 +792,7 @@ def build_cursorset(slug: str, src_dir: Path) -> dict:
         "franchise": manifest["franchise"],
         "accent": manifest["accent"],
         "icon_url": f"{CATALOG_BASE}/icons/{icon_name}",
+        "card_url": publish_card(src_dir, "cursor-set", slug),
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,
@@ -835,6 +849,7 @@ def build_widget(slug: str, src_dir: Path) -> dict:
         "description": manifest["description"],
         "franchise": manifest["franchise"],
         "icon_url": f"{CATALOG_BASE}/icons/{icon_name}",
+        "card_url": publish_card(src_dir, "widget", slug),
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,
@@ -873,6 +888,7 @@ def build_app(slug: str, src_dir: Path) -> dict:
         "description": meta.get("description", ""),
         "tags": meta.get("tags", []),
         "icon_url": f"{CATALOG_BASE}/icons/{icon_name}",
+        "card_url": publish_card(src_dir, "app", slug),
         "download_url": f"{CATALOG_BASE}/bundles/{bundle_dest.name}",
         "sha256": sha256_file(bundle_dest),
         "size": bundle_dest.stat().st_size,
@@ -915,6 +931,7 @@ SCHEMA = {
                     "version",
                     "download_url",
                     "sha256",
+                    "card_url",
                 ],
                 "properties": {
                     "type": {
@@ -929,6 +946,7 @@ SCHEMA = {
                     "franchise": {"type": "string"},
                     "tags": {"type": "array", "items": {"type": "string"}},
                     "icon_url": {"type": "string"},
+                    "card_url": {"type": "string"},
                     "download_url": {"type": "string"},
                     "sha256": {
                         "type": "string",
@@ -953,6 +971,7 @@ def main() -> int:
         shutil.rmtree(OUT_ROOT)
     OUT_BUNDLES.mkdir(parents=True, exist_ok=True)
     OUT_ICONS.mkdir(parents=True, exist_ok=True)
+    OUT_CARDS.mkdir(parents=True, exist_ok=True)
 
     all_rows: list[dict] = []
 

@@ -4,7 +4,7 @@
   "franchise": "Technical",
   "accent": "#2fb37a",
   "preview": "dashboard.svg",
-  "description": "PCB-green tiles with gold traces, solder pads, and a tiny red LED in the corner. Pairs with Circuit Garden.",
+  "description": "Standalone PCB-trace glyphs with gold routing, dark green enamel, solder pads, and tiny LED accents.",
   "version": "1.1.1",
   "author": "Regionally Famous",
   "icons": {

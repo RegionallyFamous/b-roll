@@ -808,6 +808,10 @@ add_action(
 			array(
 				'methods'             => 'POST',
 				'callback'            => function () {
+					$rl = function_exists( 'odd_bundle_rate_limit_check' ) ? odd_bundle_rate_limit_check( 'starter_retry' ) : true;
+					if ( is_wp_error( $rl ) ) {
+						return $rl;
+					}
 					$result = odd_starter_ensure_installed( true );
 					$state  = odd_starter_get_state();
 					if ( is_wp_error( $result ) ) {

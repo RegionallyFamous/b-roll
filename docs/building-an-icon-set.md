@@ -78,7 +78,7 @@ Paths inside `icons/` can be anything — the manifest maps the
 | `label`       | no       | Falls back to `name`.                                                      |
 | `version`     | yes      | Semver-ish string.                                                         |
 | `franchise`   | no       | Soft historical label. Shelves are categorized by slug — the field is retained for third-party tooling that may still read it. |
-| `accent`      | yes      | `#hex` used behind the tile, under the quilt gradient, and in hover states.|
+| `accent`      | yes      | `#hex` used for Shop accents, catalog previews, and hover states.|
 | `description` | no       | Longer copy shown on the detail sheet.                                     |
 | `preview`     | no       | Relative path to an SVG/PNG/WebP hero (falls back to the `dashboard` icon).|
 | `icons`       | yes      | Map of 13 required keys → relative SVG paths.                              |
@@ -149,11 +149,13 @@ pixel art) and use `currentColor` everywhere else.
 - Keep stroke widths consistent across the set — the dock lays them
   out at the same px size and mismatched weights read as sloppiness.
 
-First-party catalog sets currently use a larger iOS-style source
-canvas (`viewBox="0 0 1024 1024"`) with the continuous squircle baked
-in. Third-party sets do **not** have to copy that treatment, but if you
-want the same direction see [`_tools/icon-style-guide.md`](../_tools/icon-style-guide.md)
-and keep every SVG below the 64 KB install limit.
+First-party catalog sets currently use a larger standalone-glyph source
+canvas (`viewBox="0 0 1024 1024"`) with the continuous squircle clipPath
+baked in for catalog compatibility. The visible art is transparent, not
+a tile or backplate. Third-party sets do **not** have to copy that
+treatment, but if you want the same direction see
+[`_tools/icon-style-guide.md`](../_tools/icon-style-guide.md) and keep
+every SVG below the 64 KB install limit.
 
 ## preview.svg (optional)
 

@@ -1,11 +1,13 @@
-# ODD icon style guide — iOS app icon spec
+# ODD icon style guide — standalone desktop glyph spec
 
 This is the canonical design brief for every ODD icon set. It distills
-Apple's [Human Interface Guidelines for app icons](https://developer.apple.com/design/human-interface-guidelines/app-icons),
-adds the exact continuous-curvature squircle path reverse-engineered by
+Apple's [Human Interface Guidelines for app icons](https://developer.apple.com/design/human-interface-guidelines/app-icons)
+for canvas discipline, adds the exact continuous-curvature squircle path reverse-engineered by
 [Liam Rosenfeld](https://liamrosenfeld.com/posts/apple_icon_quest/),
 and pins down the rules the `build-catalog` validator enforces before a
-bundle can ship.
+bundle can ship. ODD's current catalog icons render as standalone glyphs
+on a transparent canvas so they can sit inside WP Desktop Mode's own
+tiles without fighting the wallpaper or active theme.
 
 Every first-party icon that goes into the catalog sets under
 `_tools/catalog-sources/icon-sets/` must follow this.
@@ -22,10 +24,11 @@ Every first-party icon that goes into the catalog sets under
   a 1024 canvas). The shape is encoded once, in
   `_tools/icon-sets/_base.svg.tmpl`, and every icon reuses it via
   `<clipPath id="sq">`.
-- **Full-bleed.** The background layer fills the entire 1024² rect.
-  The squircle clip — ours, baked in, not Apple's system mask —
-  controls the silhouette. Subject layers draw on top inside the
-  clipped region.
+- **Transparent visible background.** The squircle clip — ours, baked
+  in, not Apple's system mask — stays in every SVG for compatibility
+  with the catalog validator and preview composer, but the visible icon
+  art should be a standalone glyph without a full-canvas tile, plate, or
+  backplate.
 
 ### The squircle path (drop-in)
 
@@ -77,17 +80,17 @@ constants stay the same, only the scaling changes.
   the core metaphor so users can read the icon the same way after a
   set swap.
 
-## Background treatment
+## Background Treatment
 
-- **Solid or gradient only.** Single fill or a two-stop linear or
-  radial gradient. No imported photos, no patterns tiled from raster.
-- **No transparency on the background layer.** `fill-opacity` and
-  `opacity` must be ≥ 0.15 on the background fill. This matches
-  Apple's "no transparency" App Store rule and prevents the dock
-  accent bleeding through when tinted.
-- **Optional Liquid Glass specular.** A single `<radialGradient>` in
-  the top-left corner with < 35 % opacity is allowed as an iOS 26-style
-  highlight. One per icon max.
+- **No app tile.** Do not draw a full-canvas `<rect>`, squircle, badge,
+  medallion, or rounded-square background inside the icon itself. The
+  desktop shell supplies the tile treatment.
+- **Material belongs to the glyph.** Gradients, grain, stitches, foil,
+  glow, and highlights are welcome when they are part of the symbol
+  silhouette or tiny accents around it.
+- **Preview backgrounds are separate.** Catalog cards may compose these
+  glyphs on a shared stage, but the individual icon SVGs should remain
+  transparent.
 
 ## Foreground treatment
 

@@ -47,8 +47,11 @@ add_filter(
 		if ( '' === $slug || ! is_array( $config ) ) {
 			return $config;
 		}
-		$config['oddCursorSet']        = $slug;
-		$config['oddCursorStylesheet'] = odd_cursors_active_stylesheet_url( $slug );
+		$contract                       = odd_cursors_shell_contract( $slug );
+		$config['oddCursorSet']         = $slug;
+		$config['oddCursorStylesheet']  = $contract['stylesheet'];
+		$config['oddCursorStylesheetV'] = $contract['version'];
+		$config['oddCursor']            = $contract;
 		return $config;
 	},
 	20

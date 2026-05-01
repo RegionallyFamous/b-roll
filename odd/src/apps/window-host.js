@@ -71,6 +71,18 @@
 	var events = window.__odd.events;
 	var APP_ID_PREFIX = 'odd-app-';
 
+	function diagnostics() {
+		return window.__odd && window.__odd.diagnostics;
+	}
+	function diagTime( name, meta ) {
+		var d = diagnostics();
+		return d && typeof d.time === 'function' ? d.time( name, meta ) : function () {};
+	}
+	function diagCount( name, by ) {
+		var d = diagnostics();
+		if ( d && typeof d.count === 'function' ) d.count( name, by );
+	}
+
 	function cfg() {
 		return ( window.odd && typeof window.odd === 'object' ) ? window.odd : {};
 	}
@@ -88,7 +100,7 @@
 		return typeof cfg().cursorStylesheet === 'string' ? cfg().cursorStylesheet : '';
 	}
 	function injectCursorStylesheet( frame, href ) {
-		href = href || cursorStylesheetUrl();
+		href = arguments.length > 1 ? href : cursorStylesheetUrl();
 		if ( ! frame ) return;
 		var doc;
 		try { doc = frame.contentDocument; } catch ( e ) { return; }
@@ -173,6 +185,8 @@
 	function installFrame( mount, ctx ) {
 		if ( ! mount ) return 'skipped';
 		if ( mount.querySelector( 'iframe.odd-app-frame' ) ) return 'already';
+		var slugForMetric = mount.getAttribute( 'data-odd-app-slug' ) || '';
+		var stopInstallTimer = diagTime( 'app.iframe.install', { slug: slugForMetric } );
 		markContentLoading( ctx );
 		var src = mount.getAttribute( 'data-odd-app-src' );
 		if ( ! src ) {
@@ -182,12 +196,25 @@
 		}
 		if ( ! src ) {
 			markContentLoaded( ctx );
+			var missing = mount.querySelector( '.odd-app-host__loading' );
+			if ( missing ) {
+				missing.style.display = 'grid';
+				missing.textContent = 'No serve URL is registered for this app. Reload the desktop or reinstall the app from ODD Shop.';
+			}
+			events.emit( events.NAMES.IFRAME_ERROR, {
+				message: 'odd-apps: missing app serve URL',
+				slug: slugForMetric,
+			} );
+			stopInstallTimer( { status: 'missing-src' } );
+			diagCount( 'app.iframe.skipped' );
 			return 'skipped';
 		}
 
+		var stopLoadTimer = diagTime( 'app.iframe.load', { slug: slugForMetric } );
 		var frame = document.createElement( 'iframe' );
 		frame.className = 'odd-app-frame';
 		frame.src = src;
+		frame.setAttribute( 'data-odd-cursor-root', 'true' );
 		frame.setAttribute( 'sandbox', 'allow-scripts allow-forms allow-popups allow-same-origin allow-downloads' );
 		frame.setAttribute( 'loading', 'eager' );
 		frame.setAttribute( 'referrerpolicy', 'no-referrer' );
@@ -195,10 +222,14 @@
 		frame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#101014;';
 		frame.addEventListener( 'error', function ( e ) {
 			events.emit( events.NAMES.IFRAME_ERROR, { message: 'app frame error', err: e } );
+			stopLoadTimer( { status: 'error' } );
+			diagCount( 'app.iframe.error' );
 			markContentLoaded( ctx );
 		} );
 		frame.addEventListener( 'load', function () {
 			markContentLoaded( ctx );
+			stopLoadTimer( { status: 'loaded' } );
+			diagCount( 'app.iframe.loaded' );
 			var loading = mount.querySelector( '.odd-app-host__loading' );
 			if ( loading ) loading.style.display = 'none';
 			injectCursorStylesheet( frame );
@@ -217,6 +248,7 @@
 			}, 1500 );
 		} );
 		mount.appendChild( frame );
+		stopInstallTimer( { status: 'mounted' } );
 		return 'mounted';
 	}
 
@@ -266,6 +298,7 @@
 		events.emit( events.NAMES.IFRAME_ERROR, {
 			message: 'odd-apps: iframe loaded but app root stayed empty',
 		} );
+		diagCount( 'app.iframe.emptyRoot' );
 	}
 
 	/**
@@ -288,6 +321,7 @@
 		host.className = 'odd-app-host';
 		host.setAttribute( 'data-odd-app', '' );
 		host.setAttribute( 'data-odd-app-slug', slug );
+		host.setAttribute( 'data-odd-cursor-root', 'true' );
 		if ( src ) host.setAttribute( 'data-odd-app-src', src );
 		host.style.cssText = 'position:absolute;inset:0;background:#101014;';
 
@@ -453,8 +487,8 @@
 
 	if ( window.wp && window.wp.hooks && typeof window.wp.hooks.addAction === 'function' ) {
 		window.wp.hooks.addAction( 'odd.cursorSet', 'odd.apps.cursors', function ( slug, href ) {
-			if ( href ) cfg().cursorStylesheet = href;
-			injectCursorStylesheetIntoOpenFrames( href || cursorStylesheetUrl() );
+			cfg().cursorStylesheet = ( slug === 'none' || slug === '' ) ? '' : ( href || cursorStylesheetUrl() );
+			injectCursorStylesheetIntoOpenFrames( cfg().cursorStylesheet );
 		} );
 	}
 

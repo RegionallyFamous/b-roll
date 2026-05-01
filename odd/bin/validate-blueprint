@@ -15,9 +15,9 @@ regressions are caught before they reach `main`.
 Checks (all emit bullets; any failure → exit code 1):
 
   1. `blueprint.json` exists and parses as JSON.
-  2. No `installPlugin` step uses `github.com/*/releases/latest/download/…`.
-     GitHub serves those as 302 redirects into asset-service hosts that
-     have unreliable CORS headers from the Playground origin.
+  2. No `installPlugin` step uses GitHub release asset URLs.
+     GitHub serves release assets without Playground-compatible CORS
+     headers, even when the tag is pinned.
   3. Every `git:directory` installPlugin resource has:
         - `ref`   (tag / branch / SHA)
         - `refType` (one of `tag`, `branch`, `commit`, `refname`)
@@ -30,7 +30,7 @@ Checks (all emit bullets; any failure → exit code 1):
      which can collide with `Requires Plugins:` expectations in the
      plugin headers.
   5. Any `installPlugin` with `resource: "url"` must be HTTPS and
-     cannot point at `github.com/*/releases/latest/download/…`.
+     cannot point at `github.com/*/releases/download/…`.
   6. WP Desktop Mode must not be installed from `git:directory` because
      its source archives do not include the compiled desktop shell JS
      (`assets/js/desktop.min.js`). Use a packaged zip instead.
@@ -89,10 +89,10 @@ def main() -> int:
 
         if resource == "url":
             url = str(plugin.get("url", ""))
-            if "github.com" in url and "/releases/latest/download" in url:
+            if "github.com" in url and "/releases/" in url and "/download/" in url:
                 problems.append(
-                    f"step[{idx}] installs from github.com/.../releases/latest/download — "
-                    "CORS-blocked from Playground, pin to a specific release tag or use git:directory"
+                    f"step[{idx}] installs from a GitHub release asset — "
+                    "CORS-blocked from Playground; mirror the packaged zip to a CORS-safe static URL"
                 )
             if not url.startswith("https://"):
                 problems.append(

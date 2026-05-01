@@ -42,6 +42,17 @@
 			} catch ( e ) {}
 		}
 	}
+	function diagnostics() {
+		return window.__odd && window.__odd.diagnostics;
+	}
+	function diagTime( name, meta ) {
+		var d = diagnostics();
+		return d && typeof d.time === 'function' ? d.time( name, meta ) : function () {};
+	}
+	function diagCount( name, by ) {
+		var d = diagnostics();
+		if ( d && typeof d.count === 'function' ) d.count( name, by );
+	}
 
 	// Mac App Store–style "departments". The ids are unchanged so
 	// localized config (`appsEnabled`), slash commands, and tests
@@ -58,6 +69,7 @@
 	];
 
 	var renderPanel = function ( body ) {
+		var stopPanelTimer = diagTime( 'panel.render', { window: 'odd' } );
 		// Bundle-install lookup tables. Hoisted so nested
 		// render functions can use them regardless of file order.
 		var DEPT_FOR_TYPE = {
@@ -74,6 +86,25 @@
 			'scene':    'scene',
 			'widget':   'widget',
 		};
+		var CATALOG_BASE_URL = 'https://odd.regionallyfamous.com/catalog/v1';
+
+		function isAbsoluteUrl( url ) {
+			return /^(?:https?:)?\/\//i.test( String( url || '' ) ) || /^data:/i.test( String( url || '' ) );
+		}
+
+		function normaliseCatalogAssetUrl( url, rowType, slug ) {
+			url = String( url || '' );
+			if ( ! url ) return '';
+			if ( isAbsoluteUrl( url ) || url.charAt( 0 ) === '/' ) return url;
+			// Older scene rows may only carry a bare preview filename
+			// from the pre-1.0 in-plugin asset era. Those files no
+			// longer ship in the runtime zip, but the remote catalog
+			// always publishes the matching scene thumbnail.
+			if ( rowType === 'scene' && slug && /\.webp(?:[?#].*)?$/i.test( url ) ) {
+				return CATALOG_BASE_URL + '/icons/scene-' + encodeURIComponent( slug ) + '.webp';
+			}
+			return url;
+		}
 
 		body.innerHTML = '';
 		injectStyles();
@@ -171,6 +202,7 @@
 			query:         '',
 			shopSounds:    loadShopSoundsSetting(),
 		};
+		var shopRowCache = {};
 		var buttons = {};
 		var shopSfx = { ctx: null, last: {} };
 
@@ -320,6 +352,10 @@
 		}
 
 		renderSection( state.active );
+		stopPanelTimer( {
+			sections: SECTIONS.length,
+			cards:    content.querySelectorAll ? content.querySelectorAll( '[data-odd-shop-card]' ).length : 0,
+		} );
 
 		return function teardown() {
 			body.classList.remove( 'odd-panel', 'odd-shop' );
@@ -337,6 +373,7 @@
 		/* --- routing --- */
 
 		function renderSection( id, opts ) {
+			var stopSectionTimer = diagTime( 'panel.renderSection', { section: id || '' } );
 			opts = opts || {};
 			// Abandoning a tab with a pending preview reverts the
 			// live swap — no silent commits because the user clicked
@@ -391,6 +428,9 @@
 			// the user one from a bundle install that landed on
 			// this department.
 			highlightJustInstalled();
+			stopSectionTimer( {
+				cards: content.querySelectorAll ? content.querySelectorAll( '[data-odd-shop-card]' ).length : 0,
+			} );
 		}
 
 		/* --- Apps section --- */
@@ -426,12 +466,17 @@
 
 		function renderAppsUnifiedGrid( gallery, wrap ) {
 			gallery.innerHTML = '';
-			// Catalog first (from the remote catalog snapshot) so we
-			// get icons / descriptions / update_available flags, then
-			// live /apps merges in.
+			// Catalog first (from the server-baked snapshot, then the
+			// live REST response) so first paint works offline and a
+			// later refresh can still pick up changed catalog metadata.
+			var embeddedCatalogRows = catalogRowsFor( 'app' );
 			fetchCatalog().then( function ( catalogRows ) {
 				fetchApps().then( function ( installedApps ) {
 					var bySlug = {};
+					( embeddedCatalogRows || [] ).forEach( function ( row ) {
+						if ( ! row || ! row.slug ) return;
+						bySlug[ row.slug ] = Object.assign( {}, row );
+					} );
 					( catalogRows || [] ).forEach( function ( row ) {
 						if ( ! row || ! row.slug ) return;
 						bySlug[ row.slug ] = Object.assign( {}, row );
@@ -616,6 +661,7 @@
 		}
 
 		function fetchCatalog() {
+			var stopFetchTimer = diagTime( 'catalog.fetch.apps' );
 			var url = ( state.cfg.bundleCatalogUrl || '' ) ||
 				( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/bundles/catalog' );
 			return fetch( url, {
@@ -627,14 +673,20 @@
 				if ( d && Array.isArray( d.apps ) ) rows = d.apps;
 				else if ( d && Array.isArray( d.items ) ) rows = d.items.filter( function ( item ) { return item && item.type === 'app'; } );
 				else if ( d && d.items && Array.isArray( d.items.apps ) ) rows = d.items.apps;
+				else if ( d && Array.isArray( d.bundles ) ) rows = d.bundles.filter( function ( item ) { return item && item.type === 'app'; } );
+				stopFetchTimer( { rows: rows.length } );
+				diagCount( 'catalog.fetch.apps.ok' );
 				return rows;
 			} )
 			  .catch( function ( err ) {
 				reportError( 'bundles.catalog.apps', err );
+				stopFetchTimer( { status: 'error' } );
+				diagCount( 'catalog.fetch.apps.error' );
 				return [];
 			} );
 		}
 		function installFromCatalog( slug, opts ) {
+			var stopInstallTimer = diagTime( 'catalog.install', { slug: slug || '' } );
 			opts = opts || {};
 			var body = { slug: slug };
 			if ( opts.allowUpdate ) body.allow_update = 1;
@@ -650,12 +702,18 @@
 				body: JSON.stringify( body ),
 			} ).then( function ( r ) {
 				return r.json().then( function ( data ) {
+					stopInstallTimer( { status: r.status, ok: !! r.ok } );
+					diagCount( r.ok ? 'catalog.install.ok' : 'catalog.install.error' );
 					return { ok: r.ok, status: r.status, data: data };
 				} ).catch( function () {
+					stopInstallTimer( { status: r.status, ok: false } );
+					diagCount( 'catalog.install.error' );
 					return { ok: false, status: r.status, message: 'HTTP ' + r.status };
 				} );
 			} ).catch( function ( err ) {
 				reportError( 'bundles.install-from-catalog.app', err );
+				stopInstallTimer( { status: 'network-error', ok: false } );
+				diagCount( 'catalog.install.error' );
 				return { ok: false, message: ( err && err.message ) || 'Network error while installing.' };
 			} );
 		}
@@ -4511,6 +4569,23 @@
 			if ( ! raw ) return null;
 			var slug = raw.slug || ( raw.id ? String( raw.id ).replace( /^odd\//, '' ) : '' );
 			if ( ! slug ) return null;
+			var cacheKey = [
+				type,
+				slug,
+				raw.version || '',
+				raw.installed === undefined ? 'u' : ( raw.installed ? '1' : '0' ),
+				raw.state || '',
+				raw.status || '',
+				raw.updateAvailable || raw.update_available ? 'u' : '',
+				raw.requiresReload ? 'r' : '',
+				raw.card_url || raw.cardUrl || '',
+				raw.icon_url || raw.icon || '',
+				raw.previewUrl || raw.preview_url || raw.preview || '',
+			].join( '|' );
+			if ( shopRowCache[ cacheKey ] ) {
+				diagCount( 'panel.normalise.cacheHit' );
+				return Object.assign( {}, shopRowCache[ cacheKey ], { raw: raw } );
+			}
 			var name = raw.label || raw.name || slug;
 
 			var subtitle = '';
@@ -4526,7 +4601,7 @@
 				subtitle = ( raw.version ? 'v' + raw.version : 'App' ) + ( raw.description ? ' · ' + raw.description.slice( 0, 48 ) : '' );
 			}
 
-			return {
+			var row = {
 				slug:          slug,
 				type:          type,
 				name:          name,
@@ -4535,9 +4610,10 @@
 				version:       raw.version || '',
 				franchise:     raw.franchise || '',
 				tags:          Array.isArray( raw.tags ) ? raw.tags : [],
-				previewUrl:    raw.previewUrl || '',
-				wallpaperUrl:  raw.wallpaperUrl || '',
-				iconUrl:       raw.icon_url || raw.icon || '',
+				previewUrl:    normaliseCatalogAssetUrl( raw.previewUrl || raw.preview_url || raw.preview || '', type, slug ),
+				wallpaperUrl:  normaliseCatalogAssetUrl( raw.wallpaperUrl || raw.wallpaper_url || raw.wallpaper || '', type, slug ),
+				iconUrl:       normaliseCatalogAssetUrl( raw.icon_url || raw.icon || '', type, slug ),
+				cardUrl:       normaliseCatalogAssetUrl( raw.card_url || raw.cardUrl || '', type, slug ),
 				icons:         raw.icons && typeof raw.icons === 'object' ? raw.icons : null,
 				cursors:       raw.cursors && typeof raw.cursors === 'object' ? raw.cursors : null,
 				preview:       raw.preview || '',
@@ -4553,6 +4629,8 @@
 				enabled:       raw.enabled !== false,
 				raw:           raw,
 			};
+			shopRowCache[ cacheKey ] = Object.assign( {}, row, { raw: null } );
+			return row;
 		}
 
 		// Return the list of installed rows for a type, normalised to
@@ -4621,6 +4699,7 @@
 				if ( ins[ prop ] === undefined || ins[ prop ] === null || ins[ prop ] === '' ) ins[ prop ] = cv;
 			}
 			takeIfEmpty( 'iconUrl' );
+			takeIfEmpty( 'cardUrl' );
 			takeIfEmpty( 'previewUrl' );
 			takeIfEmpty( 'wallpaperUrl' );
 			takeIfEmpty( 'preview' );
@@ -4816,6 +4895,23 @@
 		//  - app      → square app icon centered on a soft plate
 		function renderShopCardArt( row ) {
 			var art = el( 'div', { class: 'odd-shop__card-art odd-shop__card-art--' + row.type, 'aria-hidden': 'true' } );
+			function artImg( src, className ) {
+				var img = el( 'img', {
+					src: src,
+					alt: '',
+					loading: 'lazy',
+					decoding: 'async',
+					width: '512',
+					height: '512',
+				} );
+				if ( className ) img.classList.add( className );
+				return img;
+			}
+
+			if ( row.cardUrl ) {
+				art.appendChild( artImg( row.cardUrl, 'odd-shop__card-art-fill' ) );
+				return art;
+			}
 
 			if ( row.type === 'scene' ) {
 				art.style.backgroundColor = row.fallbackColor || '#1d1d22';
@@ -4827,7 +4923,7 @@
 					|| row.iconUrl
 					|| ( ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + row.slug + '.webp' );
 				if ( sceneUrl ) {
-					art.appendChild( el( 'img', { src: sceneUrl, alt: '', loading: 'lazy' } ) );
+					art.appendChild( artImg( sceneUrl ) );
 				} else {
 					var sceneMono = el( 'div', { class: 'odd-shop__card-mono' } );
 					sceneMono.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
@@ -4842,7 +4938,7 @@
 					var keys = [ 'dashboard', 'posts', 'pages', 'media' ].filter( function ( k ) { return row.icons[ k ]; } );
 					if ( ! keys.length ) keys = Object.keys( row.icons ).slice( 0, 4 );
 					keys.slice( 0, 4 ).forEach( function ( k ) {
-						quartet.appendChild( el( 'img', { src: row.icons[ k ], alt: '', loading: 'lazy' } ) );
+						quartet.appendChild( artImg( row.icons[ k ] ) );
 					} );
 					if ( quartet.children.length ) {
 						art.appendChild( quartet );
@@ -4854,9 +4950,7 @@
 				// that. Either renders as a single full-bleed image.
 				var iconSetUrl = row.preview || row.iconUrl;
 				if ( iconSetUrl ) {
-					var iconSetImg = el( 'img', { src: iconSetUrl, alt: '', loading: 'lazy' } );
-					iconSetImg.classList.add( 'odd-shop__card-art-fill' );
-					art.appendChild( iconSetImg );
+					art.appendChild( artImg( iconSetUrl, 'odd-shop__card-art-fill' ) );
 					return art;
 				}
 				var fallback = el( 'div', { class: 'odd-shop__card-mono' } );
@@ -4869,9 +4963,7 @@
 				art.style.background = row.accent || '#38e8ff';
 				var cursorUrl = row.preview || row.iconUrl;
 				if ( cursorUrl ) {
-					var cursorImg = el( 'img', { src: cursorUrl, alt: '', loading: 'lazy' } );
-					cursorImg.classList.add( 'odd-shop__card-art-fill' );
-					art.appendChild( cursorImg );
+					art.appendChild( artImg( cursorUrl, 'odd-shop__card-art-fill' ) );
 					return art;
 				}
 				var cursorMono = el( 'div', { class: 'odd-shop__card-mono' } );
@@ -4883,9 +4975,7 @@
 			if ( row.type === 'widget' ) {
 				art.style.background = 'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)';
 				if ( row.iconUrl ) {
-					var wimg = el( 'img', { src: row.iconUrl, alt: '', loading: 'lazy' } );
-					wimg.classList.add( 'odd-shop__card-art-fill' );
-					art.appendChild( wimg );
+					art.appendChild( artImg( row.iconUrl, 'odd-shop__card-art-fill' ) );
 				} else {
 					var wf = el( 'div', { class: 'odd-shop__card-mono' } );
 					wf.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
@@ -4901,7 +4991,7 @@
 					if ( src.indexOf( 'data:' ) !== 0 && src.indexOf( 'http' ) !== 0 ) {
 						src = ( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/apps/icon/' + row.slug );
 					}
-					art.appendChild( el( 'img', { src: src, alt: '', loading: 'lazy' } ) );
+					art.appendChild( artImg( src ) );
 				} else {
 					var mono = el( 'div', { class: 'odd-shop__card-mono' } );
 					mono.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
@@ -4936,6 +5026,7 @@
 				'data-cursor-set-slug': row.type === 'cursor-set' ? row.slug : null,
 				'data-widget-id':     row.type === 'widget' ? ( 'odd/' + row.slug ) : null,
 				'data-catalog-slug':  row.installed ? null : row.slug,
+				'data-odd-cursor-root': 'true',
 			} );
 
 			var card = el( 'button', {
@@ -4945,6 +5036,7 @@
 					+ ( isActive ? ' is-active' : '' ),
 				'aria-label': row.name,
 				'data-slug': row.slug,
+				'data-odd-cursor': 'pointer',
 			} );
 			if ( row.type === 'scene' )    card.setAttribute( 'data-scene-slug',  row.slug );
 			if ( row.type === 'icon-set' ) card.setAttribute( 'data-set-slug',    row.slug );
@@ -4986,6 +5078,7 @@
 					+ ( action.disabled ? ' is-disabled' : ' odd-shop__tile-btn--primary' )
 					+ ( kind === 'install' ? ' odd-shop__card-btn--install' : '' ),
 				'aria-pressed': isActive ? 'true' : 'false',
+				'data-odd-cursor': action.disabled ? 'not-allowed' : 'pointer',
 			} );
 			btn.textContent = action.label;
 			if ( action.disabled ) btn.disabled = true;
@@ -5021,6 +5114,7 @@
 					tabindex: '0',
 					'aria-label': fav ? 'Remove from favorites' : 'Add to favorites',
 					'aria-pressed': fav ? 'true' : 'false',
+					'data-odd-cursor': 'pointer',
 				} );
 				star.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3.6 L14.6 9.1 L20.5 9.9 L16.2 14.2 L17.3 20.1 L12 17.3 L6.7 20.1 L7.8 14.2 L3.5 9.9 L9.4 9.1 Z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
 				function toggleFromStar( ev ) {

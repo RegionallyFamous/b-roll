@@ -403,6 +403,7 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 	nocache_headers();
 	header( 'Content-Type: ' . $mime );
 	header( 'X-Content-Type-Options: nosniff' );
+	header( 'X-Robots-Tag: noindex, nofollow' );
 	if ( false === $size || ini_get( 'zlib.output_compression' ) ) {
 		header_remove( 'Content-Length' );
 	} else {
@@ -410,6 +411,7 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 	}
 	header( 'Referrer-Policy: no-referrer' );
 	header( 'X-Frame-Options: SAMEORIGIN' );
+	header( 'Permissions-Policy: camera=(), microphone=(), geolocation=()' );
 	if ( null !== $body ) {
 		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	} else {
@@ -433,15 +435,15 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
  */
 function odd_apps_cookieauth_url_for( $slug ) {
 	$slug = sanitize_key( (string) $slug );
-	return home_url( '/odd-app/' . $slug . '/' );
+	return set_url_scheme( home_url( '/odd-app/' . $slug . '/' ) );
 }
 
 function odd_apps_runtime_importmap_html() {
 	$imports = array(
-		'react'             => home_url( '/odd-app-runtime/react.js' ),
-		'react-dom'         => home_url( '/odd-app-runtime/react-dom.js' ),
-		'react-dom/client'  => home_url( '/odd-app-runtime/react-dom-client.js' ),
-		'react/jsx-runtime' => home_url( '/odd-app-runtime/react-jsx-runtime.js' ),
+		'react'             => set_url_scheme( home_url( '/odd-app-runtime/react.js' ) ),
+		'react-dom'         => set_url_scheme( home_url( '/odd-app-runtime/react-dom.js' ) ),
+		'react-dom/client'  => set_url_scheme( home_url( '/odd-app-runtime/react-dom-client.js' ) ),
+		'react/jsx-runtime' => set_url_scheme( home_url( '/odd-app-runtime/react-jsx-runtime.js' ) ),
 	);
 	return '<script type="importmap">' . wp_json_encode( array( 'imports' => $imports ) ) . '</script>';
 }
@@ -492,7 +494,7 @@ function odd_apps_rewrite_runtime_bare_imports( $js ) {
 	if ( false === strpos( $js, '"react' ) && false === strpos( $js, "'react" ) ) {
 		return $js;
 	}
-	$base = rtrim( home_url( '/odd-app-runtime' ), '/' );
+	$base = rtrim( set_url_scheme( home_url( '/odd-app-runtime' ) ), '/' );
 	$re   = '#(\b(?:from|import)\s*)(["\'])(react(?:/jsx-runtime|-dom(?:/client)?)?)\2#';
 	return preg_replace_callback(
 		$re,
@@ -593,6 +595,7 @@ function odd_apps_serve_runtime_module( $name ) {
 	nocache_headers();
 	header( 'Content-Type: text/javascript; charset=utf-8' );
 	header( 'X-Content-Type-Options: nosniff' );
+	header( 'X-Robots-Tag: noindex, nofollow' );
 	header( 'Content-Length: ' . strlen( $source ) );
 	echo $source; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }

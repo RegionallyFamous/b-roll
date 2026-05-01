@@ -23,7 +23,7 @@ if ( ! defined( 'ODD_ICONSETS_DIR' ) ) {
 	define( 'ODD_ICONSETS_DIR', trailingslashit( WP_CONTENT_DIR ) . 'odd-icon-sets/' );
 }
 if ( ! defined( 'ODD_ICONSETS_URL' ) ) {
-	define( 'ODD_ICONSETS_URL', trailingslashit( content_url( 'odd-icon-sets' ) ) );
+	define( 'ODD_ICONSETS_URL', trailingslashit( set_url_scheme( content_url( 'odd-icon-sets' ) ) ) );
 }
 if ( ! defined( 'ODD_ICONSETS_OPTION_INDEX' ) ) {
 	define( 'ODD_ICONSETS_OPTION_INDEX', 'odd_iconsets_index' );

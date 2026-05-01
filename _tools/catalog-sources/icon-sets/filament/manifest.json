@@ -4,7 +4,7 @@
   "franchise": "Lightbox",
   "accent": "#ffb000",
   "preview": "dashboard.svg",
-  "description": "Glowing full-color neon tubes over dark glass, with warm highlights and layered app symbols instead of hairline monochrome strokes.",
+  "description": "Standalone glowing neon-tube glyphs with warm filament highlights and no app-tile background.",
   "version": "1.1.1",
   "author": "Regionally Famous",
   "icons": {

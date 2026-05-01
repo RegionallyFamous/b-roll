@@ -129,6 +129,49 @@ describe( 'Desktop Mode hook bridge', () => {
 		);
 		expect( next ).toBe( tile );
 		expect( tile.getAttribute( 'data-odd-dock-tile' ) ).toBe( 'odd' );
+		expect( tile.getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
+	} );
+
+	it( 'maps window and widget hook payload elements to semantic cursor roots', () => {
+		window.wp.desktop = { ready: ( cb ) => cb() };
+		loadDesktopHooks();
+
+		const win = document.createElement( 'div' );
+		win.innerHTML = '<div class="wp-desktop-window-titlebar"></div><button>Run</button><input type="text">';
+		window.wp.hooks.doAction( 'wp-desktop.window.opened', {
+			windowId: 'odd-app-demo',
+			element: win,
+		} );
+
+		expect( win.getAttribute( 'data-odd-cursor-root' ) ).toBe( 'true' );
+		expect( win.querySelector( '.wp-desktop-window-titlebar' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'grab' );
+		expect( win.querySelector( 'button' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
+		expect( win.querySelector( 'input' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'text' );
+
+		const widget = document.createElement( 'div' );
+		widget.innerHTML = '<div class="odd-widget__move"></div><button>Tap</button>';
+		window.wp.hooks.doAction( 'wp-desktop.widget.mounted', {
+			id: 'odd/weather',
+			element: widget,
+		} );
+
+		expect( widget.getAttribute( 'data-odd-cursor-root' ) ).toBe( 'true' );
+		expect( widget.querySelector( '.odd-widget__move' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'grab' );
+	} );
+
+	it( 'injects active cursor stylesheets into ODD iframe ready payloads', () => {
+		window.wp.desktop = { ready: ( cb ) => cb() };
+		const injectInto = vi.fn();
+		window.__odd.cursors = { injectInto };
+		loadDesktopHooks();
+
+		const doc = document.implementation.createHTMLDocument( 'frame' );
+		window.wp.hooks.doAction( 'wp-desktop.iframe.ready', {
+			windowId: 'odd-app-demo',
+			document: doc,
+		} );
+
+		expect( injectInto ).toHaveBeenCalledWith( doc );
 	} );
 
 	it( 'adds ODD entries to Desktop Mode open command suggestions', () => {

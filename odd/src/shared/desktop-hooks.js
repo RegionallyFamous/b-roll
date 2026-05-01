@@ -89,6 +89,104 @@
 		return ( window.odd && typeof window.odd === 'object' ) ? window.odd : {};
 	}
 
+	function cursors() {
+		return window.__odd && window.__odd.cursors;
+	}
+
+	function markCursor( node, kind ) {
+		var c = cursors();
+		if ( c && typeof c.mark === 'function' ) {
+			c.mark( node, kind );
+		} else if ( node && node.setAttribute ) {
+			try { node.setAttribute( 'data-odd-cursor', kind || 'default' ); } catch ( _ ) {}
+		}
+		return node;
+	}
+
+	function markCursorRoot( node ) {
+		var c = cursors();
+		if ( c && typeof c.markRoot === 'function' ) {
+			c.markRoot( node );
+		} else if ( node && node.setAttribute ) {
+			try { node.setAttribute( 'data-odd-cursor-root', 'true' ); } catch ( _ ) {}
+		}
+		return node;
+	}
+
+	function markCursorDescendants( node ) {
+		var c = cursors();
+		if ( c && typeof c.markInteractiveDescendants === 'function' ) {
+			return c.markInteractiveDescendants( node );
+		}
+		if ( ! node || ! node.querySelectorAll ) return 0;
+		var count = 0;
+		var nodes = node.querySelectorAll( 'a[href], button, [role="button"], input, textarea, [contenteditable="true"], [contenteditable=""], select, [draggable="true"], [data-drag], [data-drag-handle], [disabled], [aria-disabled="true"], [aria-busy="true"]' );
+		for ( var i = 0; i < nodes.length; i++ ) {
+			var el = nodes[ i ];
+			if ( el.hasAttribute && el.hasAttribute( 'data-odd-cursor' ) ) continue;
+			if ( el.matches && el.matches( 'input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, [contenteditable="true"], [contenteditable=""]' ) ) {
+				markCursor( el, 'text' );
+			} else if ( el.matches && el.matches( '[draggable="true"], [data-drag], [data-drag-handle]' ) ) {
+				markCursor( el, 'grab' );
+			} else if ( el.matches && el.matches( '[disabled], [aria-disabled="true"]' ) ) {
+				markCursor( el, 'not-allowed' );
+			} else if ( el.matches && el.matches( '[aria-busy="true"]' ) ) {
+				markCursor( el, 'progress' );
+			} else {
+				markCursor( el, 'pointer' );
+			}
+			count++;
+		}
+		return count;
+	}
+
+	function elementFromPayload( payload ) {
+		if ( ! payload || typeof payload !== 'object' ) return null;
+		return payload.element || payload.el || payload.node || payload.host || payload.body || payload.root || null;
+	}
+
+	function markWindowChrome( root ) {
+		if ( ! root || ! root.querySelectorAll ) return 0;
+		var count = 0;
+		var chrome = root.querySelectorAll( '.desktop-mode-window-titlebar, .desktop-mode-window-header, .wp-desktop-window-titlebar, .wp-desktop-window-header, [data-window-titlebar], [data-window-header], [data-drag-handle], [data-resize-handle]' );
+		for ( var i = 0; i < chrome.length; i++ ) {
+			markCursor( chrome[ i ], 'grab' );
+			count++;
+		}
+		var buttons = root.querySelectorAll( 'button, [role="button"], a[href], [data-window-control]' );
+		for ( var j = 0; j < buttons.length; j++ ) {
+			markCursor( buttons[ j ], 'pointer' );
+			count++;
+		}
+		return count;
+	}
+
+	function markWidgetChrome( root ) {
+		if ( ! root || ! root.querySelectorAll ) return 0;
+		var count = 0;
+		var chrome = root.querySelectorAll( '.odd-widget__chrome, .odd-widget__move, [data-widget-chrome], [data-widget-drag-handle], [data-drag-handle]' );
+		for ( var i = 0; i < chrome.length; i++ ) {
+			markCursor( chrome[ i ], 'grab' );
+			count++;
+		}
+		count += markCursorDescendants( root );
+		return count;
+	}
+
+	function injectCursorIntoFrame( payload ) {
+		var frame = payload && ( payload.frame || payload.iframe || payload.element || payload.el );
+		var doc = payload && payload.document;
+		if ( ! doc && frame ) {
+			try { doc = frame.contentDocument; } catch ( _ ) {}
+		}
+		var c = cursors();
+		if ( c && typeof c.injectInto === 'function' && doc ) {
+			c.injectInto( doc );
+			return true;
+		}
+		return false;
+	}
+
 	function ready( cb ) {
 		var d = desktop();
 		if ( d && typeof d.ready === 'function' ) {
@@ -198,6 +296,8 @@
 			var windowId = ctx && ( ctx.windowId || ctx.id || ( ctx.config && ctx.config.id ) );
 			if ( ! body || ! isOddWindow( windowId ) ) return body;
 			try { body.setAttribute( 'data-odd-native-window', windowId ); } catch ( _ ) {}
+			markCursorRoot( body );
+			markCursorDescendants( body );
 			record( 'info', 'wp-desktop.native-window.before-render', { windowId: windowId } );
 			return body;
 		} );
@@ -217,7 +317,11 @@
 		addAction( 'wp-desktop.iframe.ready', function ( payload ) {
 			var windowId = payload && payload.windowId;
 			if ( isOddWindow( windowId ) ) {
-				record( 'info', 'wp-desktop.iframe.ready', payload );
+				var injected = injectCursorIntoFrame( payload );
+				record( 'info', 'wp-desktop.iframe.ready', {
+					windowId: windowId,
+					cursorInjected: injected,
+				} );
 			}
 		} );
 	}
@@ -232,6 +336,11 @@
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
 				if ( payload && isOddWidget( payload.id ) ) {
+					var el = elementFromPayload( payload );
+					if ( el ) {
+						markCursorRoot( el );
+						markWidgetChrome( el );
+					}
 					record( 'info', hookName, payload );
 				}
 			} );
@@ -294,8 +403,11 @@
 			return classes;
 		} );
 		addFilter( 'wp-desktop.dock.tile-element', function ( el, ctx ) {
-			if ( el && ctx && isOddDockItem( ctx.item ) ) {
-				try { el.setAttribute( 'data-odd-dock-tile', itemId( ctx.item ) || 'odd' ); } catch ( _ ) {}
+			if ( el && ctx ) {
+				markCursor( el, 'pointer' );
+				if ( isOddDockItem( ctx.item ) ) {
+					try { el.setAttribute( 'data-odd-dock-tile', itemId( ctx.item ) || 'odd' ); } catch ( _ ) {}
+				}
 			}
 			return el;
 		} );
@@ -313,9 +425,48 @@
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
 				if ( hookName.indexOf( 'tile' ) !== -1 && payload && ! isOddDockItem( payload.item ) ) return;
+				var el = elementFromPayload( payload );
+				if ( el ) markCursor( el, 'pointer' );
 				record( 'info', hookName, payload || {} );
 			} );
 		} );
+	}
+
+	function setupCursorSurfaceMapping() {
+		addAction( 'wp-desktop.window.opened', function ( payload ) {
+			var el = elementFromPayload( payload );
+			if ( ! el ) return;
+			markCursorRoot( el );
+			markWindowChrome( el );
+			markCursorDescendants( el );
+			record( 'info', 'odd.cursor.window-mapped', {
+				windowId: payload && ( payload.windowId || payload.id ),
+			} );
+		} );
+		addAction( 'wp-desktop.window.content-loaded', function ( payload ) {
+			var el = elementFromPayload( payload );
+			if ( ! el ) return;
+			markCursorRoot( el );
+			markWindowChrome( el );
+			markCursorDescendants( el );
+		} );
+		addAction( 'wp-desktop.window.bounds-changed', function ( payload ) {
+			var el = elementFromPayload( payload );
+			if ( el ) markWindowChrome( el );
+		} );
+		addAction( 'wp-desktop.window.chrome.applied', function ( payload ) {
+			var el = elementFromPayload( payload );
+			if ( el ) markWindowChrome( el );
+		} );
+		if ( typeof document !== 'undefined' ) {
+			ready( function () {
+				var roots = document.querySelectorAll ? document.querySelectorAll( '.desktop-mode, .desktop-mode-shell, .wp-desktop, .wp-desktop-root' ) : [];
+				for ( var i = 0; i < roots.length; i++ ) {
+					markCursorRoot( roots[ i ] );
+				}
+				markCursorDescendants( document );
+			} );
+		}
 	}
 
 	function setupCommandDiagnostics() {
@@ -548,6 +699,7 @@
 	setupWidgetDiagnostics();
 	setupWallpaperDiagnostics();
 	setupDockDiagnostics();
+	setupCursorSurfaceMapping();
 	setupCommandDiagnostics();
 	setupLayoutDiagnostics();
 	setupActivityDiagnostics();

@@ -150,6 +150,9 @@ describe( 'ODD Shop · unified card state machine', () => {
 		const thumb = card.querySelector( '.odd-shop__card-art--widget img.odd-shop__card-art-fill' );
 		expect( thumb ).toBeTruthy();
 		expect( thumb.getAttribute( 'src' ) ).toBe( 'https://example.com/catalog/v1/icons/widget-eight-ball.svg' );
+		expect( thumb.getAttribute( 'loading' ) ).toBe( 'lazy' );
+		expect( thumb.getAttribute( 'decoding' ) ).toBe( 'async' );
+		expect( thumb.getAttribute( 'width' ) ).toBe( '512' );
 	} );
 
 	it( 'not-installed scene renders an Install button', () => {
@@ -273,6 +276,51 @@ describe( 'ODD Shop · unified card state machine', () => {
 		const btn  = card.querySelector( '.odd-shop__card-btn' );
 		expect( btn.textContent.trim() ).toBe( 'Update' );
 		expect( btn.disabled ).toBe( false );
+	} );
+
+	it( 'catalog-only apps render from the embedded bundle catalog', async () => {
+		seed( {
+			appsEnabled: true,
+			bundleCatalog: {
+				scene: [],
+				iconSet: [],
+				cursorSet: [],
+				widget: [],
+				app: [ { slug: 'board', label: 'Board', type: 'app', version: '1.0.0', installed: false } ],
+			},
+		} );
+		loadPanel();
+		const { host } = mount();
+		goToDepartment( host, 'Apps' );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-slug="board"]' );
+		expect( card, 'embedded app catalog row must render' ).toBeTruthy();
+		expect( card.querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
+		expect( host.querySelector( '.odd-apps-empty' ) ).toBeNull();
+	} );
+
+	it( 'Apps catalog accepts the unified /bundles/catalog response shape', async () => {
+		seed( { appsEnabled: true } );
+		globalThis.fetch = vi.fn( ( url ) => Promise.resolve( {
+			ok: true,
+			json: () => Promise.resolve(
+				/\/bundles\/catalog$/.test( url )
+					? { bundles: [ { slug: 'flow', label: 'Flow', type: 'app', version: '1.0.0', installed: false } ] }
+					: { apps: [] }
+			),
+		} ) );
+		loadPanel();
+		const { host } = mount();
+		goToDepartment( host, 'Apps' );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-slug="flow"]' );
+		expect( card, 'app row from bundles response must render' ).toBeTruthy();
+		expect( card.querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
+		expect( host.querySelector( '.odd-apps-empty' ) ).toBeNull();
 	} );
 
 	it( 'installed inactive icon set renders a Preview button', () => {

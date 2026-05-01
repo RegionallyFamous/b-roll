@@ -13,8 +13,8 @@ Checks:
   3. Every starter_pack entry (scenes[], iconSets[], cursorSets[], widgets[], apps[])
      names a slug that exists in `bundles[]` with the matching type.
   4. Every `bundles[]` row:
-        a. `download_url` and `icon_url` resolve to files on disk at
-           `site/catalog/v1/bundles/<name>.wp` + `/icons/<name>.svg`.
+        a. `download_url`, `icon_url`, and `card_url` resolve to files
+           on disk under `site/catalog/v1/`.
         b. The `.wp` opens as a ZIP and contains `manifest.json`.
         c. The manifest's `type`, `slug`, and `version` match the row.
         d. The on-disk file's size matches `size`.
@@ -91,7 +91,7 @@ def check_bundle_row(
     row: dict, idx: int, problems: list[str]
 ) -> tuple[str | None, str | None]:
     """Returns (type, slug) so starter-pack resolution can cross-check."""
-    required = ("type", "slug", "name", "version", "download_url", "sha256")
+    required = ("type", "slug", "name", "version", "download_url", "sha256", "card_url")
     missing = [k for k in required if k not in row]
     if missing:
         problems.append(f"bundle[{idx}]: missing keys {missing}")
@@ -135,6 +135,17 @@ def check_bundle_row(
         problems.append(
             f"bundle[{idx}] ({slug}): icon_url does not resolve to a file "
             f"({row['icon_url']!r})"
+        )
+    card_disk = resolve_to_disk(row.get("card_url", ""))
+    if card_disk is None or not card_disk.is_file():
+        problems.append(
+            f"bundle[{idx}] ({slug}): card_url does not resolve to a file "
+            f"({row.get('card_url')!r})"
+        )
+    elif card_disk.stat().st_size > 750 * 1024:
+        problems.append(
+            f"bundle[{idx}] ({slug}): card_url asset is too large "
+            f"({card_disk.stat().st_size} bytes > 750 KiB)"
         )
 
     try:
@@ -233,6 +244,7 @@ def catalog_artifact_paths() -> list[Path]:
     paths = (
         list((CATALOG_DIR / "bundles").glob("*.wp"))
         + list((CATALOG_DIR / "icons").glob("*"))
+        + list((CATALOG_DIR / "cards").glob("*"))
         + [REGISTRY, SCHEMA, FALLBACK_REGISTRY]
     )
     return sorted(p for p in paths if p.is_file())

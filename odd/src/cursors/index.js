@@ -14,11 +14,24 @@
 
 	var LINK_ID = 'odd-cursors-css';
 	var lastWarningHref = '';
+	var semanticKinds = {
+		default:       true,
+		pointer:       true,
+		text:          true,
+		grab:          true,
+		grabbing:      true,
+		crosshair:     true,
+		'not-allowed': true,
+		wait:          true,
+		help:          true,
+		progress:      true,
+	};
 	var state = {
-		slug:   '',
-		href:   '',
-		status: 'idle',
-		error:  '',
+		slug:             '',
+		href:             '',
+		status:           'idle',
+		error:            '',
+		iframeInjections: [],
 	};
 	var bridged = [];
 
@@ -47,6 +60,14 @@
 		return '';
 	}
 
+	function configuredTokens() {
+		var shell = shellConfig();
+		if ( shell.oddCursor && shell.oddCursor.tokens && typeof shell.oddCursor.tokens === 'object' ) {
+			return shell.oddCursor.tokens;
+		}
+		return {};
+	}
+
 	function activeSet() {
 		var slug = state.slug || configuredSlug();
 		var sets = cfg().cursorSets;
@@ -61,7 +82,10 @@
 		var set = activeSet();
 		var cursors = set && set.cursors;
 		var spec = cursors && ( cursors[ kind ] || cursors.default );
-		if ( ! spec || ! spec.url ) return '';
+		if ( ! spec || ! spec.url ) {
+			var tokens = configuredTokens();
+			return typeof tokens[ kind ] === 'string' ? tokens[ kind ] : '';
+		}
 		var hotspot = Array.isArray( spec.hotspot ) ? spec.hotspot : [ 0, 0 ];
 		var x = parseInt( hotspot[ 0 ], 10 );
 		var y = parseInt( hotspot[ 1 ], 10 );
@@ -146,6 +170,73 @@
 		bridged = [];
 	}
 
+	function mark( node, kind ) {
+		if ( ! node || node.nodeType !== 1 ) return node;
+		kind = semanticKinds[ kind ] ? kind : 'default';
+		try {
+			node.setAttribute( 'data-odd-cursor', kind );
+		} catch ( e ) {}
+		return node;
+	}
+
+	function markRoot( node ) {
+		if ( ! node || node.nodeType !== 1 ) return node;
+		try {
+			node.setAttribute( 'data-odd-cursor-root', 'true' );
+		} catch ( e ) {}
+		return node;
+	}
+
+	function markInteractiveDescendants( root ) {
+		if ( ! root || ! root.querySelectorAll ) return 0;
+		var count = 0;
+		var selectors = [
+			'a[href]',
+			'button',
+			'[role="button"]',
+			'[tabindex]:not([tabindex="-1"])',
+			'summary',
+			'label[for]',
+			'select',
+			'input[type="button"]',
+			'input[type="submit"]',
+			'input[type="reset"]',
+			'input:not([type])',
+			'input[type="text"]',
+			'input[type="search"]',
+			'input[type="email"]',
+			'input[type="url"]',
+			'input[type="password"]',
+			'textarea',
+			'[contenteditable="true"]',
+			'[contenteditable=""]',
+			'[draggable="true"]',
+			'[data-drag]',
+			'[data-drag-handle]',
+			'[aria-disabled="true"]',
+			'[disabled]',
+			'[aria-busy="true"]',
+		].join( ',' );
+		var nodes = root.querySelectorAll( selectors );
+		for ( var i = 0; i < nodes.length; i++ ) {
+			var n = nodes[ i ];
+			if ( n.hasAttribute && n.hasAttribute( 'data-odd-cursor' ) ) continue;
+			if ( n.matches && n.matches( 'input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="url"], input[type="password"], textarea, [contenteditable="true"], [contenteditable=""]' ) ) {
+				mark( n, 'text' );
+			} else if ( n.matches && n.matches( '[draggable="true"], [data-drag], [data-drag-handle]' ) ) {
+				mark( n, 'grab' );
+			} else if ( n.matches && n.matches( '[disabled], [aria-disabled="true"]' ) ) {
+				mark( n, 'not-allowed' );
+			} else if ( n.matches && n.matches( '[aria-busy="true"]' ) ) {
+				mark( n, 'progress' );
+			} else {
+				mark( n, 'pointer' );
+			}
+			count++;
+		}
+		return count;
+	}
+
 	function apply( href, slug, doc ) {
 		doc = doc || document;
 		href = typeof href === 'string' ? href : configuredHref();
@@ -187,7 +278,16 @@
 		if ( ! doc ) return null;
 		href = typeof href === 'string' ? href : ( state.href || configuredHref() );
 		var slug = state.slug || configuredSlug();
-		return apply( href, slug, doc );
+		var link = apply( href, slug, doc );
+		if ( doc !== document ) {
+			state.iframeInjections.push( {
+				time: Date.now ? Date.now() : 0,
+				href: link ? link.getAttribute( 'href' ) || '' : '',
+				ok:   !! link,
+			} );
+			if ( state.iframeInjections.length > 20 ) state.iframeInjections.shift();
+		}
+		return link;
 	}
 
 	function sampleCursor( selector ) {
@@ -222,6 +322,9 @@
 		if ( ! state.href || ! node ) return;
 		var limit = document.body;
 		while ( node && node !== document && node.nodeType === 1 ) {
+			if ( node.closest && node.closest( '[data-odd-cursor], [data-odd-cursor-root], .desktop-mode, .desktop-mode-shell, .wp-desktop, .wp-desktop-root' ) ) {
+				return;
+			}
 			var computed = '';
 			try { computed = window.getComputedStyle( node ).cursor; } catch ( e ) {}
 			var kind = nativeKind( computed );
@@ -254,6 +357,16 @@
 		return out;
 	}
 
+	function semanticCoverage() {
+		var out = {};
+		if ( ! document.querySelectorAll ) return out;
+		Object.keys( semanticKinds ).forEach( function ( kind ) {
+			out[ kind ] = document.querySelectorAll( '[data-odd-cursor="' + kind + '"]' ).length;
+		} );
+		out.roots = document.querySelectorAll( '[data-odd-cursor-root]' ).length;
+		return out;
+	}
+
 	function status() {
 		var link = linkFor( document, false );
 		return {
@@ -265,7 +378,10 @@
 			status:         state.status,
 			error:          state.error,
 			iframes:        iframeStatuses(),
+			iframeInjections: state.iframeInjections.slice(),
 			bridged:        bridged.length,
+			semantics:      semanticCoverage(),
+			tokens:         configuredTokens(),
 			samples:        {
 				body:   sampleCursor( 'body' ),
 				button: sampleCursor( 'button, a, [role="button"]' ),
@@ -277,6 +393,7 @@
 
 	function boot() {
 		apply( configuredHref(), configuredSlug(), document );
+		markInteractiveDescendants( document );
 		if ( document.addEventListener && ! document.__oddCursorBridge ) {
 			document.__oddCursorBridge = true;
 			document.addEventListener( 'pointerover', bridgeNativeCursor, true );
@@ -289,6 +406,9 @@
 		bridgeTarget: bridgeTarget,
 		clear:      clear,
 		injectInto: injectInto,
+		mark:       mark,
+		markRoot:   markRoot,
+		markInteractiveDescendants: markInteractiveDescendants,
 		status:     status,
 	};
 

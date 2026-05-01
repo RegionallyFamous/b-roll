@@ -63,7 +63,8 @@
           "name",
           "version",
           "download_url",
-          "sha256"
+          "sha256",
+          "card_url"
         ],
         "properties": {
           "type": {
@@ -101,6 +102,9 @@
             }
           },
           "icon_url": {
+            "type": "string"
+          },
+          "card_url": {
             "type": "string"
           },
           "download_url": {
