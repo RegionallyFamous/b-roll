@@ -72,6 +72,17 @@ class Test_Cursors extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '!important', $css );
 	}
 
+	public function test_direct_cursor_roles_override_chrome_ancestor_roles() {
+		$this->add_fixture_cursor_set();
+		$css = odd_cursors_build_css( odd_cursors_get_set( 'test-cursors' ) );
+
+		$this->assertGreaterThan(
+			strpos( $css, '[data-odd-cursor="grab"], [data-odd-cursor="grab"] *' ),
+			strpos( $css, '[data-odd-cursor="pointer"] { cursor: var(--odd-cursor-pointer); }' ),
+			'Window close buttons marked pointer must beat a titlebar ancestor marked grab.'
+		);
+	}
+
 	public function test_cursor_stylesheet_version_and_shell_contract_include_active_tokens() {
 		$this->add_fixture_cursor_set();
 		$user_id = self::factory()->user->create();

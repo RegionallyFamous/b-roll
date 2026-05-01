@@ -453,6 +453,28 @@
 			} );
 		}
 
+		function installResponsiveState( root ) {
+			if ( ! root ) return;
+			function applySize() {
+				var width = root.getBoundingClientRect ? root.getBoundingClientRect().width : 0;
+				var size = 'xl';
+				if ( width < 520 ) size = 'xs';
+				else if ( width < 720 ) size = 's';
+				else if ( width < 960 ) size = 'm';
+				else if ( width < 1280 ) size = 'l';
+				root.setAttribute( 'data-odd-size', size );
+			}
+			applySize();
+			if ( typeof ResizeObserver !== 'undefined' ) {
+				var ro = new ResizeObserver( applySize );
+				ro.observe( root );
+				cleanupFns.push( function () { ro.disconnect(); } );
+			} else {
+				window.addEventListener( 'resize', applySize );
+				cleanupFns.push( function () { window.removeEventListener( 'resize', applySize ); } );
+			}
+		}
+
 		function soundVolume( kind ) {
 			switch ( kind ) {
 				case 'error':   return 0.020;
@@ -563,6 +585,7 @@
 		installDropAnywhere( body );
 		installShopKeyboard( body, sidebar, buttons, renderSection );
 		installCardMotion( body );
+		installResponsiveState( body );
 
 		// Post-reload landing: if the previous navigation just
 		// installed a bundle, switch to its department and flash
@@ -669,7 +692,7 @@
 			var wrap = el( 'div', { 'data-odd-apps': '1', class: 'odd-shop__dept odd-shop__dept--apps' } );
 			wrap.appendChild( sectionHeader(
 				'Apps',
-				'Mini apps that run on your WordPress desktop without using — or knowing — anything about WordPress. Open the dock icon and they just work.',
+				'Install tiny tools that open in their own desktop windows. Pin them to the taskbar, drop them on the desktop, and launch them like native apps.',
 				{ eyebrow: 'ODD · Mini Apps' }
 			) );
 
@@ -4528,7 +4551,7 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--widgets' } );
 			wrap.appendChild( sectionHeader(
 				'Widgets',
-				'Small, self-contained cards that live on the desktop itself — not inside this window. Add one and it appears in the right-hand column; drag it by its title bar to park it anywhere.',
+				'Widgets appear on your desktop — drag one by its title bar to park it wherever you like.',
 				{ eyebrow: 'ODD · Desktop Companions' }
 			) );
 
