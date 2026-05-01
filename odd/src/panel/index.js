@@ -173,6 +173,8 @@
 		brandWrap.appendChild( brandText );
 		topbar.appendChild( brandWrap );
 
+		var commandWrap = el( 'div', { class: 'odd-shop__command' } );
+
 		// Search field — global client-side search across every Shop
 		// department. It merges installed content and catalog rows into
 		// one result surface so the user doesn't have to guess which tab
@@ -202,7 +204,7 @@
 		var searchHint = el( 'span', { class: 'odd-shop__search-kbd', 'aria-hidden': 'true' } );
 		searchHint.textContent = '⌘K';
 		searchWrap.appendChild( searchHint );
-		topbar.appendChild( searchWrap );
+		commandWrap.appendChild( searchWrap );
 
 		var searchTools = el( 'div', { class: 'odd-shop__search-tools', 'data-odd-search-tools': '1' } );
 		var scopeToggle = el( 'button', { type: 'button', class: 'odd-shop__search-scope' } );
@@ -255,7 +257,8 @@
 				} );
 			}
 		} catch ( e ) {}
-		topbar.appendChild( searchTools );
+		commandWrap.appendChild( searchTools );
+		topbar.appendChild( commandWrap );
 		var onSearchShortcut = function ( e ) {
 			if ( ( e.metaKey || e.ctrlKey ) && String( e.key || '' ).toLowerCase() === 'k' ) {
 				e.preventDefault();
