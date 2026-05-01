@@ -68,7 +68,7 @@ function odd_apps_cookieauth_maybe_serve() {
 		return;
 	}
 
-	$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+	$uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 	if ( '' === $uri ) {
 		return;
 	}
@@ -82,7 +82,8 @@ function odd_apps_cookieauth_maybe_serve() {
 	// decisions — without stopping the iframe to attach a debugger.
 	$debug_trace = array();
 	$debug_on    = false;
-	if ( isset( $_GET['odd_debug'] ) && '1' === (string) $_GET['odd_debug'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$debug_param = isset( $_GET['odd_debug'] ) ? sanitize_text_field( wp_unslash( $_GET['odd_debug'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( '1' === $debug_param ) {
 		$debug_on             = true;
 		$debug_trace['entry'] = array(
 			'request_uri' => $uri,
@@ -198,7 +199,7 @@ function odd_apps_serve_cookieauth( $slug, $path, $debug_trace = null ) {
 	// instead of the real response body.
 	$debug_on = is_array( $debug_trace )
 		&& isset( $_GET['odd_debug'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		&& '1' === (string) $_GET['odd_debug']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		&& '1' === sanitize_text_field( wp_unslash( $_GET['odd_debug'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$slug     = sanitize_key( $slug );
 	if ( '' === $slug ) {
 		if ( $debug_on ) {

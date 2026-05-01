@@ -285,10 +285,9 @@ function odd_catalog_download_entry_file( array $entry, $context = 'install' ) {
 		);
 	}
 
-	$fh = @fopen( $tmp, 'rb' );
-	if ( $fh ) {
-		$magic = (string) fread( $fh, 4 );
-		fclose( $fh );
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local temp file from download_url(); only reads the ZIP signature.
+	$magic = file_get_contents( $tmp, false, null, 0, 4 );
+	if ( is_string( $magic ) && '' !== $magic ) {
 		if ( 0 !== strncmp( $magic, "PK\x03\x04", 4 ) && 0 !== strncmp( $magic, "PK\x05\x06", 4 ) ) {
 			wp_delete_file( $tmp );
 			return new WP_Error(

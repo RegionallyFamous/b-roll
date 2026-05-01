@@ -204,22 +204,22 @@ function odd_cursors_request_uses_https() {
 		return true;
 	}
 
-	$forwarded = isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ? strtolower( (string) wp_unslash( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ) : '';
+	$forwarded = isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ) ) : '';
 	if ( preg_match( '/(^|,\s*)https(\s*,|$)/', $forwarded ) ) {
 		return true;
 	}
 
-	$https = isset( $_SERVER['HTTPS'] ) ? strtolower( (string) wp_unslash( $_SERVER['HTTPS'] ) ) : '';
+	$https = isset( $_SERVER['HTTPS'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTPS'] ) ) ) : '';
 	if ( in_array( $https, array( 'on', '1', 'https' ), true ) ) {
 		return true;
 	}
 
-	$port = isset( $_SERVER['SERVER_PORT'] ) ? (string) wp_unslash( $_SERVER['SERVER_PORT'] ) : '';
+	$port = isset( $_SERVER['SERVER_PORT'] ) ? (string) absint( wp_unslash( $_SERVER['SERVER_PORT'] ) ) : '';
 	if ( '443' === $port ) {
 		return true;
 	}
 
-	$host = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( (string) wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
+	$host = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) : '';
 	$host = preg_replace( '/:\d+$/', '', $host );
 	return 'playground.wordpress.net' === $host || '.playground.wordpress.net' === substr( $host, -25 );
 }

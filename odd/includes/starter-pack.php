@@ -225,7 +225,7 @@ function odd_activate_install_starter() {
 	// ignored when safe_mode / disable_functions prevents it.
 	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- disabled function throws a warning we don't care about.
 	if ( function_exists( 'set_time_limit' ) ) {
-		@set_time_limit( 180 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		@set_time_limit( 180 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,Squiz.PHP.DiscouragedFunctions.Discouraged
 	}
 
 	odd_starter_ensure_installed( true );

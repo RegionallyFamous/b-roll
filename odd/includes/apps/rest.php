@@ -476,7 +476,7 @@ function odd_apps_rest_diag( WP_REST_Request $req ) {
 		return new WP_Error( 'invalid_slug', __( 'Missing slug.', 'odd' ), array( 'status' => 400 ) );
 	}
 
-	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 	$home_url    = home_url( '/' );
 	$home_path   = (string) wp_parse_url( $home_url, PHP_URL_PATH );
 

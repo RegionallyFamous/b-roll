@@ -33,7 +33,6 @@ REQUIRED_HEADER_FIELDS = (
     "License",
     "License URI",
     "Text Domain",
-    "Update URI",
 )
 
 

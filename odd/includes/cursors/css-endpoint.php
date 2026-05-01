@@ -90,7 +90,8 @@ function odd_cursors_rest_active_css( WP_REST_Request $request ) {
 	header( 'Cache-Control: private, max-age=300, must-revalidate' );
 	header( 'ETag: ' . $etag );
 	header( 'X-Content-Type-Options: nosniff' );
-	if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && trim( (string) $_SERVER['HTTP_IF_NONE_MATCH'] ) === $etag ) {
+	$if_none_match = isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) : '';
+	if ( trim( $if_none_match ) === $etag ) {
 		status_header( 304 );
 		exit;
 	}

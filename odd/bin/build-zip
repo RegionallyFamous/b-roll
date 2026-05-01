@@ -42,6 +42,7 @@ EXCLUDE_DIRS = {
 EXCLUDE_SUFFIXES = { ".pyc" }
 EXCLUDE_NAMES = {
     ".DS_Store",
+    ".gitkeep",
     ".gitignore",
 }
 

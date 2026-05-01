@@ -8,7 +8,7 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-ODD is the app store and decorator layer for WP Desktop Mode: install wallpapers, icon sets, cursor sets, widgets, and small apps from a safe remote catalog.
+Install wallpapers, icons, cursors, widgets, and small apps for WP Desktop Mode from a safe remote catalog.
 
 == Description ==
 

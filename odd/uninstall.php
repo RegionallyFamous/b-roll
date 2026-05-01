@@ -92,6 +92,7 @@ $bundle_option_prefixes = array(
 	'odd_widget_',
 );
 foreach ( $bundle_option_prefixes as $prefix ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall must discover dynamic per-bundle option names.
 	$rows = $wpdb->get_col(
 		$wpdb->prepare(
 			"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
@@ -112,6 +113,7 @@ $transient_prefixes = array(
 	'_transient_timeout_odd_',
 );
 foreach ( $transient_prefixes as $prefix ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall must discover versioned transient names.
 	$rows = $wpdb->get_col(
 		$wpdb->prepare(
 			"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
@@ -130,12 +132,14 @@ foreach ( $transient_prefixes as $prefix ) {
 // the prefix pattern cleanly (different naming, but odd_ prefix —
 // so actually covered, but we keep the explicit pass for safety
 // if the prefix rule ever changes).
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes all ODD-owned user meta in one sweep.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s",
 		$wpdb->esc_like( 'odd_' ) . '%'
 	)
 );
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- explicit schema-version cleanup for uninstall completeness.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->usermeta} WHERE meta_key = %s",
