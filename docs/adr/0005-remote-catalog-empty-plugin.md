@@ -9,7 +9,7 @@
   - Shipping new content no longer requires a plugin release. A PR that drops a new scene under `_tools/catalog-sources/scenes/<slug>/` and lands on `main` publishes to the catalog on the next `pages.yml` deploy — ~2 minutes.
   - Fresh installs may see an empty Shop for a few seconds while the starter pack resolves. A built-in `odd-pending` gradient scene paints in the meantime so the desktop is never blank. The starter-pack runner retries inline with exponential backoff if the catalog is unreachable, so temporary outages are transparent without depending on loopback cron.
   - Downloaded bundles are verified against a registry-declared SHA256 before extraction. Tampered bundles can't take the install over even if the CDN is compromised.
-  - The `/odd/v1/apps/catalog` and `/odd/v1/apps/install-from-catalog` legacy endpoints become thin shims that forward to `/odd/v1/bundles/*`. `odd_apps_install_builtin()` and `odd_apps_seed_builtins()` become no-ops returning `WP_Error`. The JS API surface is unchanged; the API minor bumps to 2.1.0 to reflect the new REST endpoints (`/bundles/*`, `/starter`).
+  - The catalog and install surface consolidates on `/odd/v1/bundles/*`. App-specific routes remain only for installed app runtime operations such as list, open metadata, toggle surfaces, serve files, icons, upload, and delete.
   - Enterprise deployments that can't reach `odd.regionallyfamous.com` can point at their own mirror via `define( 'ODD_CATALOG_URL', … )` or the `odd_catalog_url` filter.
   - `odd/bin/validate-scenes` and `odd/bin/validate-icon-sets` are deleted and folded into `odd/bin/validate-catalog`.
 - **Alternatives considered:**

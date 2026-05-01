@@ -22,7 +22,11 @@
  *   api.setScene(slug)    — save + broadcast 'odd.pickScene' + toast
  *   api.setIconSet(slug)  — save + soft reload so dock rebuilds
  *   api.shuffle()         — setScene() with a random non-current slug
- *   api.toast(msg, o?)    — wp.desktop.toast('odd-muse', …) if available
+ *   api.toast(msg, o?)    — wp.desktop.showToast({ … }) if available
+ *   api.openOsSettings()  — open Desktop Mode OS Settings
+ *   api.showAttention(id) — request attention/highlight for a window
+ *   api.setBadge(id, n)   — set a badge where the host exposes a rail API
+ *   api.diagnosticsSnapshot(id?) — host window debug/config snapshot
  *   api.onSceneChange(cb) — subscribe to scene swaps (returns unsub fn)
  *   api.onIconSetChange(cb)
  *   api.openPanel()       — wp.desktop.registerWindow({ id: 'odd' })
@@ -120,13 +124,91 @@
 
 	function toast( message, opts ) {
 		opts = opts || {};
-		if ( ! ( window.wp && window.wp.desktop && typeof window.wp.desktop.toast === 'function' ) ) return;
+		if ( ! ( window.wp && window.wp.desktop && typeof window.wp.desktop.showToast === 'function' ) ) return;
 		safeCall( function () {
-			window.wp.desktop.toast( opts.tone || TOAST_TONE, {
+			window.wp.desktop.showToast( {
 				message: String( message || '' ),
 				duration: typeof opts.duration === 'number' ? opts.duration : 2400,
+				source: opts.source || 'odd',
+				meta: opts.meta || { tone: opts.tone || TOAST_TONE },
+				action: opts.action,
 			} );
 		}, 'api.toast' );
+	}
+
+	function openOsSettings() {
+		var d = window.wp && window.wp.desktop;
+		if ( ! d ) return false;
+		return !! safeCall( function () {
+			if ( typeof d.openOsSettings === 'function' ) {
+				d.openOsSettings();
+				return true;
+			}
+			if ( typeof d.getSystemTile === 'function' ) {
+				var tile = d.getSystemTile( 'wp-desktop-os-settings' );
+				if ( tile && typeof tile.onOpen === 'function' ) {
+					tile.onOpen();
+					return true;
+				}
+			}
+			return false;
+		}, 'api.openOsSettings' );
+	}
+
+	function showAttention( windowId, opts ) {
+		var d = window.wp && window.wp.desktop;
+		if ( ! d || ! windowId ) return false;
+		return !! safeCall( function () {
+			var win = d.windowManager && typeof d.windowManager.getById === 'function'
+				? d.windowManager.getById( windowId )
+				: null;
+			if ( win && typeof win.requestAttention === 'function' ) {
+				win.requestAttention( opts || {} );
+				return true;
+			}
+			if ( win && typeof win.setHighlight === 'function' ) {
+				win.setHighlight( opts && opts.mode || 'pulse', opts || {} );
+				return true;
+			}
+			if ( win && typeof win.shake === 'function' ) {
+				win.shake();
+				return true;
+			}
+			return false;
+		}, 'api.showAttention' );
+	}
+
+	function setBadge( itemId, count ) {
+		var d = window.wp && window.wp.desktop;
+		if ( ! d || ! itemId ) return false;
+		return !! safeCall( function () {
+			var rails = [ d.dock, d.sideDock, d.icons ];
+			for ( var i = 0; i < rails.length; i++ ) {
+				if ( rails[ i ] && typeof rails[ i ].setBadge === 'function' ) {
+					rails[ i ].setBadge( itemId, count );
+				}
+			}
+			return true;
+		}, 'api.setBadge' );
+	}
+
+	function diagnosticsSnapshot( windowId ) {
+		var d = window.wp && window.wp.desktop;
+		if ( ! d ) return {};
+		return safeCall( function () {
+			var out = {};
+			if ( windowId && typeof d.getWindowConfig === 'function' ) {
+				out.windowConfig = d.getWindowConfig( windowId );
+			}
+			if ( windowId && d.debug && typeof d.debug.window === 'function' ) {
+				out.windowDebug = d.debug.window( windowId );
+			}
+			if ( typeof d.listSettingsTabs === 'function' ) out.settingsTabs = d.listSettingsTabs();
+			if ( typeof d.listDockRailRenderers === 'function' ) out.dockRailRenderers = d.listDockRailRenderers();
+			if ( typeof d.listSystemTiles === 'function' ) out.systemTiles = d.listSystemTiles();
+			if ( typeof d.listPalettes === 'function' ) out.palettes = d.listPalettes();
+			return out;
+		}, 'api.diagnosticsSnapshot' ) || {};
 	}
 
 	function savePrefs( patch, cb ) {
@@ -255,7 +337,7 @@
 	// bump this when the surface described in the docstring above
 	// changes in a way extensions can observe. See
 	// docs/api-versioning.md for the contract.
-	var API_VERSION = '2.1.0';
+	var API_VERSION = '2.2.0';
 
 	window.__odd.api = {
 		version:         API_VERSION,
@@ -274,6 +356,10 @@
 		setIconSet:      setIconSet,
 		shuffle:         shuffle,
 		toast:           toast,
+		openOsSettings:  openOsSettings,
+		showAttention:   showAttention,
+		setBadge:        setBadge,
+		diagnosticsSnapshot: diagnosticsSnapshot,
 		onSceneChange:   onSceneChange,
 		onIconSetChange: onIconSetChange,
 		openPanel:       openPanel,

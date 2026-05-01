@@ -32,7 +32,7 @@ function seedConfig() {
 		bundlesUploadUrl: '/wp-json/odd/v1/bundles/upload',
 		bundleCatalogUrl: '/wp-json/odd/v1/bundles/catalog',
 		canInstall:       true,
-		// v3.0+: widgets are installed as catalog bundles and the
+		// Widgets are installed as catalog bundles and the
 		// panel renders whatever the server reports in this list.
 		// The two stock widgets live at `_tools/catalog-sources/
 		// widgets/{sticky,eight-ball}/` — seed them here so the

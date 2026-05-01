@@ -2,13 +2,10 @@
 /**
  * ODD — custom toast tone for scene / icon swap announcements.
  *
- * Registers an `odd-muse` tone on `desktop_mode_toast_types`. Once
- * WP Desktop Mode surfaces a public `wp.desktop.toast()` API (the
- * hooks reference already describes it — the implementation is
- * planned), widgets and slash commands will emit `odd-muse`
- * notifications through it. Until then, the registered tone is a
- * forward-compat reservation that also ensures the id survives
- * WPDM's `sanitize_key()` allow-list pass.
+ * Registers an `odd-muse` tone on `desktop_mode_toast_types`. ODD's
+ * shared client API routes announcements through Desktop Mode v0.6's
+ * `wp.desktop.showToast()` API and keeps this tone id in the payload
+ * metadata so host-side toast policy can identify ODD messages.
  */
 
 defined( 'ABSPATH' ) || exit;

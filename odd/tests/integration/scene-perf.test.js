@@ -25,7 +25,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-// v3.0+: scenes live under _tools/catalog-sources/scenes/<slug>/.
+// Scenes live under _tools/catalog-sources/scenes/<slug>/.
 const SCENES_DIR = resolve( __dirname, '../../../_tools/catalog-sources/scenes' );
 const BASELINE_FILE = resolve( __dirname, 'scene-perf-baseline.json' );
 const BUDGETS_FILE = resolve( __dirname, 'scene-perf-budget.json' );

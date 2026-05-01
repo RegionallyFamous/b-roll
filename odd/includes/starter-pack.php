@@ -767,8 +767,8 @@ function odd_starter_safety_net() {
 add_action( 'init', 'odd_starter_safety_net', 20 );
 
 /**
- * Clean up any cron events from pre-3.0.2 installs that might still
- * be floating in wp_options. No-op on sites that never had one.
+ * Clean up any starter-pack cron events from old development installs that
+ * might still be floating in wp_options. No-op on sites that never had one.
  */
 add_action(
 	'init',

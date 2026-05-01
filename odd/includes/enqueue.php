@@ -25,7 +25,7 @@
  *                     Registers the `odd` wallpaper with WP Desktop Mode.
  *   - `odd-panel`     ODD Shop native-window render callback,
  *                     declared on `window.wpDesktopNativeWindows.odd`.
- *                     (v3.0+ the stock Sticky Note + Magic 8-Ball
+ *                     (1.0+: the stock Sticky Note + Magic 8-Ball
  *                     widgets ship as remote catalog bundles and
  *                     self-enqueue from wp-content/odd-widgets/ when
  *                     installed — the plugin emits no stock widgets.)
@@ -153,7 +153,7 @@ add_action(
 			array(),
 			ODD_VERSION
 		);
-		// v3.0+: ODD ships no stock widgets. Sticky Note and Magic
+		// ODD 1.0 ships no stock widgets. Sticky Note and Magic
 		// 8-Ball moved to the remote catalog as `widget-sticky` +
 		// `widget-eight-ball`. Installed widget bundles self-enqueue
 		// through content/widgets.php, so there's nothing for the
@@ -165,6 +165,33 @@ add_action(
 			ODD_VERSION,
 			true
 		);
+		wp_enqueue_script(
+			'odd-desktop-hooks',
+			ODD_URL . '/src/shared/desktop-hooks.js',
+			array_merge( $foundation_deps, array( 'odd-api', 'odd-commands' ) ),
+			ODD_VERSION,
+			true
+		);
+		if ( function_exists( 'desktop_mode_register_command_script' ) ) {
+			desktop_mode_register_command_script( 'odd-commands' );
+		}
+		if ( function_exists( 'desktop_mode_register_settings_tab_script' ) ) {
+			desktop_mode_register_settings_tab_script( 'odd-desktop-hooks' );
+		}
+		if ( function_exists( 'desktop_mode_register_titlebar_button_script' ) ) {
+			desktop_mode_register_titlebar_button_script( 'odd-desktop-hooks' );
+		}
+		if ( function_exists( 'desktop_mode_register_settings_tab' ) ) {
+			desktop_mode_register_settings_tab(
+				array(
+					'id'         => 'odd',
+					'label'      => __( 'ODD', 'odd' ),
+					'capability' => 'manage_options',
+					'order'      => 50,
+					'script'     => 'odd-desktop-hooks',
+				)
+			);
+		}
 		// Screensaver: idle-detector + fullscreen scene overlay.
 		// Self-contained — only depends on odd-store (for the
 		// localized prefs) and odd-events (for panel echoes).
@@ -270,6 +297,7 @@ add_action(
 
 		// Resolve once, reuse — the panel reads both `scene` (canonical)
 		// and `wallpaper` (alias for older consumers) off the same key.
+		$scenes       = odd_wallpaper_scenes();
 		$active_scene = odd_wallpaper_get_user_scene( $uid );
 		$apps_enabled = defined( 'ODD_APPS_ENABLED' ) && ODD_APPS_ENABLED;
 		$installed    = ( $apps_enabled && function_exists( 'odd_apps_list' ) ) ? wp_list_pluck( odd_apps_list(), 'slug' ) : array();
@@ -309,8 +337,8 @@ add_action(
 			// `sceneMap` is a slug→descriptor dict installed scene.js
 			// bundles read to resolve their `wallpaperUrl` + `previewUrl`
 			// without having to scan `scenes` on every frame.
-			'scenes'           => odd_wallpaper_scenes(),
-			'sceneMap'         => array_column( odd_wallpaper_scenes(), null, 'slug' ),
+			'scenes'           => $scenes,
+			'sceneMap'         => array_column( $scenes, null, 'slug' ),
 			'scene'            => $active_scene,
 			'wallpaper'        => $active_scene,
 			'favorites'        => odd_wallpaper_get_user_slug_list( $uid, 'odd_favorites' ),
@@ -385,23 +413,36 @@ add_action(
 			'bundleCatalogUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/catalog' ) ),
 			'bundleInstallUrl' => esc_url_raw( rest_url( 'odd/v1/bundles/install-from-catalog' ) ),
 			'systemHealth'     => array(
-				'catalog' => function_exists( 'odd_catalog_meta' ) ? odd_catalog_meta() : array(),
-				'starter' => function_exists( 'odd_starter_get_state_for_rest' ) ? odd_starter_get_state_for_rest() : array(),
-				'apps'    => array(
+				'catalog'     => function_exists( 'odd_catalog_meta' ) ? odd_catalog_meta() : array(),
+				'starter'     => function_exists( 'odd_starter_get_state_for_rest' ) ? odd_starter_get_state_for_rest() : array(),
+				'apps'        => array(
 					'installed'  => is_array( $installed ) ? count( $installed ) : 0,
 					'lastRepair' => function_exists( 'odd_apps_repair_meta_all' ) ? odd_apps_repair_meta_all() : array(),
 				),
-				'content' => array(
+				'content'     => array(
 					'scenes'     => is_array( $scenes ) ? count( $scenes ) : 0,
 					'iconSets'   => is_array( $sets ) ? count( $sets ) : 0,
 					'cursorSets' => is_array( $cursor_sets ) ? count( $cursor_sets ) : 0,
 					'widgets'    => function_exists( 'odd_widgets_index_load' ) ? count( odd_widgets_index_load() ) : 0,
 				),
-				'cursors' => array(
+				'cursors'     => array(
 					'active'          => odd_cursors_get_active_slug( $uid ),
 					'stylesheet'      => odd_cursors_active_stylesheet_url(),
 					'registeredSets'  => is_array( $cursor_sets ) ? count( $cursor_sets ) : 0,
 					'runtimeExpected' => true,
+				),
+				'desktopMode' => array(
+					'version'              => odd_desktop_mode_version(),
+					'minimumVersion'       => odd_desktop_mode_min_version(),
+					'baseline'             => odd_desktop_mode_available(),
+					'commandScripts'       => odd_desktop_mode_supports( 'commands' ),
+					'settingsTabs'         => odd_desktop_mode_supports( 'settings' ),
+					'titlebarButtons'      => odd_desktop_mode_supports( 'titlebar' ),
+					'dockRailRenderers'    => odd_desktop_mode_supports( 'dock_rail' ),
+					'debugSessions'        => odd_desktop_mode_supports( 'debug' ),
+					'aiTools'              => odd_desktop_mode_supports( 'ai' ),
+					'jsHookBridge'         => true,
+					'dockRendererProvided' => false,
 				),
 			),
 			// Pre-compute the Discover shelves by type so the panel

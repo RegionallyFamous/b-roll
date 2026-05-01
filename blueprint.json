@@ -14,7 +14,7 @@
       "step": "installPlugin",
       "pluginData": {
         "resource": "url",
-        "url": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/site/downloads/desktop-mode-v0.5.4.zip"
+        "url": "https://github.com/WordPress/desktop-mode/releases/download/v0.6.0/desktop-mode.zip"
       },
       "options": { "activate": true, "targetFolderName": "desktop-mode" }
     },

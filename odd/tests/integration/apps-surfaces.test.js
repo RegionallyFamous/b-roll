@@ -263,7 +263,7 @@ describe( 'ODD Shop · App surfaces', () => {
 	it( 'newly installed catalog apps require a reload before Open is offered', async () => {
 		seedConfig( [] );
 		fetchMock = vi.fn( ( url, opts ) => {
-			if ( opts && opts.method === 'POST' && /\/apps\/install-from-catalog$/.test( url ) ) {
+			if ( opts && opts.method === 'POST' && /\/bundles\/install-from-catalog$/.test( url ) ) {
 				return Promise.resolve( {
 					ok:   true,
 					json: () => Promise.resolve( {
@@ -272,11 +272,11 @@ describe( 'ODD Shop · App surfaces', () => {
 					} ),
 				} );
 			}
-			if ( /\/apps\/catalog$/.test( url ) ) {
+			if ( /\/bundles\/catalog$/.test( url ) ) {
 				return Promise.resolve( {
 					ok:   true,
 					json: () => Promise.resolve( {
-						apps: [ { slug: 'board', name: 'Board', version: '1.2.0', installed: false } ],
+						items: [ { slug: 'board', type: 'app', name: 'Board', version: '1.2.0', installed: false } ],
 					} ),
 				} );
 			}

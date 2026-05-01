@@ -9,7 +9,7 @@ Walks `_tools/catalog-sources/` and emits:
         bundles/*.wp            one .wp archive per bundle
         icons/<slug>.svg        64x64 Discover tile per bundle
 
-The plugin (3.0.0+) fetches `registry.json` over HTTPS and installs
+The plugin fetches `registry.json` over HTTPS and installs
 listed bundles through `odd_bundle_install()`. Every content change
 is a commit to this repo; GitHub Pages republishes `site/` on push,
 which takes `odd.regionallyfamous.com/catalog/v1/` live with the new

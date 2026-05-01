@@ -1,8 +1,8 @@
 # Serve paths — security audit
 
 > Scope: every code path that returns file bytes from `wp-content/odd-*/`
-> on an authenticated or public request. Last reviewed after the
-> reliability/security hardening pass (v3.6.7).
+> on an authenticated or public request. Last reviewed for the 1.0.0
+> reliability/security hardening pass.
 
 The universal `.wp` installer populates five per-type subtrees under
 `wp-content/`:
@@ -10,12 +10,12 @@ The universal `.wp` installer populates five per-type subtrees under
 | Subtree                          | Source              | Contents                       |
 |----------------------------------|---------------------|--------------------------------|
 | `wp-content/odd-apps/<slug>/`    | v0.16.0 (pre-`.wp`) | HTML/JS/CSS bundle + manifest  |
-| `wp-content/odd-icon-sets/<slug>/` | v1.8.0            | SVG icons + `manifest.json`    |
-| `wp-content/odd-cursor-sets/<slug>/` | v3.6.0          | SVG cursors + `manifest.json`  |
-| `wp-content/odd-scenes/<slug>/`  | v1.8.0              | JS scene + preview + wallpaper |
+| `wp-content/odd-icon-sets/<slug>/` | 1.0 baseline      | SVG icons + `manifest.json`    |
+| `wp-content/odd-cursor-sets/<slug>/` | 1.0 baseline    | SVG cursors + `manifest.json`  |
+| `wp-content/odd-scenes/<slug>/`  | 1.0 baseline        | JS scene + preview + wallpaper |
 | `wp-content/odd-widgets/<slug>/` | v1.8.0              | JS/CSS widget + `manifest.json`|
 
-Under v3.x every bundle that lands in these subtrees is either (a)
+Under the 1.0 baseline every bundle that lands in these subtrees is either (a)
 uploaded by a logged-in admin through `POST /odd/v1/bundles/upload`
 or (b) downloaded from the remote catalog at
 `https://odd.regionallyfamous.com/catalog/v1/` and verified against

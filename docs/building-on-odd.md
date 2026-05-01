@@ -115,8 +115,20 @@ const off = window.__odd.events.on( 'odd.scene-changed', ( p ) => {
 | `odd.icon-set-changed`        | `{ from, to }`                             |
 | `odd.shuffle-tick`            | `{ slug }`                                 |
 | `odd.window-opened`           | `{ id, bounds }`                           |
+| `odd.window-reopened`         | `{ id, windowId, ... }`                    |
+| `odd.window-content-loading`  | `{ id, windowId }`                         |
+| `odd.window-content-loaded`   | `{ id, windowId }`                         |
+| `odd.window-closing`          | `{ id, windowId, ... }`                    |
 | `odd.window-closed`           | `{ id }`                                   |
 | `odd.window-focused`          | `{ id, bounds }`                           |
+| `odd.window-blurred`          | `{ id, focusedTo }`                        |
+| `odd.window-changed`          | `{ id, windowId, ... }`                    |
+| `odd.window-detached`         | `{ id, url }`                              |
+| `odd.window-bounds-changed`   | `{ id, windowId, bounds }`                 |
+| `odd.window-body-resized`     | `{ id, windowId, width, height }`          |
+| `odd.native-window-after-render` | `{ windowId, body, config }`             |
+| `odd.native-window-before-close` | `{ windowId, config }`                   |
+| `odd.desktop-layout-changed`  | `{ layout, primary, side }`                |
 | `odd.shell-error`             | `{ message, err }`                         |
 | `odd.iframe-error`            | `{ message, err }`                         |
 | `odd.visibility-changed`      | `{ state: 'hidden' \| 'visible' }`         |
@@ -286,8 +298,6 @@ so a crashed migration re-runs on next load.
 
 ## Iris — the default muse, motion vocabulary, and rituals
 
-> Added in v0.15.0 (Cut 3).
-
 Iris is a personality layer built entirely on the Cut 1 extension
 surface. Nothing about her is special-cased in core; she's six small
 modules that register the default muse, five motion primitives, three
@@ -354,9 +364,6 @@ Three new booleans live under `store.user`, written via
 
 ## Apps
 
-> Added in v0.16.0 (uploads), expanded in v0.17.0 (built-in catalog),
-> reworked in v3.0.0 (remote catalog).
-
 ODD apps are self-contained static bundles (HTML + CSS + JS + assets)
 that run inside a sandboxed iframe, get their own desktop icon, and
 appear in their own WP Desktop Mode native window. Every app looks
@@ -364,11 +371,9 @@ the same to the host whether it arrives from the remote catalog
 (`https://odd.regionallyfamous.com/catalog/v1/`), is sideloaded as a
 `.wp` archive, or is registered programmatically by a companion plugin.
 
-As of v3.0 the plugin ships **zero** built-in apps — the previous
-"seed on activation" path is retired. Apps install from the catalog
-on demand via `POST /odd/v1/bundles/install-from-catalog` (or the
-legacy `/odd/v1/apps/install-from-catalog` shim, which forwards to
-the unified bundle installer).
+The plugin ships **zero** built-in apps. Apps install from the catalog
+on demand via `POST /odd/v1/bundles/install-from-catalog`, the same
+bundle endpoint used by scenes, widgets, icon sets, and cursor sets.
 
 App authoring is documented in three dedicated pages:
 
@@ -378,8 +383,7 @@ App authoring is documented in three dedicated pages:
 - **[App Manifest Reference](app-manifest.md)** — every `manifest.json`
   field with types, defaults, and validation rules.
 - **[Apps REST API](app-rest-api.md)** — every endpoint with
-  request / response shapes and error codes, plus the Bazaar compat
-  table.
+  request / response shapes and error codes.
 
 This section covers only the extension-author surface: the app
 registry, the JS lifecycle events, and how apps plug into the same
@@ -491,8 +495,8 @@ array(
 Manifest authors set the install-time defaults via
 `manifest.surfaces.{desktop,taskbar}`; users override per install from
 the **ODD Shop → Apps** card. Missing keys default to
-`{ desktop: true, taskbar: false }` — the pre-v3.1 behavior — so
-older rows keep working untouched.
+`{ desktop: true, taskbar: false }` so rows without explicit surface
+metadata remain usable.
 
 Under the hood this forwards into Desktop Mode's stable
 `desktop_mode_register_window( id, [ 'placement' =>

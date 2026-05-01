@@ -1,13 +1,13 @@
 # Architecture
 
-> Status: v3.6.7. Mirrored to the
+> Status: v1.0.0. Mirrored to the
 > [Architecture](https://github.com/RegionallyFamous/odd/wiki/Architecture)
 > wiki page. For the agent-focused overview see
 > [`CLAUDE.md`](../CLAUDE.md).
 
 ## The one-line summary
 
-ODD 3.x is an empty WordPress plugin whose content (wallpapers, icon
+ODD 1.0 is a lightweight WordPress plugin whose content (wallpapers, icon
 sets, cursor sets, widgets, apps) lives in a remote catalog at
 `https://odd.regionallyfamous.com/catalog/v1/`. On activation the
 plugin reads the catalog's `starter_pack`, pulls the starter scene,
@@ -22,7 +22,7 @@ installs on demand from the ODD Shop.
 odd/                                the plugin — JS/PHP/CSS only, no bundled content
 ├── odd.php                         bootstrap + ODD_VERSION constant
 ├── includes/
-│   ├── enqueue.php                 odd-api / odd / odd-panel / odd-commands handles
+│   ├── enqueue.php                 odd-api / odd / odd-panel / odd-commands / odd-desktop-hooks handles
 │   ├── rest.php                    /odd/v1/prefs (GET+POST)
 │   ├── migrate.php                 activation-time b-roll → odd migration (idempotent)
 │   ├── migrations.php              versioned per-user migration runner (odd_schema_version)
@@ -46,12 +46,11 @@ odd/                                the plugin — JS/PHP/CSS only, no bundled c
 │       ├── storage.php             odd_apps_index + odd_app_{slug} + .htaccess
 │       ├── loader.php              zip validate + extract pipeline
 │       ├── registry.php            install / uninstall / enable / list + odd_app_registry filter
-│       ├── rest.php                /odd/v1/apps/* routes
+│       ├── rest.php                installed app /odd/v1/apps/* routes
 │       ├── native-surfaces.php     per-app desktop icon + native window registration
-│       └── core-controller.php     v3 compat shim — forwards /apps/catalog + /apps/install-from-catalog
-│                                   to /bundles/*
 └── src/
-    ├── shared/api.js               window.__odd.api — setScene / setIconSet / shuffle / openPanel / toast
+    ├── shared/api.js               window.__odd.api — prefs, Shop, toast, settings, badge, diagnostics helpers
+    ├── shared/desktop-hooks.js     newer WP Desktop Mode hook bridge + ODD Settings tab
     ├── panel/index.js              Shop native-window render callback (unified catalog/installed cards)
     ├── cursors/index.js            active cursor stylesheet + pointer bridge runtime
     ├── wallpaper/
@@ -86,6 +85,8 @@ ci/smoke/
 
 odd/bin/
 ├── build-zip                       → dist/odd.zip (2 MB budget)
+├── check-plugin-metadata           header/readme/changelog/minimum-version consistency
+├── check-zip-contents              release package required/forbidden file checks
 ├── validate-catalog                schema + SHA256 + determinism + starter-pack resolution
 ├── build-previews                  reads _tools/catalog-sources/scenes/**, writes preview.webp
 ├── make-pot                        regenerates odd/languages/odd.pot
@@ -116,6 +117,15 @@ Apps break the single-window rule intentionally: each installed app
 registers its own `baseId: 'odd-app-<slug>'` window, so users can
 have the Shop plus any number of app windows open simultaneously
 (still capped to one window per app).
+
+ODD targets WP Desktop Mode v0.6.0+ as its host baseline. It declares
+command, settings-tab, and title-bar button scripts through Desktop
+Mode's registration APIs, then uses `src/shared/desktop-hooks.js` as the
+single bridge for window, iframe, widget, wallpaper, dock, command,
+layout, loading, activity, devtools, and broad diagnostics coverage. The
+bridge adds an ODD tab to OS Settings, decorates ODD dock tiles without
+replacing the user's rail renderer, and adds a Copy Diagnostics title-bar
+button to ODD windows.
 
 ## REST surface
 
@@ -307,8 +317,7 @@ clamps it to 2.5 before `tick` receives it.
 
 ## Apps subsystem
 
-> Added in v0.16.0; expanded with a catalog in v0.17.0; reworked in
-> v3.0.0 to live in the remote catalog. The app-authoring pages:
+> App-authoring pages:
 > [Building an App](building-an-app.md),
 > [App Manifest Reference](app-manifest.md),
 > [Apps REST API](app-rest-api.md).

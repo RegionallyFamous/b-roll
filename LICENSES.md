@@ -2,8 +2,8 @@
 
 ODD itself is [GPL-2.0-or-later](LICENSE), matching WordPress.
 
-**As of v3.0 the plugin zip ships no wallpapers, previews, icon sets,
-widgets, or apps.** Every piece of first-party content lives in the
+**As of the 1.0 baseline the plugin zip ships no wallpapers, previews,
+icon sets, cursor sets, widgets, or apps.** Every piece of first-party content lives in the
 remote catalog at `https://odd.regionallyfamous.com/catalog/v1/`
 (source of truth: `_tools/catalog-sources/` in this repo, published to
 GitHub Pages under `site/catalog/v1/`). This file records the license
@@ -48,7 +48,7 @@ then retouched to remove any accidental text / logo drift. Released
 | flux                 | GPT Image 2                                   |
 | iris-observatory     | GPT Image 2                                   |
 | mercado              | GPT Image 2                                   |
-| oddling-desktop      | GPT Image 2 (v3.4.0 repaint; original seeded  |
+| oddling-desktop      | GPT Image 2 (2026 repaint; original seeded    |
 |                      | by `_tools/gen-oddling-desktop.py`)           |
 | origami              | GPT Image 2                                   |
 | pocket-dimension     | GPT Image 2                                   |

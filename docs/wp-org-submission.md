@@ -6,7 +6,7 @@ This doc records the steps and the current state of ODD's submission to https://
 
 - [x] Slug chosen: `odd` (requested on submit form)
 - [x] `readme.txt` written per plugin directory conventions ([`odd/readme.txt`](../odd/readme.txt))
-- [x] Plugin header fields are complete and match the readme (verified by `odd/bin/check-version`)
+- [x] Plugin header fields are complete and match the readme (verified by `odd/bin/check-version` and `odd/bin/check-plugin-metadata`)
 - [x] Text domain declared and wired to `load_plugin_textdomain` + `wp_set_script_translations`
 - [x] `languages/odd.pot` regenerated at release time
 - [x] Zero runtime dependencies shipped in the zip. Scenes load Pixi via CDN at runtime; installed bundles carry their own assets (see [ADR 0005](adr/0005-remote-catalog-empty-plugin.md)).
@@ -66,12 +66,12 @@ rsync -a --delete \
 cp /path/to/screenshots/*.png assets/
 
 # Version-tag this release.
-svn cp trunk tags/1.10.0
+svn cp trunk tags/1.0.0
 
 # Review the diff, then commit.
 svn status
 svn add --force .
-svn ci -m "Release 1.10.0"
+svn ci -m "Release 1.0.0"
 ```
 
 Automating this would require a WP.org-specific workflow and secrets; we keep it manual until the plugin has enough release velocity to justify the setup.
@@ -80,7 +80,7 @@ Automating this would require a WP.org-specific workflow and secrets; we keep it
 
 Common feedback from the WP.org plugin review team + how ODD answers it:
 
-- **"Don't bundle frameworks you load from CDN."** We don't bundle Pixi; scenes load it via `wp_enqueue_script` against jsdelivr, and the plugin zip is ~400 KB, well under the 2 MB `zip-budget` cap (dropped from 35 MB in v3.0 now that the plugin is content-free).
+- **"Don't bundle frameworks you load from CDN."** We don't bundle Pixi; scenes load it via `wp_enqueue_script` against jsdelivr, and the plugin zip stays under the 2 MB `zip-budget` cap because user-facing content installs from the remote catalog.
 - **"Escape everything."** See PHPCS-enforced WordPress-Extra ruleset in `phpcs.xml`; the `phpcs` CI job blocks unescaped output.
 - **"Call `load_plugin_textdomain` on `init` and pass the `languages/` folder."** See `odd/odd.php`.
 - **"No opaque remote calls."** ODD makes exactly one kind of remote call: `wp_remote_get( ODD_CATALOG_URL )` to load the content catalog (a static JSON file at `odd.regionallyfamous.com/catalog/v1/registry.json`), and subsequent `download_url()` calls for bundles the user chooses to install from the Shop. Every URL, the transient cache window, and an opt-out (`define( 'ODD_CATALOG_URL', false )` or filter) are documented in `odd/readme.txt`.

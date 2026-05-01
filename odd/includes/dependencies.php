@@ -2,10 +2,11 @@
 /**
  * ODD — host-plugin dependency guards.
  *
- * ODD is an add-on for WP Desktop Mode. In normal installs WordPress loads
- * Desktop Mode first, then ODD. In Playground or manual installs, though, the
- * host plugin can fail to download or activate. Keep ODD loadable in that
- * state so recovery is possible, but never call host APIs unless they exist.
+ * ODD is an add-on for WP Desktop Mode v0.6.0+. In normal installs WordPress
+ * loads Desktop Mode first, then ODD. In Playground or manual installs, though,
+ * the host plugin can fail to download or activate. Keep ODD loadable in that
+ * state so recovery is possible, but never call host APIs unless the baseline
+ * host is present.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -44,6 +45,26 @@ function odd_desktop_mode_capability_functions( $capability ) {
 		'wallpaper'   => array(
 			'desktop_mode_register_wallpaper',
 		),
+		'commands'    => array(
+			'desktop_mode_register_command_script',
+		),
+		'settings'    => array(
+			'desktop_mode_register_settings_tab_script',
+			'desktop_mode_register_settings_tab',
+		),
+		'titlebar'    => array(
+			'desktop_mode_register_titlebar_button_script',
+		),
+		'dock_rail'   => array(
+			'desktop_mode_register_dock_rail_renderer_script',
+		),
+		'debug'       => array(
+			'desktop_mode_debug_publish',
+			'desktop_mode_debug_session_for_request',
+		),
+		'ai'          => array(
+			'desktop_mode_register_ai_tool',
+		),
 	);
 	return isset( $map[ $capability ] ) ? $map[ $capability ] : array();
 }
@@ -58,16 +79,29 @@ function odd_desktop_mode_missing_functions( $capability = 'core' ) {
 	return $missing;
 }
 
+function odd_desktop_mode_min_version() {
+	return defined( 'ODD_DESKTOP_MODE_MIN_VERSION' ) ? ODD_DESKTOP_MODE_MIN_VERSION : '0.6.0';
+}
+
+function odd_desktop_mode_version() {
+	return defined( 'DESKTOP_MODE_VERSION' ) ? (string) DESKTOP_MODE_VERSION : '';
+}
+
+function odd_desktop_mode_version_available() {
+	$version = odd_desktop_mode_version();
+	return '' !== $version && version_compare( $version, odd_desktop_mode_min_version(), '>=' );
+}
+
 /**
  * Whether the core Desktop Mode integration surface is available.
  * Pass a capability slug to check a secondary group (e.g. `os_settings`).
  */
 function odd_desktop_mode_available() {
-	return array() === odd_desktop_mode_missing_functions( 'core' );
+	return odd_desktop_mode_version_available() && array() === odd_desktop_mode_missing_functions( 'core' );
 }
 
 function odd_desktop_mode_supports( $capability ) {
-	return array() === odd_desktop_mode_missing_functions( $capability );
+	return odd_desktop_mode_version_available() && array() === odd_desktop_mode_missing_functions( $capability );
 }
 
 add_action(
@@ -77,15 +111,27 @@ add_action(
 			return;
 		}
 
-		$missing = odd_desktop_mode_missing_functions();
+		$missing      = odd_desktop_mode_missing_functions();
+		$version      = odd_desktop_mode_version();
+		$min_version  = odd_desktop_mode_min_version();
+		$version_note = odd_desktop_mode_version_available()
+			? ''
+			: sprintf(
+				/* translators: 1: detected WP Desktop Mode version, 2: minimum required version. */
+				__( ' Detected version: %1$s. Required version: %2$s or newer.', 'odd' ),
+				'' === $version ? __( 'unknown', 'odd' ) : $version,
+				$min_version
+			);
 		?>
 		<div class="notice notice-warning">
 			<p>
 				<?php
 				printf(
-					/* translators: %s: comma-separated missing function names. */
-					esc_html__( 'ODD is active, but WP Desktop Mode is not fully loaded. Desktop surfaces are paused until the host plugin is installed and active. Missing APIs: %s', 'odd' ),
-					esc_html( implode( ', ', $missing ) )
+					/* translators: 1: minimum WP Desktop Mode version, 2: comma-separated missing function names, 3: version note. */
+					esc_html__( 'ODD requires WP Desktop Mode %1$s or newer. Desktop surfaces are paused until the host plugin is installed, active, and current. Missing APIs: %2$s.%3$s', 'odd' ),
+					esc_html( $min_version ),
+					esc_html( empty( $missing ) ? __( 'none', 'odd' ) : implode( ', ', $missing ) ),
+					esc_html( $version_note )
 				);
 				?>
 			</p>

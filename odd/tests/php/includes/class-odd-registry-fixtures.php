@@ -1,6 +1,6 @@
 <?php
 /**
- * Test fixtures for ODD 3.0+ tests.
+ * Test fixtures for catalog-backed ODD tests.
  *
  * The plugin ships no content of its own — scene and icon set
  * registries start empty and are populated at runtime by installed

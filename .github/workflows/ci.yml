@@ -15,6 +15,7 @@ jobs:
         with:
           python-version: '3.x'
       - run: odd/bin/check-version
+      - run: odd/bin/check-plugin-metadata
 
   # Build the remote catalog from _tools/catalog-sources/ and enforce
   # byte-for-byte determinism, schema validity, SHA256/size matches,
@@ -216,9 +217,32 @@ jobs:
         with:
           python-version: '3.x'
       - run: odd/bin/build-zip
+      - run: odd/bin/check-zip-contents --list
       - uses: actions/upload-artifact@v7
         with:
           name: odd-zip
           path: dist/odd.zip
           if-no-files-found: error
           retention-days: 14
+
+  plugin-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Build release package
+        run: odd/bin/build-zip
+      - name: Validate release package contents
+        run: odd/bin/check-zip-contents
+      - name: Expand release package for Plugin Check
+        run: |
+          set -e
+          rm -rf dist/plugin
+          mkdir -p dist/plugin
+          unzip -q dist/odd.zip -d dist/plugin
+      - name: Run WordPress Plugin Check
+        uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: './dist/plugin/odd'

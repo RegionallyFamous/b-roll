@@ -5,19 +5,20 @@
 
 ## What this is
 
-ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). **As of v3.0 the plugin ships empty** — every piece of visual content is pulled on demand from a remote catalog. The plugin owns four surfaces:
+ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). **As of the 1.0 baseline the plugin runtime stays lightweight** — visual content is pulled on demand from a remote catalog. The plugin owns five surfaces:
 
 1. **A canvas wallpaper engine** — a single `registerWallpaper('odd', …)` that hosts generative PixiJS scenes painted on top of 1920×1080 WebP backdrops. Scenes install as `.wp` bundles.
 2. **Icon sets** — themed SVG packs that re-skin the WP Desktop Mode dock and desktop-shortcut icons via the `desktop_mode_dock_item` + `desktop_mode_icons` filters. Install as `.wp` bundles.
 3. **Desktop widgets** — tiles like Sticky Note, Magic 8-Ball, and Spotify Embed that live on the desktop surface. Install as `.wp` bundles.
-4. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that open in their own native window. Each app can surface as a desktop icon, a Desktop Mode taskbar icon, both, or neither — per-user preference in the ODD Shop. Install as `.wp` bundles.
+4. **Cursor sets** — themed SVG cursor packs that can theme Desktop Mode and classic wp-admin. Install as `.wp` bundles.
+5. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that open in their own native window. Each app can surface as a desktop icon, a Desktop Mode taskbar icon, both, or neither — per-user preference in the ODD Shop. Install as `.wp` bundles.
 
 All four are managed from a single native WP Desktop Mode window (the **ODD Shop** — a Mac App Store-style browsing surface) opened from the desktop shortcut icon, the `/odd-panel` slash command, or any widget that routes through `api.openPanel()`. Internally the window id stays `odd` — tests, commands, and the WP Desktop Mode session state still reference it by that id.
 
 - **Repo:** `RegionallyFamous/odd`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
 - **Remote catalog:** https://odd.regionallyfamous.com/catalog/v1/registry.json
-- **Host plugin (required at runtime):** WP Desktop Mode v0.5.1+
+- **Host plugin (required at runtime):** WP Desktop Mode v0.6.0+
 
 ## Architecture at a glance
 
@@ -63,8 +64,7 @@ _tools/
 │ ├── widgets/{slug}/ widget.js + widget.css + manifest.json
 │ ├── apps/{slug}/ bundle.wp (pre-built) or manifest.json + assets
 │ └── starter-pack.json slugs to auto-install on activation
-├── build-catalog.py deterministic .wp + registry.json + icons builder
-└── migrate-v3.py one-shot migration script (kept for history)
+└── build-catalog.py deterministic .wp + registry.json + icons builder
 
 site/
 ├── index.html / styles.css / wild.js marketing site
@@ -173,8 +173,8 @@ The shared mount runner in `src/wallpaper/index.js` owns Pixi app creation (`awa
 
 ## Extending ODD
 
-Since v0.14.0, ODD has a documented extension API (filters, events,
-registries, lifecycle phases, error boundaries, debug inspector). Agents
+ODD has a documented extension API (filters, events, registries,
+lifecycle phases, error boundaries, debug inspector). Agents
 adding features should prefer the extension API over monkey-patching
 core files — see [docs/building-on-odd.md](docs/building-on-odd.md).
 
@@ -215,14 +215,14 @@ Slugs here must resolve to a catalog entry — the validator refuses to ship a s
 1. `git clone` into `wp-content/plugins/odd/` (or symlink).
 2. Activate ODD alongside WP Desktop Mode. The starter pack installs inline during the activation hook (no cron); if it failed you can force a retry with `wp eval 'odd_starter_ensure_installed( true );'`.
 3. Plugin itself is no-build — plain JS loaded via `wp_enqueue_script`. Content bundles are built with `python3 _tools/build-catalog.py`.
-4. For a full validation pass: `odd/bin/check-version && python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog && npm test && odd/bin/build-zip`.
+4. For a full validation pass: `odd/bin/check-version && odd/bin/check-plugin-metadata && python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog && npm test && odd/bin/build-zip && odd/bin/check-zip-contents`.
 
 ### Cut a release
 
 1. Bump `Version:` header + `ODD_VERSION` constant in `odd/odd.php`.
-2. `odd/bin/check-version --expect 0.X.Y` to confirm they match.
-3. Commit, push, tag: `git tag v0.X.Y && git push origin v0.X.Y`.
-4. `.github/workflows/release-odd.yml` fires on the tag: version check, catalog build + validate, `odd/bin/build-zip`, `gh release create … --latest=true`, and the install-smoke suite against a hermetic MU-plugin fixture.
+2. `odd/bin/check-version --expect X.Y.Z && odd/bin/check-plugin-metadata` to confirm metadata matches.
+3. Commit, push, tag: `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+4. `.github/workflows/release-odd.yml` fires on the tag: reusable CI gates, catalog build + validate, Plugin Check, `odd/bin/build-zip`, zip contents check, `gh release create … --latest=true`, and the install-smoke suite against a hermetic MU-plugin fixture.
 
 ### Publishing new content
 
@@ -235,12 +235,13 @@ Slugs here must resolve to a catalog entry — the validator refuses to ship a s
 
 `.github/workflows/ci.yml` runs on every PR + push to `main`:
 - `catalog-build-and-validate` — runs `_tools/build-catalog.py` then validates with `ODD_VALIDATE_REBUILD=1` for determinism.
-- `check-version` — header + constant in `odd.php` agree.
+- `check-version` — header + constant in `odd.php` agree; `check-plugin-metadata` keeps readme/changelog/minimums aligned.
 - `json-valid` — `blueprint.json` + every `manifest.json` / `meta.json` under `_tools/catalog-sources/` parses.
 - `vitest` — `npm test`.
 - `phpcs` — WPCS.
 - `phpunit` — PHP unit matrix.
-- `zip-budget` — `odd/bin/build-zip` with a 2 MB cap (down from 35 MB — empty plugin).
+- `zip-budget` — `odd/bin/build-zip` with a 2 MB cap plus `odd/bin/check-zip-contents`.
+- `plugin-check` — official WordPress Plugin Check against the expanded release package.
 - `site-lint` — `html-validate` over `site/index.html`.
 
 `install-smoke.yml` boots real WordPress, activates ODD + WP Desktop Mode, serves a local catalog via the `ci/smoke/odd-smoke-fixture.php` MU-plugin, runs the starter-pack installer synchronously, and asserts the registries populate.

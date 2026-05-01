@@ -20,7 +20,7 @@ class Test_Icons_Registry_Cache extends WP_UnitTestCase {
 		odd_icons_get_sets( true );
 		delete_transient( odd_icons_registry_transient_key() );
 
-		// v3.0+: the plugin ships no icon sets. Install a fixture so
+		// The plugin ships no icon sets. Install a fixture so
 		// the registry has something in it for the "returns populated
 		// sets / survives poisoned transient / rebuild re-registers"
 		// assertions. The fixture hooks the `odd_icon_set_registry`

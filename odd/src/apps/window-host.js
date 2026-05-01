@@ -126,6 +126,26 @@
 		return id.slice( APP_ID_PREFIX.length );
 	}
 
+	function windowController( ctx ) {
+		if ( ctx && ctx.window && typeof ctx.window === 'object' ) return ctx.window;
+		if ( ctx && typeof ctx.markContentLoading === 'function' ) return ctx;
+		return null;
+	}
+
+	function markContentLoading( ctx ) {
+		var win = windowController( ctx );
+		if ( win && typeof win.markContentLoading === 'function' ) {
+			try { win.markContentLoading(); } catch ( _ ) {}
+		}
+	}
+
+	function markContentLoaded( ctx ) {
+		var win = windowController( ctx );
+		if ( win && typeof win.markContentLoaded === 'function' ) {
+			try { win.markContentLoaded(); } catch ( _ ) {}
+		}
+	}
+
 	function findMount( slug ) {
 		var nodes = document.querySelectorAll( '.odd-app-host[data-odd-app-slug="' + slug + '"]' );
 		if ( ! nodes.length ) return null;
@@ -150,16 +170,20 @@
 	 * an already-mounted frame — double-firing downstream subscribers
 	 * (muse, motion, analytics).
 	 */
-	function installFrame( mount ) {
+	function installFrame( mount, ctx ) {
 		if ( ! mount ) return 'skipped';
 		if ( mount.querySelector( 'iframe.odd-app-frame' ) ) return 'already';
+		markContentLoading( ctx );
 		var src = mount.getAttribute( 'data-odd-app-src' );
 		if ( ! src ) {
 			var fallbackSlug = mount.getAttribute( 'data-odd-app-slug' );
 			src = fallbackSlug ? serveUrlFor( fallbackSlug ) : '';
 			if ( src ) mount.setAttribute( 'data-odd-app-src', src );
 		}
-		if ( ! src ) return 'skipped';
+		if ( ! src ) {
+			markContentLoaded( ctx );
+			return 'skipped';
+		}
 
 		var frame = document.createElement( 'iframe' );
 		frame.className = 'odd-app-frame';
@@ -171,8 +195,10 @@
 		frame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#101014;';
 		frame.addEventListener( 'error', function ( e ) {
 			events.emit( events.NAMES.IFRAME_ERROR, { message: 'app frame error', err: e } );
+			markContentLoaded( ctx );
 		} );
 		frame.addEventListener( 'load', function () {
+			markContentLoaded( ctx );
 			var loading = mount.querySelector( '.odd-app-host__loading' );
 			if ( loading ) loading.style.display = 'none';
 			injectCursorStylesheet( frame );
@@ -249,13 +275,13 @@
 	 * correctly even when the server-side `<template>` was never
 	 * emitted or was dropped before reaching the DOM.
 	 */
-	function buildAndMount( body, slug ) {
+	function buildAndMount( body, slug, ctx ) {
 		if ( ! body || ! slug ) return 'skipped';
 		// Reuse any existing host the server may already have
 		// painted (avoids double-mounts on session-restore paths).
 		var existing = body.querySelector( '.odd-app-host[data-odd-app-slug="' + slug + '"]' );
 		if ( existing ) {
-			return installFrame( existing );
+			return installFrame( existing, ctx );
 		}
 		var src = serveUrlFor( slug );
 		var host = document.createElement( 'div' );
@@ -274,7 +300,7 @@
 		host.appendChild( loading );
 
 		body.appendChild( host );
-		return installFrame( host );
+		return installFrame( host, ctx );
 	}
 
 	function removeFrame( slug ) {
@@ -411,8 +437,8 @@
 			( function ( slug ) {
 				var id = APP_ID_PREFIX + slug;
 				if ( typeof reg[ id ] === 'function' ) return; // Respect any override.
-				reg[ id ] = function ( body ) {
-					var result = buildAndMount( body, slug );
+				reg[ id ] = function ( body, ctx ) {
+					var result = buildAndMount( body, slug, ctx );
 					if ( result === 'mounted' ) {
 						events.emit( events.NAMES.APP_OPENED, { slug: slug, windowId: id } );
 					}

@@ -2,8 +2,8 @@
 /**
  * ODD — remote bundle catalog.
  *
- * ODD 3.0 ships as an empty plugin; every scene, icon set, cursor set,
- * widget, and app lives in a remote registry at `ODD_CATALOG_URL`. We fetch that
+ * ODD 1.0 keeps the plugin runtime lightweight; every scene, icon set,
+ * cursor set, widget, and app lives in a remote registry at `ODD_CATALOG_URL`. We fetch that
  * registry over HTTPS, cache it in a 12h transient, and surface the
  * parsed rows through the same `/odd/v1/bundles/*` REST endpoints the
  * panel already consumes.

@@ -40,12 +40,12 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 
 ### A real WordPress install
 
-1. Download the latest `odd.zip` from the [Releases](https://github.com/RegionallyFamous/odd/releases) page.
-2. WP Admin → Plugins → Add New → Upload Plugin → pick the zip → Activate.
-3. Make sure [WP Desktop Mode](https://github.com/WordPress/desktop-mode) is installed + active, then flip on desktop mode from the admin bar.
-4. Double-click the **ODD** desktop icon (or run `/odd-panel` from the ⌘K palette) to open the Shop.
+1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.6.0 or newer.
+2. Download the latest `odd.zip` from the [Releases](https://github.com/RegionallyFamous/odd/releases/latest) page.
+3. WP Admin → Plugins → Add New → Upload Plugin → pick the zip → Activate.
+4. Double-click the **ODD** desktop icon, use the taskbar icon, or run `/odd-panel` from the command palette to open the Shop.
 
-**Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.5.4+
+**Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.6.0+
 
 ---
 
@@ -59,10 +59,12 @@ Anyone can ship a scene, icon set, cursor set, widget, or app as a single `.wp` 
 - [Building a Cursor Set](docs/building-a-cursor-set.md)
 - [Building a Widget](docs/building-a-widget.md)
 - [`.wp` Manifest Reference](docs/wp-manifest.md)
+- [ODD Shop State Machine](docs/store-state-machine.md)
+- [Release Runbook](docs/release-runbook.md)
 
 ## Repo layout
 
-- `odd/` — the plugin itself (what ships in `odd.zip`). **In v3.x this ships no catalog content** — just the PHP + JS runtime.
+- `odd/` — the plugin itself (what ships in `odd.zip`). The 1.0 runtime is intentionally lightweight; catalog content installs on demand.
 - `_tools/catalog-sources/` — source of truth for every bundle (scene / icon set / cursor set / widget / app). Rebuilt into `site/catalog/v1/` by `_tools/build-catalog.py`.
 - `site/` — the [odd.regionallyfamous.com](https://odd.regionallyfamous.com) marketing site **and the remote catalog** (`site/catalog/v1/registry.json` + `bundles/` + `icons/`), deployed to GitHub Pages.
 - `docs/` — authoring guides and reference docs.

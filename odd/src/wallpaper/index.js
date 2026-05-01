@@ -5,11 +5,10 @@
  * through `wp_localize_script('odd-api', 'odd', … )`; the engine
  * lazy-loads each scene's JS the first time it's picked.
  *
- * Lean-runtime rewrite (v0.13.4):
+ * Lean runtime:
  *   - Scene / audio / drifters modules live under `src/wallpaper/`,
  *     so the loaders prefix paths with `src/wallpaper/` (matching
- *     the on-disk + zip layout). The previous runtime looked at
- *     `src/scenes/…` which has been 404ing since the reboot.
+ *     the on-disk + zip layout).
  *   - The legacy in-canvas picker gear, tooltip, and `?` shortcut
  *     are gone — the native ODD Shop window is the single
  *     picker surface.
@@ -245,8 +244,7 @@
 	// Scene files, the audio module, and any future companion JS
 	// all live under `src/wallpaper/` on disk (matches the build-zip
 	// layout). Loader URLs MUST match or the engine 404s and the
-	// wallpaper renders as a static JPG — which is what happened in
-	// 0.13.0…0.13.3 when these loaders still pointed at `src/`.
+	// wallpaper renders as a static JPG.
 	// ============================================================ //
 
 	var loading = {};

@@ -18,8 +18,6 @@
  *   1  baseline            odd/includes/migrations.php
  *   2  apps_baseline       odd/includes/migrations.php
  *   3  bazaar_migration    odd/includes/apps/migrate-from-bazaar.php
- *   4  seed_builtins       odd/includes/apps/core-controller.php
- *   5  remove_hello_odd    odd/includes/apps/core-controller.php
  *
  * Third-party plugins can register higher-numbered migrations via
  * `add_filter( 'odd_migrations', … )`; see docs/building-on-odd.md.
@@ -28,7 +26,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'ODD_SCHEMA_VERSION' ) ) {
-	define( 'ODD_SCHEMA_VERSION', 5 );
+	define( 'ODD_SCHEMA_VERSION', 3 );
 }
 
 function odd_migrations_all() {
@@ -106,10 +104,9 @@ function odd_migration_1_baseline( $user_id ) {
 }
 
 /**
- * Apps baseline (v0.16.0). Ensures the apps storage directory and
- * .htaccess exist for every user that logs in after the apps engine
- * ships. Idempotent — runs once per user and is cheap if the file
- * already exists.
+ * Apps baseline. Ensures the apps storage directory and .htaccess exist for
+ * every user that logs in after the apps engine ships. Idempotent and cheap
+ * if the file already exists.
  */
 function odd_migration_2_apps_baseline( $user_id ) {
 	unset( $user_id );
@@ -123,9 +120,8 @@ function odd_migration_2_apps_baseline( $user_id ) {
 //
 // Intentionally independent of WP Desktop Mode's own loader: if an
 // admin temporarily deactivates the host plugin during an ODD
-// upgrade, we still need usermeta to migrate forward — otherwise the
-// next boot of the Desktop shell sees stale b_roll_* keys and we
-// lose data. Migrations are pure meta rewrites; they're safe to run
+// upgrade, we still need usermeta to migrate forward. Migrations are
+// pure meta rewrites; they're safe to run
 // with or without the host plugin loaded.
 add_action(
 	'admin_init',

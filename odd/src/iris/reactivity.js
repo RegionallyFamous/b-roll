@@ -30,6 +30,10 @@
 		var evt = window.__odd.events;
 		if ( evt && typeof evt.emit === 'function' ) evt.emit( name, payload );
 	}
+	function onOdd( name, cb ) {
+		var evt = window.__odd.events;
+		if ( evt && typeof evt.on === 'function' ) evt.on( name, cb );
+	}
 	function motion( slug, opts ) {
 		var m = window.__odd.iris && window.__odd.iris.motion;
 		if ( m && typeof m[ slug ] === 'function' ) m[ slug ]( opts || {} );
@@ -58,18 +62,15 @@
 	var throttleShellErr   = throttle( 30000 );
 	var throttleWelcomeBck = throttle( 10 * 60 * 1000 );
 
-	on( 'wp-desktop.window.opened', function ( payload ) {
-		emit( 'odd.window-opened', payload || {} );
+	onOdd( 'odd.window-opened', function ( payload ) {
 		var c = centerOf( payload && payload.bounds );
 		motion( 'ripple', c ? { x: c.x, y: c.y, intensity: 1.0 } : { x: 0.5, y: 0.5, intensity: 1.0, normalized: true } );
 	} );
-	on( 'wp-desktop.window.closed', function ( payload ) {
-		emit( 'odd.window-closed', payload || {} );
+	onOdd( 'odd.window-closed', function ( payload ) {
 		var c = centerOf( payload && payload.bounds );
 		motion( 'ripple', c ? { x: c.x, y: c.y, intensity: 0.6 } : { x: 0.5, y: 0.5, intensity: 0.6, normalized: true } );
 	} );
-	on( 'wp-desktop.window.focused', function ( payload ) {
-		emit( 'odd.window-focused', payload || {} );
+	onOdd( 'odd.window-focused', function ( payload ) {
 		var c = centerOf( payload && payload.bounds );
 		if ( c ) motion( 'glance', { x: c.x, y: c.y } );
 	} );
@@ -78,8 +79,7 @@
 		motion( 'glitch', { ms: 220 } );
 		throttleShellErr( function () { say( 'shellError' ); } );
 	} );
-	on( 'wp-desktop.iframe.error', function ( payload ) {
-		emit( 'odd.iframe-error', payload || {} );
+	onOdd( 'odd.iframe-error', function () {
 		motion( 'glitch', { ms: 220 } );
 		throttleShellErr( function () { say( 'shellError' ); } );
 	} );
@@ -90,9 +90,8 @@
 	on( 'wp-desktop.command.after-run', function () {
 		motion( 'glance', { nod: true } );
 	} );
-	on( 'wp-desktop.shell.visibility', function ( payload ) {
+	onOdd( 'odd.visibility-changed', function ( payload ) {
 		var state = payload && payload.state;
-		emit( 'odd.visibility-changed', { state: state } );
 		if ( state === 'visible' ) {
 			throttleWelcomeBck( function () { say( 'welcomeBack' ); } );
 		}

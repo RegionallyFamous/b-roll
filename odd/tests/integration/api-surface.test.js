@@ -25,7 +25,8 @@ const EXPECTED_METHODS = [
 	'scenes', 'sceneBySlug', 'currentScene',
 	'iconSets', 'iconSetBySlug', 'currentIconSet',
 	'savePrefs', 'setScene', 'setIconSet', 'shuffle',
-	'toast', 'onSceneChange', 'onIconSetChange', 'openPanel',
+	'toast', 'openOsSettings', 'showAttention', 'setBadge',
+	'diagnosticsSnapshot', 'onSceneChange', 'onIconSetChange', 'openPanel',
 ];
 
 const EXPECTED_CONSTANTS = [ 'HOOK_SCENE', 'HOOK_ICONSET', 'TOAST_TONE' ];

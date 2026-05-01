@@ -19,7 +19,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$this->user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->user_id );
 
-		// v3.0+: the plugin ships no icon sets. Tests need to install
+		// The plugin ships no icon sets. Tests need to install
 		// one through the `odd_icon_set_registry` filter so
 		// `pick_set_with_fallback()` finds something.
 		ODD_Registry_Fixtures::install_iconset( 'filament' );

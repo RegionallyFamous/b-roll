@@ -9,7 +9,11 @@ permissions:
   contents: write
 
 jobs:
+  quality-gates:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: quality-gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -26,15 +30,18 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           expected="${tag#v}"
           odd/bin/check-version --expect "$expected"
+          odd/bin/check-plugin-metadata
 
       - name: Build + validate remote catalog
         run: |
           set -e
-          # v3.0+: every piece of ODD content lives in the remote
-          # catalog. Build it first so validate-catalog has
-          # site/catalog/v1/ to point at.
+          # ODD 1.0 content lives in the remote catalog. Build it first
+          # so validate-catalog has site/catalog/v1/ to point at.
           python3 _tools/build-catalog.py
           ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog
+
+      - name: Validate public Playground blueprint
+        run: odd/bin/validate-blueprint
 
       - name: Regenerate POT (odd/languages/odd.pot)
         run: |
@@ -45,7 +52,21 @@ jobs:
           odd/bin/make-pot --out odd/languages/odd.pot
 
       - name: Build zip
-        run: odd/bin/build-zip
+        run: |
+          odd/bin/build-zip
+          odd/bin/check-zip-contents --list
+
+      - name: Expand release package for Plugin Check
+        run: |
+          set -e
+          rm -rf dist/plugin
+          mkdir -p dist/plugin
+          unzip -q dist/odd.zip -d dist/plugin
+
+      - name: Run WordPress Plugin Check
+        uses: WordPress/plugin-check-action@v1
+        with:
+          build-dir: './dist/plugin/odd'
 
       - name: Upload zip for install-smoke
         uses: actions/upload-artifact@v7
@@ -128,7 +149,7 @@ jobs:
           echo "checking $url"
           # GitHub propagates the /releases/latest/ CDN pointer a few seconds
           # after `gh release create --latest=true` returns; polling up to 60s
-          # clears the race that took down the v0.13.0 release run.
+          # clears the race where the latest-release pointer lags asset upload.
           status=000
           for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
               status=$(curl -sI -o /dev/null -w '%{http_code}' -L "$url")

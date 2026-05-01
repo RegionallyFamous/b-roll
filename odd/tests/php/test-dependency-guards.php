@@ -35,25 +35,52 @@ class Test_Dependency_Guards extends WP_UnitTestCase {
 		$core        = odd_desktop_mode_capability_functions( 'core' );
 		$os_settings = odd_desktop_mode_capability_functions( 'os_settings' );
 		$registry    = odd_desktop_mode_capability_functions( 'registry' );
+		$commands    = odd_desktop_mode_capability_functions( 'commands' );
+		$settings    = odd_desktop_mode_capability_functions( 'settings' );
+		$titlebar    = odd_desktop_mode_capability_functions( 'titlebar' );
+		$dock_rail   = odd_desktop_mode_capability_functions( 'dock_rail' );
+		$debug       = odd_desktop_mode_capability_functions( 'debug' );
+		$ai          = odd_desktop_mode_capability_functions( 'ai' );
 		$unknown     = odd_desktop_mode_capability_functions( 'does-not-exist' );
 		$this->assertNotEmpty( $core );
 		$this->assertContains( 'desktop_mode_get_os_settings', $os_settings );
 		$this->assertContains( 'desktop_mode_save_os_settings', $os_settings );
 		$this->assertContains( 'desktop_mode_default_os_settings', $os_settings );
 		$this->assertContains( 'desktop_mode_native_window_registry', $registry );
+		$this->assertContains( 'desktop_mode_register_command_script', $commands );
+		$this->assertContains( 'desktop_mode_register_settings_tab_script', $settings );
+		$this->assertContains( 'desktop_mode_register_settings_tab', $settings );
+		$this->assertContains( 'desktop_mode_register_titlebar_button_script', $titlebar );
+		$this->assertContains( 'desktop_mode_register_dock_rail_renderer_script', $dock_rail );
+		$this->assertContains( 'desktop_mode_debug_publish', $debug );
+		$this->assertContains( 'desktop_mode_debug_session_for_request', $debug );
+		$this->assertContains( 'desktop_mode_register_ai_tool', $ai );
 		$this->assertSame( array(), $unknown, 'Unknown capabilities return an empty list, not null.' );
 	}
 
 	public function test_available_matches_missing_report() {
 		$missing   = odd_desktop_mode_missing_functions( 'core' );
 		$available = odd_desktop_mode_available();
-		$this->assertSame( array() === $missing, $available );
+		$this->assertSame( odd_desktop_mode_version_available() && array() === $missing, $available );
+	}
+
+	public function test_desktop_mode_minimum_version_is_060() {
+		$this->assertSame( '0.6.0', odd_desktop_mode_min_version() );
+		if ( defined( 'DESKTOP_MODE_VERSION' ) ) {
+			$this->assertSame(
+				version_compare( DESKTOP_MODE_VERSION, '0.6.0', '>=' ),
+				odd_desktop_mode_version_available()
+			);
+		} else {
+			$this->assertSame( '', odd_desktop_mode_version() );
+			$this->assertFalse( odd_desktop_mode_version_available() );
+		}
 	}
 
 	public function test_supports_matches_missing_report_for_os_settings() {
 		$missing   = odd_desktop_mode_missing_functions( 'os_settings' );
 		$supported = odd_desktop_mode_supports( 'os_settings' );
-		$this->assertSame( array() === $missing, $supported );
+		$this->assertSame( odd_desktop_mode_version_available() && array() === $missing, $supported );
 	}
 
 	public function test_guard_fully_resolves_when_host_absent() {
@@ -102,7 +129,7 @@ class Test_Dependency_Guards extends WP_UnitTestCase {
 		ob_start();
 		do_action( 'admin_notices' );
 		$buffer = ob_get_clean();
-		$this->assertStringContainsString( 'WP Desktop Mode is not fully loaded', $buffer );
+		$this->assertStringContainsString( 'ODD requires WP Desktop Mode 0.6.0 or newer', $buffer );
 	}
 
 	public function test_init_hook_does_not_call_missing_host_apis() {

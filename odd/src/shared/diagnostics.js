@@ -89,6 +89,8 @@
 			apiVersion:   ( window.__odd && window.__odd.api && window.__odd.api.version ) || '',
 			wpHooks:      !! ( window.wp && window.wp.hooks ),
 			desktopMode:  !! ( window.wp && window.wp.desktop ),
+			desktopLayout: ( window.wp && window.wp.desktop && window.wp.desktop.desktopLayout ) || '',
+			desktopHookBridge: !! ( window.__odd && window.__odd.desktopHooks ),
 			pixi:         !! window.PIXI,
 			userAgent:    ( navigator && navigator.userAgent ) || '',
 			viewport:     { w: window.innerWidth, h: window.innerHeight },
@@ -136,6 +138,13 @@
 		} catch ( _ ) { return {}; }
 	}
 
+	function desktopSnapshot() {
+		try {
+			var api = window.__odd && window.__odd.api;
+			return api && typeof api.diagnosticsSnapshot === 'function' ? api.diagnosticsSnapshot() : {};
+		} catch ( _ ) { return {}; }
+	}
+
 	function collect() {
 		return {
 			collectedAt:   now(),
@@ -144,6 +153,7 @@
 			registries:    registriesSnapshot(),
 			state:         storeSnapshot(),
 			systemHealth:  systemHealthSnapshot(),
+			desktop:       desktopSnapshot(),
 			recentLog:     buffer.slice().reverse().slice( 0, 50 ),
 		};
 	}
@@ -161,6 +171,8 @@
 			'- API version: `' + env.apiVersion + '`',
 			'- Lifecycle phase: `' + p.phase + '`',
 			'- WP Desktop Mode present: ' + ( env.desktopMode ? 'yes' : 'no' ),
+			'- Desktop layout: `' + env.desktopLayout + '`',
+			'- Desktop hook bridge: ' + ( env.desktopHookBridge ? 'yes' : 'no' ),
 			'- PIXI global present: ' + ( env.pixi ? 'yes' : 'no' ),
 			'- REST URL localized: ' + env.restUrl,
 			'- User agent: `' + env.userAgent + '`',
@@ -188,6 +200,13 @@
 			].join( '/' ) + '`',
 			'- active cursor set: `' + ( p.systemHealth.cursors && p.systemHealth.cursors.active || ( p.state.user && p.state.user.cursorSet ) || '' ) + '`',
 			'- cursor stylesheet: `' + ( p.systemHealth.cursors && p.systemHealth.cursors.stylesheet ? '(present)' : '(missing)' ) + '`',
+			'- Desktop Mode version: `' + ( p.systemHealth.desktopMode && p.systemHealth.desktopMode.version || '' ) + '`',
+			'- Desktop Mode baseline met: `' + ( p.systemHealth.desktopMode && p.systemHealth.desktopMode.baseline ? 'yes' : 'no' ) + '`',
+			'- Desktop Mode settings tabs/system tiles/palettes: `' + [
+				p.desktop.settingsTabs && p.desktop.settingsTabs.length || 0,
+				p.desktop.systemTiles && p.desktop.systemTiles.length || 0,
+				p.desktop.palettes && p.desktop.palettes.length || 0,
+			].join( '/' ) + '`',
 			'',
 			'## Recent log (' + p.recentLog.length + ' entries, newest first)',
 			'```',
@@ -226,6 +245,7 @@
 		collect:         collect,
 		collectMarkdown: collectMarkdown,
 		copy:            copy,
+		record:          record,
 		recent:          function () { return buffer.slice(); },
 	};
 } )();

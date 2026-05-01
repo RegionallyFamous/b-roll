@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       ODD — Outlandish Desktop Decorator
  * Plugin URI:        https://github.com/RegionallyFamous/odd
- * Description:       Decorator for WP Desktop Mode: generative PixiJS wallpapers, themed icon/cursor sets, and a native ODD Shop window to browse and switch between them.
- * Version:           3.6.7
+ * Description:       App store and decorator for WP Desktop Mode: install wallpapers, icons, cursors, widgets, and apps from a safe catalog.
+ * Version:           1.0.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            regionallyfamous
@@ -11,6 +11,7 @@
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       odd
+ * Update URI:        https://github.com/RegionallyFamous/odd
  *
  * Requires the WordPress Desktop Mode plugin to be active:
  * https://github.com/WordPress/desktop-mode
@@ -18,7 +19,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ODD_VERSION', '3.6.7' );
+define( 'ODD_VERSION', '1.0.0' );
+define( 'ODD_DESKTOP_MODE_MIN_VERSION', '0.6.0' );
 define( 'ODD_FILE', __FILE__ );
 define( 'ODD_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ODD_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );

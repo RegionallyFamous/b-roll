@@ -405,6 +405,9 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 			return;
 		}
 		define( 'ODD_TEST_DM_STUBS', 1 );
+		if ( ! defined( 'DESKTOP_MODE_VERSION' ) ) {
+			define( 'DESKTOP_MODE_VERSION', '0.6.0' );
+		}
 		// phpcs:disable
 		eval(
 			'function desktop_mode_is_enabled() {' .

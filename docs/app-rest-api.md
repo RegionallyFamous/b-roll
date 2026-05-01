@@ -1,6 +1,6 @@
 # ODD REST API
 
-> Status: v3.6.7. Covers the `/apps/*`, `/bundles/*`, and `/starter/*` surfaces.
+> Status: v1.0.0. Covers the `/apps/*`, `/bundles/*`, and `/starter/*` surfaces.
 > Mirrored to the
 > [Apps REST API](https://github.com/RegionallyFamous/odd/wiki/Apps-REST-API)
 > wiki page.
@@ -38,8 +38,6 @@ Permission shorthand used below:
 | `POST`   | `/apps/{slug}/toggle`                        | admin         | Enable/disable an installed app or update its desktop/taskbar surfaces. |
 | `GET`    | `/apps/serve/{slug}/{path...}`               | per-app cap   | Serve a file from the app bundle.          |
 | `GET`    | `/apps/icon/{slug}`                          | public        | Serve the app's declared icon file.        |
-| `GET`    | `/apps/catalog`                              | login         | Compat shim — forwards to `/bundles/catalog?type=app`. |
-| `POST`   | `/apps/install-from-catalog`                 | admin         | Compat shim — forwards to `/bundles/install-from-catalog`. |
 | `POST`   | `/bundles/upload`                            | admin         | Install any `.wp` bundle (app, icon set, cursor set, scene, widget). |
 | `DELETE` | `/bundles/{slug}`                            | admin         | Uninstall any bundle regardless of type.   |
 | `GET`    | `/bundles/catalog`                           | login         | Browse the remote catalog (installer fields redacted for non-admins). |
@@ -319,93 +317,9 @@ never honored, so there's no traversal surface.
 
 ---
 
-### `GET /apps/catalog`
-
-> **Compatibility shim (v3.0+).** This endpoint now forwards to
-> `/bundles/catalog?type=app`. It is retained so pre-v3.0 callers keep
-> working. New code should call `/bundles/catalog` directly.
-
-Return the app subset of the remote catalog, with an `installed` flag
-per entry so UIs can flip "Install" buttons straight to "Open". For
-non-admin users, installer-only fields such as `download_url` and
-`sha256` are redacted.
-
-The catalog is fetched from
-`https://odd.regionallyfamous.com/catalog/v1/registry.json` via
-`wp_remote_get()`, cached in the `odd_catalog` transient for 12
-hours, and served stale-on-failure. No entries are "built-in" — every
-app downloads a remote `.wp` archive through `install-from-catalog`.
-
-**Auth:** login
-
-**Response** — `200 OK`:
-
-```json
-{
-    "apps": [
-        {
-            "slug":         "ledger",
-            "name":         "Ledger",
-            "version":      "1.1.0",
-            "author":       "Regionally Famous",
-            "description":  "Get paid. Track clients, generate invoices.",
-            "icon_url":     "https://…/icon.svg",
-            "tags":         [ "business", "invoicing" ],
-            "size":         48241,
-            "installed":    false
-        }
-    ]
-}
-```
-
----
-
-### `POST /apps/install-from-catalog`
-
-> **Compatibility shim (v3.0+).** This endpoint forwards to
-> `/bundles/install-from-catalog`.
-
-Install a catalog entry by slug. ODD downloads the bundle from
-`download_url`, verifies the SHA256 against the registry entry,
-verifies the archive manifest still matches the catalog row's `slug`
-and `type`, validates the archive, and feeds it to the universal bundle
-installer.
-
-**Auth:** admin
-**Content-Type:** `application/json`
-
-**Request body:**
-
-```json
-{ "slug": "ledger" }
-```
-
-**Response** — `200 OK`:
-
-```json
-{
-    "installed": true,
-    "manifest": { "slug": "ledger", "name": "Ledger", "version": "1.1.0", "enabled": true }
-}
-```
-
-**Errors:**
-
-| Status | Code                  | Meaning                                                 |
-|--------|-----------------------|---------------------------------------------------------|
-| 400    | `invalid_slug`        | Missing or empty `slug` in body.                        |
-| 404    | `not_in_catalog`      | Slug is not in the remote registry.                     |
-| 409    | `already_installed`   | Something with that slug is already installed.          |
-| 400    | `no_download`         | Catalog row has no `download_url`.                      |
-| 400    | `insecure_download`   | `download_url` is not HTTPS. Override with the `odd_bundle_allow_insecure_catalog` filter on controlled dev hosts. |
-| 400    | `missing_sha256`      | Catalog row is missing a required SHA256 digest.         |
-| 400    | `catalog_slug_mismatch` | Downloaded bundle slug did not match the catalog row.  |
-| 400    | `catalog_type_mismatch` | Downloaded bundle type did not match the catalog row.  |
-| 409    | `catalog_operation_in_progress` | Another refresh/install operation is already running. |
-| 502    | `sha256_mismatch`     | Downloaded bundle's SHA256 didn't match the registry.   |
-| 502    | `catalog_fetch_failed` | The registry could not be loaded and no cached copy exists. |
-| *varies* | (download errors)   | Any `WP_Error` from `download_url()` is passed through. |
-| *varies* | (install errors)    | Any validation error from `POST /apps/upload` applies.  |
+The 1.0 baseline removes the old app-specific catalog and install routes.
+Catalog browsing and installs for every content type use `/bundles/catalog`
+and `/bundles/install-from-catalog`.
 
 ---
 

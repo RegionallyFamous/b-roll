@@ -6,12 +6,10 @@ the plugin you just installed — plugin releases and API releases
 evolve on their own SemVer tracks so a bug-fix plugin release never
 silently changes what third-party extensions can rely on.
 
-Today: **`2.1.0`** — introduced in plugin `3.0.0` and still current
-for plugin `3.4.x`. The bump was a minor: v3.0.0 added the
-`/odd/v1/bundles/*` REST surface and the
-`/odd/v1/starter` pair, without removing or reshaping anything in the
-2.0.x surface. The `window.__odd.api` JS surface is byte-identical to
-2.0.0.
+Today: **`2.2.0`** — current for the ODD 1.0.0 baseline. The 2.1 line
+added the `/odd/v1/bundles/*` REST surface and the `/odd/v1/starter`
+pair. The 2.2 line adds Desktop Mode v0.6 helpers for OS settings,
+window attention, dock badges, and diagnostics snapshots.
 
 ## What counts as the API surface
 
@@ -23,7 +21,8 @@ bundle or companion plugin might touch:
 - `window.__odd.api` methods: `scenes`, `sceneBySlug`, `currentScene`,
   `iconSets`, `iconSetBySlug`, `currentIconSet`, `savePrefs`,
   `setScene`, `setIconSet`, `shuffle`, `toast`, `onSceneChange`,
-  `onIconSetChange`, `openPanel`, and the `HOOK_SCENE` / `HOOK_ICONSET`
+  `onIconSetChange`, `openPanel`, `openOsSettings`, `showAttention`,
+  `setBadge`, `diagnosticsSnapshot`, and the `HOOK_SCENE` / `HOOK_ICONSET`
   / `TOAST_TONE` constants.
 - `window.__odd.diagnostics.{collect, collectMarkdown, copy}` —
   zero-telemetry diagnostic bundle.
@@ -80,6 +79,7 @@ if ( major !== 2 ) {
 }
 // Feature-detect endpoints added in minor bumps.
 var hasBundles = minor >= 1;   // /odd/v1/bundles/* landed in API 2.1.0
+var hasDesktopHelpers = minor >= 2;
 // safe to call anything listed for the 2.x surface
 ```
 

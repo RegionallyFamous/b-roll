@@ -442,9 +442,9 @@
 						bySlug[ app.slug ] = Object.assign( {}, cat, app, { installed: true } );
 					} );
 					( Array.isArray( state.cfg.apps ) ? state.cfg.apps : [] ).forEach( function ( app ) {
-						if ( ! app || ! app.slug || ! app.requiresReload ) return;
+						if ( ! app || ! app.slug ) return;
 						var cur = bySlug[ app.slug ] || {};
-						bySlug[ app.slug ] = Object.assign( {}, cur, { requiresReload: true, installed: true } );
+						bySlug[ app.slug ] = Object.assign( {}, cur, app, { installed: true } );
 					} );
 
 					var rows = [];
@@ -616,13 +616,21 @@
 		}
 
 		function fetchCatalog() {
-			return fetch( appsBaseUrl() + '/catalog', {
+			var url = ( state.cfg.bundleCatalogUrl || '' ) ||
+				( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/bundles/catalog' );
+			return fetch( url, {
 				credentials: 'same-origin',
 				headers: { 'X-WP-Nonce': state.cfg.restNonce || '' },
 			} ).then( function ( r ) { return r.ok ? r.json() : { apps: [] }; } )
-			  .then( function ( d ) { return ( d && Array.isArray( d.apps ) ) ? d.apps : []; } )
+			  .then( function ( d ) {
+				var rows = [];
+				if ( d && Array.isArray( d.apps ) ) rows = d.apps;
+				else if ( d && Array.isArray( d.items ) ) rows = d.items.filter( function ( item ) { return item && item.type === 'app'; } );
+				else if ( d && d.items && Array.isArray( d.items.apps ) ) rows = d.items.apps;
+				return rows;
+			} )
 			  .catch( function ( err ) {
-				reportError( 'apps.catalog', err );
+				reportError( 'bundles.catalog.apps', err );
 				return [];
 			} );
 		}
@@ -630,7 +638,9 @@
 			opts = opts || {};
 			var body = { slug: slug };
 			if ( opts.allowUpdate ) body.allow_update = 1;
-			return fetch( appsBaseUrl() + '/install-from-catalog', {
+			var url = ( state.cfg.bundleInstallUrl || '' ) ||
+				( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/bundles/install-from-catalog' );
+			return fetch( url, {
 				method: 'POST',
 				credentials: 'same-origin',
 				headers: {
@@ -645,7 +655,7 @@
 					return { ok: false, status: r.status, message: 'HTTP ' + r.status };
 				} );
 			} ).catch( function ( err ) {
-				reportError( 'apps.install-from-catalog', err );
+				reportError( 'bundles.install-from-catalog.app', err );
 				return { ok: false, message: ( err && err.message ) || 'Network error while installing.' };
 			} );
 		}
@@ -869,8 +879,8 @@
 			} catch ( e ) {}
 			// Fallback — the plain WP Desktop notice channel.
 			try {
-				if ( window.wp && window.wp.desktop && typeof window.wp.desktop.toast === 'function' ) {
-					window.wp.desktop.toast( msg );
+				if ( window.wp && window.wp.desktop && typeof window.wp.desktop.showToast === 'function' ) {
+					window.wp.desktop.showToast( { message: msg, source: 'odd' } );
 				}
 			} catch ( e2 ) {}
 		}
@@ -1015,8 +1025,8 @@
 			var ev = window.__odd && window.__odd.events;
 			if ( ! ev ) return;
 			try { ev.emit( 'odd.bundle-installed', { slug: slug, type: type, manifest: data && data.manifest } ); } catch ( e ) {}
-			// Back-compat: pre-v3.1 listeners still subscribe to
-			// `odd.app-installed` specifically for type: app.
+			// Keep the app-specific event as a convenience alias for
+			// consumers that only care about app installs.
 			if ( 'app' === type ) {
 				try { ev.emit( 'odd.app-installed', { slug: slug, manifest: data && data.manifest } ); } catch ( e2 ) {}
 			}
@@ -2218,7 +2228,7 @@
 				{ eyebrow: 'ODD · Living Art' }
 			) );
 
-			// v3.0+: scenes on disk come from installed bundles (plus
+			// Scenes on disk come from installed bundles (plus
 			// the built-in "pending" fallback exposed by the runtime
 			// for first-boot safety). The main product shelves below
 			// use shopRowsFor('scene') so catalog-only scenes appear in
@@ -4535,6 +4545,9 @@
 				fallbackColor: raw.fallbackColor || '',
 				featured:      !! raw.featured,
 				builtin:       !! raw.builtin,
+				broken:        !! raw.broken || raw.state === 'broken' || raw.status === 'broken',
+				incompatible:  !! raw.incompatible || raw.state === 'incompatible' || raw.status === 'incompatible',
+				updateAvailable: !! raw.updateAvailable || !! raw.update_available || raw.state === 'updateAvailable',
 				requiresReload: !! raw.requiresReload,
 				installed:     raw.installed === undefined ? true : !! raw.installed,
 				enabled:       raw.enabled !== false,
@@ -4703,8 +4716,17 @@
 		// routed through `dispatchShopAction` below; the label is what
 		// the user actually sees on the tile's pill button.
 		function shopCardAction( row ) {
+			if ( row && row.incompatible ) {
+				return { label: 'Incompatible', kind: 'incompatible', disabled: true };
+			}
 			if ( ! row || ! row.installed ) {
 				return { label: 'Install', kind: 'install', disabled: false };
+			}
+			if ( row.broken ) {
+				return { label: 'Repair', kind: 'repair', disabled: false };
+			}
+			if ( row.updateAvailable ) {
+				return { label: 'Update', kind: 'update', disabled: false };
 			}
 			if ( row.requiresReload ) {
 				return { label: row.type === 'app' ? 'Reload to apply' : 'Reload', kind: 'reload', disabled: false };
@@ -4729,9 +4751,9 @@
 			switch ( kind ) {
 				case 'install':
 					if ( row.type === 'app' ) {
-						// Apps install via the Apps-specific endpoint
-						// (which forwards to bundles server-side but
-						// keeps the Apps status rail + toast copy).
+						// Apps install through the same bundle endpoint
+						// as every other content type, while keeping the
+						// Apps status rail + toast copy.
 						var originalLabel = btn ? btn.textContent : 'Install';
 						if ( btn ) { btn.disabled = true; btn.textContent = 'Installing…'; }
 						playShopSound( 'install' );
@@ -4747,6 +4769,18 @@
 					} else {
 						installFromBundleCatalog( row.raw || row, btn );
 					}
+					break;
+				case 'repair':
+				case 'update':
+					if ( btn ) { btn.disabled = true; btn.textContent = kind === 'repair' ? 'Repairing…' : 'Updating…'; }
+					installFromCatalog( row.slug, { allowUpdate: true } ).then( function ( res ) {
+						if ( res && res.ok && res.data && res.data.installed ) {
+							handleInstallSuccess( res.data );
+							return;
+						}
+						if ( btn ) { btn.disabled = false; btn.textContent = kind === 'repair' ? 'Repair' : 'Update'; }
+						onInstallFailure( res );
+					} );
 					break;
 				case 'preview':
 					if ( row.type === 'scene' )    { previewScene( row.slug );    break; }
@@ -4764,6 +4798,7 @@
 					onInstallSuccessReload( { row: row }, row.type, row.slug, row.name || row.slug );
 					break;
 				case 'active':
+				case 'incompatible':
 				default:
 					break;
 			}

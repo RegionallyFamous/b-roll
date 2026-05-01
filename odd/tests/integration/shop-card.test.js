@@ -3,14 +3,17 @@
  *
  * Every department in the Shop (Wallpapers / Icons / Widgets / Apps)
  * renders a single `renderShopCard(row)` tile whose primary action
- * button derives its label from four signals:
+ * button derives its label from the durable item state:
  *
- *   not installed? → "Install"
- *   active?      → "Active" (disabled)
- *   type=scene   → "Preview"
- *   type=icon-set→ "Preview"
- *   type=widget  → "Add"
- *   type=app     → "Open"
+ *   incompatible?    → "Incompatible" (disabled)
+ *   not installed?   → "Install"
+ *   broken?          → "Repair"
+ *   updateAvailable? → "Update"
+ *   requiresReload?  → "Reload" / "Reload to apply"
+ *   active?          → "Active" (disabled)
+ *   type=scene/icon  → "Preview"
+ *   type=widget      → "Add"
+ *   type=app         → "Open"
  *
  * This spec exercises each transition in isolation by swapping
  * `state.cfg` between mounts. The point isn't to assert a particular
@@ -219,6 +222,57 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( btn.textContent.trim() ).toBe( 'Active' );
 		expect( btn.disabled ).toBe( true );
 		expect( card.classList.contains( 'is-active' ) ).toBe( true );
+	} );
+
+	it( 'incompatible catalog rows render a disabled Incompatible button', () => {
+		seed( {
+			bundleCatalog: {
+				scene: [ { slug: 'future-scene', label: 'Future Scene', installed: false, state: 'incompatible' } ],
+				iconSet: [],
+				widget: [],
+			},
+		} );
+		loadPanel();
+		const { host } = mount();
+
+		const card = host.querySelector( '[data-odd-shop-card][data-catalog-slug="future-scene"]' );
+		const btn  = card.querySelector( '.odd-shop__card-btn' );
+		expect( btn.textContent.trim() ).toBe( 'Incompatible' );
+		expect( btn.disabled ).toBe( true );
+	} );
+
+	it( 'installed broken apps render a Repair button', async () => {
+		seed( {
+			appsEnabled: true,
+			apps: [ { slug: 'board', name: 'Board', version: '1.0.0', broken: true } ],
+		} );
+		loadPanel();
+		const { host } = mount();
+		goToDepartment( host, 'Apps' );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-slug="board"]' );
+		const btn  = card.querySelector( '.odd-shop__card-btn' );
+		expect( btn.textContent.trim() ).toBe( 'Repair' );
+		expect( btn.disabled ).toBe( false );
+	} );
+
+	it( 'installed rows with catalog updates render an Update button', async () => {
+		seed( {
+			appsEnabled: true,
+			apps: [ { slug: 'board', name: 'Board', version: '1.0.0', update_available: true } ],
+		} );
+		loadPanel();
+		const { host } = mount();
+		goToDepartment( host, 'Apps' );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-slug="board"]' );
+		const btn  = card.querySelector( '.odd-shop__card-btn' );
+		expect( btn.textContent.trim() ).toBe( 'Update' );
+		expect( btn.disabled ).toBe( false );
 	} );
 
 	it( 'installed inactive icon set renders a Preview button', () => {

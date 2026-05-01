@@ -142,7 +142,7 @@ jobs:
       - name: Assert starter-pack ran on activation
         working-directory: /tmp/wp
         run: |
-          # 3.0.2+ installs the starter pack inline during the
+          # ODD installs the starter pack inline during the
           # activation hook (no cron). By the time `wp plugin activate`
           # returns, state should be `installed`. The MU-plugin
           # intercepts the catalog HTTP calls so this is deterministic

@@ -10,7 +10,7 @@ class Test_REST_Prefs extends ODD_REST_Test_Case {
 
 	public function set_up() {
 		parent::set_up();
-		// The plugin ships no scenes / icon sets of its own in v3.0.
+		// The plugin ships no scenes / icon sets of its own.
 		// Seed a fixture scene + icon set so the prefs controller has
 		// a non-empty catalog to serialize and validate against.
 		ODD_Registry_Fixtures::install_scene( 'flux' );

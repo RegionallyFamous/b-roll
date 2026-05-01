@@ -2,7 +2,7 @@
 /**
  * ODD wallpaper — scene registry.
  *
- * v3.0+: the plugin no longer ships scenes. The registry is fully
+ * The plugin no longer ships scenes. The registry is fully
  * filter-driven; installed scene bundles add descriptors via the
  * `odd_scene_registry` filter (see includes/content/scenes.php). On
  * a brand-new site with zero bundles this returns an empty list and
@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
  * tests (and any extension that mutates `odd_scene_registry` filters
  * mid-request) can force a fresh rebuild.
  *
- * @since 3.0.0
+ * @since 1.0.0
  *
  * @return void
  */
@@ -44,7 +44,7 @@ function odd_wallpaper_scenes( $reset = false ) {
 		 * Filter the ODD scene registry.
 		 *
 		 * @since 0.14.0
-		 * @since 3.0.0 no longer seeded from a bundled scenes.json —
+		 * @since 1.0.0 no longer seeded from a bundled scenes.json —
 		 *              installed scene bundles populate this list
 		 *              through includes/content/scenes.php.
 		 *

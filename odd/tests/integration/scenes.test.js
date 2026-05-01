@@ -1,7 +1,7 @@
 /**
  * scenes.test.js — smoke-test every scene source in the catalog.
  *
- * v3.0+ the plugin ships no scenes — the source of truth lives in
+ * The plugin ships no scenes — the source of truth lives in
  * `_tools/catalog-sources/scenes/<slug>/` (one folder per bundle:
  * scene.js + meta.json + wallpaper.webp + preview.webp). This test
  * walks that directory directly so the guarantees survive the move

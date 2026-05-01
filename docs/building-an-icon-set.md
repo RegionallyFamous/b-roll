@@ -107,7 +107,7 @@ one of 13 stable logical keys via `odd_icons_slug_to_key()`:
 If the active set can't provide one of the logical keys, ODD reaches
 for the set's own `fallback`, then for whatever WP Desktop Mode served
 before icon swapping kicked in. There is no plugin-bundled "Default"
-set any more — ODD 3.0+ ships empty.
+set any more; ODD 1.0 installs visual content from the catalog.
 
 ## SVG rules
 

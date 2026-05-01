@@ -87,7 +87,7 @@ jobs:
         # Use the built release zip (includes compiled assets/js/desktop.min.js
         # and assets/vendor/pixi.min.js) rather than the trunk tarball, which
         # ships only the TypeScript sources and 404s desktop.min.js at runtime.
-        run: wp plugin install https://github.com/WordPress/desktop-mode/releases/latest/download/desktop-mode.zip --activate
+        run: wp plugin install https://github.com/WordPress/desktop-mode/releases/download/v0.6.0/desktop-mode.zip --activate
 
       - name: Link ODD into wp-content/plugins
         run: |
@@ -100,11 +100,9 @@ jobs:
 
       - name: Install starter pack from remote catalog
         working-directory: /tmp/wp
-        # ODD 3.0 ships no content — on activation a cron event
-        # schedules the starter-pack installer, but `wp server` is a
-        # single-threaded PHP built-in that doesn't tick cron. Call
-        # the installer directly so the starter scene + icon set land
-        # on disk before Playwright boots the browser.
+        # ODD content installs from the remote catalog. Call the
+        # starter installer directly so the starter scene + icon set
+        # land on disk before Playwright boots the browser.
         run: |
           wp eval '$r = odd_starter_install_now(); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message() . "\n"); exit(1); } var_export($r);'
 

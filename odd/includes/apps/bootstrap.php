@@ -33,15 +33,9 @@ if ( ! defined( 'ODD_APPS_ENABLED' ) ) {
 
 // Always-loaded files.
 //
-// Every submodule is required on every request. An earlier split in
-// v1.4.4 lazy-loaded `native-surfaces.php` / `migrate-from-bazaar.php`
-// / `core-controller.php` behind an is_admin/REST/ajax gate. That
-// saved ~90 lines of include cost on public /odd-app/ asset
-// sub-requests — but it also opened a failure mode where the
-// window-registration hook wasn't wired up for request shapes we
-// didn't predict (asset sub-requests, odd cron context, Playground's
-// early-init paths), leaving installed apps "registered but never
-// templated" and painting blank-white windows.
+// Every runtime submodule is required on every request. A previous
+// lazy-loading split saved a small include cost but left installed apps
+// "registered but never templated" for request shapes we didn't predict.
 //
 // The cost of always requiring these files is one filestat and one
 // compile per request — negligible compared to the cost of a
@@ -54,4 +48,3 @@ require_once ODD_DIR . 'includes/apps/rest.php';
 require_once ODD_DIR . 'includes/apps/serve-cookieauth.php';
 require_once ODD_DIR . 'includes/apps/native-surfaces.php';
 require_once ODD_DIR . 'includes/apps/migrate-from-bazaar.php';
-require_once ODD_DIR . 'includes/apps/core-controller.php';

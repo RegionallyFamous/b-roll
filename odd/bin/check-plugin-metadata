@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Validate ODD's public plugin metadata.
+
+This intentionally overlaps a little with WordPress.org Plugin Check. Plugin
+Check catches WordPress-wide rules; this script enforces ODD-specific release
+invariants so the README, readme.txt, changelog, and Desktop Mode requirement
+cannot drift from odd.php.
+"""
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+
+HERE = Path(__file__).resolve().parent
+PLUGIN_DIR = HERE.parent
+REPO_ROOT = PLUGIN_DIR.parent
+PLUGIN = PLUGIN_DIR / "odd.php"
+README_TXT = PLUGIN_DIR / "readme.txt"
+README_MD = REPO_ROOT / "README.md"
+CHANGELOG = REPO_ROOT / "CHANGELOG.md"
+
+REQUIRED_HEADER_FIELDS = (
+    "Plugin Name",
+    "Plugin URI",
+    "Description",
+    "Version",
+    "Requires at least",
+    "Requires PHP",
+    "Author",
+    "Author URI",
+    "License",
+    "License URI",
+    "Text Domain",
+    "Update URI",
+)
+
+
+def fail(message: str) -> int:
+    print(f"error: {message}", file=sys.stderr)
+    return 1
+
+
+def read(path: Path) -> str:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    return path.read_text(encoding="utf-8")
+
+
+def plugin_header(text: str) -> dict[str, str]:
+    header: dict[str, str] = {}
+    for line in text.splitlines():
+        match = re.match(r"\s*\*\s*([^:]+):\s*(.*?)\s*$", line)
+        if not match:
+            continue
+        key = match.group(1).strip()
+        if key in REQUIRED_HEADER_FIELDS:
+            header[key] = match.group(2).strip()
+    return header
+
+
+def readme_field(text: str, field: str) -> str | None:
+    match = re.search(rf"^{re.escape(field)}:\s*(.+?)\s*$", text, re.MULTILINE | re.IGNORECASE)
+    return match.group(1).strip() if match else None
+
+
+def constant(text: str, name: str) -> str | None:
+    match = re.search(
+        rf"define\(\s*['\"]{re.escape(name)}['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*\)",
+        text,
+    )
+    return match.group(1) if match else None
+
+
+def main() -> int:
+    try:
+        plugin = read(PLUGIN)
+        readme_txt = read(README_TXT)
+        readme_md = read(README_MD)
+        changelog = read(CHANGELOG)
+    except FileNotFoundError as exc:
+        return fail(f"missing required file: {exc.filename}")
+
+    header = plugin_header(plugin)
+    missing = [field for field in REQUIRED_HEADER_FIELDS if not header.get(field)]
+    if missing:
+        return fail(f"odd.php plugin header is missing: {', '.join(missing)}")
+
+    version = header["Version"]
+    if version != constant(plugin, "ODD_VERSION"):
+        return fail("odd.php Version header and ODD_VERSION constant disagree")
+
+    stable = readme_field(readme_txt, "Stable tag")
+    if stable != version:
+        return fail(f"readme.txt Stable tag {stable!r} does not match Version {version!r}")
+
+    wp_min = header["Requires at least"]
+    php_min = header["Requires PHP"]
+    if readme_field(readme_txt, "Requires at least") != wp_min:
+        return fail("readme.txt Requires at least does not match odd.php")
+    if readme_field(readme_txt, "Requires PHP") != php_min:
+        return fail("readme.txt Requires PHP does not match odd.php")
+
+    desktop_min = constant(plugin, "ODD_DESKTOP_MODE_MIN_VERSION")
+    expected_requirement = f"WordPress {wp_min}+ · PHP {php_min}+ · WP Desktop Mode v{desktop_min}+"
+    if expected_requirement not in readme_md:
+        return fail(f"README.md does not contain requirement line: {expected_requirement}")
+    if f"WP Desktop Mode](https://github.com/WordPress/desktop-mode) v{desktop_min}" not in readme_txt:
+        return fail("readme.txt install instructions do not mention the Desktop Mode minimum")
+
+    anchor = f'<a id="v{version}"></a>'
+    if anchor not in changelog:
+        return fail(f"CHANGELOG.md is missing release anchor {anchor}")
+
+    if readme_field(readme_txt, "Tested up to") is None:
+        return fail("readme.txt is missing Tested up to")
+    if readme_field(readme_txt, "Tags") is None:
+        return fail("readme.txt is missing Tags")
+    if "== Screenshots ==" not in readme_txt:
+        return fail("readme.txt is missing Screenshots section")
+    if "== Frequently Asked Questions ==" not in readme_txt:
+        return fail("readme.txt is missing FAQ section")
+    if "== Upgrade Notice ==" not in readme_txt:
+        return fail("readme.txt is missing Upgrade Notice section")
+
+    print(
+        "OK: plugin metadata matches "
+        f"Version {version}, WordPress {wp_min}+, PHP {php_min}+, Desktop Mode {desktop_min}+"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

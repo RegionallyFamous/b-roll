@@ -1,7 +1,7 @@
 /**
  * widgets.test.js — smoke-test the two stock ODD widget bundles.
  *
- * v3.0+ the widgets ship as separate catalog bundles under
+ * Widgets ship as separate catalog bundles under
  * `_tools/catalog-sources/widgets/sticky/` and `.../eight-ball/`.
  * Each bundle self-registers through `wp.desktop.registerWidget`;
  * this test loads both bundle sources, captures the registration

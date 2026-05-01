@@ -2,7 +2,7 @@
 /**
  * Wallpaper registry contract.
  *
- * v3.0+: the plugin ships no scenes. The registry is filter-driven
+ * The plugin ships no scenes. The registry is filter-driven
  * and populated at runtime by installed scene bundles (see
  * includes/content/scenes.php). These tests walk the catalog-source
  * tree at `_tools/catalog-sources/scenes/<slug>/meta.json` to prove
@@ -51,7 +51,7 @@ class Test_Wallpaper_Registry extends WP_UnitTestCase {
 	}
 
 	public function test_scene_registry_default_is_empty() {
-		// ODD 3.0 no longer seeds scenes from the plugin. Without
+		// ODD no longer seeds scenes from the plugin. Without
 		// installed bundles the registry starts empty; the built-in
 		// "pending" fallback lives entirely in JS for first-paint.
 		remove_all_filters( 'odd_scene_registry' );
