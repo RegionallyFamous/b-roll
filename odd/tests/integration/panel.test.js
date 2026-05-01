@@ -278,6 +278,23 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
+	it( 'uses franchise chips as filters without filling the search field', () => {
+		const { host, cleanup } = mountPanel();
+
+		const chip = Array.from( host.querySelectorAll( '.odd-shop__search-chip' ) )
+			.find( ( node ) => node.textContent.trim() === 'Generative' );
+		expect( chip ).toBeTruthy();
+		chip.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		expect( host.querySelector( '[data-odd-search]' ).value ).toBe( '' );
+		expect( chip.classList.contains( 'is-active' ) ).toBe( true );
+		const cards = Array.from( host.querySelectorAll( '.odd-card[data-slug]' ) )
+			.map( ( node ) => node.getAttribute( 'data-slug' ) );
+		expect( cards ).toEqual( [ 'flux' ] );
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
 	it( 'Settings renders server-provided system health and copy diagnostics action', () => {
 		window.__odd = window.__odd || {};
 		window.__odd.diagnostics = { copy: vi.fn( () => Promise.resolve( true ) ) };

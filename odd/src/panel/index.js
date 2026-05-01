@@ -183,7 +183,7 @@
 		var searchInput = el( 'input', {
 			type: 'search',
 			class: 'odd-shop__search-input',
-			placeholder: __( 'Search wallpapers, icons, cursors, widgets, apps…' ),
+			placeholder: __( 'Search the Shop' ),
 			'data-odd-search': '1',
 		} );
 		searchInput.addEventListener( 'input', function () {
@@ -206,23 +206,36 @@
 
 		var searchTools = el( 'div', { class: 'odd-shop__search-tools', 'data-odd-search-tools': '1' } );
 		var scopeToggle = el( 'button', { type: 'button', class: 'odd-shop__search-scope' } );
+		scopeToggle.setAttribute( 'aria-pressed', 'true' );
 		scopeToggle.textContent = __( 'All departments' );
 		scopeToggle.addEventListener( 'click', function () {
 			state.searchScope = state.searchScope === 'all' ? 'current' : 'all';
 			scopeToggle.textContent = state.searchScope === 'all' ? __( 'All departments' ) : __( 'This department' );
-			if ( state.query ) renderSection( state.active, { keepQuery: true } );
+			scopeToggle.setAttribute( 'aria-pressed', state.searchScope === 'all' ? 'true' : 'false' );
+			renderSection( state.active, { keepQuery: true } );
 		} );
 		searchTools.appendChild( scopeToggle );
+		var franchiseChips = {};
+		var allStylesChip = el( 'button', { type: 'button', class: 'odd-shop__search-chip odd-shop__search-chip--all is-active' } );
+		allStylesChip.textContent = __( 'All styles' );
+		allStylesChip.setAttribute( 'aria-pressed', 'true' );
+		allStylesChip.addEventListener( 'click', function () {
+			state.franchiseFilter = '';
+			updateSearchToolState();
+			renderSection( state.active, { keepQuery: true } );
+		} );
+		searchTools.appendChild( allStylesChip );
 		var chipLabels = [ 'Generative', 'Atmosphere', 'Paper', 'ODD Originals', 'Community' ];
 		chipLabels.forEach( function ( label ) {
 			var chip = el( 'button', { type: 'button', class: 'odd-shop__search-chip' } );
 			chip.textContent = label;
+			chip.setAttribute( 'aria-pressed', 'false' );
 			chip.addEventListener( 'click', function () {
-				state.query = label;
-				searchInput.value = label;
-				saveRecentSearch( label );
+				state.franchiseFilter = state.franchiseFilter === label ? '' : label;
+				updateSearchToolState();
 				renderSection( state.active, { keepQuery: true } );
 			} );
+			franchiseChips[ label ] = chip;
 			searchTools.appendChild( chip );
 		} );
 		try {
@@ -233,7 +246,9 @@
 					recent.textContent = label;
 					recent.addEventListener( 'click', function () {
 						state.query = String( label || '' );
+						state.franchiseFilter = '';
 						searchInput.value = state.query;
+						updateSearchToolState();
 						renderSection( state.active, { keepQuery: true } );
 					} );
 					searchTools.appendChild( recent );
@@ -304,6 +319,7 @@
 			// unless the caller passes `keepQuery: true` (e.g. the
 			// search field re-rendering its result surface).
 			query:         '',
+			franchiseFilter: '',
 			searchScope:   'all',
 			shopSounds:    loadShopSoundsSetting(),
 		};
@@ -315,6 +331,18 @@
 		var shopRowCache = {};
 		var buttons = {};
 		var shopSfx = { ctx: null, last: {} };
+
+		function updateSearchToolState() {
+			var active = String( state.franchiseFilter || '' );
+			allStylesChip.classList.toggle( 'is-active', ! active );
+			allStylesChip.setAttribute( 'aria-pressed', active ? 'false' : 'true' );
+			Object.keys( franchiseChips ).forEach( function ( label ) {
+				var chip = franchiseChips[ label ];
+				var isActive = active === label;
+				chip.classList.toggle( 'is-active', isActive );
+				chip.setAttribute( 'aria-pressed', isActive ? 'true' : 'false' );
+			} );
+		}
 
 		function playShopSound( kind ) {
 			try {
@@ -2618,10 +2646,7 @@
 			// the same card lane they turn into after install.
 			var installedScenes = ( Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [] )
 				.filter( function ( s ) { return s && s.slug && s.slug !== 'odd-pending'; } );
-			var rows = shopRowsFor( 'scene' );
-			if ( state.query ) {
-				rows = filterByQuery( rows, state.query );
-			}
+			var rows = filterByQuery( shopRowsFor( 'scene' ), state.query );
 
 			// Hero — the currently-active scene, or the first result
 			// from installed content. Catalog-only rows stay in the
@@ -2643,8 +2668,8 @@
 			}
 
 			if ( ! rows.length ) {
-				if ( state.query ) {
-					wrap.appendChild( renderEmptyResults( 'No scenes match "' + state.query + '".' ) );
+				if ( activeFilterLabel() ) {
+					wrap.appendChild( renderEmptyResults( 'No scenes match "' + activeFilterLabel() + '".' ) );
 					return wrap;
 				}
 				wrap.appendChild( renderEmptyDept(
@@ -2995,17 +3020,31 @@
 			return wrap;
 		}
 
+		function activeFilterLabel() {
+			return String( state.query || state.franchiseFilter || '' ).trim();
+		}
+
 		/**
 		 * Client-side filter used by the top-bar search pill. Matches
 		 * against label, slug, franchise, and any tag — everything the
 		 * user can actually see on a card.
 		 */
 		function filterByQuery( items, query ) {
-			if ( ! query ) return items;
+			var franchise = String( state.franchiseFilter || '' ).toLowerCase().trim();
+			if ( ! query && ! franchise ) return items;
 			var q = String( query ).toLowerCase().trim();
-			if ( ! q ) return items;
+			if ( ! q && ! franchise ) return items;
 			return items.filter( function ( item ) {
 				if ( ! item ) return false;
+				if ( franchise ) {
+					var itemFranchise = String( item.franchise || ( item.raw && item.raw.franchise ) || '' ).toLowerCase();
+					var tags = Array.isArray( item.tags ) ? item.tags : [];
+					var tagMatch = tags.some( function ( tag ) {
+						return String( tag || '' ).toLowerCase() === franchise;
+					} );
+					if ( itemFranchise !== franchise && ! tagMatch ) return false;
+				}
+				if ( ! q ) return true;
 				var hay = [
 					item.label,
 					item.name,
@@ -3770,8 +3809,8 @@
 			}
 
 			if ( ! filtered.length ) {
-				if ( state.query ) {
-					wrap.appendChild( renderEmptyResults( 'No icon sets match "' + state.query + '".' ) );
+				if ( activeFilterLabel() ) {
+					wrap.appendChild( renderEmptyResults( 'No icon sets match "' + activeFilterLabel() + '".' ) );
 					return wrap;
 				}
 				wrap.appendChild( renderEmptyDept(
@@ -3996,8 +4035,8 @@
 			}
 
 			if ( ! filtered.length ) {
-				if ( state.query ) {
-					wrap.appendChild( renderEmptyResults( 'No cursor sets match "' + state.query + '".' ) );
+				if ( activeFilterLabel() ) {
+					wrap.appendChild( renderEmptyResults( 'No cursor sets match "' + activeFilterLabel() + '".' ) );
 					return wrap;
 				}
 				wrap.appendChild( renderEmptyDept(
@@ -4555,10 +4594,7 @@
 				{ eyebrow: 'ODD · Desktop Companions' }
 			) );
 
-			var rows = shopRowsFor( 'widget' );
-			if ( state.query ) {
-				rows = filterByQuery( rows, state.query );
-			}
+			var rows = filterByQuery( shopRowsFor( 'widget' ), state.query );
 
 			// Hero: whichever widget is currently on the desktop wins.
 			// Falls back to the first installed row so the department
