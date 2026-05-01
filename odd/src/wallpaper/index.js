@@ -354,7 +354,7 @@
 			}
 			container.addEventListener( 'pointermove', onPointerMove, { passive: true } );
 
-			var state = safeImpl( impl, 'setup', 'hero.setup:' + slug, [ env ] ) || {};
+			var state = await Promise.resolve( safeImpl( impl, 'setup', 'hero.setup:' + slug, [ env ] ) ) || {};
 			if ( impl.onResize ) safeImpl( impl, 'onResize', 'hero.resize:' + slug, [ state, env ] );
 			if ( env.reducedMotion && impl.stillFrame ) {
 				safeImpl( impl, 'stillFrame', 'hero.stillFrame:' + slug, [ state, env ] );

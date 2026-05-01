@@ -44,6 +44,14 @@ add_action(
 			return;
 		}
 
+		$asset_version = static function ( $relative_path ) {
+			$path = ODD_DIR . ltrim( $relative_path, '/' );
+			if ( is_readable( $path ) ) {
+				return ODD_VERSION . '-' . filemtime( $path );
+			}
+			return ODD_VERSION;
+		};
+
 		// Foundation modules. Strictly ordered: store → events → the
 		// rest. Each is a small IIFE that installs onto window.__odd
 		// and returns. Any of them can be loaded on its own without
@@ -131,14 +139,14 @@ add_action(
 			'odd',
 			ODD_URL . '/src/wallpaper/index.js',
 			array_merge( $foundation_deps, array( 'odd-api', 'odd-cursors' ) ),
-			ODD_VERSION,
+			$asset_version( 'src/wallpaper/index.js' ),
 			true
 		);
 		wp_enqueue_script(
 			'odd-panel',
 			ODD_URL . '/src/panel/index.js',
 			array_merge( $foundation_deps, array( 'odd-api', 'odd-cursors', 'wp-i18n' ) ),
-			ODD_VERSION,
+			$asset_version( 'src/panel/index.js' ),
 			true
 		);
 		wp_enqueue_script(
@@ -158,7 +166,7 @@ add_action(
 			'odd-panel-style',
 			ODD_URL . '/src/panel/styles.css',
 			array(),
-			ODD_VERSION
+			$asset_version( 'src/panel/styles.css' )
 		);
 		// ODD 1.0 ships no stock widgets. Sticky Note and Magic
 		// 8-Ball moved to the remote catalog as `widget-sticky` +

@@ -20,4 +20,10 @@ describe( 'wallpaper desktop env contract', () => {
 		expect( src ).not.toContain( "emitBus( 'odd.visibility-changed'" );
 		expect( src ).not.toContain( 'emitBus( "odd.visibility-changed"' );
 	} );
+
+	it( 'awaits async scene setup before ticking the Shop hero', () => {
+		const src = readFileSync( WALLPAPER_JS, 'utf8' );
+
+		expect( src ).toContain( "await Promise.resolve( safeImpl( impl, 'setup', 'hero.setup:' + slug, [ env ] ) )" );
+	} );
 } );
