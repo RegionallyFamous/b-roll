@@ -7,7 +7,7 @@
 	"version": "1.0.0",
 	"author": "ODD Examples",
 	"accent": "#6a5cff",
-	"description": "11 flat hexagon tiles — the minimum icon set that satisfies the ODD dock filter.",
+	"description": "11 flat hexagon tiles plus the optional Recycle Bin key.",
 	"icons": {
 		"dashboard":  "dashboard.svg",
 		"posts":      "posts.svg",
@@ -19,6 +19,7 @@
 		"users":      "users.svg",
 		"tools":      "tools.svg",
 		"settings":   "settings.svg",
+		"recycle-bin": "recycle-bin.svg",
 		"fallback":   "fallback.svg"
 	}
 }

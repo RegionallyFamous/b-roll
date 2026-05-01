@@ -367,6 +367,14 @@
 		return out;
 	}
 
+	function windowCoverage() {
+		if ( ! document.querySelectorAll ) return { roots: 0, iframes: 0 };
+		return {
+			roots: document.querySelectorAll( '[data-window-id][data-odd-cursor-root], [data-windowid][data-odd-cursor-root], [data-wp-desktop-window-id][data-odd-cursor-root], [data-desktop-window-id][data-odd-cursor-root], [data-native-window-id][data-odd-cursor-root]' ).length,
+			iframes: iframeStatuses().filter( function ( row ) { return row.link; } ).length,
+		};
+	}
+
 	function status() {
 		var link = linkFor( document, false );
 		return {
@@ -381,6 +389,7 @@
 			iframeInjections: state.iframeInjections.slice(),
 			bridged:        bridged.length,
 			semantics:      semanticCoverage(),
+			windows:        windowCoverage(),
 			tokens:         configuredTokens(),
 			samples:        {
 				body:   sampleCursor( 'body' ),

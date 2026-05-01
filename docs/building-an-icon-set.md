@@ -30,14 +30,16 @@ my-icons.wp
     ├── users.svg
     ├── tools.svg
     ├── settings.svg
-    ├── profile.svg
-    ├── links.svg
+    ├── profile.svg            ← optional enhanced ODD key
+    ├── links.svg              ← optional enhanced ODD key
+    ├── recycle-bin.svg        ← optional enhanced ODD key
     └── fallback.svg
 ```
 
 Paths inside `icons/` can be anything — the manifest maps the
-13 required keys to paths of your choosing. The 13 keys are fixed:
-**every icon set must ship all of them**.
+required minimum keys to paths of your choosing. First-party ODD sets
+also ship the enhanced keys `profile`, `links`, and `recycle-bin`;
+third-party sets can omit those and ODD will fall back gracefully.
 
 ## Manifest
 
@@ -65,6 +67,7 @@ Paths inside `icons/` can be anything — the manifest maps the
         "settings":   "icons/settings.svg",
         "profile":    "icons/profile.svg",
         "links":      "icons/links.svg",
+        "recycle-bin": "icons/recycle-bin.svg",
         "fallback":   "icons/fallback.svg"
     }
 }
@@ -81,28 +84,29 @@ Paths inside `icons/` can be anything — the manifest maps the
 | `accent`      | yes      | `#hex` used for Shop accents, catalog previews, and hover states.|
 | `description` | no       | Longer copy shown on the detail sheet.                                     |
 | `preview`     | no       | Relative path to an SVG/PNG/WebP hero (falls back to the `dashboard` icon).|
-| `icons`       | yes      | Map of 13 required keys → relative SVG paths.                              |
+| `icons`       | yes      | Map of required minimum keys, plus optional enhanced ODD keys, to relative SVG paths. |
 
-### Why 13 keys?
+### Why these keys?
 
 The dock + desktop-shortcut filters map every WordPress menu slug to
-one of 13 stable logical keys via `odd_icons_slug_to_key()`:
+stable logical keys via `odd_icons_slug_to_key()`:
 
-| Key           | Maps to                                   |
-|---------------|-------------------------------------------|
-| `dashboard`   | Dashboard, Home                           |
-| `posts`       | Posts, `edit.php`                         |
-| `pages`       | Pages, `edit.php?post_type=page`          |
-| `media`       | Media, Uploads                            |
-| `comments`    | Comments, `edit-comments.php`             |
-| `appearance`  | Themes, Customize, Widgets, Menus         |
-| `plugins`     | Plugins, `plugins.php`                    |
-| `users`       | Users, Profile (when listing other users) |
-| `tools`       | Tools, Import / Export                    |
-| `settings`    | Settings, Options                         |
-| `profile`     | Your own profile tile                     |
-| `links`       | Legacy Links, any URL-browsing tool       |
-| `fallback`    | Anything unmapped                         |
+| Key           | Required | Maps to                                   |
+|---------------|----------|-------------------------------------------|
+| `dashboard`   | yes      | Dashboard, Home                           |
+| `posts`       | yes      | Posts, `edit.php`                         |
+| `pages`       | yes      | Pages, `edit.php?post_type=page`          |
+| `media`       | yes      | Media, Uploads                            |
+| `comments`    | yes      | Comments, `edit-comments.php`             |
+| `appearance`  | yes      | Themes, Customize, Widgets, Menus         |
+| `plugins`     | yes      | Plugins, `plugins.php`                    |
+| `users`       | yes      | Users, Profile (when listing other users) |
+| `tools`       | yes      | Tools, Import / Export, Code editor       |
+| `settings`    | yes      | Settings, Options                         |
+| `fallback`    | yes      | Anything unmapped                         |
+| `profile`     | no       | Your own profile tile                     |
+| `links`       | no       | Legacy Links, any URL-browsing tool       |
+| `recycle-bin` | no       | WP Desktop Mode Recycle Bin (`wpdm-recycle-bin`) |
 
 If the active set can't provide one of the logical keys, ODD reaches
 for the set's own `fallback`, then for whatever WP Desktop Mode served

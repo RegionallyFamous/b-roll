@@ -141,6 +141,13 @@ add_action(
 			ODD_VERSION,
 			true
 		);
+		wp_enqueue_script(
+			'odd-shop-cast',
+			ODD_URL . '/src/shop/cast.js',
+			array( 'odd-panel' ),
+			ODD_VERSION,
+			true
+		);
 		// Extracted from the 500-line `injectStyles()` string that used
 		// to live in odd/src/panel/index.js. Ships as a real
 		// stylesheet now so the browser can cache it and editors
@@ -347,6 +354,9 @@ add_action(
 			'screensaver'      => odd_wallpaper_get_user_screensaver( $uid ),
 			'audioReactive'    => odd_wallpaper_get_user_audio_reactive( $uid ),
 			'shopTaskbar'      => function_exists( 'odd_shop_taskbar_enabled' ) ? odd_shop_taskbar_enabled( $uid ) : false,
+			'shopV2'           => apply_filters( 'odd_shop_v2', true ),
+			'theme'            => function_exists( 'odd_shop_get_theme' ) ? odd_shop_get_theme( $uid ) : 'auto',
+			'chaosMode'        => (bool) get_user_meta( $uid, 'odd_chaos', true ),
 
 			// Iris personality prefs.
 			'initiated'        => (bool) get_user_meta( $uid, 'odd_initiated', true ),

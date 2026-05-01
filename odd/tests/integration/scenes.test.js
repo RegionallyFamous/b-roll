@@ -125,6 +125,16 @@ function makeEnv( PIXI ) {
 		todPhase: 'day',
 		season: 'summer',
 		audio: { enabled: false, level: 0, bass: 0, mid: 0, high: 0 },
+		desktop: {
+			revision: 0,
+			supports: { windows: false, wallpaperSurfaces: false, activity: false },
+			document: { hidden: false },
+			wallpaper: { visible: true, state: 'visible' },
+			windows: { all: [], focusedId: '', count: 0 },
+			surfaces: { all: [], count: 0 },
+			activity: { window: 0, dock: 0, presence: 0 },
+			updatedAt: 0,
+		},
 		perfTier: 'normal',
 	};
 }

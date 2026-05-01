@@ -47,10 +47,10 @@ add_action(
 				'icon'       => $icon_url,
 				'script'     => 'odd-panel',
 				'template'   => 'odd_render_panel_template',
-				'width'      => 960,
-				'height'     => 620,
+				'width'      => 1080,
+				'height'     => 720,
 				'min_width'  => 720,
-				'min_height' => 480,
+				'min_height' => 520,
 				'placement'  => odd_shop_taskbar_enabled( $uid ) ? 'taskbar' : 'none',
 			)
 		);
@@ -91,8 +91,8 @@ add_filter(
 			// state per user, so a single accidental maximize (or a
 			// pre-redesign 820×560 save) would otherwise stick forever.
 			$config['session']['windows'][ $i ]['state']  = 'normal';
-			$config['session']['windows'][ $i ]['width']  = 960;
-			$config['session']['windows'][ $i ]['height'] = 620;
+			$config['session']['windows'][ $i ]['width']  = 1080;
+			$config['session']['windows'][ $i ]['height'] = 720;
 		}
 
 		return $config;

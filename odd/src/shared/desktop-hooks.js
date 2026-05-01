@@ -89,6 +89,201 @@
 		return ( window.odd && typeof window.odd === 'object' ) ? window.odd : {};
 	}
 
+	function makeDesktopState() {
+		return {
+			revision: 0,
+			supports: {
+				windows: false,
+				wallpaperSurfaces: false,
+				activity: false,
+			},
+			document: {
+				hidden: typeof document !== 'undefined' ? !! document.hidden : false,
+			},
+			wallpaper: {
+				visible: true,
+				state: 'visible',
+				id: '',
+			},
+			windows: {
+				all: [],
+				focusedId: '',
+				count: 0,
+			},
+			surfaces: {
+				all: [],
+				count: 0,
+			},
+			activity: {
+				window: 0,
+				dock: 0,
+				presence: 0,
+			},
+			updatedAt: 0,
+		};
+	}
+
+	var desktopState = window.__odd.desktopState || makeDesktopState();
+	var windowStateById = {};
+	var activityTimers = {};
+	window.__odd.desktopState = desktopState;
+
+	function stateNow() {
+		return Date.now ? Date.now() : 0;
+	}
+
+	function bumpDesktopState() {
+		desktopState.revision++;
+		desktopState.updatedAt = stateNow();
+		emit( 'odd.desktop-state-changed', desktopState );
+	}
+
+	function setDesktopSupport( key ) {
+		if ( desktopState.supports[ key ] ) return false;
+		desktopState.supports[ key ] = true;
+		return true;
+	}
+
+	function numericOrNull( value ) {
+		var n = Number( value );
+		return isFinite( n ) ? n : null;
+	}
+
+	function normalizeBounds( payload ) {
+		if ( ! payload || typeof payload !== 'object' ) return null;
+		var b = payload.bounds && typeof payload.bounds === 'object' ? payload.bounds : payload;
+		var x = numericOrNull( b.x != null ? b.x : b.left );
+		var y = numericOrNull( b.y != null ? b.y : b.top );
+		var w = numericOrNull( b.width != null ? b.width : b.w );
+		var h = numericOrNull( b.height != null ? b.height : b.h );
+		if ( x === null && y === null && w === null && h === null ) return null;
+		return {
+			x: x === null ? 0 : x,
+			y: y === null ? 0 : y,
+			width: w === null ? 0 : w,
+			height: h === null ? 0 : h,
+		};
+	}
+
+	function windowIdFromPayload( payload ) {
+		if ( ! payload || typeof payload !== 'object' ) return '';
+		return String(
+			payload.windowId ||
+			payload.id ||
+			payload.baseId ||
+			( payload.config && payload.config.id ) ||
+			''
+		);
+	}
+
+	function refreshWindowList() {
+		var out = [];
+		Object.keys( windowStateById ).sort().forEach( function ( id ) {
+			out.push( windowStateById[ id ] );
+		} );
+		desktopState.windows.all = out;
+		desktopState.windows.count = out.length;
+	}
+
+	function updateDesktopWindowState( hookName, payload ) {
+		var id = windowIdFromPayload( payload );
+		if ( ! id ) return;
+		setDesktopSupport( 'windows' );
+		if ( hookName === 'wp-desktop.window.closed' || hookName === 'wp-desktop.native-window.before-close' ) {
+			delete windowStateById[ id ];
+			if ( desktopState.windows.focusedId === id ) desktopState.windows.focusedId = '';
+			refreshWindowList();
+			bumpDesktopState();
+			return;
+		}
+		var row = windowStateById[ id ] || {
+			id: id,
+			windowId: id,
+			title: '',
+			odd: isOddWindow( id ),
+			focused: false,
+			bounds: null,
+			body: null,
+			updatedAt: 0,
+		};
+		row.windowId = id;
+		row.odd = isOddWindow( id );
+		if ( payload && typeof payload.title === 'string' ) row.title = payload.title;
+		if ( payload && payload.config && typeof payload.config.title === 'string' ) row.title = payload.config.title;
+		var bounds = normalizeBounds( payload );
+		if ( bounds ) row.bounds = bounds;
+		if ( payload && ( payload.width != null || payload.height != null ) ) {
+			row.body = {
+				width: numericOrNull( payload.width ) || 0,
+				height: numericOrNull( payload.height ) || 0,
+			};
+		}
+		if ( hookName === 'wp-desktop.window.focused' || hookName === 'wp-desktop.window.opened' || hookName === 'wp-desktop.window.reopened' ) {
+			desktopState.windows.focusedId = id;
+			row.focused = true;
+			Object.keys( windowStateById ).forEach( function ( otherId ) {
+				if ( otherId !== id ) windowStateById[ otherId ].focused = false;
+			} );
+		} else if ( hookName === 'wp-desktop.window.blurred' ) {
+			row.focused = false;
+			if ( desktopState.windows.focusedId === id ) {
+				desktopState.windows.focusedId = payload && payload.focusedTo ? String( payload.focusedTo ) : '';
+			}
+		}
+		row.updatedAt = stateNow();
+		windowStateById[ id ] = row;
+		refreshWindowList();
+		pulseActivity( 'window' );
+		bumpDesktopState();
+	}
+
+	function updateWallpaperState( payload ) {
+		payload = payload || {};
+		var state = payload.state === 'hidden' ? 'hidden' : 'visible';
+		desktopState.wallpaper.state = state;
+		desktopState.wallpaper.visible = state !== 'hidden';
+		desktopState.wallpaper.id = payload.id ? String( payload.id ) : desktopState.wallpaper.id || '';
+		bumpDesktopState();
+		emit( 'odd.visibility-changed', { state: state } );
+	}
+
+	function updateDocumentVisibilityState() {
+		desktopState.document.hidden = typeof document !== 'undefined' ? !! document.hidden : false;
+		bumpDesktopState();
+	}
+
+	function normalizeSurface( surface, index ) {
+		if ( ! surface || typeof surface !== 'object' ) {
+			return { id: String( index ), bounds: null };
+		}
+		return {
+			id: String( surface.id || surface.name || index ),
+			bounds: normalizeBounds( surface ),
+		};
+	}
+
+	function updateWallpaperSurfaces( surfaces ) {
+		surfaces = Array.isArray( surfaces ) ? surfaces : [];
+		setDesktopSupport( 'wallpaperSurfaces' );
+		desktopState.surfaces.all = surfaces.map( normalizeSurface );
+		desktopState.surfaces.count = desktopState.surfaces.all.length;
+		bumpDesktopState();
+	}
+
+	function pulseActivity( key ) {
+		if ( ! Object.prototype.hasOwnProperty.call( desktopState.activity, key ) ) return;
+		setDesktopSupport( 'activity' );
+		desktopState.activity[ key ] = 1;
+		bumpDesktopState();
+		if ( activityTimers[ key ] ) {
+			clearTimeout( activityTimers[ key ] );
+		}
+		activityTimers[ key ] = setTimeout( function () {
+			desktopState.activity[ key ] = 0;
+			bumpDesktopState();
+		}, 1200 );
+	}
+
 	function cursors() {
 		return window.__odd && window.__odd.cursors;
 	}
@@ -145,19 +340,59 @@
 		return payload.element || payload.el || payload.node || payload.host || payload.body || payload.root || null;
 	}
 
+	function cssEscape( value ) {
+		value = String( value || '' );
+		if ( window.CSS && typeof window.CSS.escape === 'function' ) {
+			return window.CSS.escape( value );
+		}
+		return value.replace( /["\\]/g, '\\$&' );
+	}
+
+	function findWindowElement( id ) {
+		if ( ! id || typeof document === 'undefined' || ! document.querySelector ) return null;
+		var q = cssEscape( id );
+		var selectors = [
+			'[data-window-id="' + q + '"]',
+			'[data-windowid="' + q + '"]',
+			'[data-wp-desktop-window-id="' + q + '"]',
+			'[data-desktop-window-id="' + q + '"]',
+			'[data-window="' + q + '"]',
+			'[data-native-window-id="' + q + '"]',
+			'#wpdm-window-' + q,
+			'#desktop-mode-window-' + q,
+		];
+		for ( var i = 0; i < selectors.length; i++ ) {
+			try {
+				var found = document.querySelector( selectors[ i ] );
+				if ( found ) return found;
+			} catch ( _ ) {}
+		}
+		return null;
+	}
+
+	function windowElementFromPayload( payload ) {
+		return elementFromPayload( payload ) || findWindowElement( windowIdFromPayload( payload ) );
+	}
+
 	function markWindowChrome( root ) {
 		if ( ! root || ! root.querySelectorAll ) return 0;
 		var count = 0;
-		var chrome = root.querySelectorAll( '.desktop-mode-window-titlebar, .desktop-mode-window-header, .wp-desktop-window-titlebar, .wp-desktop-window-header, [data-window-titlebar], [data-window-header], [data-drag-handle], [data-resize-handle]' );
+		var chrome = root.querySelectorAll( '.desktop-mode-window-titlebar, .desktop-mode-window-header, .wp-desktop-window-titlebar, .wp-desktop-window-header, .wpdm-window__titlebar, .wpdm-window__header, [data-window-titlebar], [data-window-header], [data-drag-handle], [data-resize-handle], [data-window-drag-handle], [data-window-resize-handle]' );
 		for ( var i = 0; i < chrome.length; i++ ) {
 			markCursor( chrome[ i ], 'grab' );
 			count++;
 		}
-		var buttons = root.querySelectorAll( 'button, [role="button"], a[href], [data-window-control]' );
+		var resize = root.querySelectorAll( '[data-resize-handle], [data-window-resize-handle]' );
+		for ( var r = 0; r < resize.length; r++ ) {
+			markCursor( resize[ r ], 'grab' );
+			count++;
+		}
+		var buttons = root.querySelectorAll( 'button, [role="button"], a[href], [data-window-control], wpd-button, .components-button' );
 		for ( var j = 0; j < buttons.length; j++ ) {
 			markCursor( buttons[ j ], 'pointer' );
 			count++;
 		}
+		count += markCursorDescendants( root );
 		return count;
 	}
 
@@ -275,6 +510,7 @@
 		Object.keys( map ).forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
 				var windowId = payload && ( payload.windowId || payload.id );
+				updateDesktopWindowState( hookName, payload || {} );
 				if ( ! isOddWindow( windowId ) ) return;
 				var normalized = normalizeWindowPayload( payload );
 				record( 'info', hookName, normalized );
@@ -294,11 +530,14 @@
 
 		addFilter( 'wp-desktop.native-window.before-render', function ( body, ctx ) {
 			var windowId = ctx && ( ctx.windowId || ctx.id || ( ctx.config && ctx.config.id ) );
-			if ( ! body || ! isOddWindow( windowId ) ) return body;
-			try { body.setAttribute( 'data-odd-native-window', windowId ); } catch ( _ ) {}
+			if ( ! body ) return body;
+			if ( isOddWindow( windowId ) ) {
+				try { body.setAttribute( 'data-odd-native-window', windowId ); } catch ( _ ) {}
+				record( 'info', 'wp-desktop.native-window.before-render', { windowId: windowId } );
+			}
 			markCursorRoot( body );
+			markWindowChrome( body );
 			markCursorDescendants( body );
-			record( 'info', 'wp-desktop.native-window.before-render', { windowId: windowId } );
 			return body;
 		} );
 	}
@@ -316,13 +555,11 @@
 		} );
 		addAction( 'wp-desktop.iframe.ready', function ( payload ) {
 			var windowId = payload && payload.windowId;
-			if ( isOddWindow( windowId ) ) {
-				var injected = injectCursorIntoFrame( payload );
-				record( 'info', 'wp-desktop.iframe.ready', {
-					windowId: windowId,
-					cursorInjected: injected,
-				} );
-			}
+			var injected = injectCursorIntoFrame( payload );
+			record( isOddWindow( windowId ) || injected ? 'info' : 'warn', 'wp-desktop.iframe.ready', {
+				windowId: windowId,
+				cursorInjected: injected,
+			} );
 		} );
 	}
 
@@ -368,7 +605,7 @@
 			addAction( hookName, function ( payload ) {
 				record( 'info', hookName, payload || {} );
 				if ( hookName === 'wp-desktop.wallpaper.visibility' ) {
-					emit( 'odd.visibility-changed', payload || {} );
+					updateWallpaperState( payload || {} );
 				}
 			} );
 		} );
@@ -383,6 +620,7 @@
 		} );
 		addFilter( 'wp-desktop.wallpaper.surfaces', function ( surfaces ) {
 			surfaces = Array.isArray( surfaces ) ? surfaces : [];
+			updateWallpaperSurfaces( surfaces );
 			record( 'info', 'wp-desktop.wallpaper.surfaces', { count: surfaces.length } );
 			return surfaces;
 		} );
@@ -390,6 +628,7 @@
 
 	function setupDockDiagnostics() {
 		addAction( 'wp-desktop.dock.before-render', function ( ctx ) {
+			pulseActivity( 'dock' );
 			record( 'info', 'wp-desktop.dock.before-render', {
 				dockId: ctx && ctx.dockId,
 				rail:   ctx && ctx.rail,
@@ -424,6 +663,7 @@
 			'wp-desktop.dock.item-removed',
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
+				pulseActivity( 'dock' );
 				if ( hookName.indexOf( 'tile' ) !== -1 && payload && ! isOddDockItem( payload.item ) ) return;
 				var el = elementFromPayload( payload );
 				if ( el ) markCursor( el, 'pointer' );
@@ -433,36 +673,34 @@
 	}
 
 	function setupCursorSurfaceMapping() {
-		addAction( 'wp-desktop.window.opened', function ( payload ) {
-			var el = elementFromPayload( payload );
-			if ( ! el ) return;
+		function mapWindowSurface( payload ) {
+			var el = windowElementFromPayload( payload );
+			if ( ! el ) return false;
 			markCursorRoot( el );
 			markWindowChrome( el );
 			markCursorDescendants( el );
 			record( 'info', 'odd.cursor.window-mapped', {
 				windowId: payload && ( payload.windowId || payload.id ),
 			} );
-		} );
-		addAction( 'wp-desktop.window.content-loaded', function ( payload ) {
-			var el = elementFromPayload( payload );
-			if ( ! el ) return;
-			markCursorRoot( el );
-			markWindowChrome( el );
-			markCursorDescendants( el );
-		} );
-		addAction( 'wp-desktop.window.bounds-changed', function ( payload ) {
-			var el = elementFromPayload( payload );
-			if ( el ) markWindowChrome( el );
-		} );
-		addAction( 'wp-desktop.window.chrome.applied', function ( payload ) {
-			var el = elementFromPayload( payload );
-			if ( el ) markWindowChrome( el );
+			return true;
+		}
+		[
+			'wp-desktop.window.opened',
+			'wp-desktop.window.reopened',
+			'wp-desktop.window.content-loaded',
+			'wp-desktop.window.focused',
+			'wp-desktop.window.body-resized',
+			'wp-desktop.window.bounds-changed',
+			'wp-desktop.window.chrome.applied',
+		].forEach( function ( hookName ) {
+			addAction( hookName, mapWindowSurface );
 		} );
 		if ( typeof document !== 'undefined' ) {
 			ready( function () {
-				var roots = document.querySelectorAll ? document.querySelectorAll( '.desktop-mode, .desktop-mode-shell, .wp-desktop, .wp-desktop-root' ) : [];
+				var roots = document.querySelectorAll ? document.querySelectorAll( '.desktop-mode, .desktop-mode-shell, .wp-desktop, .wp-desktop-root, [data-window-id], [data-windowid], [data-wp-desktop-window-id], [data-desktop-window-id], [data-native-window-id]' ) : [];
 				for ( var i = 0; i < roots.length; i++ ) {
 					markCursorRoot( roots[ i ] );
+					markWindowChrome( roots[ i ] );
 				}
 				markCursorDescendants( document );
 			} );
@@ -526,8 +764,10 @@
 			emit( 'odd.desktop-layout-changed', detail );
 		} );
 		addDomEvent( 'wp-desktop-presence-changed', function ( event ) {
+			pulseActivity( 'presence' );
 			record( 'info', 'wp-desktop-presence-changed', event && event.detail || {} );
 		} );
+		addDomEvent( 'visibilitychange', updateDocumentVisibilityState );
 	}
 
 	function setupActivityDiagnostics() {
@@ -541,6 +781,9 @@
 			'wp-desktop/presence-snapshot-applied',
 		].forEach( function ( channel ) {
 			addActivity( channel, function ( payload ) {
+				if ( channel.indexOf( 'presence' ) !== -1 ) pulseActivity( 'presence' );
+				else if ( channel.indexOf( 'window' ) !== -1 ) pulseActivity( 'window' );
+				else pulseActivity( 'dock' );
 				record( 'info', 'wp.desktop.activity.' + channel, payload || {} );
 			} );
 		} );
@@ -711,6 +954,10 @@
 	window.__odd.desktopHooks = {
 		renderSettingsTab: renderSettingsTab,
 		uninstall: function () {
+			Object.keys( activityTimers ).forEach( function ( key ) {
+				try { clearTimeout( activityTimers[ key ] ); } catch ( _ ) {}
+				delete activityTimers[ key ];
+			} );
 			while ( INSTALLED.length ) {
 				try { INSTALLED.pop()(); } catch ( _ ) {}
 			}

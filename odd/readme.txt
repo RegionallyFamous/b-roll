@@ -64,6 +64,10 @@ Open ODD Shop → About → Copy diagnostics, then paste the markdown into a Git
 
 == Changelog ==
 
+= Unreleased =
+
+ODD Shop gets a Luxe + Weird overhaul with responsive light/dark chrome, SVG rail glyphs, live wallpaper hero previews, editorial cards, Chaos mode, and an animated Oddling cast.
+
 = 1.0.0 =
 
 The clean public baseline for ODD: a catalog-driven app store and decorator layer for WP Desktop Mode v0.6.0+, with unified store cards, hardened bundle installs, local-only diagnostics, starter content, and release-quality CI gates.

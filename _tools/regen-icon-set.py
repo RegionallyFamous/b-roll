@@ -3,7 +3,7 @@
 
 Each set is authored by its own render function so the sets
 read as genuinely different visual languages, not one glyph system
-under 17 palettes. Same 13 metaphors (dashboard = 2x2 blocks, settings
+under 17 palettes. Same 14 metaphors (dashboard = 2x2 blocks, settings
 = gear, etc. — see _tools/gen-icon-sets.py SYMBOLS for the archetypes)
 but the subject treatment, stroke vocabulary, material, and decorative
 overlay are each their own thing.
@@ -62,7 +62,7 @@ SQ_DEFS = f'<clipPath id="sq"><path d="{SQUIRCLE_PATH}"/></clipPath>'
 ICON_KEYS = [
     "dashboard", "posts", "pages", "media", "comments",
     "appearance", "plugins", "users", "tools", "settings",
-    "profile", "links", "fallback",
+    "profile", "links", "recycle-bin", "fallback",
 ]
 
 
@@ -344,6 +344,12 @@ def _glyph_fill(key, primary, secondary, accent=None):
         for cx, cy, w, h, rot in _link_rings():
             c = primary if rot < 0 else secondary
             parts.append(f'<g transform="translate({cx} {cy}) rotate({rot})"><rect x="{-w/2}" y="{-h/2}" width="{w}" height="{h}" rx="{h/2}" fill="none" stroke="{c}" stroke-width="66"/></g>')
+    elif key == "recycle-bin":
+        parts.append(f'<rect x="332" y="312" width="360" height="500" rx="64" fill="{primary}"/>')
+        parts.append(f'<rect x="292" y="232" width="440" height="92" rx="38" fill="{secondary}"/>')
+        parts.append(f'<rect x="424" y="164" width="176" height="72" rx="34" fill="{primary}"/>')
+        for x in (432, 512, 592):
+            parts.append(f'<path d="M {x} 400 V 716" stroke="{secondary}" stroke-width="34" stroke-linecap="round" opacity=".72"/>')
     else:
         parts.append(f'<circle cx="512" cy="512" r="260" fill="none" stroke="{secondary}" stroke-width="34" opacity=".46"/>')
         parts.append(f'<circle cx="512" cy="512" r="178" fill="none" stroke="{secondary}" stroke-width="44" opacity=".72"/>')
@@ -453,6 +459,11 @@ def _cross_stitches(key, c1, c2):
         pts = [(512, 390), (450, 590), (512, 560), (574, 590), (430, 680), (512, 700), (594, 680)]
     elif key == "links":
         pts = [(360, 520), (430, 490), (500, 515), (570, 505), (640, 475), (710, 500)]
+    elif key == "recycle-bin":
+        for y in (310, 390, 470, 550, 630, 710):
+            for x in (400, 480, 560, 640):
+                pts.append((x, y))
+        pts += [(360, 260), (440, 220), (512, 210), (584, 220), (664, 260)]
     else:
         for r in (0, 82, 164):
             pts += [(512 + r, 512), (512 - r, 512), (512, 512 + r), (512, 512 - r)]
@@ -599,10 +610,18 @@ def regenerate_set(slug):
     if not manifest_path.is_file():
         raise SystemExit(f"missing manifest: {manifest_path}")
     manifest = json.loads(manifest_path.read_text())
+    icons = manifest.setdefault("icons", {})
+    changed_manifest = False
+    for key in ICON_KEYS:
+        if key not in icons:
+            icons[key] = f"{key}.svg"
+            changed_manifest = True
     for key in ICON_KEYS:
         svg = render_set_icon(slug, key, manifest)
         validate_svg(slug, key, svg)
-        (set_dir / manifest["icons"][key]).write_text(svg)
+        (set_dir / icons[key]).write_text(svg)
+    if changed_manifest:
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"{slug}: regenerated {len(ICON_KEYS)} distinct icons")
 
 

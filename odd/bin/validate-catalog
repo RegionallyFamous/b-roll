@@ -52,6 +52,11 @@ FALLBACK_REGISTRY = REPO_ROOT / "odd" / "data" / "fallback-registry.json"
 # If a bundle's icon_url / download_url starts with this prefix, strip
 # it to resolve against the on-disk catalog.
 PUBLIC_PREFIX = "https://odd.regionallyfamous.com/catalog/v1/"
+FIRST_PARTY_ICON_KEYS = {
+    "dashboard", "posts", "pages", "media", "comments",
+    "appearance", "plugins", "users", "tools", "settings",
+    "profile", "links", "recycle-bin", "fallback",
+}
 
 
 def sha256_file(path: Path) -> str:
@@ -186,6 +191,16 @@ def check_bundle_row(
                     f"bundle[{idx}] ({slug}): manifest version "
                     f"{manifest.get('version')!r} != row {version!r}"
                 )
+            if btype == "icon-set":
+                icons = manifest.get("icons")
+                if not isinstance(icons, dict):
+                    problems.append(f"bundle[{idx}] ({slug}): icon-set manifest missing icons")
+                else:
+                    missing_icons = sorted(FIRST_PARTY_ICON_KEYS - set(icons.keys()))
+                    if missing_icons:
+                        problems.append(
+                            f"bundle[{idx}] ({slug}): first-party icon set missing icons {missing_icons}"
+                        )
             if btype == "app":
                 if not row.get("icon_url"):
                     problems.append(f"bundle[{idx}] ({slug}): app row missing icon_url")

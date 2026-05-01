@@ -49,6 +49,8 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$this->assertSame( 'pages', odd_icons_slug_to_key( 'edit.php?post_type=page' ) );
 		$this->assertSame( 'media', odd_icons_slug_to_key( 'upload.php' ) );
 		$this->assertSame( 'settings', odd_icons_slug_to_key( 'options-general.php' ) );
+		$this->assertSame( 'tools', odd_icons_slug_to_key( 'wpdc-editor' ) );
+		$this->assertSame( 'recycle-bin', odd_icons_slug_to_key( 'wpdm-recycle-bin' ) );
 		$this->assertSame( 'posts', odd_icons_slug_to_key( 'edit.php?post_type=book' ), 'CPT edit screen routes to posts key.' );
 		$this->assertSame( '', odd_icons_slug_to_key( 'something-else' ) );
 		$this->assertSame( '', odd_icons_slug_to_key( '' ) );
@@ -109,6 +111,55 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 
 		$this->assertSame( 'odd-gear.svg', $registry_after['odd']['icon'], 'ODD Shop icon must be preserved.' );
 		$this->assertNotSame( 'original-posts.svg', $registry_after['posts']['icon'], 'Regular desktop icon gets re-themed.' );
+	}
+
+	public function test_desktop_icons_filter_uses_recycle_bin_icon_when_available() {
+		$set_slug = $this->pick_set_with_fallback();
+		odd_icons_set_active_slug( $set_slug );
+
+		$registry_before = array(
+			'wpdm-recycle-bin' => array(
+				'id'     => 'wpdm-recycle-bin',
+				'title'  => 'Recycle Bin',
+				'icon'   => 'original-trash.svg',
+				'window' => 'wpdm-recycle-bin',
+			),
+		);
+		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
+
+		$this->assertStringContainsString( '/recycle-bin.svg', $registry_after['wpdm-recycle-bin']['icon'] );
+	}
+
+	public function test_desktop_icons_filter_falls_back_when_recycle_bin_icon_is_missing() {
+		ODD_Registry_Fixtures::reset_caches();
+		add_filter(
+			'odd_icon_set_registry',
+			static function ( $sets ) {
+				$sets['minimal'] = array(
+					'slug'  => 'minimal',
+					'label' => 'Minimal',
+					'icons' => array(
+						'fallback' => 'https://example.test/icons/minimal/fallback.svg',
+					),
+				);
+				return $sets;
+			},
+			30
+		);
+		odd_icons_get_sets( true );
+		odd_icons_set_active_slug( 'minimal' );
+
+		$registry_before = array(
+			'trash' => array(
+				'id'     => 'legacy-trash',
+				'title'  => 'Recycle Bin',
+				'icon'   => 'original-trash.svg',
+				'window' => 'wpdm-recycle-bin',
+			),
+		);
+		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
+
+		$this->assertSame( 'https://example.test/icons/minimal/fallback.svg', $registry_after['trash']['icon'] );
 	}
 
 	public function test_desktop_icons_filter_skips_odd_app_shortcuts() {

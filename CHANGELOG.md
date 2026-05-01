@@ -11,7 +11,14 @@ notes to GitHub Releases.
 <a id="unreleased"></a>
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+- ODD Shop Luxe + Weird overhaul: tokenized light/dark chrome, responsive rail, SVG glyph system, animated iris brand mark, live wallpaper hero, editorial strip, motion polish, Chaos mode, and shop-local Oddling chaos cast.
+- New Shop preferences for `theme` (`light|dark|auto`) and `chaosMode`, both persisted through `/odd/v1/prefs`.
+- `window.__odd.mountSceneInto(container, slug, opts)` for low-power scene previews outside the desktop wallpaper runner.
+
+### Changed
+- The ODD Shop native window now defaults to 1080x720 with a 720x520 minimum.
+- Scene bundles can carry `heroSafe:false` to keep desktop-only scenes out of the Shop hero.
 
 <a id="v1.0.0"></a>
 ## [1.0.0] — 2026-05-01

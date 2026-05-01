@@ -17,6 +17,7 @@
 		"users":      "users.svg",
 		"tools":      "tools.svg",
 		"settings":   "settings.svg",
+		"recycle-bin": "recycle-bin.svg",
 		"fallback":   "fallback.svg"
 	}
 }

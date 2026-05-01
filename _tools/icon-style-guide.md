@@ -69,13 +69,12 @@ constants stay the same, only the scaling changes.
 - **Safe area.** Keep meaningful subject content inside a **824×824**
   rectangle centered on the 1024 canvas (Apple's "icon grid
   rectangle"). Margin is `(1024 − 824) / 2 = 100` on every edge.
-- **Metaphor set.** The 13 WP-Desktop keys — `dashboard`, `posts`,
+- **Metaphor set.** The 14 first-party ODD keys — `dashboard`, `posts`,
   `pages`, `media`, `comments`, `appearance`, `plugins`, `users`,
-  `tools`, `settings`, `profile`, `links`, `fallback` — all share
+  `tools`, `settings`, `profile`, `links`, `recycle-bin`, `fallback` — all share
   stable silhouettes across sets so the visual language differs but
   the metaphors stay consistent. The canonical silhouettes live in
-  the `SYMBOLS` dict at the top of
-  [`_tools/gen-icon-sets.py`](gen-icon-sets.py). Sets may embellish
+  [`_tools/regen-icon-set.py`](regen-icon-set.py). Sets may embellish
   (add fills, gradients, textures, extra strokes) but must preserve
   the core metaphor so users can read the icon the same way after a
   set swap.

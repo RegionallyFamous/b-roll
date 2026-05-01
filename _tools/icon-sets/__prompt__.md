@@ -61,10 +61,11 @@ but keep the archetype legible.
 | `settings`   | a gear (8-tooth rosette with center hole)          |
 | `profile`    | one head-and-shoulders inside a circular frame     |
 | `links`      | two interlocking chain links at ~30°               |
+| `recycle-bin`| a trash/recycle bin with lid and vertical ribs     |
 | `fallback`   | three concentric pulses (used for unmapped roles)  |
 
-Source of truth: the `SYMBOLS` dict in
-[`_tools/gen-icon-sets.py`](../gen-icon-sets.py).
+Source of truth: the `ICON_KEYS` list and glyph helpers in
+[`_tools/regen-icon-set.py`](../regen-icon-set.py).
 
 ## 4. Per-set theming
 
@@ -81,7 +82,7 @@ DESCRIPTION:  {{DESCRIPTION}}
 
 Use `DESCRIPTION` as your style direction. It's the one-line pitch
 from the Shop Discover tile. Match every icon in this set to that
-pitch so the 13 files feel like a family.
+pitch so the 14 files feel like a family.
 
 ## 5. SVG skeleton to start from
 
@@ -122,6 +123,7 @@ commentary. Exactly this shape:
   "settings":   "<svg ...>...</svg>",
   "profile":    "<svg ...>...</svg>",
   "links":      "<svg ...>...</svg>",
+  "recycle-bin": "<svg ...>...</svg>",
   "fallback":   "<svg ...>...</svg>"
 }
 ```
@@ -148,6 +150,6 @@ For every icon in the batch:
 - No control bytes outside `\t \n \r` — those fail the validator's
   byte scan.
 
-Work through all 13 icons in one pass so they share a single palette
+Work through all 14 icons in one pass so they share a single palette
 and feel like a family. Aim for distinctive, tasteful iOS-style app
 icons — think App Store Editor's Choice, not stock iconography.

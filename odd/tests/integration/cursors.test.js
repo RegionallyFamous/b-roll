@@ -125,4 +125,15 @@ describe( 'ODD cursor runtime', () => {
 		expect( window.__odd.cursors.status().bridged ).toBe( 0 );
 		expect( window.__odd.cursors.status().semantics.pointer ).toBeGreaterThan( 0 );
 	} );
+
+	it( 'reports mapped Desktop Mode window roots in diagnostics', () => {
+		loadRuntime();
+		const win = document.createElement( 'div' );
+		win.setAttribute( 'data-window-id', 'plugins' );
+		document.body.appendChild( win );
+
+		window.__odd.cursors.markRoot( win );
+
+		expect( window.__odd.cursors.status().windows.roots ).toBe( 1 );
+	} );
 } );

@@ -58,14 +58,14 @@
 	// localized config (`appsEnabled`), slash commands, and tests
 	// keep working; only the user-facing labels + icons moved.
 	var SECTIONS = [
-		{ id: 'wallpaper', label: __( 'Wallpapers' ), icon: '🖼', tagline: __( 'Live generative scenes' ) },
-		{ id: 'icons',     label: __( 'Icon Sets' ),  icon: '🧩', tagline: __( 'Re-skin the dock' ) },
-		{ id: 'cursors',   label: __( 'Cursors' ),    icon: '➹', tagline: __( 'Point with personality' ) },
-		{ id: 'widgets',   label: __( 'Widgets' ),    icon: '🧷', tagline: __( 'Desktop companions' ) },
-		{ id: 'apps',      label: __( 'Apps' ),       icon: '📦', tagline: __( 'Mini apps that just run' ), gated: 'appsEnabled' },
-		{ id: 'install',   label: __( 'Install' ),  icon: '⇪', tagline: __( 'Add a .wp bundle' ),        gated: 'canInstall' },
-		{ id: 'settings',  label: __( 'Settings' ),  icon: '⚙', tagline: __( 'Shuffle, audio, screensaver' ) },
-		{ id: 'about',     label: __( 'About' ),     icon: '👁', tagline: __( 'Credits & chaos' ) },
+		{ id: 'wallpaper', label: __( 'Wallpapers' ), icon: '🖼', glyph: 'g-wallpaper', group: 'decorate', tint: 'var(--odd-shop-tint-wallpaper)', tagline: __( 'Live generative scenes' ) },
+		{ id: 'icons',     label: __( 'Icon Sets' ),  icon: '🧩', glyph: 'g-icons',     group: 'decorate', tint: 'var(--odd-shop-tint-icons)',     tagline: __( 'Re-skin the dock' ) },
+		{ id: 'cursors',   label: __( 'Cursors' ),    icon: '➹', glyph: 'g-cursors',   group: 'decorate', tint: 'var(--odd-shop-tint-cursors)',   tagline: __( 'Point with personality' ) },
+		{ id: 'widgets',   label: __( 'Widgets' ),    icon: '🧷', glyph: 'g-widgets',   group: 'more',     tint: 'var(--odd-shop-tint-widgets)',   tagline: __( 'Desktop companions' ) },
+		{ id: 'apps',      label: __( 'Apps' ),       icon: '📦', glyph: 'g-apps',      group: 'more',     tint: 'var(--odd-shop-tint-apps)',      tagline: __( 'Mini apps that just run' ), gated: 'appsEnabled' },
+		{ id: 'install',   label: __( 'Install' ),    icon: '⇪', glyph: 'g-install',   group: 'you',      tint: 'var(--odd-shop-accent)',         tagline: __( 'Add a .wp bundle' ),        gated: 'canInstall' },
+		{ id: 'settings',  label: __( 'Settings' ),   icon: '⚙', glyph: 'g-settings',  group: 'you',      tint: 'var(--odd-shop-accent-2)',       tagline: __( 'Shuffle, audio, screensaver' ) },
+		{ id: 'about',     label: __( 'About' ),      icon: '👁', glyph: 'g-about',     group: 'you',      tint: 'var(--odd-shop-tint-wallpaper)', tagline: __( 'Credits & chaos' ) },
 	];
 
 	var renderPanel = function ( body ) {
@@ -87,6 +87,7 @@
 			'widget':   'widget',
 		};
 		var CATALOG_BASE_URL = 'https://odd.regionallyfamous.com/catalog/v1';
+		var cleanupFns = [];
 
 		function isAbsoluteUrl( url ) {
 			return /^(?:https?:)?\/\//i.test( String( url || '' ) ) || /^data:/i.test( String( url || '' ) );
@@ -106,18 +107,45 @@
 			return url;
 		}
 
+		function normaliseShopTheme( value ) {
+			value = String( value || 'auto' ).toLowerCase();
+			return value === 'light' || value === 'dark' || value === 'auto' ? value : 'auto';
+		}
+
+		function applyShopTheme( target, theme ) {
+			theme = normaliseShopTheme( theme );
+			target.setAttribute( 'data-odd-theme', theme );
+			return theme;
+		}
+
+		function shopGlyph( id, label ) {
+			var svg = document.createElementNS( 'http://www.w3.org/2000/svg', 'svg' );
+			svg.setAttribute( 'class', 'odd-shop__rail-icon' );
+			svg.setAttribute( 'viewBox', '0 0 24 24' );
+			svg.setAttribute( 'role', 'img' );
+			svg.setAttribute( 'aria-label', label || id );
+			var use = document.createElementNS( 'http://www.w3.org/2000/svg', 'use' );
+			use.setAttributeNS( 'http://www.w3.org/1999/xlink', 'href', ( ( window.odd && window.odd.pluginUrl ) || '' ) + '/assets/shop/glyphs.svg#' + id );
+			use.setAttribute( 'href', ( ( window.odd && window.odd.pluginUrl ) || '' ) + '/assets/shop/glyphs.svg#' + id );
+			svg.appendChild( use );
+			return svg;
+		}
+
 		body.innerHTML = '';
 		injectStyles();
 		body.classList.add( 'odd-panel', 'odd-shop' );
+		body.setAttribute( 'data-odd-shop-v2', ( ! window.odd || window.odd.shopV2 !== false ) ? '1' : '0' );
+		body.setAttribute( 'data-odd-chaos', window.odd && window.odd.chaosMode ? '1' : '0' );
+		applyShopTheme( body, window.odd && window.odd.theme );
 		body.style.cssText = [
 			'display:grid',
 			'grid-template-rows:auto 1fr',
-			'grid-template-columns:236px 1fr',
+			'grid-template-columns:clamp(64px, 22cqw, 260px) minmax(0, 1fr)',
 			'height:100%',
 			'min-height:0',
 			'font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
-			'color:#1d1d1f',
-			'background:#f5f5f7',
+			'color:var(--odd-shop-ink)',
+			'background:var(--odd-shop-bg)',
 		].join( ';' );
 
 		// Top bar — window-wide chrome band that frames the whole
@@ -126,7 +154,14 @@
 		var topbar = el( 'header', { 'data-odd-topbar': '1', class: 'odd-shop__topbar' } );
 		var brandWrap = el( 'div', { class: 'odd-shop__brand' } );
 		var brandMark = el( 'span', { class: 'odd-shop__brand-mark', 'aria-hidden': 'true' } );
-		brandMark.textContent = '👁';
+		var brandImg = el( 'img', {
+			src: ( ( window.odd && window.odd.pluginUrl ) || '' ) + '/assets/shop/brand-mark.svg',
+			alt: '',
+			loading: 'eager',
+			decoding: 'async',
+		} );
+		brandMark.appendChild( brandImg );
+		installBrandGaze( body, brandMark );
 		var brandText = el( 'div', { class: 'odd-shop__brand-text' } );
 		var brandTitle = el( 'strong' );
 		brandTitle.textContent = __( 'ODD Shop' );
@@ -156,9 +191,67 @@
 			if ( state.query ) playShopSound( 'search' );
 			renderSection( state.active, { keepQuery: true } );
 		} );
+		searchInput.addEventListener( 'keydown', function ( e ) {
+			if ( e.key === 'Enter' ) saveRecentSearch( searchInput.value );
+		} );
+		searchInput.addEventListener( 'blur', function () {
+			saveRecentSearch( searchInput.value );
+		} );
 		searchWrap.appendChild( searchGlyph );
 		searchWrap.appendChild( searchInput );
+		var searchHint = el( 'span', { class: 'odd-shop__search-kbd', 'aria-hidden': 'true' } );
+		searchHint.textContent = '⌘K';
+		searchWrap.appendChild( searchHint );
 		topbar.appendChild( searchWrap );
+
+		var searchTools = el( 'div', { class: 'odd-shop__search-tools', 'data-odd-search-tools': '1' } );
+		var scopeToggle = el( 'button', { type: 'button', class: 'odd-shop__search-scope' } );
+		scopeToggle.textContent = __( 'All departments' );
+		scopeToggle.addEventListener( 'click', function () {
+			state.searchScope = state.searchScope === 'all' ? 'current' : 'all';
+			scopeToggle.textContent = state.searchScope === 'all' ? __( 'All departments' ) : __( 'This department' );
+			if ( state.query ) renderSection( state.active, { keepQuery: true } );
+		} );
+		searchTools.appendChild( scopeToggle );
+		var chipLabels = [ 'Generative', 'Atmosphere', 'Paper', 'ODD Originals', 'Community' ];
+		chipLabels.forEach( function ( label ) {
+			var chip = el( 'button', { type: 'button', class: 'odd-shop__search-chip' } );
+			chip.textContent = label;
+			chip.addEventListener( 'click', function () {
+				state.query = label;
+				searchInput.value = label;
+				saveRecentSearch( label );
+				renderSection( state.active, { keepQuery: true } );
+			} );
+			searchTools.appendChild( chip );
+		} );
+		try {
+			var recentSearches = JSON.parse( window.localStorage.getItem( 'odd.shop.recent-searches' ) || '[]' );
+			if ( Array.isArray( recentSearches ) && recentSearches.length ) {
+				recentSearches.slice( 0, 6 ).forEach( function ( label ) {
+					var recent = el( 'button', { type: 'button', class: 'odd-shop__search-chip odd-shop__search-chip--recent' } );
+					recent.textContent = label;
+					recent.addEventListener( 'click', function () {
+						state.query = String( label || '' );
+						searchInput.value = state.query;
+						renderSection( state.active, { keepQuery: true } );
+					} );
+					searchTools.appendChild( recent );
+				} );
+			}
+		} catch ( e ) {}
+		topbar.appendChild( searchTools );
+		var onSearchShortcut = function ( e ) {
+			if ( ( e.metaKey || e.ctrlKey ) && String( e.key || '' ).toLowerCase() === 'k' ) {
+				e.preventDefault();
+				searchInput.focus();
+				searchInput.select();
+			}
+		};
+		document.addEventListener( 'keydown', onSearchShortcut );
+		cleanupFns.push( function () {
+			document.removeEventListener( 'keydown', onSearchShortcut );
+		} );
 
 		// The Shop used to render a dedicated "Install" pill in the
 		// topbar next to the search field, but it duplicated the
@@ -171,9 +264,20 @@
 			'data-odd-sidebar': '1',
 			class: 'odd-shop__rail',
 		} );
-		var railHeader = el( 'div', { class: 'odd-shop__rail-heading' } );
-		railHeader.textContent = __( 'Store' );
-		sidebar.appendChild( railHeader );
+		var railGroups = {
+			decorate: { label: __( 'Decorate' ), node: null },
+			more:     { label: __( 'Do more' ),  node: null },
+			you:      { label: __( 'You' ),      node: null },
+		};
+		Object.keys( railGroups ).forEach( function ( key ) {
+			var headingId = 'odd-shop-rail-' + key;
+			var group = el( 'div', { class: 'odd-shop__rail-group', role: 'group', 'aria-labelledby': headingId } );
+			var heading = el( 'div', { class: 'odd-shop__rail-group-heading', id: headingId } );
+			heading.textContent = railGroups[ key ].label;
+			group.appendChild( heading );
+			railGroups[ key ].node = group;
+			sidebar.appendChild( group );
+		} );
 
 		var content = el( 'section', {
 			'data-odd-content': '1',
@@ -200,8 +304,14 @@
 			// unless the caller passes `keepQuery: true` (e.g. the
 			// search field re-rendering its result surface).
 			query:         '',
+			searchScope:   'all',
 			shopSounds:    loadShopSoundsSetting(),
 		};
+		state.cfg.shopV2 = state.cfg.shopV2 !== false;
+		body.setAttribute( 'data-odd-shop-v2', state.cfg.shopV2 ? '1' : '0' );
+		state.cfg.theme = normaliseShopTheme( state.cfg.theme );
+		applyShopTheme( body, state.cfg.theme );
+		body.setAttribute( 'data-odd-chaos', state.cfg.chaosMode ? '1' : '0' );
 		var shopRowCache = {};
 		var buttons = {};
 		var shopSfx = { ctx: null, last: {} };
@@ -262,6 +372,87 @@
 			} catch ( e ) {}
 		}
 
+		function saveRecentSearch( value ) {
+			value = String( value || '' ).trim();
+			if ( ! value ) return;
+			try {
+				var key = 'odd.shop.recent-searches';
+				var list = JSON.parse( window.localStorage.getItem( key ) || '[]' );
+				if ( ! Array.isArray( list ) ) list = [];
+				list = list.filter( function ( item ) { return String( item || '' ).toLowerCase() !== value.toLowerCase(); } );
+				list.unshift( value );
+				window.localStorage.setItem( key, JSON.stringify( list.slice( 0, 6 ) ) );
+			} catch ( e ) {}
+		}
+
+		function installBrandGaze( root, mark ) {
+			if ( ! root || ! mark || ! window.matchMedia || window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) {
+				return;
+			}
+			var raf = 0;
+			function onMove( ev ) {
+				if ( raf ) return;
+				raf = window.requestAnimationFrame( function () {
+					raf = 0;
+					var rect = mark.getBoundingClientRect();
+					if ( ! rect.width || ! rect.height ) return;
+					var dx = ( ev.clientX - ( rect.left + rect.width / 2 ) ) / rect.width;
+					var dy = ( ev.clientY - ( rect.top + rect.height / 2 ) ) / rect.height;
+					var rx = Math.max( -12, Math.min( 12, dy * -12 ) );
+					var ry = Math.max( -12, Math.min( 12, dx * 12 ) );
+					mark.style.transform = 'perspective(80px) rotateX(' + rx.toFixed( 2 ) + 'deg) rotateY(' + ry.toFixed( 2 ) + 'deg)';
+				} );
+			}
+			function onLeave() {
+				mark.style.transform = '';
+			}
+			root.addEventListener( 'pointermove', onMove, { passive: true } );
+			root.addEventListener( 'pointerleave', onLeave );
+			cleanupFns.push( function () {
+				root.removeEventListener( 'pointermove', onMove );
+				root.removeEventListener( 'pointerleave', onLeave );
+				if ( raf ) window.cancelAnimationFrame( raf );
+				mark.style.transform = '';
+			} );
+		}
+
+		function installCardMotion( root ) {
+			if ( ! root || ! window.matchMedia || window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) return;
+			var raf = 0;
+			var active = null;
+			function onMove( ev ) {
+				var card = ev.target && ev.target.closest ? ev.target.closest( '.odd-shop__card' ) : null;
+				if ( ! card || ! root.contains( card ) ) return;
+				active = { card: card, x: ev.clientX, y: ev.clientY };
+				if ( raf ) return;
+				raf = window.requestAnimationFrame( function () {
+					raf = 0;
+					if ( ! active || ! active.card ) return;
+					var rect = active.card.getBoundingClientRect();
+					if ( ! rect.width || ! rect.height ) return;
+					var dx = ( active.x - ( rect.left + rect.width / 2 ) ) / rect.width;
+					var dy = ( active.y - ( rect.top + rect.height / 2 ) ) / rect.height;
+					var rx = Math.max( -3, Math.min( 3, dy * -6 ) );
+					var ry = Math.max( -3, Math.min( 3, dx * 6 ) );
+					active.card.style.transform = 'perspective(700px) rotateX(' + rx.toFixed( 2 ) + 'deg) rotateY(' + ry.toFixed( 2 ) + 'deg) translateY(-2px)';
+				} );
+			}
+			function onOut( ev ) {
+				var card = ev.target && ev.target.closest ? ev.target.closest( '.odd-shop__card' ) : null;
+				if ( card && ( ! ev.relatedTarget || ! card.contains( ev.relatedTarget ) ) ) {
+					card.style.transform = '';
+					active = null;
+				}
+			}
+			root.addEventListener( 'pointermove', onMove, { passive: true } );
+			root.addEventListener( 'pointerout', onOut );
+			cleanupFns.push( function () {
+				root.removeEventListener( 'pointermove', onMove );
+				root.removeEventListener( 'pointerout', onOut );
+				if ( raf ) window.cancelAnimationFrame( raf );
+			} );
+		}
+
 		function soundVolume( kind ) {
 			switch ( kind ) {
 				case 'error':   return 0.020;
@@ -292,6 +483,28 @@
 			}
 		}
 
+		function sectionById( id ) {
+			for ( var i = 0; i < SECTIONS.length; i++ ) {
+				if ( SECTIONS[ i ] && SECTIONS[ i ].id === id ) return SECTIONS[ i ];
+			}
+			return null;
+		}
+
+		function installedSummary( cfg ) {
+			cfg = cfg || {};
+			var installed = 0;
+			var active = 0;
+			[ 'scenes', 'iconSets', 'cursorSets', 'installedWidgets', 'apps' ].forEach( function ( key ) {
+				var list = Array.isArray( cfg[ key ] ) ? cfg[ key ] : [];
+				installed += list.length;
+			} );
+			if ( cfg.wallpaper || cfg.scene ) active++;
+			if ( cfg.iconSet && cfg.iconSet !== 'none' ) active++;
+			if ( cfg.cursorSet && cfg.cursorSet !== 'none' ) active++;
+			if ( cfg.shopTaskbar ) active++;
+			return installed + ' ' + __( 'installed' ) + ' · ' + active + ' ' + __( 'active' );
+		}
+
 		SECTIONS.forEach( function ( section ) {
 			// Skip gated sections (e.g. Apps) until their feature flag
 			// comes in from the localized config.
@@ -303,8 +516,13 @@
 				'data-section': section.id,
 			} );
 			btn.className = 'odd-panel__nav odd-shop__rail-item';
-			var glyph = el( 'span', { class: 'odd-shop__rail-glyph', 'aria-hidden': 'true' } );
-			glyph.textContent = section.icon || '•';
+			btn.style.setProperty( '--odd-shop-active-tint', section.tint || 'var(--odd-shop-accent)' );
+			var glyph = el( 'span', { class: 'odd-shop__rail-glyph' } );
+			if ( section.glyph ) {
+				glyph.appendChild( shopGlyph( section.glyph, section.label ) );
+			} else {
+				glyph.textContent = section.icon || '•';
+			}
 			var labelWrap = el( 'span', { class: 'odd-shop__rail-label' } );
 			var label = el( 'strong' );
 			label.textContent = section.label;
@@ -321,24 +539,30 @@
 				renderSection( section.id );
 			} );
 			buttons[ section.id ] = btn;
-			sidebar.appendChild( btn );
+			var group = railGroups[ section.group || 'decorate' ];
+			( group && group.node ? group.node : sidebar ).appendChild( btn );
 		} );
 
 		// Footer caption in the rail — mimics the App Store's small
 		// account/region line. Version bumps at runtime from cfg so
 		// a new release surfaces immediately in the chrome.
 		var railFoot = el( 'div', { class: 'odd-shop__rail-foot' } );
-		railFoot.textContent = state.cfg.version
-			? 'ODD v' + state.cfg.version
-			: 'ODD';
+		railFoot.textContent = installedSummary( state.cfg );
 		sidebar.appendChild( railFoot );
 
 		body.appendChild( topbar );
 		body.appendChild( sidebar );
 		body.appendChild( content );
+		if ( window.__odd && window.__odd.shopCast && typeof window.__odd.shopCast.run === 'function' ) {
+			window.__odd.shopCast.run( body, {
+				chaos: !! state.cfg.chaosMode,
+				pluginUrl: state.cfg.pluginUrl || '',
+			} );
+		}
 
 		installDropAnywhere( body );
 		installShopKeyboard( body, sidebar, buttons, renderSection );
+		installCardMotion( body );
 
 		// Post-reload landing: if the previous navigation just
 		// installed a bundle, switch to its department and flash
@@ -359,6 +583,10 @@
 
 		return function teardown() {
 			body.classList.remove( 'odd-panel', 'odd-shop' );
+			while ( cleanupFns.length ) {
+				var clean = cleanupFns.pop();
+				try { clean(); } catch ( e ) {}
+			}
 			// Pull the widget-layer subscriptions so a reopen doesn't
 			// stack duplicate listeners that each re-render the
 			// section on every widget add/remove.
@@ -400,6 +628,8 @@
 					buttons[ k ].classList.toggle( 'is-active', k === id );
 				}
 			}
+			var activeSection = sectionById( id );
+			body.style.setProperty( '--odd-shop-active-tint', ( activeSection && activeSection.tint ) || 'var(--odd-shop-accent)' );
 			content.innerHTML = '';
 			if ( state.query && String( state.query ).trim() ) {
 				content.appendChild( renderGlobalSearch() );
@@ -444,6 +674,8 @@
 			) );
 
 			wrap.appendChild( renderAppsHero() );
+			var appsEditorial = renderEditorialStrip( shopRowsFor( 'app' ), 'apps' );
+			if ( appsEditorial ) wrap.appendChild( appsEditorial );
 
 			// Status rail. Populated by installBundle() / deletions.
 			var status = el( 'div', { class: 'odd-apps-status', 'data-odd-apps-status': '1' } );
@@ -1855,6 +2087,50 @@
 
 			var settings = el( 'div', { class: 'odd-wallpaper-settings' } );
 
+			var themeCard = el( 'div', { class: 'odd-setting-card odd-setting-card--appearance' } );
+			var themeRow = el( 'div', { class: 'odd-switch-row odd-switch-row--static' } );
+			var themeIcon = el( 'span', { class: 'odd-setting-card__icon', 'aria-hidden': 'true' } );
+			themeIcon.textContent = '◐';
+			var themeText = el( 'span', { class: 'odd-setting-card__text' } );
+			var themeLbl = el( 'strong' );
+			themeLbl.textContent = __( 'Appearance' );
+			var themeHint = el( 'span' );
+			themeHint.textContent = __( 'Choose a light, dark, or system-matched ODD Shop.' );
+			themeText.appendChild( themeLbl );
+			themeText.appendChild( themeHint );
+			themeRow.appendChild( themeIcon );
+			themeRow.appendChild( themeText );
+			var themeControls = el( 'div', { class: 'odd-setting-card__controls odd-setting-card__controls--appearance' } );
+			var themeField = el( 'label', { class: 'odd-setting-field' } );
+			var themeFieldLabel = el( 'span' );
+			themeFieldLabel.textContent = __( 'Theme' );
+			var themeSelect = el( 'select', { class: 'odd-select', 'aria-label': __( 'ODD Shop theme' ) } );
+			[
+				{ value: 'auto',  label: __( 'Auto' ) },
+				{ value: 'light', label: __( 'Light' ) },
+				{ value: 'dark',  label: __( 'Dark' ) },
+			].forEach( function ( opt ) {
+				var o = el( 'option', { value: opt.value } );
+				o.textContent = opt.label;
+				themeSelect.appendChild( o );
+			} );
+			themeSelect.value = normaliseShopTheme( state.cfg.theme );
+			themeField.appendChild( themeFieldLabel );
+			themeField.appendChild( themeSelect );
+			themeControls.appendChild( themeField );
+			themeCard.appendChild( themeRow );
+			themeCard.appendChild( themeControls );
+			settings.appendChild( themeCard );
+			themeSelect.addEventListener( 'change', function () {
+				var nextTheme = normaliseShopTheme( themeSelect.value );
+				applyShopTheme( body, nextTheme );
+				savePrefs( { theme: nextTheme }, function ( data ) {
+					state.cfg.theme = normaliseShopTheme( data && data.theme ? data.theme : nextTheme );
+					themeSelect.value = state.cfg.theme;
+					applyShopTheme( body, state.cfg.theme );
+				} );
+			} );
+
 			// Shuffle — rotates the wallpaper every N minutes while
 			// the desktop window is open. `state.cfg.shuffle` is the
 			// committed value from REST; we mirror writes back onto
@@ -1952,6 +2228,32 @@
 			sfxBox.addEventListener( 'change', function () {
 				saveShopSoundsSetting( sfxBox.checked );
 				if ( sfxBox.checked ) playShopSound( 'success' );
+			} );
+
+			var chaosRow = el( 'label', { class: 'odd-setting-card odd-setting-card--chaos odd-switch-row' } );
+			var chaosBox = el( 'input', { type: 'checkbox' } );
+			chaosBox.checked = !! state.cfg.chaosMode;
+			var chaosKnob = el( 'span', { class: 'odd-switch' } );
+			var chaosText = el( 'span', { class: 'odd-setting-card__text' } );
+			var chaosLbl = el( 'strong' );
+			chaosLbl.textContent = __( 'Chaos mode' );
+			var chaosHint = el( 'span' );
+			chaosHint.textContent = __( 'Boost ODD color and invite a bigger chaos cast into the Shop.' );
+			chaosText.appendChild( chaosLbl );
+			chaosText.appendChild( chaosHint );
+			chaosRow.appendChild( chaosBox );
+			chaosRow.appendChild( chaosKnob );
+			chaosRow.appendChild( chaosText );
+			settings.appendChild( chaosRow );
+			chaosBox.addEventListener( 'change', function () {
+				body.setAttribute( 'data-odd-chaos', chaosBox.checked ? '1' : '0' );
+				savePrefs( { chaosMode: chaosBox.checked }, function ( data ) {
+					state.cfg.chaosMode = !! ( data && data.chaosMode );
+					body.setAttribute( 'data-odd-chaos', state.cfg.chaosMode ? '1' : '0' );
+					if ( state.cfg.chaosMode && window.__odd && window.__odd.shopCast ) {
+						window.__odd.shopCast.run( body, { chaos: true, pluginUrl: state.cfg.pluginUrl || '' } );
+					}
+				} );
 			} );
 
 			// ODD Shop taskbar launcher — Desktop Mode reads native
@@ -2307,6 +2609,8 @@
 				var featured = pickFeaturedScene( heroScenes );
 				if ( featured ) wrap.appendChild( renderWallpaperHero( featured ) );
 			}
+			var wallpaperEditorial = renderEditorialStrip( rows, 'wallpaper' );
+			if ( wallpaperEditorial ) wrap.appendChild( wallpaperEditorial );
 
 			// Category quilt — gradient franchise tiles that jump
 			// to their shelf when clicked. Hidden while searching so
@@ -2358,9 +2662,12 @@
 		function pickFeaturedScene( scenes ) {
 			var current = state.cfg.wallpaper || state.cfg.scene;
 			for ( var i = 0; i < scenes.length; i++ ) {
-				if ( scenes[ i ] && scenes[ i ].slug === current ) return scenes[ i ];
+				if ( scenes[ i ] && scenes[ i ].heroSafe !== false && scenes[ i ].slug === current ) return scenes[ i ];
 			}
-			return scenes[ 0 ] || null;
+			for ( var j = 0; j < scenes.length; j++ ) {
+				if ( scenes[ j ] && scenes[ j ].heroSafe !== false ) return scenes[ j ];
+			}
+			return null;
 		}
 
 		function renderWallpaperHero( scene ) {
@@ -2376,6 +2683,7 @@
 			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
 			bg.style.backgroundImage = 'url("' + previewUrl + '")';
 			hero.appendChild( bg );
+			mountWallpaperHeroScene( bg, scene, previewUrl );
 			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
 
 			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
@@ -2418,6 +2726,56 @@
 			return hero;
 		}
 
+		function mountWallpaperHeroScene( bg, scene, previewUrl ) {
+			if ( ! bg || ! scene || scene.heroSafe === false ) return;
+			var reduced = window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
+			if ( reduced || ! window.WebGLRenderingContext || ! window.__odd || typeof window.__odd.mountSceneInto !== 'function' ) return;
+			var live = el( 'div', { class: 'odd-shop__hero-live', 'aria-hidden': 'true' } );
+			bg.appendChild( live );
+			var handle = null;
+			var pausedByVisibility = false;
+			var perfTimer = 0;
+			window.__odd.mountSceneInto( live, scene.slug, {
+				lowPower: true,
+				maxFPS: 30,
+				resolution: 1,
+				heroMode: true,
+				desktopStub: { supports: {}, wallpaper: { visible: true, state: 'visible', id: 'odd-shop-hero' }, windows: { all: [], count: 0 }, surfaces: { all: [], count: 0 } },
+			} ).then( function ( mounted ) {
+				handle = mounted;
+				if ( handle && handle.env && handle.env.perfTier === 'low' ) {
+					destroyHero();
+				}
+				perfTimer = window.setInterval( function () {
+					if ( handle && handle.env && handle.env.perfTier === 'low' ) destroyHero();
+				}, 1000 );
+			} ).catch( function () {
+				if ( live.parentNode ) live.parentNode.removeChild( live );
+				bg.style.backgroundImage = 'url("' + previewUrl + '")';
+			} );
+			function setPaused( paused ) {
+				pausedByVisibility = !! paused;
+				if ( handle && handle.app && handle.app.ticker ) {
+					if ( pausedByVisibility ) handle.app.ticker.stop();
+					else handle.app.ticker.start();
+				}
+			}
+			function onVisibility() {
+				setPaused( document.visibilityState === 'hidden' );
+			}
+			function destroyHero() {
+				if ( handle && typeof handle.destroy === 'function' ) handle.destroy();
+				handle = null;
+				if ( live.parentNode ) live.parentNode.removeChild( live );
+			}
+			document.addEventListener( 'visibilitychange', onVisibility );
+			cleanupFns.push( function () {
+				document.removeEventListener( 'visibilitychange', onVisibility );
+				if ( perfTimer ) window.clearInterval( perfTimer );
+				destroyHero();
+			} );
+		}
+
 		/**
 		 * Tagline copy for the hero. Uses the scene's tags where
 		 * available so each franchise hero reads as distinct; falls
@@ -2434,6 +2792,49 @@
 				case 'ODD Originals': return 'House specials from the ODD studio.';
 				default:              return 'A generative scene that lives on your desktop.';
 			}
+		}
+
+		function renderEditorialStrip( rows, scope ) {
+			if ( state.query || ! Array.isArray( rows ) ) return null;
+			var picks = rows.filter( function ( row ) { return row && ( row.featured || row.is_new || row.raw && ( row.raw.featured || row.raw.is_new ) ); } );
+			if ( ! picks.length ) picks = rows.slice( 0, 3 );
+			picks = picks.slice( 0, 3 );
+			if ( ! picks.length ) return null;
+			var strip = el( 'section', { class: 'odd-shop__editorial odd-shop__editorial--' + ( scope || 'shop' ) } );
+			var head = el( 'div', { class: 'odd-shop__editorial-head' } );
+			var eyebrow = el( 'div', { class: 'odd-shop__editorial-eyebrow' } );
+			eyebrow.textContent = __( 'Today at ODD' );
+			var title = el( 'h3', { class: 'odd-shop__editorial-title' } );
+			title.textContent = __( 'Featured weirdness' );
+			head.appendChild( eyebrow );
+			head.appendChild( title );
+			strip.appendChild( head );
+			var grid = el( 'div', { class: 'odd-shop__editorial-grid' } );
+			picks.forEach( function ( row, i ) {
+				var card = el( 'button', {
+					type: 'button',
+					class: 'odd-shop__editorial-card' + ( i === 0 ? ' is-primary' : '' ),
+				} );
+				var art = el( 'span', { class: 'odd-shop__editorial-art', 'aria-hidden': 'true' } );
+				var img = row.cardUrl || row.previewUrl || row.iconUrl || ( row.raw && ( row.raw.card_url || row.raw.previewUrl || row.raw.icon_url ) ) || '';
+				if ( img ) art.style.backgroundImage = 'url("' + img + '")';
+				var copy = el( 'span', { class: 'odd-shop__editorial-copy' } );
+				var name = el( 'strong' );
+				name.textContent = row.name || row.label || row.slug;
+				var sub = el( 'span' );
+				sub.textContent = row.subtitle || row.description || __( 'Featured in the catalog' );
+				copy.appendChild( name );
+				copy.appendChild( sub );
+				card.appendChild( art );
+				card.appendChild( copy );
+				card.addEventListener( 'click', function () {
+					var inner = content.querySelector( '[data-odd-shop-card][data-slug="' + cssEscape( row.slug ) + '"], [data-odd-shop-card][data-set-slug="' + cssEscape( row.slug ) + '"], [data-odd-shop-card][data-cursor-set-slug="' + cssEscape( row.slug ) + '"], [data-odd-shop-card][data-app-slug="' + cssEscape( row.slug ) + '"]' );
+					if ( inner && typeof inner.scrollIntoView === 'function' ) inner.scrollIntoView( { block: 'center', behavior: 'smooth' } );
+				} );
+				grid.appendChild( card );
+			} );
+			strip.appendChild( grid );
+			return strip;
 		}
 
 		function renderEmptyResults( message ) {
@@ -2511,6 +2912,7 @@
 		function collectSearchRows() {
 			var rows = [];
 			searchGroups().forEach( function ( group ) {
+				if ( state.searchScope === 'current' && DEPT_FOR_TYPE[ group.type ] !== state.active ) return;
 				rows = rows.concat( shopRowsFor( group.type ) );
 			} );
 			return rows;
@@ -3312,6 +3714,8 @@
 				var featuredSet = pickFeaturedSet( heroPool );
 				if ( featuredSet ) wrap.appendChild( renderIconHero( featuredSet ) );
 			}
+			var iconEditorial = renderEditorialStrip( rows, 'icons' );
+			if ( iconEditorial ) wrap.appendChild( iconEditorial );
 
 			// "Reset to default" pill — only shown when a custom set is
 			// committed. Gives users an obvious way back without
@@ -3544,6 +3948,8 @@
 				var featured = pickFeaturedCursorSet( heroPool );
 				if ( featured ) wrap.appendChild( renderCursorHero( featured ) );
 			}
+			var cursorEditorial = renderEditorialStrip( rows, 'cursors' );
+			if ( cursorEditorial ) wrap.appendChild( cursorEditorial );
 
 			if ( state.cfg.cursorSet && state.cfg.cursorSet !== 'none' && ! state.query ) {
 				var resetRow = el( 'div', { class: 'odd-shop__reset-row' } );
@@ -4158,6 +4564,8 @@
 					shopCardIsActive( hero )
 				) );
 			}
+			var widgetEditorial = renderEditorialStrip( rows, 'widgets' );
+			if ( widgetEditorial ) wrap.appendChild( widgetEditorial );
 
 			if ( ! rows.length ) {
 				wrap.appendChild( renderEmptyDept(

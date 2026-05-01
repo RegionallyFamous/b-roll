@@ -43,6 +43,7 @@
  *     odd.shell-error         { message, err }
  *     odd.iframe-error        { message, err }
  *     odd.visibility-changed  { state: 'hidden' | 'visible' }
+ *     odd.desktop-state-changed { revision, document, wallpaper, windows, surfaces, activity }
  *
  *   Apps (v0.16.0+):
  *     odd.app-installed       { slug, manifest }
@@ -96,6 +97,7 @@
 		SHELL_ERROR:          'odd.shell-error',
 		IFRAME_ERROR:         'odd.iframe-error',
 		VISIBILITY_CHANGED:   'odd.visibility-changed',
+		DESKTOP_STATE_CHANGED: 'odd.desktop-state-changed',
 		APP_INSTALLED:        'odd.app-installed',
 		APP_UNINSTALLED:      'odd.app-uninstalled',
 		APP_ENABLED:          'odd.app-enabled',

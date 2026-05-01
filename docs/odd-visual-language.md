@@ -12,6 +12,23 @@ ODD graphics should feel like small collectible portals from the same strange de
 - **Composition:** one central readable subject on a staged mini diorama, no literal UI chrome, no text inside images
 - **Palette anchors:** ink plum `#12051f`, iris violet `#7a4cff`, electric cyan `#64f4ff`, peach `#ffb86b`, acid green `#b6ff6a`, paper cream `#fff4dc`
 
+## Shop Chrome Tokens
+
+The ODD Shop uses a layered token set under `.odd-panel.odd-shop`:
+
+- **Surfaces:** `--odd-shop-surface-0..3` run from app background to elevated card.
+- **Ink:** `--odd-shop-ink-0..3` run from hairline/border to primary text.
+- **Type:** `--odd-shop-t-xxs..3xl` uses `clamp()` so headings and cards scale from the native-window minimum to XL desktop widths.
+- **Radius/elevation:** `--odd-shop-r-s..xl` and `--odd-shop-e-1..3` keep cards, heroes, and modals consistent.
+- **Motion:** `--odd-shop-dur-xs..l`, `--odd-shop-ease-out`, and `--odd-shop-ease-spring` are the only timing primitives new Shop chrome should use.
+- **Department tints:** wallpaper `#ff3d9a`, icon sets `#00d1b2`, cursors `#ffd23f`, widgets `#6a5cff`, apps `#ff6d00`. Tints accent rails, heroes, focus rings, and editorial moments; neutral chrome stays neutral.
+
+Dark mode is token-driven via `prefers-color-scheme` and the `data-odd-theme="light|dark|auto"` root attribute.
+
+## Shop Glyph System
+
+Rail icons live in `odd/assets/shop/glyphs.svg` as 24px line-art symbols (`g-wallpaper`, `g-icons`, `g-cursors`, `g-widgets`, `g-apps`, `g-install`, `g-settings`, `g-about`). Use `<svg><use href="...#symbol"></use></svg>` with an accessible label. Do not reintroduce emoji rail glyphs.
+
 ## Card Rules
 
 Every catalog item gets a generated `card.webp` in its source folder. The catalog builder publishes these as `site/catalog/v1/cards/<type>-<slug>.webp` and exposes `card_url` in `registry.json`.

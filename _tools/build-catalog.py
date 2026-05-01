@@ -59,6 +59,11 @@ OUT_CARDS = OUT_ROOT / "cards"
 FIXED_DATE = (2025, 1, 1, 0, 0, 0)
 CATALOG_BASE = "https://odd.regionallyfamous.com/catalog/v1"
 SCHEMA_URL = f"{CATALOG_BASE}/registry.schema.json"
+FIRST_PARTY_ICON_KEYS = {
+    "dashboard", "posts", "pages", "media", "comments",
+    "appearance", "plugins", "users", "tools", "settings",
+    "profile", "links", "recycle-bin", "fallback",
+}
 
 # The catalog icon SVGs must all carry this exact squircle path (see
 # `_tools/icon-style-guide.md` and `_tools/icon-sets/_base.svg.tmpl`).
@@ -568,6 +573,7 @@ def build_scene(slug: str, src_dir: Path) -> dict:
         "franchise": meta.get("franchise", "Community"),
         "tags": meta.get("tags", []),
         "fallbackColor": meta.get("fallbackColor", "#111"),
+        "heroSafe": meta.get("heroSafe", True),
         "entry": "scene.js",
         "preview": "preview.webp",
         "wallpaper": "wallpaper.webp",
@@ -605,6 +611,7 @@ def build_scene(slug: str, src_dir: Path) -> dict:
         "description": manifest["description"],
         "franchise": manifest["franchise"],
         "tags": manifest["tags"],
+        "heroSafe": manifest["heroSafe"],
         "icon_url": f"{CATALOG_BASE}/icons/{icon_webp_name}",
         "card_url": publish_card(src_dir, "scene", slug),
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
@@ -615,6 +622,9 @@ def build_scene(slug: str, src_dir: Path) -> dict:
 
 def build_iconset(slug: str, src_dir: Path) -> dict:
     meta = json.loads((src_dir / "manifest.json").read_text())
+    missing = sorted(FIRST_PARTY_ICON_KEYS - set(meta.get("icons", {}).keys()))
+    if missing:
+        raise SystemExit(f"icon-set {slug}: missing first-party icons {missing}")
 
     files: dict[str, bytes] = {}
     manifest = {

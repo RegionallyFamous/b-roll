@@ -67,7 +67,7 @@
 		},
 		"icons": {
 			"type": "object",
-			"description": "Icon-set manifests only. Keys are dock-slot keys (e.g. `dashboard`, `posts`) and values are relative paths to .svg files inside the bundle.",
+			"description": "Icon-set manifests only. Required minimum keys cover the stable dock slots; first-party ODD catalog sets also ship optional profile, links, and recycle-bin keys.",
 			"patternProperties": {
 				"^[a-z0-9_-]+$": {
 					"type": "string",

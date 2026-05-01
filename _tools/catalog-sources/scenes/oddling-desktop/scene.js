@@ -177,7 +177,10 @@
 			while ( state.specimens.length < targetSpec ) state.specimens.push( spawnSpecimen( w, hh ) );
 
 			var bass = ( env.audio && env.audio.enabled ) ? env.audio.bass : 0;
-			var speed = 1 + bass * 1.4;
+			var desktopActivity = env.desktop && env.desktop.activity && ! env.reducedMotion && env.perfTier !== 'low'
+				? ( env.desktop.activity.window || 0 )
+				: 0;
+			var speed = 1 + bass * 1.4 + desktopActivity * 0.22;
 
 			state.tabLayer.clear();
 			for ( var i = 0; i < state.tabs.length; i++ ) {
@@ -191,7 +194,7 @@
 				var hw = t.w / 2, hHeight = t.w * 0.62 / 2;
 				state.tabLayer
 					.roundRect( t.x - hw, t.y - hHeight, t.w, t.w * 0.62, 14 )
-					.fill( { color: t.color, alpha: t.alpha } );
+					.fill( { color: t.color, alpha: Math.min( 0.32, t.alpha + desktopActivity * 0.04 ) } );
 			}
 
 			state.bodyLayer.clear();

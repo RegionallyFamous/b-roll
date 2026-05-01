@@ -52,6 +52,8 @@ function seedConfig() {
 			{ slug: 'aurora',         label: 'Aurora',         franchise: 'Atmosphere',    tags: [], fallbackColor: '#112233' },
 			{ slug: 'circuit-garden', label: 'Circuit Garden', franchise: 'ODD Originals', tags: [], fallbackColor: '#0b1a10' },
 		],
+		theme: 'auto',
+		chaosMode: false,
 		sets: [
 			{ slug: 'filament', label: 'Filament', franchise: 'Filament', accent: '#ff7a3c', icons: { dashboard: '', fallback: '' } },
 		],
@@ -156,6 +158,9 @@ describe( 'ODD Shop', () => {
 		const railLabels = Array.from( host.querySelectorAll( '.odd-shop__rail-label strong' ) )
 			.map( ( n ) => n.textContent.trim() );
 		expect( railLabels ).toEqual( expect.arrayContaining( [ 'Wallpapers', 'Icon Sets', 'Widgets', 'About' ] ) );
+		const railGroups = Array.from( host.querySelectorAll( '.odd-shop__rail-group-heading' ) )
+			.map( ( n ) => n.textContent.trim() );
+		expect( railGroups ).toEqual( [ 'Decorate', 'Do more', 'You' ] );
 
 		// Wallpapers department groups scenes by category; with
 		// three slugs that map to three distinct categories
@@ -165,6 +170,20 @@ describe( 'ODD Shop', () => {
 
 		const cards = host.querySelectorAll( '.odd-card[data-slug]' );
 		expect( cards.length ).toBe( 3 );
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'keeps heroSafe:false scenes out of the live wallpaper hero', () => {
+		window.odd.wallpaper = 'aurora';
+		window.odd.scene = 'aurora';
+		window.odd.scenes = [
+			{ slug: 'flux', label: 'Flux', franchise: 'Generative', tags: [], fallbackColor: '#222233' },
+			{ slug: 'aurora', label: 'Aurora', franchise: 'Atmosphere', tags: [], fallbackColor: '#112233', heroSafe: false },
+		];
+		const { host, cleanup } = mountPanel();
+
+		expect( host.querySelector( '.odd-shop__hero' )?.getAttribute( 'data-hero-slug' ) ).toBe( 'flux' );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

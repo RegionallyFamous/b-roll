@@ -60,20 +60,63 @@ describe( 'Desktop Mode hook bridge', () => {
 		expect( window.__odd.diagnostics.recent().some( ( row ) => row.message.includes( 'wp-desktop.iframe.error' ) ) ).toBe( true );
 	} );
 
+	it( 'seeds a desktopState snapshot before any Desktop Mode hooks fire', () => {
+		window.wp.desktop = { ready: ( cb ) => cb() };
+
+		loadDesktopHooks();
+
+		expect( window.__odd.desktopState ).toMatchObject( {
+			revision: 0,
+			supports: { windows: false, wallpaperSurfaces: false, activity: false },
+			document: { hidden: false },
+			wallpaper: { visible: true, state: 'visible' },
+			windows: { all: [], focusedId: '', count: 0 },
+			surfaces: { all: [], count: 0 },
+			activity: { window: 0, dock: 0, presence: 0 },
+		} );
+	} );
+
 	it( 'normalizes Desktop Mode window payloads for ODD app listeners', () => {
 		window.wp.desktop = { ready: ( cb ) => cb() };
 		const opened = [];
+		const stateChanges = [];
 		window.__odd.events.on( 'odd.window-opened', ( payload ) => opened.push( payload ) );
+		window.__odd.events.on( 'odd.desktop-state-changed', ( payload ) => stateChanges.push( payload ) );
 
 		loadDesktopHooks();
 		window.wp.hooks.doAction( 'wp-desktop.window.opened', {
 			windowId: 'odd-app-demo',
 			title: 'Demo',
+			bounds: { x: 10, y: 20, width: 300, height: 200 },
 		} );
 
 		expect( opened ).toHaveLength( 1 );
 		expect( opened[ 0 ].id ).toBe( 'odd-app-demo' );
 		expect( opened[ 0 ].windowId ).toBe( 'odd-app-demo' );
+		expect( stateChanges.length ).toBeGreaterThan( 0 );
+		expect( window.__odd.desktopState.supports.windows ).toBe( true );
+		expect( window.__odd.desktopState.windows.focusedId ).toBe( 'odd-app-demo' );
+		expect( window.__odd.desktopState.windows.all[ 0 ] ).toMatchObject( {
+			id: 'odd-app-demo',
+			title: 'Demo',
+			bounds: { x: 10, y: 20, width: 300, height: 200 },
+		} );
+	} );
+
+	it( 'emits one normalized wallpaper visibility event from the hook bridge', () => {
+		window.wp.desktop = { ready: ( cb ) => cb() };
+		const seen = [];
+		window.__odd.events.on( 'odd.visibility-changed', ( payload ) => seen.push( payload ) );
+
+		loadDesktopHooks();
+		window.wp.hooks.doAction( 'wp-desktop.wallpaper.visibility', {
+			id: 'odd',
+			state: 'hidden',
+		} );
+
+		expect( seen ).toEqual( [ { state: 'hidden' } ] );
+		expect( window.__odd.desktopState.wallpaper.visible ).toBe( false );
+		expect( window.__odd.desktopState.wallpaper.state ).toBe( 'hidden' );
 	} );
 
 	it( 'marks ODD loading overlays without replacing them', () => {
@@ -159,7 +202,7 @@ describe( 'Desktop Mode hook bridge', () => {
 		expect( widget.querySelector( '.odd-widget__move' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'grab' );
 	} );
 
-	it( 'injects active cursor stylesheets into ODD iframe ready payloads', () => {
+	it( 'injects active cursor stylesheets into same-origin iframe ready payloads', () => {
 		window.wp.desktop = { ready: ( cb ) => cb() };
 		const injectInto = vi.fn();
 		window.__odd.cursors = { injectInto };
@@ -167,11 +210,30 @@ describe( 'Desktop Mode hook bridge', () => {
 
 		const doc = document.implementation.createHTMLDocument( 'frame' );
 		window.wp.hooks.doAction( 'wp-desktop.iframe.ready', {
-			windowId: 'odd-app-demo',
+			windowId: 'plugins',
 			document: doc,
 		} );
 
 		expect( injectInto ).toHaveBeenCalledWith( doc );
+	} );
+
+	it( 'maps non-ODD native windows discovered by window id fallback selectors', () => {
+		window.wp.desktop = { ready: ( cb ) => cb() };
+		loadDesktopHooks();
+
+		const win = document.createElement( 'div' );
+		win.setAttribute( 'data-window-id', 'plugins' );
+		win.innerHTML = '<div data-window-titlebar></div><button>Close</button><textarea></textarea>';
+		document.body.appendChild( win );
+
+		window.wp.hooks.doAction( 'wp-desktop.window.content-loaded', {
+			windowId: 'plugins',
+		} );
+
+		expect( win.getAttribute( 'data-odd-cursor-root' ) ).toBe( 'true' );
+		expect( win.querySelector( '[data-window-titlebar]' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'grab' );
+		expect( win.querySelector( 'button' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
+		expect( win.querySelector( 'textarea' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'text' );
 	} );
 
 	it( 'adds ODD entries to Desktop Mode open command suggestions', () => {

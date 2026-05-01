@@ -238,6 +238,24 @@
 		sceneMap:  SCENE_MAP,
 	};
 
+	function desktopStateDefaults() {
+		return {
+			revision: 0,
+			supports: { windows: false, wallpaperSurfaces: false, activity: false },
+			document: { hidden: typeof document !== 'undefined' ? !! document.hidden : false },
+			wallpaper: { visible: true, state: 'visible', id: '' },
+			windows: { all: [], focusedId: '', count: 0 },
+			surfaces: { all: [], count: 0 },
+			activity: { window: 0, dock: 0, presence: 0 },
+			updatedAt: 0,
+		};
+	}
+
+	function desktopStateRef() {
+		window.__odd.desktopState = window.__odd.desktopState || desktopStateDefaults();
+		return window.__odd.desktopState;
+	}
+
 	// ============================================================ //
 	// Lazy loaders.
 	//
@@ -281,6 +299,82 @@
 			}
 		} );
 	}
+
+	window.__odd.mountSceneInto = function ( container, slug, opts ) {
+		opts = opts || {};
+		if ( ! container || ! slug ) {
+			return Promise.reject( new Error( 'ODD: mountSceneInto requires a container and scene slug.' ) );
+		}
+		if ( ! window.PIXI ) {
+			return Promise.reject( new Error( 'ODD: PIXI global missing.' ) );
+		}
+		return loadScene( slug ).then( async function () {
+			var PIXI = window.PIXI;
+			var impl = window.__odd.scenes[ slug ];
+			if ( ! impl || typeof impl.setup !== 'function' ) {
+				throw new Error( 'Scene missing setup: ' + slug );
+			}
+			var app = new PIXI.Application();
+			await app.init( {
+				resizeTo:        container,
+				backgroundAlpha: 0,
+				antialias:       ! opts.lowPower,
+				resolution:      opts.resolution || 1,
+				autoDensity:     true,
+			} );
+			if ( opts.maxFPS && app.ticker ) {
+				app.ticker.maxFPS = opts.maxFPS;
+			}
+			container.appendChild( app.canvas );
+			app.canvas.style.position = 'absolute';
+			app.canvas.style.inset = '0';
+			app.canvas.style.width = '100%';
+			app.canvas.style.height = '100%';
+
+			var initTod = computeTod();
+			var env = {
+				app: app, PIXI: PIXI, ctx: { scene: slug, heroMode: !! opts.heroMode, prefersReducedMotion: !! opts.reducedMotion },
+				helpers: window.__odd.helpers,
+				parallax: { x: 0, y: 0 },
+				reducedMotion: !! opts.reducedMotion,
+				tod:      initTod.tod,
+				todPhase: initTod.phase,
+				season:   computeSeason(),
+				audio:    { level: 0, bass: 0, mid: 0, high: 0, enabled: false },
+				desktop:  opts.desktopStub || desktopStateDefaults(),
+				perfTier: opts.lowPower ? 'normal' : 'high',
+				dt:       1,
+			};
+			var parallaxTarget = { x: 0, y: 0 };
+			function onPointerMove( ev ) {
+				var r = container.getBoundingClientRect();
+				if ( ! r.width || ! r.height ) return;
+				parallaxTarget.x = ( ( ev.clientX - r.left ) / r.width - 0.5 ) * 2;
+				parallaxTarget.y = ( ( ev.clientY - r.top ) / r.height - 0.5 ) * 2;
+			}
+			container.addEventListener( 'pointermove', onPointerMove, { passive: true } );
+
+			var state = safeImpl( impl, 'setup', 'hero.setup:' + slug, [ env ] ) || {};
+			if ( impl.onResize ) safeImpl( impl, 'onResize', 'hero.resize:' + slug, [ state, env ] );
+			if ( env.reducedMotion && impl.stillFrame ) {
+				safeImpl( impl, 'stillFrame', 'hero.stillFrame:' + slug, [ state, env ] );
+			} else if ( impl.tick ) {
+				var tick = function ( ticker ) {
+					env.dt = Math.min( 2.5, ticker.deltaTime );
+					env.parallax.x += ( parallaxTarget.x - env.parallax.x ) * 0.12;
+					env.parallax.y += ( parallaxTarget.y - env.parallax.y ) * 0.12;
+					safeImpl( impl, 'tick', 'hero.tick:' + slug, [ state, env ] );
+				};
+				app.ticker.add( tick );
+			}
+			function destroy() {
+				container.removeEventListener( 'pointermove', onPointerMove );
+				if ( impl.cleanup ) safeImpl( impl, 'cleanup', 'hero.cleanup:' + slug, [ state, env ] );
+				try { app.destroy( true, { children: true, texture: true } ); } catch ( e ) {}
+			}
+			return { app: app, env: env, state: state, destroy: destroy };
+		} );
+	};
 
 	function loadAudio() {
 		if ( window.__odd.audio && window.__odd.audio._installed ) {
@@ -437,6 +531,7 @@
 				todPhase: initTod.phase,
 				season:   computeSeason(),
 				audio:    { level: 0, bass: 0, mid: 0, high: 0, enabled: false },
+				desktop:  desktopStateRef(),
 				perfTier: 'high',
 				dt:       1,
 			};
@@ -831,7 +926,6 @@
 				if ( ! detail || detail.id !== ctx.id ) return;
 				if ( detail.state === 'hidden' ) app.ticker.stop();
 				else if ( ! ctx.prefersReducedMotion ) app.ticker.start();
-				emitBus( 'odd.visibility-changed', { state: detail.state } );
 			}
 			if ( window.wp && window.wp.hooks ) {
 				window.wp.hooks.addAction( 'wp-desktop.wallpaper.visibility', visHook, onVis );

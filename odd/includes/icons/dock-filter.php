@@ -38,6 +38,7 @@ function odd_icons_slug_to_key( $slug ) {
 		'profile.php'             => 'profile',
 		'link-manager.php'        => 'links',
 		'wpdc-editor'             => 'tools',
+		'wpdm-recycle-bin'        => 'recycle-bin',
 	);
 	if ( isset( $map[ $slug ] ) ) {
 		return $map[ $slug ];
@@ -46,6 +47,20 @@ function odd_icons_slug_to_key( $slug ) {
 	// the set ships an override for the CPT explicitly.
 	if ( 0 === strpos( $slug, 'edit.php?post_type=' ) ) {
 		return 'posts';
+	}
+	return '';
+}
+
+function odd_icons_entry_recycle_key( $entry_id, $window, $title = '' ) {
+	$needles = array(
+		sanitize_key( (string) $entry_id ),
+		sanitize_key( (string) $window ),
+		sanitize_key( (string) $title ),
+	);
+	foreach ( $needles as $needle ) {
+		if ( 'wpdm-recycle-bin' === $needle || 'recycle-bin' === $needle || 'trash' === $needle ) {
+			return 'recycle-bin';
+		}
 	}
 	return '';
 }
@@ -110,6 +125,13 @@ add_filter(
 				continue;
 			}
 			$key = odd_icons_slug_to_key( $window );
+			if ( '' === $key ) {
+				$key = odd_icons_entry_recycle_key(
+					$entry_id,
+					$window,
+					isset( $entry['title'] ) ? (string) $entry['title'] : ''
+				);
+			}
 			if ( '' === $key ) {
 				// Desktop icons can also target URLs — try matching by the
 				// icon id as a last-ditch key.

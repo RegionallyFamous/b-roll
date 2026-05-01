@@ -93,8 +93,21 @@ The panel body is rendered by `window.desktop_mode_native_windows.odd = body => 
 - `shuffle` — `{ enabled: bool, minutes: int 1..240 }`; written to `odd_shuffle`.
 - `audioReactive` — bool; written to `odd_audio_reactive`.
 - `iconSet` — set slug (or `"none"`); written to `odd_icon_set`.
+- `theme` — `light|dark|auto`; written to `odd_shop_theme` and applied as `data-odd-theme` on the Shop root.
+- `chaosMode` — bool; written to `odd_chaos` and applied as `data-odd-chaos` on the Shop root.
 
 `GET /wp-json/odd/v1/prefs` returns the current user's prefs plus the registry of installed scenes and icon sets.
+
+### ODD Shop v2 chrome
+
+The Shop redesign is gated by the `odd_shop_v2` filter (default `true`). The root keeps the existing `odd-panel odd-shop` classes and data hooks, plus `data-odd-shop-v2`, `data-odd-theme`, and `data-odd-chaos`.
+
+Shop-only assets live in `odd/assets/shop/`:
+- `brand-mark.svg` — animated iris topbar mark.
+- `glyphs.svg` — 24px department glyph sprite.
+- `oddling-a.svg` / `oddling-b.svg` — chaos-cast sprites used by `odd/src/shop/cast.js`.
+
+The CSS token layer lives in `odd/src/panel/styles.css` as `--odd-shop-*` variables for surfaces, ink, type, radius, elevation, motion, and department tints. New Shop UI should consume those tokens and honor `prefers-reduced-motion`.
 
 Bundle endpoints (`/odd/v1/bundles/*`):
 - `GET /bundles/catalog` — remote registry contents (cached 12h + stale-on-failure).
@@ -119,6 +132,8 @@ Permission callbacks are `is_user_logged_in`. The panel also ships the same stat
 ### Live scene swaps
 
 Panel clicks fire `wp.hooks.doAction( 'odd/pickScene', slug )` in parallel with the REST POST. The wallpaper engine subscribes to this hook (`odd/wallpaper` namespace) and swaps the scene immediately through its `swap()` path — no reload needed.
+
+The wallpaper runtime also exposes `window.__odd.mountSceneInto(container, slug, opts)` for the Shop hero. It creates a low-power Pixi v8 app for a single scene and returns `{ app, env, state, destroy }`; the desktop wallpaper path still owns the full `registerWallpaper('odd', …)` runner. Scene manifests can set `heroSafe:false` when they require desktop-only APIs like `wp.desktop.getWallpaperSurfaces()`.
 
 ### Icons swap → soft reload
 

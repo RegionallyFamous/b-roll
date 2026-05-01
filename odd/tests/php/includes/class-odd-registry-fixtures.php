@@ -70,10 +70,11 @@ class ODD_Registry_Fixtures {
 					'description' => 'Test fixture',
 					'preview'     => 'https://example.test/icons/' . rawurlencode( $slug ) . '/preview.svg',
 					'icons'       => array(
-						'dashboard' => 'https://example.test/icons/' . rawurlencode( $slug ) . '/dashboard.svg',
-						'posts'     => 'https://example.test/icons/' . rawurlencode( $slug ) . '/posts.svg',
-						'pages'     => 'https://example.test/icons/' . rawurlencode( $slug ) . '/pages.svg',
-						'fallback'  => 'https://example.test/icons/' . rawurlencode( $slug ) . '/fallback.svg',
+						'dashboard'   => 'https://example.test/icons/' . rawurlencode( $slug ) . '/dashboard.svg',
+						'posts'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/posts.svg',
+						'pages'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/pages.svg',
+						'recycle-bin' => 'https://example.test/icons/' . rawurlencode( $slug ) . '/recycle-bin.svg',
+						'fallback'    => 'https://example.test/icons/' . rawurlencode( $slug ) . '/fallback.svg',
 					),
 					'source'      => 'fixture',
 				);

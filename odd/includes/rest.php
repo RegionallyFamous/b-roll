@@ -83,6 +83,8 @@ function odd_rest_prefs_get() {
 			'iconSet'          => odd_icons_get_active_slug( $uid ),
 			'cursorSet'        => odd_cursors_get_active_slug( $uid ),
 			'cursorStylesheet' => odd_cursors_active_stylesheet_url(),
+			'theme'            => odd_shop_get_theme( $uid ),
+			'chaosMode'        => (bool) get_user_meta( $uid, 'odd_chaos', true ),
 			'initiated'        => (bool) get_user_meta( $uid, 'odd_initiated', true ),
 			'mascotQuiet'      => (bool) get_user_meta( $uid, 'odd_mascot_quiet', true ),
 			'winkUnlocked'     => (bool) get_user_meta( $uid, 'odd_wink_unlocked', true ),
@@ -165,6 +167,24 @@ function odd_rest_prefs_post( WP_REST_Request $request ) {
 		}
 	}
 
+	if ( array_key_exists( 'theme', $params ) ) {
+		$theme = is_string( $params['theme'] ) ? sanitize_key( $params['theme'] ) : '';
+		if ( ! odd_shop_set_theme( $uid, $theme ) ) {
+			return new WP_Error(
+				'odd_invalid_theme',
+				__( 'Unknown ODD Shop theme.', 'odd' ),
+				array( 'status' => 400 )
+			);
+		}
+		$out['theme'] = odd_shop_get_theme( $uid );
+	}
+
+	if ( array_key_exists( 'chaosMode', $params ) ) {
+		$on = ! empty( $params['chaosMode'] );
+		update_user_meta( $uid, 'odd_chaos', $on ? 1 : 0 );
+		$out['chaosMode'] = $on;
+	}
+
 	// Iris personality slice (Cut 3). All three are booleans, stored
 	// as 0/1 via the existing audioReactive pattern. Cast once here
 	// so anything downstream (JS store, REST GET) sees a strict bool.
@@ -226,4 +246,25 @@ function odd_rest_prefs_post( WP_REST_Request $request ) {
 	}
 
 	return rest_ensure_response( $out );
+}
+
+function odd_shop_theme_choices() {
+	return array( 'light', 'dark', 'auto' );
+}
+
+function odd_shop_get_theme( $uid = 0 ) {
+	$uid   = $uid ? (int) $uid : get_current_user_id();
+	$value = $uid > 0 ? get_user_meta( $uid, 'odd_shop_theme', true ) : '';
+	$value = is_string( $value ) ? sanitize_key( $value ) : '';
+	return in_array( $value, odd_shop_theme_choices(), true ) ? $value : 'auto';
+}
+
+function odd_shop_set_theme( $uid, $theme ) {
+	$uid   = (int) $uid;
+	$theme = is_string( $theme ) ? sanitize_key( $theme ) : '';
+	if ( $uid <= 0 || ! in_array( $theme, odd_shop_theme_choices(), true ) ) {
+		return false;
+	}
+	update_user_meta( $uid, 'odd_shop_theme', $theme );
+	return true;
 }

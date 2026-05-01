@@ -39,6 +39,8 @@ class Test_REST_Prefs extends ODD_REST_Test_Case {
 				'screensaver',
 				'audioReactive',
 				'shopTaskbar',
+				'theme',
+				'chaosMode',
 				'iconSet',
 				'scenes',
 				'sets',
@@ -58,6 +60,8 @@ class Test_REST_Prefs extends ODD_REST_Test_Case {
 		$this->assertArrayHasKey( 'minutes', $data['screensaver'] );
 		$this->assertArrayHasKey( 'scene', $data['screensaver'] );
 		$this->assertTrue( $data['shopTaskbar'] );
+		$this->assertSame( 'auto', $data['theme'] );
+		$this->assertFalse( $data['chaosMode'] );
 	}
 
 	public function test_post_accepts_valid_wallpaper() {
@@ -152,6 +156,27 @@ class Test_REST_Prefs extends ODD_REST_Test_Case {
 		$this->assertSame( 200, $res->get_status() );
 		$this->assertFalse( $res->get_data()['shopTaskbar'] );
 		$this->assertSame( '0', get_user_meta( $this->admin_id, 'odd_shop_taskbar', true ) );
+	}
+
+	public function test_post_round_trips_shop_theme_preference() {
+		$this->login_as();
+
+		$res = $this->dispatch_json( 'POST', '/odd/v1/prefs', array( 'theme' => 'dark' ) );
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertSame( 'dark', $res->get_data()['theme'] );
+		$this->assertSame( 'dark', get_user_meta( $this->admin_id, 'odd_shop_theme', true ) );
+
+		$res = $this->dispatch_json( 'GET', '/odd/v1/prefs' );
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertSame( 'dark', $res->get_data()['theme'] );
+	}
+
+	public function test_post_rejects_invalid_shop_theme_preference() {
+		$this->login_as();
+
+		$res = $this->dispatch_json( 'POST', '/odd/v1/prefs', array( 'theme' => 'sepia' ) );
+		$this->assertSame( 400, $res->get_status() );
+		$this->assertSame( 'odd_invalid_theme', $res->get_data()['code'] );
 	}
 
 	public function test_post_caps_favorites_at_50() {

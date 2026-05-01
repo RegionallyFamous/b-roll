@@ -118,6 +118,7 @@ Covered in full by [Building an Icon Set](building-an-icon-set.md).
         "settings":   "icons/settings.svg",
         "profile":    "icons/profile.svg",
         "links":      "icons/links.svg",
+        "recycle-bin": "icons/recycle-bin.svg",
         "fallback":   "icons/fallback.svg"
     }
 }
@@ -128,7 +129,7 @@ Covered in full by [Building an Icon Set](building-an-icon-set.md).
 | `franchise` | no       | Soft historical label. The Shop now derives the shelf category from the slug — `franchise` is kept for third-party tooling that may still read it. |
 | `accent`    | yes      | `#hex`. Paints the tile, quilt gradient, and hover states.               |
 | `preview`   | no       | Relative path to a hero SVG/PNG/WebP. Falls back to `icons.dashboard`.   |
-| `icons`     | yes      | Map of 13 required keys (see guide) → relative SVG paths.                |
+| `icons`     | yes      | Map of the required minimum keys, plus optional enhanced ODD keys such as `profile`, `links`, and `recycle-bin`, to relative SVG paths. |
 
 Every SVG is validated on install as passive SVG: no `<script>`,
 `foreignObject`, embedded images, event attributes, external
@@ -286,7 +287,7 @@ response and as friendly copy in the Shop topbar pill.
 | Type       | Extra checks                                                                                   |
 |------------|------------------------------------------------------------------------------------------------|
 | `app`      | `entry` matches the entry regex + file exists in the archive.                                  |
-| `icon-set` | `icons` present, all 13 keys mapped, each path is a real SVG, each SVG passes passive-SVG validation. |
+| `icon-set` | `icons` present, all required minimum keys mapped, optional enhanced keys allowed, each path is a real SVG, each SVG passes passive-SVG validation. |
 | `cursor-set` | `cursors` present, `default` mapped, each path is a real SVG, each SVG passes passive-SVG validation, hotspots are integer pairs. |
 | `scene`    | `entry`, `preview`, `wallpaper` all present in the archive; `fallbackColor` is a `#hex`.       |
 | `widget`   | `entry` matches the entry regex + file exists in the archive.                                  |

@@ -20,6 +20,7 @@
     "settings": "settings.svg",
     "profile": "profile.svg",
     "links": "links.svg",
-    "fallback": "fallback.svg"
+    "fallback": "fallback.svg",
+    "recycle-bin": "recycle-bin.svg"
   }
 }
