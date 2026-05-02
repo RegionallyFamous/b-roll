@@ -308,6 +308,14 @@
 		return node;
 	}
 
+	function observeCursorSurface( node, meta ) {
+		var c = cursors();
+		if ( c && typeof c.observeSurface === 'function' && node ) {
+			try { return c.observeSurface( node, meta || {} ); } catch ( _ ) {}
+		}
+		return false;
+	}
+
 	function markCursorDescendants( node ) {
 		var c = cursors();
 		if ( c && typeof c.markInteractiveDescendants === 'function' ) {
@@ -536,8 +544,13 @@
 				record( 'info', 'wp-desktop.native-window.before-render', { windowId: windowId } );
 			}
 			markCursorRoot( body );
-			markWindowChrome( body );
-			markCursorDescendants( body );
+			if ( ! observeCursorSurface( body, {
+				source:   'wp-desktop.native-window.before-render',
+				windowId: windowId || '',
+			} ) ) {
+				markWindowChrome( body );
+				markCursorDescendants( body );
+			}
 			return body;
 		} );
 	}
@@ -576,7 +589,12 @@
 					var el = elementFromPayload( payload );
 					if ( el ) {
 						markCursorRoot( el );
-						markWidgetChrome( el );
+						if ( ! observeCursorSurface( el, {
+							source: 'wp-desktop.widget',
+							id:     payload.id || '',
+						} ) ) {
+							markWidgetChrome( el );
+						}
 					}
 					record( 'info', hookName, payload );
 				}
@@ -677,8 +695,13 @@
 			var el = windowElementFromPayload( payload );
 			if ( ! el ) return false;
 			markCursorRoot( el );
-			markWindowChrome( el );
-			markCursorDescendants( el );
+			if ( ! observeCursorSurface( el, {
+				source:   'desktop-window-hook',
+				windowId: payload && ( payload.windowId || payload.id ) || '',
+			} ) ) {
+				markWindowChrome( el );
+				markCursorDescendants( el );
+			}
 			record( 'info', 'odd.cursor.window-mapped', {
 				windowId: payload && ( payload.windowId || payload.id ),
 			} );
@@ -700,9 +723,10 @@
 				var roots = document.querySelectorAll ? document.querySelectorAll( '.desktop-mode, .desktop-mode-shell, .wp-desktop, .wp-desktop-root, [data-window-id], [data-windowid], [data-wp-desktop-window-id], [data-desktop-window-id], [data-native-window-id]' ) : [];
 				for ( var i = 0; i < roots.length; i++ ) {
 					markCursorRoot( roots[ i ] );
-					markWindowChrome( roots[ i ] );
+					if ( ! observeCursorSurface( roots[ i ], { source: 'desktop-ready-sweep' } ) ) {
+						markWindowChrome( roots[ i ] );
+					}
 				}
-				markCursorDescendants( document );
 			} );
 		}
 	}

@@ -1,10 +1,10 @@
 /**
  * ODD custom cursor runtime.
  * ---------------------------------------------------------------
- * Owns the active cursor stylesheet link for the current document.
- * PHP provides the active URL; this module makes sure that URL is
- * actually installed in the Desktop Mode shell, wp-admin, and any
- * same-origin ODD app frames that opt in through injectInto().
+ * Owns active cursor state for the shell, wp-admin, Desktop Mode
+ * windows, open shadow roots, and same-origin iframe documents.
+ * The stylesheet is kept as a broad fallback; pointer-time role
+ * resolution applies the active cursor directly to the hovered target.
  */
 ( function () {
 	'use strict';
@@ -32,8 +32,14 @@
 		status:           'idle',
 		error:            '',
 		iframeInjections: [],
+		surfaces:         [],
+		shadowRoots:      [],
+		failures:         [],
+		lastResolved:     null,
 	};
 	var bridged = [];
+	var documents = [];
+	var docSeq = 0;
 
 	function cfg() {
 		return ( window.odd && typeof window.odd === 'object' ) ? window.odd : {};
@@ -79,6 +85,7 @@
 	}
 
 	function cursorValue( kind ) {
+		kind = semanticKinds[ kind ] ? kind : 'default';
 		var set = activeSet();
 		var cursors = set && set.cursors;
 		var spec = cursors && ( cursors[ kind ] || cursors.default );
@@ -92,6 +99,15 @@
 		if ( isNaN( x ) ) x = 0;
 		if ( isNaN( y ) ) y = 0;
 		return 'url("' + spec.url + '") ' + x + ' ' + y + ', ' + kind;
+	}
+
+	function nodeDoc( node ) {
+		return node && node.ownerDocument ? node.ownerDocument : document;
+	}
+
+	function nodeView( node ) {
+		var doc = nodeDoc( node );
+		return doc && doc.defaultView ? doc.defaultView : window;
 	}
 
 	function headFor( doc ) {
@@ -147,27 +163,324 @@
 		}
 	}
 
-	function rememberBridge( node ) {
-		if ( ! node || node.__oddCursorBridged ) return;
-		node.__oddCursorBridged = true;
-		node.__oddCursorOriginal = node.style ? node.style.cursor || '' : '';
-		bridged.push( node );
+	function docRecord( doc, create ) {
+		doc = doc || document;
+		for ( var i = 0; i < documents.length; i++ ) {
+			if ( documents[ i ].doc === doc ) return documents[ i ];
+		}
+		if ( ! create ) return null;
+		var rec = {
+			id: ++docSeq,
+			doc: doc,
+			surfaces: [],
+			observers: [],
+			listeners: false,
+			dispose: [],
+		};
+		documents.push( rec );
+		return rec;
 	}
 
-	function clearBridged() {
+	function rememberBridge( node, value, kind ) {
+		if ( ! node || ! node.style ) return;
+		if ( ! node.__oddCursorBridged ) {
+			node.__oddCursorBridged = true;
+			node.__oddCursorOriginal = node.style.cursor || '';
+			bridged.push( node );
+		}
+		if ( node.__oddCursorValue !== value ) {
+			node.style.cursor = value;
+			node.__oddCursorValue = value;
+			node.__oddCursorKind = kind || '';
+		}
+	}
+
+	function restoreNode( node ) {
+		if ( ! node || ! node.style || ! node.__oddCursorBridged ) return;
+		node.style.cursor = node.__oddCursorOriginal || '';
+		try {
+			delete node.__oddCursorBridged;
+			delete node.__oddCursorOriginal;
+			delete node.__oddCursorValue;
+			delete node.__oddCursorKind;
+		} catch ( e ) {
+			node.__oddCursorBridged = false;
+			node.__oddCursorOriginal = '';
+			node.__oddCursorValue = '';
+			node.__oddCursorKind = '';
+		}
+	}
+
+	function clearBridged( doc ) {
+		var next = [];
 		for ( var i = 0; i < bridged.length; i++ ) {
 			var node = bridged[ i ];
-			if ( ! node || ! node.style ) continue;
-			node.style.cursor = node.__oddCursorOriginal || '';
-			try {
-				delete node.__oddCursorBridged;
-				delete node.__oddCursorOriginal;
-			} catch ( e ) {
-				node.__oddCursorBridged = false;
-				node.__oddCursorOriginal = '';
+			if ( ! doc || nodeDoc( node ) === doc ) {
+				restoreNode( node );
+			} else {
+				next.push( node );
 			}
 		}
-		bridged = [];
+		bridged = next;
+	}
+
+	function failure( reason, meta ) {
+		state.failures.push( {
+			time: Date.now ? Date.now() : 0,
+			reason: reason || 'unknown',
+			meta: meta || {},
+		} );
+		if ( state.failures.length > 20 ) state.failures.shift();
+	}
+
+	function nodeSummary( node ) {
+		if ( ! node || node.nodeType !== 1 ) return {};
+		return {
+			tag:   String( node.tagName || '' ).toLowerCase(),
+			id:    node.id || '',
+			className: typeof node.className === 'string' ? node.className : '',
+			ariaLabel: node.getAttribute ? node.getAttribute( 'aria-label' ) || '' : '',
+		};
+	}
+
+	function cleanupRemovedNodes( doc ) {
+		var next = [];
+		for ( var i = 0; i < bridged.length; i++ ) {
+			var node = bridged[ i ];
+			if ( doc && nodeDoc( node ) !== doc ) {
+				next.push( node );
+				continue;
+			}
+			if ( ! node || ! node.isConnected ) {
+				restoreNode( node );
+			} else {
+				next.push( node );
+			}
+		}
+		bridged = next;
+	}
+
+	function matches( node, selector ) {
+		if ( ! node || node.nodeType !== 1 || ! node.matches ) return false;
+		try { return node.matches( selector ); } catch ( e ) { return false; }
+	}
+
+	function attr( node, name ) {
+		if ( ! node || ! node.getAttribute ) return '';
+		try { return node.getAttribute( name ) || ''; } catch ( e ) { return ''; }
+	}
+
+	function hasAttr( node, name ) {
+		if ( ! node || ! node.hasAttribute ) return false;
+		try { return node.hasAttribute( name ); } catch ( e ) { return false; }
+	}
+
+	function textLike( node ) {
+		return matches( node, 'input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="url"], input[type="password"], textarea, [contenteditable="true"], [contenteditable=""], .CodeMirror, .components-text-control__input, .components-textarea-control__input, .block-editor-rich-text__editable, .editor-post-title__input' );
+	}
+
+	function disabledLike( node ) {
+		return matches( node, '[disabled], [aria-disabled="true"], :disabled, .disabled, .is-disabled, .components-disabled, .odd-is-disabled' );
+	}
+
+	function busyLike( node ) {
+		return matches( node, '[aria-busy="true"], .is-busy, .updating-message, .spinner.is-active, .components-spinner' );
+	}
+
+	function buttonLike( node ) {
+		var label = attr( node, 'aria-label' ).toLowerCase();
+		if ( matches( node, 'a[href], button, .button, .button-primary, .button-secondary, [role="button"], summary, label[for], input[type="button"], input[type="submit"], input[type="reset"], select, option, .ab-item, .components-button, wpd-button, [data-window-control], [data-window-action]' ) ) {
+			return true;
+		}
+		return label === 'close' || label === 'minimize' || label === 'maximize' || label === 'restore';
+	}
+
+	function resizeLike( node ) {
+		return matches( node, '[data-resize-handle], [data-window-resize-handle], .ui-resizable-handle, .resize-handle' );
+	}
+
+	function dragLike( node ) {
+		return matches( node, '[draggable="true"], [data-drag], [data-drag-handle], [data-window-drag-handle], [data-window-titlebar], [data-window-header], .desktop-mode-window-titlebar, .desktop-mode-window-header, .wp-desktop-window-titlebar, .wp-desktop-window-header, .wpdm-window__titlebar, .wpdm-window__header, .window-titlebar, .native-window-titlebar, .desktop-mode-window__titlebar, .wp-desktop-window__titlebar, .desktop-window__titlebar' );
+	}
+
+	function nativeKind( cursor ) {
+		cursor = typeof cursor === 'string' ? cursor : '';
+		if ( cursor.indexOf( 'url(' ) !== -1 ) return '';
+		if ( cursor === 'pointer' ) return 'pointer';
+		if ( cursor === 'text' || cursor === 'vertical-text' ) return 'text';
+		if ( cursor === 'grab' || cursor === 'move' ) return 'grab';
+		if ( cursor === 'grabbing' ) return 'grabbing';
+		if ( cursor === 'crosshair' ) return 'crosshair';
+		if ( cursor === 'not-allowed' || cursor === 'no-drop' ) return 'not-allowed';
+		if ( cursor === 'wait' ) return 'wait';
+		if ( cursor === 'progress' ) return 'progress';
+		if ( cursor === 'help' ) return 'help';
+		if ( /(^|-)resize$/.test( cursor ) || cursor === 'col-resize' || cursor === 'row-resize' ) return 'grab';
+		return '';
+	}
+
+	function computedKind( node ) {
+		var view = nodeView( node );
+		var computed = '';
+		try { computed = view && view.getComputedStyle ? view.getComputedStyle( node ).cursor : ''; } catch ( e ) {}
+		return nativeKind( computed );
+	}
+
+	function roleForNode( node ) {
+		if ( ! node || node.nodeType !== 1 ) return null;
+		var explicit = attr( node, 'data-odd-cursor' );
+		if ( explicit && semanticKinds[ explicit ] ) return { kind: explicit, source: 'explicit', node: node };
+		if ( disabledLike( node ) ) return { kind: 'not-allowed', source: 'semantic', node: node };
+		if ( busyLike( node ) ) return { kind: 'progress', source: 'semantic', node: node };
+		if ( textLike( node ) ) return { kind: 'text', source: 'semantic', node: node };
+		if ( buttonLike( node ) ) return { kind: 'pointer', source: 'semantic', node: node };
+		if ( resizeLike( node ) ) return { kind: 'grab', source: 'semantic', node: node };
+		if ( dragLike( node ) ) return { kind: 'grab', source: 'semantic', node: node };
+		var computed = computedKind( node );
+		if ( computed ) return { kind: computed, source: 'computed', node: node };
+		return null;
+	}
+
+	function pathFromEvent( event ) {
+		if ( event && typeof event.composedPath === 'function' ) {
+			try {
+				var p = event.composedPath();
+				if ( p && p.length ) return p;
+			} catch ( e ) {}
+		}
+		var out = [];
+		var node = event && event.target;
+		while ( node ) {
+			out.push( node );
+			node = node.parentNode || node.host || null;
+		}
+		return out;
+	}
+
+	function pathFromNode( node ) {
+		var out = [];
+		while ( node ) {
+			out.push( node );
+			node = node.parentNode || node.host || null;
+		}
+		return out;
+	}
+
+	function resolvePath( path ) {
+		for ( var i = 0; i < path.length; i++ ) {
+			var node = path[ i ];
+			if ( ! node || node.nodeType !== 1 ) continue;
+			var role = roleForNode( node );
+			if ( role ) return role;
+		}
+		for ( var j = 0; j < path.length; j++ ) {
+			if ( path[ j ] && path[ j ].nodeType === 1 ) {
+				return { kind: 'default', source: 'fallback', node: path[ j ] };
+			}
+		}
+		return null;
+	}
+
+	function applyResolved( resolved ) {
+		if ( ! state.href || ! resolved || ! resolved.node || ! resolved.node.style ) return null;
+		var value = cursorValue( resolved.kind );
+		if ( ! value ) return null;
+		rememberBridge( resolved.node, value, resolved.kind );
+		state.lastResolved = Object.assign( nodeSummary( resolved.node ), {
+			role: resolved.kind,
+			source: resolved.source,
+			cursor: value,
+			time: Date.now ? Date.now() : 0,
+		} );
+		return resolved;
+	}
+
+	function resolveAndApplyEvent( event ) {
+		return applyResolved( resolvePath( pathFromEvent( event ) ) );
+	}
+
+	function resolveAndApplyNode( node ) {
+		return applyResolved( resolvePath( pathFromNode( node ) ) );
+	}
+
+	function rememberShadowRoot( root, meta ) {
+		if ( ! root || ! root.addEventListener ) return false;
+		for ( var i = 0; i < state.shadowRoots.length; i++ ) {
+			if ( state.shadowRoots[ i ].root === root ) return true;
+		}
+		state.shadowRoots.push( { root: root, meta: meta || {}, time: Date.now ? Date.now() : 0 } );
+		installListeners( root );
+		return true;
+	}
+
+	function scanShadowRoots( root, meta ) {
+		if ( ! root ) return 0;
+		var count = 0;
+		function visit( node ) {
+			if ( ! node || node.nodeType !== 1 ) return;
+			if ( node.shadowRoot ) {
+				if ( rememberShadowRoot( node.shadowRoot, meta ) ) count++;
+				scanShadowRoots( node.shadowRoot, meta );
+			}
+			if ( ! node.children ) return;
+			for ( var i = 0; i < node.children.length; i++ ) visit( node.children[ i ] );
+		}
+		if ( root.querySelectorAll ) {
+			var nodes = root.querySelectorAll( '*' );
+			for ( var i = 0; i < nodes.length; i++ ) visit( nodes[ i ] );
+		} else if ( root.host ) {
+			visit( root.host );
+		}
+		return count;
+	}
+
+	function sweepSurface( root ) {
+		if ( ! root || ! root.querySelectorAll ) return;
+		scanShadowRoots( root );
+		cleanupRemovedNodes( root.ownerDocument || document );
+	}
+
+	function observeSurface( root, meta ) {
+		if ( ! root || ! root.addEventListener ) return false;
+		var doc = root.ownerDocument || ( root.nodeType === 9 ? root : document );
+		var rec = docRecord( doc, true );
+		for ( var i = 0; i < rec.surfaces.length; i++ ) {
+			if ( rec.surfaces[ i ].root === root ) {
+				scanShadowRoots( root, meta );
+				sweepSurface( root );
+				return true;
+			}
+		}
+		var row = {
+			root: root,
+			meta: meta || {},
+			time: Date.now ? Date.now() : 0,
+		};
+		rec.surfaces.push( row );
+		state.surfaces.push( row );
+		installListeners( root );
+		scanShadowRoots( root, meta );
+		if ( typeof MutationObserver !== 'undefined' && root.nodeType === 1 ) {
+			try {
+				var observer = new MutationObserver( function () {
+					sweepSurface( root );
+				} );
+				observer.observe( root, { childList: true, subtree: true } );
+				rec.observers.push( observer );
+			} catch ( e ) {
+				failure( 'observe-failed', { message: e && e.message || '' } );
+			}
+		}
+		sweepSurface( root );
+		return true;
+	}
+
+	function installListeners( target ) {
+		if ( ! target || ! target.addEventListener || target.__oddCursorController ) return;
+		target.__oddCursorController = true;
+		[ 'pointerover', 'pointermove', 'pointerdown', 'pointerup', 'focusin', 'mouseover' ].forEach( function ( name ) {
+			try { target.addEventListener( name, resolveAndApplyEvent, true ); } catch ( e ) {}
+		} );
 	}
 
 	function mark( node, kind ) {
@@ -241,10 +554,10 @@
 		doc = doc || document;
 		href = typeof href === 'string' ? href : configuredHref();
 		slug = typeof slug === 'string' ? slug : configuredSlug();
+		clearBridged( doc );
 
 		if ( shouldClear( href, slug ) ) {
 			removeLink( doc );
-			if ( doc === document ) clearBridged();
 			state.slug = slug === 'none' ? '' : slug;
 			state.href = '';
 			state.status = 'idle';
@@ -264,9 +577,10 @@
 		state.slug = slug;
 		state.href = href;
 		if ( doc === document ) {
-			clearBridged();
 			setConfig( href, slug );
 		}
+		installListeners( doc );
+		if ( doc.body ) observeSurface( doc.body, { source: 'document' } );
 		return link;
 	}
 
@@ -279,6 +593,8 @@
 		href = typeof href === 'string' ? href : ( state.href || configuredHref() );
 		var slug = state.slug || configuredSlug();
 		var link = apply( href, slug, doc );
+		installListeners( doc );
+		if ( doc.body ) observeSurface( doc.body, { source: 'iframe' } );
 		if ( doc !== document ) {
 			state.iframeInjections.push( {
 				time: Date.now ? Date.now() : 0,
@@ -299,62 +615,12 @@
 		}
 	}
 
-	function nativeKind( cursor ) {
-		cursor = typeof cursor === 'string' ? cursor : '';
-		if ( cursor.indexOf( 'url(' ) !== -1 ) return '';
-		if ( cursor === 'pointer' ) return 'pointer';
-		if ( cursor === 'text' || cursor === 'vertical-text' ) return 'text';
-		if ( cursor === 'grab' || cursor === 'move' ) return 'grab';
-		if ( cursor === 'grabbing' ) return 'grabbing';
-		if ( cursor === 'crosshair' ) return 'crosshair';
-		if ( cursor === 'not-allowed' || cursor === 'no-drop' ) return 'not-allowed';
-		if ( cursor === 'wait' ) return 'wait';
-		if ( cursor === 'progress' ) return 'progress';
-		if ( cursor === 'help' ) return 'help';
-		return '';
-	}
-
 	function bridgeNativeCursor( event ) {
-		bridgeTarget( event && event.target );
+		resolveAndApplyEvent( event );
 	}
 
 	function bridgeTarget( node ) {
-		if ( ! state.href || ! node ) return;
-		var limit = document.body;
-		while ( node && node !== document && node.nodeType === 1 ) {
-			// Skip elements we've already stamped with a semantic role. The
-			// CSS endpoint resolves those through `[data-odd-cursor="*"]`
-			// directly, so the bridge has nothing to add there.
-			//
-			// IMPORTANT: Do *not* bail when an ancestor is the generic
-			// Desktop Mode shell (`.desktop-mode`, `.wp-desktop-root`
-			// etc.). Those shells contain native window chrome that WP
-			// Desktop Mode styles with inline `cursor: grab` / `cursor:
-			// pointer` on titlebars and control buttons. The static CSS
-			// can only target known class names, but real builds ship
-			// slightly different class names per version, so the bridge
-			// is our fallback — it reads the computed native cursor and
-			// substitutes the ODD custom URL in its place.
-			if ( node.hasAttribute && node.hasAttribute( 'data-odd-cursor' ) ) return;
-			if ( node.closest && node.closest( '[data-odd-cursor], [data-odd-cursor-root]' ) ) {
-				// Still bridge the *current* node if it sits inside a
-				// marked root but hasn't itself been stamped — this is
-				// exactly the titlebar / minimize-button case.
-			}
-			var computed = '';
-			try { computed = window.getComputedStyle( node ).cursor; } catch ( e ) {}
-			var kind = nativeKind( computed );
-			if ( kind ) {
-				var value = cursorValue( kind );
-				if ( value && node.style && node.style.cursor !== value ) {
-					rememberBridge( node );
-					node.style.cursor = value;
-				}
-				return;
-			}
-			if ( node === limit ) return;
-			node = node.parentNode;
-		}
+		return resolveAndApplyNode( node );
 	}
 
 	function iframeStatuses() {
@@ -403,10 +669,14 @@
 			error:          state.error,
 			iframes:        iframeStatuses(),
 			iframeInjections: state.iframeInjections.slice(),
+			observedSurfaces: state.surfaces.length,
+			shadowRoots:    state.shadowRoots.length,
 			bridged:        bridged.length,
 			semantics:      semanticCoverage(),
 			windows:        windowCoverage(),
 			tokens:         configuredTokens(),
+			lastResolved:   state.lastResolved,
+			failures:       state.failures.slice(),
 			samples:        {
 				body:   sampleCursor( 'body' ),
 				button: sampleCursor( 'button, a, [role="button"]' ),
@@ -418,12 +688,8 @@
 
 	function boot() {
 		apply( configuredHref(), configuredSlug(), document );
-		markInteractiveDescendants( document );
-		if ( document.addEventListener && ! document.__oddCursorBridge ) {
-			document.__oddCursorBridge = true;
-			document.addEventListener( 'pointerover', bridgeNativeCursor, true );
-			document.addEventListener( 'mouseover', bridgeNativeCursor, true );
-		}
+		installListeners( document );
+		if ( document.body ) observeSurface( document.body, { source: 'boot' } );
 	}
 
 	window.__odd.cursors = {
@@ -434,6 +700,7 @@
 		mark:       mark,
 		markRoot:   markRoot,
 		markInteractiveDescendants: markInteractiveDescendants,
+		observeSurface: observeSurface,
 		status:     status,
 	};
 

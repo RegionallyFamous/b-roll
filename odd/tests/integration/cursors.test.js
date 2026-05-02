@@ -83,13 +83,18 @@ describe( 'ODD cursor runtime', () => {
 
 	it( 'injects the current stylesheet into same-origin iframe documents', () => {
 		loadRuntime();
-		const iframeDoc = document.implementation.createHTMLDocument( 'frame' );
+		const iframe = document.createElement( 'iframe' );
+		document.body.appendChild( iframe );
+		const iframeDoc = iframe.contentDocument;
+		iframeDoc.body.innerHTML = '<button>Frame Button</button>';
 
 		window.__odd.cursors.injectInto( iframeDoc );
 
 		const link = iframeDoc.getElementById( 'odd-cursors-css' );
 		expect( link ).toBeTruthy();
 		expect( link.getAttribute( 'href' ) ).toContain( 'set=oddlings-cursors' );
+		iframeDoc.querySelector( 'button' ).dispatchEvent( new iframe.contentWindow.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
+		expect( iframeDoc.querySelector( 'button' ).style.cursor ).toContain( 'pointer.svg' );
 	} );
 
 	it( 'bridges host elements that compute to native pointer cursors', () => {
@@ -107,7 +112,7 @@ describe( 'ODD cursor runtime', () => {
 		expect( item.style.cursor ).toBe( 'pointer' );
 	} );
 
-	it( 'stamps semantic roles and does not bridge known Desktop Mode surfaces', () => {
+	it( 'stamps semantic roles and resolves them through the runtime controller', () => {
 		loadRuntime();
 		const shell = document.createElement( 'div' );
 		shell.className = 'wp-desktop-root';
@@ -121,8 +126,8 @@ describe( 'ODD cursor runtime', () => {
 		window.__odd.cursors.bridgeTarget( tile );
 
 		expect( tile.getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
-		expect( tile.style.cursor ).toBe( 'pointer' );
-		expect( window.__odd.cursors.status().bridged ).toBe( 0 );
+		expect( tile.style.cursor ).toContain( 'pointer.svg' );
+		expect( window.__odd.cursors.status().bridged ).toBe( 1 );
 		expect( window.__odd.cursors.status().semantics.pointer ).toBeGreaterThan( 0 );
 	} );
 
@@ -162,24 +167,62 @@ describe( 'ODD cursor runtime', () => {
 		expect( window.__odd.cursors.status().bridged ).toBeGreaterThanOrEqual( 1 );
 	} );
 
-	it( 'bridges minimize/close buttons inside native window chrome', () => {
+	it( 'resolves close buttons inside native window chrome from real events', () => {
 		loadRuntime();
 
 		const win = document.createElement( 'div' );
 		win.setAttribute( 'data-window-id', 'odd' );
+		const titlebar = document.createElement( 'div' );
+		titlebar.setAttribute( 'data-window-titlebar', '' );
+		titlebar.style.cursor = 'grab';
+		const close = document.createElement( 'button' );
+		close.setAttribute( 'aria-label', 'Close' );
+		close.style.cursor = 'pointer';
+		titlebar.appendChild( close );
+		win.appendChild( titlebar );
+		document.body.appendChild( win );
+
+		window.__odd.cursors.observeSurface( win, { source: 'test' } );
+		close.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
+
+		expect( close.style.cursor ).toContain( 'url(' );
+		expect( close.style.cursor ).toContain( 'pointer.svg' );
+		expect( window.__odd.cursors.status().lastResolved.role ).toBe( 'pointer' );
+	} );
+
+	it( 'observes late chrome replacements after the surface was registered', () => {
+		loadRuntime();
+
+		const win = document.createElement( 'div' );
+		win.setAttribute( 'data-window-id', 'odd' );
+		document.body.appendChild( win );
+		window.__odd.cursors.observeSurface( win, { source: 'test' } );
+
 		const close = document.createElement( 'button' );
 		close.setAttribute( 'aria-label', 'Close' );
 		close.style.cursor = 'pointer';
 		win.appendChild( close );
-		document.body.appendChild( win );
+		close.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
 
-		window.__odd.cursors.markRoot( win );
-		// Simulate markInteractiveDescendants NOT having stamped this
-		// yet (can happen for chrome injected after boot). The bridge
-		// must still replace the native pointer with the ODD URL.
-		close.removeAttribute( 'data-odd-cursor' );
-		window.__odd.cursors.bridgeTarget( close );
+		expect( close.style.cursor ).toContain( 'pointer.svg' );
+		expect( window.__odd.cursors.status().observedSurfaces ).toBeGreaterThanOrEqual( 1 );
+	} );
 
-		expect( close.style.cursor ).toContain( 'url(' );
+	it( 'uses composed paths for controls inside open shadow roots', () => {
+		loadRuntime();
+
+		const host = document.createElement( 'div' );
+		const shadow = host.attachShadow( { mode: 'open' } );
+		const close = document.createElement( 'button' );
+		close.setAttribute( 'aria-label', 'Close' );
+		close.style.cursor = 'pointer';
+		shadow.appendChild( close );
+		document.body.appendChild( host );
+
+		window.__odd.cursors.observeSurface( document.body, { source: 'test' } );
+		close.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
+
+		expect( close.style.cursor ).toContain( 'pointer.svg' );
+		expect( window.__odd.cursors.status().shadowRoots ).toBeGreaterThanOrEqual( 1 );
 	} );
 } );
