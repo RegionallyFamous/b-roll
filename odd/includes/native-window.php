@@ -49,8 +49,8 @@ add_action(
 				'template'   => 'odd_render_panel_template',
 				'width'      => 1080,
 				'height'     => 720,
-				'min_width'  => 720,
-				'min_height' => 520,
+				'min_width'  => 420,
+				'min_height' => 420,
 				'placement'  => odd_shop_taskbar_enabled( $uid ) ? 'taskbar' : 'none',
 			)
 		);
@@ -86,13 +86,16 @@ add_filter(
 				continue;
 			}
 
-			// The ODD Shop should always come back at its current
-			// default footprint. WP Desktop Mode persists window
-			// state per user, so a single accidental maximize (or a
-			// pre-redesign 820×560 save) would otherwise stick forever.
+			// Preserve deliberate user-resized windows, including
+			// narrow QA/mobile layouts. Only clamp impossible legacy
+			// values and oversized saved states that would reopen as
+			// a faux-maximized Shop forever.
+			$width  = isset( $window['width'] ) ? (int) $window['width'] : 1080;
+			$height = isset( $window['height'] ) ? (int) $window['height'] : 720;
+
 			$config['session']['windows'][ $i ]['state']  = 'normal';
-			$config['session']['windows'][ $i ]['width']  = 1080;
-			$config['session']['windows'][ $i ]['height'] = 720;
+			$config['session']['windows'][ $i ]['width']  = max( 420, min( 1080, $width ) );
+			$config['session']['windows'][ $i ]['height'] = max( 420, min( 720, $height ) );
 		}
 
 		return $config;

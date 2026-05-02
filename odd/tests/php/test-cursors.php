@@ -69,6 +69,8 @@ class Test_Cursors extends WP_UnitTestCase {
 		$this->assertStringContainsString( '--odd-cursor-default:', $css );
 		$this->assertStringContainsString( '[data-odd-cursor="text"]', $css );
 		$this->assertStringContainsString( 'input:not([type="button"])', $css );
+		$this->assertStringContainsString( '.desktop-mode-window__titlebar', $css );
+		$this->assertStringContainsString( '[aria-label="Close"]', $css );
 		$this->assertStringNotContainsString( '!important', $css );
 	}
 
@@ -80,6 +82,29 @@ class Test_Cursors extends WP_UnitTestCase {
 			strpos( $css, '[data-odd-cursor="grab"], [data-odd-cursor="grab"] *' ),
 			strpos( $css, '[data-odd-cursor="pointer"] { cursor: var(--odd-cursor-pointer); }' ),
 			'Window close buttons marked pointer must beat a titlebar ancestor marked grab.'
+		);
+	}
+
+	public function test_native_window_chrome_gets_cursor_coverage() {
+		$this->add_fixture_cursor_set();
+		$css = odd_cursors_build_css( odd_cursors_get_set( 'test-cursors' ) );
+
+		$this->assertStringContainsString(
+			'[data-window-id], [data-windowid], [data-wp-desktop-window-id], [data-desktop-window-id], [data-native-window-id]',
+			$css
+		);
+		$this->assertStringContainsString(
+			'.desktop-mode-window__titlebar, .wp-desktop-window__titlebar, .desktop-window__titlebar, .window-titlebar, .native-window-titlebar { cursor: var(--odd-cursor-grab); }',
+			$css
+		);
+		$this->assertStringContainsString(
+			'.desktop-mode-window [aria-label="Minimize"], .desktop-mode-window [aria-label="Maximize"], .desktop-mode-window [aria-label="Restore"], .desktop-mode-window [aria-label="Close"]',
+			$css
+		);
+		$this->assertGreaterThan(
+			strpos( $css, '.native-window-titlebar { cursor: var(--odd-cursor-grab); }' ),
+			strrpos( $css, '[data-odd-cursor="pointer"] { cursor: var(--odd-cursor-pointer); }' ),
+			'Explicit data cursor roles must still beat native-window titlebar chrome.'
 		);
 	}
 

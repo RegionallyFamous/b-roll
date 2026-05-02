@@ -457,11 +457,13 @@
 .odd-panel.odd-shop .odd-setting-card__text span{max-width:44ch;color:var(--odd-shop-ink-3)}
 .odd-panel.odd-shop .odd-setting-card__controls{grid-column:2;grid-row:1;margin-left:0;padding-top:0;justify-content:flex-end;white-space:nowrap}
 .odd-panel.odd-shop .odd-setting-card__controls--appearance{align-self:center}
-.odd-panel.odd-shop .odd-setting-card--screensaver{grid-column:1/-1;display:grid;grid-template-columns:minmax(280px,1fr) minmax(260px,auto);align-items:center;gap:12px 22px;min-height:0;margin:0;padding:14px 16px;background:linear-gradient(135deg,#fff 0%,#f7f9ff 62%,#fff9ed 100%)}
+.odd-panel.odd-shop .odd-setting-card--screensaver{grid-column:1/-1;display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,360px);align-items:center;gap:12px 24px;min-height:0;margin:0;padding:14px 16px;background:linear-gradient(135deg,#fff 0%,#f7f9ff 62%,#fff9ed 100%)}
 .odd-panel.odd-shop .odd-setting-card--screensaver .odd-switch-row{grid-column:1;grid-row:1}
-.odd-panel.odd-shop .odd-setting-card__controls--screensaver{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:flex-end;gap:10px;max-width:none}
-.odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-field{grid-template-columns:auto minmax(180px,240px)}
-.odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-preview{flex:0 0 auto;justify-content:center;width:auto;min-width:104px;box-sizing:border-box}
+.odd-panel.odd-shop .odd-setting-card__controls--screensaver{grid-column:2;grid-row:1;display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;justify-content:stretch;gap:10px 12px;max-width:none;white-space:normal}
+.odd-panel.odd-shop .odd-setting-card__controls--screensaver > .odd-minutes{grid-column:1;grid-row:1}
+.odd-panel.odd-shop .odd-setting-card__controls--screensaver > span{grid-column:2;grid-row:1;white-space:nowrap}
+.odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-field{grid-column:1/-1;display:grid;grid-template-columns:46px minmax(0,1fr);align-items:center;gap:10px}
+.odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-preview{grid-column:2;justify-self:end;justify-content:center;width:auto;min-width:118px;box-sizing:border-box}
 .odd-panel.odd-shop .odd-setting-field{display:grid;grid-template-columns:auto minmax(150px,220px);align-items:center;gap:10px}
 .odd-panel.odd-shop .odd-minutes{width:64px;min-height:38px;border-radius:12px;font-size:15px}
 .odd-panel.odd-shop .odd-select{min-height:38px;min-width:170px;border-radius:12px}
@@ -800,6 +802,8 @@
 .odd-panel.odd-shop .odd-shop__card-btn--preview,.odd-panel.odd-shop .odd-shop__card-btn--add,.odd-panel.odd-shop .odd-shop__card-btn--open,.odd-panel.odd-shop .odd-shop__tile-btn--ghost,.odd-panel.odd-shop .odd-shop__dropzone-btn,.odd-panel.odd-shop .odd-shop__js-confirm-btn{background:var(--odd-shop-surface-2);border-color:var(--odd-shop-border-strong);color:var(--odd-shop-ink)}
 .odd-panel.odd-shop .odd-shop__card-btn:focus-visible,.odd-panel.odd-shop .odd-shop__tile-btn:focus-visible,.odd-panel.odd-shop .odd-shop__rail-item:focus-visible{outline:3px solid color-mix(in srgb,var(--odd-shop-active-tint,var(--odd-shop-accent)) 46%,transparent);outline-offset:3px}
 .odd-panel.odd-shop .odd-shop__health,.odd-panel.odd-shop .odd-shop__reset-row,.odd-panel.odd-shop .odd-preview-bar,.odd-panel.odd-shop .odd-shop__empty,.odd-panel.odd-shop .odd-shop__tip,.odd-panel.odd-shop .odd-shop__js-confirm,.odd-panel.odd-shop .odd-shop__dropzone,.odd-panel.odd-shop .odd-apps-upload{background:var(--odd-shop-surface);border-color:var(--odd-shop-border);color:var(--odd-shop-ink)}
+.odd-panel.odd-shop .odd-shop__health-body strong{color:var(--odd-shop-ink)}
+.odd-panel.odd-shop .odd-shop__health-body span{color:var(--odd-shop-ink-1)}
 .odd-panel.odd-shop .odd-shop__dropzone,.odd-panel.odd-shop .odd-shop__tip,.odd-panel.odd-shop .odd-shop__health.is-warning,.odd-panel.odd-shop .odd-shop__js-confirm{background:linear-gradient(180deg,color-mix(in srgb,var(--odd-shop-active-tint,var(--odd-shop-accent)) 8%,var(--odd-shop-surface)),var(--odd-shop-surface))}
 .odd-panel.odd-shop .odd-shop__install-types{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
 .odd-panel.odd-shop .odd-about::after{background:radial-gradient(130% 90% at 50% -10%,rgba(255,255,255,0) 0%,color-mix(in srgb,var(--odd-shop-surface) 55%,transparent) 55%,var(--odd-shop-bg) 100%)}

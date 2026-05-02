@@ -2,8 +2,9 @@
 
 The Luxe + Weird overhaul is checked at these breakpoints in both light and dark themes:
 
+- 420 x 520: native-window minimum width stress case.
 - 480 x 820: narrow portrait stress case.
-- 720 x 520: native-window minimum.
+- 720 x 520: compact tablet-ish window.
 - 960 x 620: previous default footprint.
 - 1080 x 720: new default footprint.
 - 1280 x 800: wide desktop.

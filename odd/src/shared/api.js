@@ -320,10 +320,10 @@
 					id:           'odd',
 					title:        'ODD Shop',
 					icon:         ( c.pluginUrl || '' ) + '/assets/odd-eye.svg',
-					width:        960,
-					height:       620,
-					minWidth:     720,
-					minHeight:    480,
+					width:        1080,
+					height:       720,
+					minWidth:     420,
+					minHeight:    420,
 					initialState: 'normal',
 				} );
 				return true;
