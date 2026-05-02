@@ -127,4 +127,37 @@ class Test_Cursors extends WP_UnitTestCase {
 			$_SERVER = $server;
 		}
 	}
+
+	public function test_shared_url_scheme_helper_respects_https_proxy_headers() {
+		$server = $_SERVER;
+		try {
+			$_SERVER['HTTP_HOST']              = 'example.test';
+			$_SERVER['HTTP_X_FORWARDED_PROTO'] = 'http, https';
+			unset( $_SERVER['HTTPS'], $_SERVER['SERVER_PORT'] );
+
+			$this->assertTrue( odd_request_uses_https() );
+			$this->assertSame(
+				'https://example.test/wp-content/plugins/odd/src/panel/index.js',
+				odd_url_current_scheme( 'http://example.test/wp-content/plugins/odd/src/panel/index.js' )
+			);
+		} finally {
+			$_SERVER = $server;
+		}
+	}
+
+	public function test_shared_url_scheme_helper_preserves_plain_http_without_https_signal() {
+		$server = $_SERVER;
+		try {
+			$_SERVER['HTTP_HOST'] = 'example.test';
+			unset( $_SERVER['HTTPS'], $_SERVER['HTTP_X_FORWARDED_PROTO'], $_SERVER['SERVER_PORT'] );
+
+			$this->assertFalse( odd_request_uses_https() );
+			$this->assertSame(
+				'http://example.test/wp-content/plugins/odd/src/panel/index.js',
+				odd_url_current_scheme( 'http://example.test/wp-content/plugins/odd/src/panel/index.js' )
+			);
+		} finally {
+			$_SERVER = $server;
+		}
+	}
 }

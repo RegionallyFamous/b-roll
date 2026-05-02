@@ -22,7 +22,45 @@ define( 'ODD_VERSION', '1.0.0' );
 define( 'ODD_DESKTOP_MODE_MIN_VERSION', '0.6.0' );
 define( 'ODD_FILE', __FILE__ );
 define( 'ODD_DIR', plugin_dir_path( __FILE__ ) );
-define( 'ODD_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
+
+function odd_request_uses_https() {
+	if ( is_ssl() ) {
+		return true;
+	}
+
+	$forwarded = isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) ) ) : '';
+	if ( preg_match( '/(^|,\s*)https(\s*,|$)/', $forwarded ) ) {
+		return true;
+	}
+
+	$https = isset( $_SERVER['HTTPS'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTPS'] ) ) ) : '';
+	if ( in_array( $https, array( 'on', '1', 'https' ), true ) ) {
+		return true;
+	}
+
+	$port = isset( $_SERVER['SERVER_PORT'] ) ? (string) absint( wp_unslash( $_SERVER['SERVER_PORT'] ) ) : '';
+	if ( '443' === $port ) {
+		return true;
+	}
+
+	$host = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) : '';
+	$host = preg_replace( '/:\d+$/', '', $host );
+	return 'playground.wordpress.net' === $host || '.playground.wordpress.net' === substr( $host, -25 );
+}
+
+function odd_url_current_scheme( $url ) {
+	$url = (string) $url;
+	if ( '' === $url ) {
+		return '';
+	}
+	$parts = wp_parse_url( $url );
+	if ( ! is_array( $parts ) || ! isset( $parts['scheme'] ) || 'http' !== strtolower( (string) $parts['scheme'] ) ) {
+		return $url;
+	}
+	return odd_request_uses_https() ? set_url_scheme( $url, 'https' ) : $url;
+}
+
+define( 'ODD_URL', untrailingslashit( odd_url_current_scheme( plugins_url( '', __FILE__ ) ) ) );
 
 require_once ODD_DIR . 'includes/dependencies.php';
 require_once ODD_DIR . 'includes/extensions.php';
