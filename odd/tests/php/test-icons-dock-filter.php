@@ -205,13 +205,13 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 					'id'        => 'wpdc-editor',
 					'title'     => 'Code',
 					'icon'      => 'dashicons-editor-code',
-					'placement' => 'taskbar',
+					'placement' => 'dock',
 				),
 				array(
 					'id'        => 'another-window',
 					'title'     => 'Another',
 					'icon'      => 'dashicons-admin-generic',
-					'placement' => 'taskbar',
+					'placement' => 'dock',
 				),
 			),
 		);

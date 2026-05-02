@@ -103,6 +103,52 @@ describe( 'Desktop Mode hook bridge', () => {
 		} );
 	} );
 
+	it( 'fullscreens the ODD Shop on touch-only open events', () => {
+		const toggleFullscreen = vi.fn();
+		window.wp.desktop = {
+			ready: ( cb ) => cb(),
+			windowManager: {
+				getById: vi.fn( () => ( { id: 'odd', state: 'normal', toggleFullscreen } ) ),
+			},
+		};
+		loadDesktopHooks();
+		window.__odd.api = {
+			isTouchOnly:     vi.fn( () => true ),
+			requestMaximize: vi.fn( () => {
+				toggleFullscreen();
+				return 'fullscreen';
+			} ),
+		};
+
+		window.wp.hooks.doAction( 'wp-desktop.window.opened', { windowId: 'odd' } );
+
+		expect( window.__odd.api.requestMaximize ).toHaveBeenCalledWith( window.wp.desktop );
+		expect( toggleFullscreen ).toHaveBeenCalledTimes( 1 );
+		expect( window.__odd.desktopState.windows.all.find( ( row ) => row.id === 'odd' ) ).toMatchObject( {
+			state: 'fullscreen',
+			layoutSource: 'fullscreen',
+		} );
+	} );
+
+	it( 'does not re-toggle fullscreen when the ODD Shop is already fullscreen', () => {
+		const requestMaximize = vi.fn();
+		window.wp.desktop = {
+			ready: ( cb ) => cb(),
+			windowManager: {
+				getById: vi.fn( () => ( { id: 'odd', state: 'fullscreen' } ) ),
+			},
+		};
+		loadDesktopHooks();
+		window.__odd.api = {
+			isTouchOnly:     vi.fn( () => true ),
+			requestMaximize,
+		};
+
+		window.wp.hooks.doAction( 'wp-desktop.window.reopened', { windowId: 'odd' } );
+
+		expect( requestMaximize ).not.toHaveBeenCalled();
+	} );
+
 	it( 'emits one normalized wallpaper visibility event from the hook bridge', () => {
 		window.wp.desktop = { ready: ( cb ) => cb() };
 		const seen = [];

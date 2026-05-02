@@ -766,6 +766,8 @@
  */
 .odd-panel.odd-shop{grid-template-columns:clamp(64px,22cqw,260px) minmax(0,1fr)!important;background:var(--odd-shop-bg)!important;color:var(--odd-shop-ink);accent-color:var(--odd-shop-accent)}
 .odd-panel.odd-shop[data-odd-theme="dark"]{--odd-shop-surface-0:#0c0b14;--odd-shop-surface-1:#15131f;--odd-shop-surface-2:#1d1a2a;--odd-shop-surface-3:#242136;--odd-shop-ink-0:rgba(235,235,245,.16);--odd-shop-ink-1:#aaa6b8;--odd-shop-ink-2:#d6d2e4;--odd-shop-ink-3:#fbf9ff;--odd-shop-glass:rgba(20,18,32,.78);--odd-shop-glass-strong:rgba(32,29,47,.92);--odd-shop-border:var(--odd-shop-ink-0);--odd-shop-border-strong:rgba(235,235,245,.24);--odd-shop-bg:var(--odd-shop-surface-0);--odd-shop-surface:var(--odd-shop-surface-1);--odd-shop-rail-bg:var(--odd-shop-glass);--odd-shop-ink:var(--odd-shop-ink-3);--odd-shop-accent:#66aaff;--odd-shop-accent-2:#8f8cff}
+.odd-panel.odd-shop[data-odd-chrome-theme*="dark"],[data-odd-chrome-theme*="dark"] .odd-panel.odd-shop{--odd-shop-surface-0:#0c0b14;--odd-shop-surface-1:#15131f;--odd-shop-surface-2:#1d1a2a;--odd-shop-surface-3:#242136;--odd-shop-ink-0:rgba(235,235,245,.16);--odd-shop-ink-1:#aaa6b8;--odd-shop-ink-2:#d6d2e4;--odd-shop-ink-3:#fbf9ff;--odd-shop-glass:rgba(20,18,32,.78);--odd-shop-glass-strong:rgba(32,29,47,.92);--odd-shop-border:var(--odd-shop-ink-0);--odd-shop-border-strong:rgba(235,235,245,.24);--odd-shop-bg:var(--odd-shop-surface-0);--odd-shop-surface:var(--odd-shop-surface-1);--odd-shop-rail-bg:var(--odd-shop-glass);--odd-shop-ink:var(--odd-shop-ink-3);--odd-shop-accent:#66aaff;--odd-shop-accent-2:#8f8cff}
+.odd-panel.odd-shop[data-odd-chrome-theme*="light"],[data-odd-chrome-theme*="light"] .odd-panel.odd-shop{--odd-shop-surface-0:#f5f5f7;--odd-shop-surface-1:#ffffff;--odd-shop-surface-2:#fbfbfd;--odd-shop-surface-3:#ffffff;--odd-shop-ink-0:rgba(60,60,67,.14);--odd-shop-ink-1:#5d5d62;--odd-shop-ink-2:#3a3a3d;--odd-shop-ink-3:#1d1d1f;--odd-shop-glass:rgba(247,247,249,.86);--odd-shop-glass-strong:rgba(255,255,255,.94);--odd-shop-border:var(--odd-shop-ink-0);--odd-shop-border-strong:rgba(60,60,67,.22);--odd-shop-bg:var(--odd-shop-surface-0);--odd-shop-surface:var(--odd-shop-surface-1);--odd-shop-rail-bg:var(--odd-shop-glass);--odd-shop-ink:var(--odd-shop-ink-3);--odd-shop-accent:#0071e3;--odd-shop-accent-2:#5856d6}
 @media (prefers-color-scheme:dark){.odd-panel.odd-shop:not([data-odd-theme="light"]){--odd-shop-surface-0:#0c0b14;--odd-shop-surface-1:#15131f;--odd-shop-surface-2:#1d1a2a;--odd-shop-surface-3:#242136;--odd-shop-ink-0:rgba(235,235,245,.16);--odd-shop-ink-1:#aaa6b8;--odd-shop-ink-2:#d6d2e4;--odd-shop-ink-3:#fbf9ff;--odd-shop-glass:rgba(20,18,32,.78);--odd-shop-glass-strong:rgba(32,29,47,.92);--odd-shop-border:var(--odd-shop-ink-0);--odd-shop-border-strong:rgba(235,235,245,.24);--odd-shop-bg:var(--odd-shop-surface-0);--odd-shop-surface:var(--odd-shop-surface-1);--odd-shop-rail-bg:var(--odd-shop-glass);--odd-shop-ink:var(--odd-shop-ink-3);--odd-shop-accent:#66aaff;--odd-shop-accent-2:#8f8cff}}
 .odd-panel.odd-shop[data-odd-chaos="1"]{--odd-shop-chaos-saturation:1.12}
 .odd-panel.odd-shop .odd-shop__cast-oddling{position:absolute;left:-80px;top:var(--odd-cast-y,40%);width:58px;height:58px;z-index:8;pointer-events:none;filter:drop-shadow(0 14px 24px rgba(0,0,0,.38));animation:odd-shop-cast var(--odd-cast-duration,4200ms) var(--odd-cast-delay,0ms) var(--odd-shop-ease-out) forwards}
@@ -899,35 +901,9 @@
 .odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__slider-btn{display:none!important}
 .odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__iris-sticker{animation:none}
 
-/* Mobile escape hatch — when the user is on a phone-class device
- * (coarse pointer + narrow real viewport) the Shop escapes the WP
- * Desktop Mode native window chrome and takes over the browser
- * viewport. This is the only CSS lever that actually works on
- * phones, because the native window itself is sized by the shell,
- * not by our styles. `data-odd-mobile` is set by JS (installResponsive
- * State) only when both axes qualify — a coarse pointer in a wide
- * viewport (tablet landscape) keeps the windowed layout. */
-.odd-panel.odd-shop[data-odd-mobile="true"]{position:fixed!important;inset:0!important;z-index:2147483000;max-width:100vw;max-height:100dvh;max-height:100vh;width:100vw;height:100dvh;height:100vh;border-radius:0!important;box-shadow:none!important;background:var(--odd-shop-bg);overflow:hidden}
-/* Hide every decoration that assumes a floating window — topbar
- * corner rounding, brand padding collapse, hero header. */
-.odd-panel.odd-shop[data-odd-mobile="true"] .odd-shop__topbar{border-radius:0;padding-inline:14px;padding-top:max(10px,env(safe-area-inset-top));position:sticky;top:0;z-index:2;background:var(--odd-shop-topbar-bg,var(--odd-shop-surface))}
-.odd-panel.odd-shop[data-odd-mobile="true"] .odd-shop__rail{position:sticky;top:0;z-index:1}
-.odd-panel.odd-shop[data-odd-mobile="true"] .odd-shop__content{padding:14px 14px max(16px,env(safe-area-inset-bottom)) 14px;overflow:auto;-webkit-overflow-scrolling:touch}
-/* Lock the outer body scroll so iOS rubber-banding doesn't poke
- * through to the desktop shell underneath. Opt-in via the class
- * our JS adds at the same time as data-odd-mobile. */
-body.odd-shop-mobile-escape{overflow:hidden!important;position:fixed;inset:0;width:100%;height:100%}
-/* Close handle — mounted by installMobileCloseHandle; invisible
- * unless the escape hatch is active. Position:fixed inside the
- * shop root so it floats above content even when content scrolls. */
-.odd-shop__mobile-close{display:none}
-.odd-panel.odd-shop[data-odd-mobile="true"] .odd-shop__mobile-close{display:inline-flex;align-items:center;justify-content:center;position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:2147483001;width:44px;height:44px;border-radius:999px;border:0;background:rgba(14,14,24,.78);color:#fff;font-size:26px;line-height:1;cursor:pointer;box-shadow:0 10px 28px -14px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.22) inset;-webkit-backdrop-filter:saturate(1.4) blur(16px);backdrop-filter:saturate(1.4) blur(16px)}
-.odd-panel.odd-shop[data-odd-mobile="true"] .odd-shop__mobile-close:active{transform:scale(.94)}
-@media (prefers-color-scheme:dark){.odd-panel.odd-shop[data-odd-mobile="true"] .odd-shop__mobile-close{background:rgba(30,30,40,.82)}}
-
 /* Canonical responsive contract. `data-odd-layout` owns structure;
- * `data-odd-pointer` owns touch ergonomics; `data-odd-mobile` only
- * controls the full-browser escape hatch. */
+ * `data-odd-pointer` owns touch ergonomics. The host window owns
+ * fullscreen presentation. */
 .odd-panel.odd-shop{--odd-shop-mobile-topbar-h:104px}
 .odd-panel.odd-shop[data-odd-layout="compact"]{grid-template-columns:64px minmax(0,1fr)!important}
 .odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__brand-text,.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-heading,.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-group-heading,.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-label,.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-foot{display:none}
@@ -936,8 +912,8 @@ body.odd-shop-mobile-escape{overflow:hidden!important;position:fixed;inset:0;wid
 .odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__hero{grid-template-columns:minmax(0,1fr);align-items:end}
 .odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__hero-body{max-width:78%}
 .odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__hero-thumb{display:none}
-.odd-panel.odd-shop[data-odd-layout="mobile"]{grid-template-rows:auto auto minmax(0,1fr)!important;grid-template-columns:minmax(0,1fr)!important;width:100%;max-width:100%;min-width:0;overflow:hidden;overflow-x:hidden}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__topbar{grid-column:1;grid-row:1;grid-template-columns:minmax(0,1fr);grid-template-areas:"brand" "command";gap:9px;min-width:0;min-height:0;padding:10px 14px;position:sticky;top:0;z-index:4;border-radius:0;background:var(--odd-shop-topbar-bg,var(--odd-shop-surface));box-shadow:0 1px 0 var(--odd-shop-border)}
+.odd-panel.odd-shop[data-odd-layout="mobile"]{grid-template-rows:auto auto minmax(0,1fr)!important;grid-template-columns:minmax(0,1fr)!important;width:100%;max-width:100%;max-inline-size:100vw;inline-size:min(100%,100vw);min-width:0;overflow:hidden;overflow-x:hidden}
+.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__topbar{grid-column:1;grid-row:1;grid-template-columns:minmax(0,1fr);grid-template-areas:"brand" "command";gap:9px;min-width:0;min-height:0;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));position:sticky;top:0;z-index:4;border-radius:0;background:var(--odd-shop-topbar-bg,var(--odd-shop-surface));box-shadow:0 1px 0 var(--odd-shop-border)}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__brand{min-width:0}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__brand-text{display:flex}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__command{justify-self:stretch;width:100%;min-width:0;border-radius:22px;padding:6px}
@@ -952,9 +928,6 @@ body.odd-shop-mobile-escape{overflow:hidden!important;position:fixed;inset:0;wid
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail-item{flex:0 0 auto;grid-template-columns:auto minmax(0,1fr);min-width:0;min-height:44px;padding:9px 12px;scroll-snap-align:start}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail-glyph{width:28px;height:28px}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__content{grid-column:1;grid-row:3;width:100%;max-width:100%;min-width:0;padding:16px 14px max(18px,env(safe-area-inset-bottom)) 14px;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.odd-panel.odd-shop[data-odd-layout="mobile"][data-odd-mobile="true"]{--odd-shop-mobile-topbar-h:calc(104px + env(safe-area-inset-top))}
-.odd-panel.odd-shop[data-odd-layout="mobile"][data-odd-mobile="true"] .odd-shop__topbar{padding-top:max(10px,env(safe-area-inset-top));padding-right:max(68px,calc(14px + env(safe-area-inset-right) + 54px))}
-.odd-panel.odd-shop[data-odd-layout="mobile"][data-odd-mobile="true"] .odd-shop__rail{top:var(--odd-shop-mobile-topbar-h)}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__dept{display:block}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__dept-header{padding:14px 14px 16px;margin-bottom:16px;border-radius:var(--odd-shop-r-l)}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-section-header{margin-bottom:12px}

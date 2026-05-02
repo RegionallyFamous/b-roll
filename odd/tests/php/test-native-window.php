@@ -4,18 +4,16 @@
  * desktop_mode_shell_config filter that governs how the ODD Shop
  * window participates in WP Desktop Mode's shell boot config.
  *
- * These exercise two classes of fix:
+ * These exercise two classes of behavior:
  *
  *  1. Make sure the registered native window advertises a small
  *     minimum size (420x420) on BOTH the `nativeWindows[]` entries
  *     (snake_case and camelCase) AND any `session.windows[]` entries
  *     the shell replays on boot. Shell builds read from different
- *     surfaces; without this, users can end up stuck at an older
- *     720x520 or 960x620 minimum that predates the resizable Shop.
+ *     surfaces.
  *
- *  2. Force-migrate legacy saved widths that exactly match an older
- *     hard minimum (720, 960) so returning users don't see a Shop
- *     that "refuses to shrink" even though min_width is now 420.
+ *  2. Preserve Desktop Mode's own persisted state values so fullscreen
+ *     and maximized host presentation survive across boots.
  */
 
 class Test_Native_Window extends WP_UnitTestCase {
@@ -28,12 +26,12 @@ class Test_Native_Window extends WP_UnitTestCase {
 					array(
 						'id'        => 'odd',
 						'title'     => 'ODD Shop',
-						'placement' => 'taskbar',
+						'placement' => 'dock',
 					),
 					array(
 						'id'        => 'other',
 						'title'     => 'Another',
-						'placement' => 'taskbar',
+						'placement' => 'dock',
 					),
 				),
 			)
@@ -73,9 +71,9 @@ class Test_Native_Window extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @dataProvider legacy_sizes
+	 * @dataProvider valid_window_states
 	 */
-	public function test_legacy_saved_sizes_get_migrated_to_new_default( $in_width, $in_height, $expected_width, $expected_height ) {
+	public function test_session_window_for_odd_preserves_valid_host_state( $state ) {
 		$config = apply_filters(
 			'desktop_mode_shell_config',
 			array(
@@ -83,8 +81,9 @@ class Test_Native_Window extends WP_UnitTestCase {
 					'windows' => array(
 						array(
 							'id'     => 'odd',
-							'width'  => $in_width,
-							'height' => $in_height,
+							'state'  => $state,
+							'width'  => 720,
+							'height' => 520,
 						),
 					),
 				),
@@ -92,17 +91,38 @@ class Test_Native_Window extends WP_UnitTestCase {
 		);
 
 		$window = $config['session']['windows'][0];
-		$this->assertSame( $expected_width, $window['width'] );
-		$this->assertSame( $expected_height, $window['height'] );
+		$this->assertSame( $state, $window['state'] );
+		$this->assertSame( 720, $window['width'], 'Fresh-start config no longer migrates old saved widths.' );
+		$this->assertSame( 520, $window['height'], 'Fresh-start config no longer migrates old saved heights.' );
 	}
 
-	public function legacy_sizes() {
+	public function valid_window_states() {
 		return array(
-			'720x520 stuck-at-old-min'  => array( 720, 520, 1080, 720 ),
-			'960x620 pre-luxe default'  => array( 960, 620, 1080, 720 ),
-			'720x480 older hardcode'    => array( 720, 480, 1080, 720 ),
-			'420x420 valid narrow keep' => array( 420, 420, 420, 420 ),
+			'normal'     => array( 'normal' ),
+			'minimized'  => array( 'minimized' ),
+			'maximized'  => array( 'maximized' ),
+			'fullscreen' => array( 'fullscreen' ),
 		);
+	}
+
+	public function test_session_window_for_odd_normalizes_invalid_state() {
+		$config = apply_filters(
+			'desktop_mode_shell_config',
+			array(
+				'session' => array(
+					'windows' => array(
+						array(
+							'id'     => 'odd',
+							'state'  => 'bogus',
+							'width'  => 500,
+							'height' => 500,
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 'normal', $config['session']['windows'][0]['state'] );
 	}
 
 	public function test_oversized_saved_widths_are_clamped() {

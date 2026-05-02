@@ -3,7 +3,7 @@
  * ODD — native window + desktop icon registration.
  *
  * Registers the ODD Shop (user-facing name; window id stays `odd`
- * for back-compat with WP Desktop Mode session state, tests, slash
+ * for WP Desktop Mode session state, tests, slash
  * commands, and third-party extensions) as a WP Desktop Mode native
  * window — content renders in the parent DOM, not an iframe — see
  * /wp-desktop-mode/docs/native-windows-proposal.md — and pairs it
@@ -12,7 +12,7 @@
  * Double-clicking the desktop icon registered below is the canonical
  * entry point. Slash commands (`/odd-panel`) and widgets (Now Playing
  * "Open ODD" button, Postcard click) also call
- *   wp.desktop.registerWindow( { id: 'odd' } )
+ *   wp.desktop.openWindow( 'odd' )
  * so every surface lands on the same single-instance window.
  */
 
@@ -51,7 +51,7 @@ add_action(
 				'height'     => 720,
 				'min_width'  => 420,
 				'min_height' => 420,
-				'placement'  => odd_shop_taskbar_enabled( $uid ) ? 'taskbar' : 'none',
+				'placement'  => odd_shop_taskbar_enabled( $uid ) ? 'dock' : 'none',
 			)
 		);
 
@@ -68,14 +68,10 @@ add_action(
 );
 
 /**
- * Guarantee that the ODD Shop window advertises a small minimum size in
- * every config surface WP Desktop Mode might read — `nativeWindows[]`
+ * Guarantee that the ODD Shop window advertises the intended size limits
+ * in every config surface WP Desktop Mode might read — `nativeWindows[]`
  * (the registered-window array the shell boots with) and
- * `session.windows[]` (persisted per-user resize state) — and force-
- * migrate legacy saved widths that were locked by older builds (720 or
- * 960 hard minimums). Without this, users whose session still remembers
- * the old 720x520 minimum can't drag the window narrower than that even
- * after we lowered `min_width` on the registration.
+ * `session.windows[]` (persisted per-user resize state).
  */
 add_filter(
 	'desktop_mode_shell_config',
@@ -84,10 +80,11 @@ add_filter(
 			return $config;
 		}
 
-		$min_w = 420;
-		$min_h = 420;
-		$max_w = 1080;
-		$max_h = 720;
+		$min_w        = 420;
+		$min_h        = 420;
+		$max_w        = 1080;
+		$max_h        = 720;
+		$valid_states = array( 'normal', 'minimized', 'maximized', 'fullscreen' );
 
 		// Native-window registry → some shell builds use these to
 		// derive resize-handle limits, so reassert on every boot and
@@ -125,28 +122,15 @@ add_filter(
 				continue;
 			}
 
-			// Preserve deliberate user-resized windows, including
-			// narrow QA/mobile layouts. Only clamp impossible legacy
-			// values and oversized saved states that would reopen as
-			// a faux-maximized Shop forever.
 			$width  = isset( $window['width'] ) ? (int) $window['width'] : $max_w;
 			$height = isset( $window['height'] ) ? (int) $window['height'] : $max_h;
+			$state  = isset( $window['state'] ) ? (string) $window['state'] : 'normal';
 
-			// One-time migration: users whose saved width exactly
-			// matches an older hard minimum (720 or 960) are likely
-			// stuck there because the shell enforced that minimum
-			// when the window was last opened. Reset those to the
-			// new default so the next open doesn't look "frozen".
-			// If a user genuinely wanted 720/960 they can drag back
-			// to it — now that min_width is 420 they'll be able to.
-			if ( 720 === $width || 960 === $width ) {
-				$width = $max_w;
-			}
-			if ( 520 === $height || 480 === $height || 620 === $height ) {
-				$height = $max_h;
+			if ( ! in_array( $state, $valid_states, true ) ) {
+				$state = 'normal';
 			}
 
-			$config['session']['windows'][ $i ]['state']      = 'normal';
+			$config['session']['windows'][ $i ]['state']      = $state;
 			$config['session']['windows'][ $i ]['width']      = max( $min_w, min( $max_w, $width ) );
 			$config['session']['windows'][ $i ]['height']     = max( $min_h, min( $max_h, $height ) );
 			$config['session']['windows'][ $i ]['min_width']  = $min_w;
@@ -168,11 +152,7 @@ add_filter(
  */
 function odd_render_panel_template() {
 	?>
-	<div class="odd-panel odd-shop" data-odd-panel data-odd-shop>
-		<div class="odd-panel__loading odd-shop__loading" data-odd-panel-loading>
-			<?php esc_html_e( 'Loading ODD Shop…', 'odd' ); ?>
-		</div>
-	</div>
+	<div class="odd-panel odd-shop" data-odd-panel data-odd-shop></div>
 	<?php
 }
 
@@ -191,7 +171,7 @@ function odd_control_icon_url() {
 }
 
 /**
- * Whether the ODD Shop should be shown as a Desktop Mode taskbar item.
+ * Whether the ODD Shop should be shown as a Desktop Mode dock item.
  *
  * The desktop shortcut remains registered either way. This only
  * controls native-window placement, which Desktop Mode reads during
@@ -203,9 +183,6 @@ function odd_shop_taskbar_enabled( $uid = 0 ) {
 		return false;
 	}
 	$value = get_user_meta( $uid, 'odd_shop_taskbar', true );
-	if ( '' === $value ) {
-		$value = get_user_meta( $uid, 'odd_shop_dock', true );
-	}
 	if ( '' === $value ) {
 		return true;
 	}
@@ -219,12 +196,4 @@ function odd_shop_set_taskbar_enabled( $uid, $enabled ) {
 	}
 	update_user_meta( $uid, 'odd_shop_taskbar', $enabled ? 1 : 0 );
 	return odd_shop_taskbar_enabled( $uid );
-}
-
-function odd_shop_dock_enabled( $uid = 0 ) {
-	return odd_shop_taskbar_enabled( $uid );
-}
-
-function odd_shop_set_dock_enabled( $uid, $enabled ) {
-	return odd_shop_set_taskbar_enabled( $uid, $enabled );
 }

@@ -251,7 +251,7 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 		odd_apps_index_save( $index );
 	}
 
-	public function test_register_surfaces_forwards_taskbar_placement_and_skips_icon_when_desktop_off() {
+	public function test_register_surfaces_forwards_dock_placement_and_skips_icon_when_desktop_off() {
 		$this->require_desktop_mode_stubs();
 
 		$manifest = $this->install_fixture(
@@ -269,7 +269,7 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 
 		$window = $this->find_call( 'window', 'odd-app-register-tbar-no-desk' );
 		$this->assertNotNull( $window, 'register_window was not called.' );
-		$this->assertSame( 'taskbar', $window['args']['placement'] );
+		$this->assertSame( 'dock', $window['args']['placement'] );
 
 		$icon = $this->find_call( 'icon', 'odd-app-register-tbar-no-desk' );
 		$this->assertNull( $icon, 'register_icon must be skipped when surfaces.desktop is false.' );
@@ -318,7 +318,7 @@ class Test_Apps_Surfaces extends ODD_REST_Test_Case {
 
 		$this->assertNotNull( $window );
 		$this->assertNotNull( $icon );
-		$this->assertSame( 'taskbar', $window['args']['placement'] );
+		$this->assertSame( 'dock', $window['args']['placement'] );
 	}
 
 	public function test_register_surfaces_uses_manifest_icon_for_desktop_and_taskbar() {

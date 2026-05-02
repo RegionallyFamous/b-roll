@@ -17,7 +17,7 @@
  * row's `surfaces` shape (see odd_apps_row_surfaces()):
  *
  *   surfaces.taskbar → forwarded to register_window() as
- *     `placement => 'taskbar'`; Desktop Mode renders the taskbar
+ *     `placement => 'dock'`; Desktop Mode renders the dock
  *     icon via its internal `rail.appendSystemItem({ onOpen: … })`
  *     path so no JS click handler is needed on our side. When false
  *     we pass `placement => 'none'` (window registered, no tile).
@@ -81,12 +81,10 @@ function odd_apps_register_surfaces( $row ) {
 		'height'     => 600,
 		'min_width'  => 420,
 		'min_height' => 320,
-		// 'taskbar' → Desktop Mode appends a system tile on the
-		// bottom pill; its onOpen handler calls the window manager
-		// directly so we don't need a JS click interceptor. 'none'
-		// registers the window but leaves both rails untouched —
-		// the app is still reachable from `wp.desktop.openWindow()`.
-		'placement'  => $surfaces['taskbar'] ? 'taskbar' : 'none',
+		// 'dock' → Desktop Mode appends a system tile whose onOpen
+		// handler calls the window manager directly. 'none' registers
+		// the window but leaves the rail untouched.
+		'placement'  => $surfaces['taskbar'] ? 'dock' : 'none',
 	);
 
 	if ( isset( $manifest['window'] ) && is_array( $manifest['window'] ) ) {

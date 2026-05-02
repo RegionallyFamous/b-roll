@@ -126,6 +126,7 @@
 	var desktopState = window.__odd.desktopState || makeDesktopState();
 	var windowStateById = {};
 	var activityTimers = {};
+	var warnedShopFullscreen = false;
 	window.__odd.desktopState = desktopState;
 
 	function stateNow() {
@@ -202,6 +203,8 @@
 			title: '',
 			odd: isOddWindow( id ),
 			focused: false,
+			state: '',
+			layoutSource: '',
 			bounds: null,
 			body: null,
 			updatedAt: 0,
@@ -210,6 +213,10 @@
 		row.odd = isOddWindow( id );
 		if ( payload && typeof payload.title === 'string' ) row.title = payload.title;
 		if ( payload && payload.config && typeof payload.config.title === 'string' ) row.title = payload.config.title;
+		if ( payload && typeof payload.state === 'string' ) row.state = payload.state;
+		if ( hookName === 'wp-desktop.window.maximized' ) row.state = 'maximized';
+		if ( hookName === 'wp-desktop.window.unmaximized' || hookName === 'wp-desktop.window.fullscreen-exited' ) row.state = 'normal';
+		if ( hookName === 'wp-desktop.window.fullscreen-entered' ) row.state = 'fullscreen';
 		var bounds = normalizeBounds( payload );
 		if ( bounds ) row.bounds = bounds;
 		if ( payload && ( payload.width != null || payload.height != null ) ) {
@@ -382,6 +389,75 @@
 		return elementFromPayload( payload ) || findWindowElement( windowIdFromPayload( payload ) );
 	}
 
+	function windowInstance( id ) {
+		var d = desktop();
+		return d && d.windowManager && typeof d.windowManager.getById === 'function'
+			? d.windowManager.getById( id )
+			: null;
+	}
+
+	function stampChromeTheme( payload ) {
+		var id = windowIdFromPayload( payload );
+		if ( ! id ) return;
+		var themeId = payload && payload.themeId ? String( payload.themeId ) : '';
+		var root = findWindowElement( id );
+		if ( root && root.setAttribute ) {
+			root.setAttribute( 'data-odd-chrome-theme', themeId );
+			var panels = root.querySelectorAll ? root.querySelectorAll( '.odd-panel.odd-shop' ) : [];
+			for ( var i = 0; i < panels.length; i++ ) {
+				panels[ i ].setAttribute( 'data-odd-chrome-theme', themeId );
+			}
+			if ( root.classList && root.classList.contains( 'odd-panel' ) && root.classList.contains( 'odd-shop' ) ) {
+				root.setAttribute( 'data-odd-chrome-theme', themeId );
+			}
+		}
+		if ( windowStateById[ id ] ) {
+			windowStateById[ id ].chromeTheme = themeId;
+			windowStateById[ id ].updatedAt = stateNow();
+			refreshWindowList();
+			bumpDesktopState();
+		}
+	}
+
+	function fullscreenOddShopOnTouch( payload ) {
+		if ( windowIdFromPayload( payload ) !== 'odd' ) return;
+		var api = window.__odd && window.__odd.api;
+		if ( ! api || typeof api.isTouchOnly !== 'function' || ! api.isTouchOnly() ) return;
+		var win = windowInstance( 'odd' );
+		if ( win && win.state === 'fullscreen' ) return;
+		var result = typeof api.requestMaximize === 'function' ? api.requestMaximize( desktop() ) : false;
+		if ( ! windowStateById.odd ) {
+			windowStateById.odd = {
+				id: 'odd',
+				windowId: 'odd',
+				title: 'ODD Shop',
+				odd: true,
+				focused: true,
+				state: '',
+				layoutSource: '',
+				bounds: null,
+				body: null,
+				updatedAt: 0,
+			};
+		}
+		windowStateById.odd.layoutSource = result || 'host-normal';
+		windowStateById.odd.state = result === 'fullscreen' ? 'fullscreen' : ( win && win.state || windowStateById.odd.state || 'normal' );
+		windowStateById.odd.updatedAt = stateNow();
+		refreshWindowList();
+		bumpDesktopState();
+		if ( ! warnedShopFullscreen ) {
+			setTimeout( function () {
+				var current = windowInstance( 'odd' );
+				if ( current && current.state === 'normal' ) {
+					warnedShopFullscreen = true;
+					if ( window.console && typeof window.console.warn === 'function' ) {
+						window.console.warn( '[odd] Shop opened on touch viewport but host did not enter fullscreen' );
+					}
+				}
+			}, 200 );
+		}
+	}
+
 	function markWindowChrome( root ) {
 		if ( ! root || ! root.querySelectorAll ) return 0;
 		var count = 0;
@@ -512,6 +588,10 @@
 			'wp-desktop.window.detached':            'odd.window-detached',
 			'wp-desktop.window.bounds-changed':      'odd.window-bounds-changed',
 			'wp-desktop.window.body-resized':        'odd.window-body-resized',
+			'wp-desktop.window.maximized':           'odd.window-maximized',
+			'wp-desktop.window.unmaximized':         'odd.window-unmaximized',
+			'wp-desktop.window.fullscreen-entered':  'odd.window-fullscreen-entered',
+			'wp-desktop.window.fullscreen-exited':   'odd.window-fullscreen-exited',
 			'wp-desktop.native-window.after-render': 'odd.native-window-after-render',
 			'wp-desktop.native-window.before-close': 'odd.native-window-before-close',
 		};
@@ -519,6 +599,9 @@
 			addAction( hookName, function ( payload ) {
 				var windowId = payload && ( payload.windowId || payload.id );
 				updateDesktopWindowState( hookName, payload || {} );
+				if ( hookName === 'wp-desktop.window.opened' || hookName === 'wp-desktop.window.reopened' ) {
+					fullscreenOddShopOnTouch( payload || {} );
+				}
 				if ( ! isOddWindow( windowId ) ) return;
 				var normalized = normalizeWindowPayload( payload );
 				record( 'info', hookName, normalized );
@@ -862,11 +945,14 @@
 		[
 			'wp-desktop.window.chrome.theme-changed',
 			'wp-desktop.window.chrome.applied',
-			'wp-desktop.window.attention',
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
+				stampChromeTheme( payload || {} );
 				record( 'info', hookName, payload || {} );
 			} );
+		} );
+		addAction( 'wp-desktop.window.attention', function ( payload ) {
+			record( 'info', 'wp-desktop.window.attention', payload || {} );
 		} );
 
 		ready( function () {

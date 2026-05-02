@@ -29,7 +29,9 @@
  *   api.diagnosticsSnapshot(id?) — host window debug/config snapshot
  *   api.onSceneChange(cb) — subscribe to scene swaps (returns unsub fn)
  *   api.onIconSetChange(cb)
- *   api.openPanel()       — wp.desktop.registerWindow({ id: 'odd' })
+ *   api.openPanel()       — wp.desktop.openWindow('odd')
+ *   api.isTouchOnly()     — phone-class pointer + viewport detection
+ *   api.requestMaximize() — ask Desktop Mode to fullscreen the Shop
  */
 ( function () {
 	'use strict';
@@ -207,6 +209,19 @@
 			if ( typeof d.listDockRailRenderers === 'function' ) out.dockRailRenderers = d.listDockRailRenderers();
 			if ( typeof d.listSystemTiles === 'function' ) out.systemTiles = d.listSystemTiles();
 			if ( typeof d.listPalettes === 'function' ) out.palettes = d.listPalettes();
+			var win = d.windowManager && typeof d.windowManager.getById === 'function' ? d.windowManager.getById( 'odd' ) : null;
+			var panel = document.querySelector ? document.querySelector( '.odd-panel.odd-shop' ) : null;
+			var hostWindowState = win && typeof win.state === 'string' ? win.state : 'normal';
+			var hostFullscreen = !! ( document.body && document.body.classList && document.body.classList.contains( 'wp-desktop-has-fullscreen-window' ) );
+			out.shop = {
+				hostWindowState: hostWindowState,
+				hostFullscreen:  hostFullscreen,
+				panelLayout:     panel ? panel.getAttribute( 'data-odd-layout' ) || '' : '',
+				panelViewport:   panel ? panel.getAttribute( 'data-odd-viewport' ) || '' : '',
+				panelSize:       panel ? panel.getAttribute( 'data-odd-size' ) || '' : '',
+				panelPointer:    panel ? panel.getAttribute( 'data-odd-pointer' ) || '' : '',
+				layoutSource:    hostFullscreen ? 'host-fullscreen' : ( hostWindowState === 'maximized' ? 'host-maximized' : 'host-normal' ),
+			};
 			return out;
 		}, 'api.diagnosticsSnapshot' ) || {};
 	}
@@ -312,70 +327,27 @@
 	}
 
 	function requestMaximize( d ) {
-		if ( ! d ) return;
-		var names = [ 'maximizeWindow', 'toggleMaximizeWindow' ];
-		for ( var i = 0; i < names.length; i++ ) {
-			if ( typeof d[ names[ i ] ] === 'function' ) {
-				try { d[ names[ i ] ]( 'odd' ); return; } catch ( _ ) {}
-			}
+		var win = d && d.windowManager && typeof d.windowManager.getById === 'function'
+			? d.windowManager.getById( 'odd' )
+			: null;
+		if ( win && typeof win.toggleFullscreen === 'function' && win.state !== 'fullscreen' ) {
+			win.toggleFullscreen();
+			return 'fullscreen';
 		}
-		if ( typeof d.setWindowState === 'function' ) {
-			try { d.setWindowState( 'odd', 'maximized' ); return; } catch ( _ ) {}
-		}
-		if ( typeof d.resizeWindow === 'function' ) {
-			try {
-				d.resizeWindow( 'odd', {
-					width:  window.innerWidth,
-					height: window.innerHeight,
-					x:      0,
-					y:      0,
-				} );
-			} catch ( _ ) {}
-		}
+		return false;
 	}
 
 	function openPanel() {
 		var d = window.wp && window.wp.desktop;
 		if ( ! d ) return false;
-		// WP Desktop Mode exposes two ways to surface a window. For
-		// server-registered native windows (ours — see
-		// `desktop_mode_register_window('odd', ...)`) the canonical call
-		// is `openWindow(id)`, which hydrates the server's template +
-		// script handle. `registerWindow({ id })` is a JS-side shortcut
-		// that bypasses the server registry and opens an unthemed shell
-		// — good for widgets but wrong for our Shop window.
+		// Server-registered native windows must open through the host
+		// registry so Desktop Mode hydrates the template and script.
 		var maximize = isTouchOnly();
 		return !! safeCall( function () {
-			if ( typeof d.openWindow === 'function' ) {
-				d.openWindow( 'odd' );
-				if ( maximize ) {
-					// Request maximize *after* the shell has opened
-					// the server-registered window. Any API shape
-					// the host exposes wins; otherwise the in-shop
-					// JS escape hatch (panel/index.js) still takes
-					// over the viewport via fixed positioning.
-					setTimeout( function () { requestMaximize( d ); }, 0 );
-				}
-				return true;
-			}
-			if ( typeof d.registerWindow === 'function' ) {
-				var c = cfg();
-				d.registerWindow( {
-					id:           'odd',
-					title:        'ODD Shop',
-					icon:         ( c.pluginUrl || '' ) + '/assets/odd-eye.svg',
-					width:        1080,
-					height:       720,
-					minWidth:     420,
-					minHeight:    420,
-					initialState: maximize ? 'maximized' : 'normal',
-				} );
-				if ( maximize ) {
-					setTimeout( function () { requestMaximize( d ); }, 0 );
-				}
-				return true;
-			}
-			return false;
+			if ( typeof d.openWindow !== 'function' ) return false;
+			d.openWindow( 'odd' );
+			if ( maximize ) requestMaximize( d );
+			return true;
 		}, 'api.openPanel' );
 	}
 
@@ -410,6 +382,8 @@
 		onSceneChange:   onSceneChange,
 		onIconSetChange: onIconSetChange,
 		openPanel:       openPanel,
+		isTouchOnly:     isTouchOnly,
+		requestMaximize: requestMaximize,
 	};
 
 	// Lifecycle: the store hydrated on `odd-store` load, and `odd-api`

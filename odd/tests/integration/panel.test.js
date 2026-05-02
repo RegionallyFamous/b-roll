@@ -159,7 +159,7 @@ describe( 'ODD Shop', () => {
 
 	afterEach( () => {
 		delete globalThis.fetch;
-		document.body.classList.remove( 'odd-shop-mobile-escape' );
+		document.body.classList.remove( 'wp-desktop-has-fullscreen-window' );
 	} );
 
 	it( 'registers a render callback under window.wpDesktopNativeWindows.odd', () => {
@@ -264,12 +264,19 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'stamps separate layout, pointer, and escape signals for a phone viewport', () => {
+	it( 'stamps mobile layout and host fullscreen state for a phone viewport', () => {
 		// Simulate a 390x844 phone with a coarse pointer and no
 		// hover. JSDOM has no matchMedia by default, so synthesize
 		// one that returns truthy for the mobile queries and falsy
 		// for hover: hover.
 		const origMM = window.matchMedia;
+		const win = { state: 'fullscreen', markContentLoading: vi.fn(), markContentLoaded: vi.fn() };
+		window.wp.desktop = {
+			windowManager: {
+				getById: vi.fn( () => win ),
+			},
+		};
+		document.body.classList.add( 'wp-desktop-has-fullscreen-window' );
 		window.matchMedia = ( q ) => ( {
 			matches:           /pointer:\s*coarse/.test( q ) || /any-pointer:\s*coarse/.test( q ) ? true :
 			                   /hover:\s*hover/.test( q ) ? false :
@@ -277,8 +284,6 @@ describe( 'ODD Shop', () => {
 			media:             q,
 			addEventListener:  () => {},
 			removeEventListener: () => {},
-			addListener:       () => {},
-			removeListener:    () => {},
 		} );
 		const origInner = window.innerWidth;
 		try {
@@ -291,17 +296,17 @@ describe( 'ODD Shop', () => {
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
 			expect( host.getAttribute( 'data-odd-pointer' ) ).toBe( 'coarse' );
 			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 'xs' );
-			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
-			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( true );
-			// Close handle must be mounted so the user can exit the
-			// escape hatch even though the native titlebar is hidden
-			// behind our overlay.
-			expect( host.querySelector( '[data-odd-mobile-close]' ) ).toBeTruthy();
+			expect( host.getAttribute( 'data-odd-host-state' ) ).toBe( 'fullscreen' );
+			expect( host.getAttribute( 'data-odd-host-fullscreen' ) ).toBe( 'true' );
+			expect( host.hasAttribute( [ 'data-odd', 'mobile' ].join( '-' ) ) ).toBe( false );
+			expect( document.body.classList.contains( [ 'odd-shop-mobile', 'escape' ].join( '-' ) ) ).toBe( false );
+			expect( host.querySelector( '[' + [ 'data-odd', 'mobile', 'close' ].join( '-' ) + ']' ) ).toBeFalsy();
+			expect( win.markContentLoading ).toHaveBeenCalledTimes( 1 );
 			cleanup?.();
 		} finally {
 			window.matchMedia = origMM;
 			setViewportWidth( origInner );
-			document.body.classList.remove( 'odd-shop-mobile-escape' );
+			document.body.classList.remove( 'wp-desktop-has-fullscreen-window' );
 		}
 	} );
 
@@ -312,8 +317,6 @@ describe( 'ODD Shop', () => {
 			media:             q,
 			addEventListener:  () => {},
 			removeEventListener: () => {},
-			addListener:       () => {},
-			removeListener:    () => {},
 		} );
 		const origInner = window.innerWidth;
 		try {
@@ -321,8 +324,8 @@ describe( 'ODD Shop', () => {
 			const { host, cleanup } = mountPanel( { width: 900 } );
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
 			expect( host.getAttribute( 'data-odd-pointer' ) ).toBe( 'fine' );
-			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
-			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( true );
+			expect( host.hasAttribute( [ 'data-odd', 'mobile' ].join( '-' ) ) ).toBe( false );
+			expect( document.body.classList.contains( [ 'odd-shop-mobile', 'escape' ].join( '-' ) ) ).toBe( false );
 			cleanup?.();
 		} finally {
 			window.matchMedia = origMM;
@@ -330,7 +333,7 @@ describe( 'ODD Shop', () => {
 		}
 	} );
 
-	it( 'uses mobile escape on an S phone viewport even when the saved native window is wide', () => {
+	it( 'uses mobile layout on an S phone viewport even when the saved native window is wide', () => {
 		const origInner = window.innerWidth;
 		try {
 			setViewportWidth( 620 );
@@ -338,15 +341,15 @@ describe( 'ODD Shop', () => {
 			expect( host.getAttribute( 'data-odd-size' ) ).toBe( 'l' );
 			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 's' );
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
-			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
-			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( true );
+			expect( host.hasAttribute( [ 'data-odd', 'mobile' ].join( '-' ) ) ).toBe( false );
+			expect( document.body.classList.contains( [ 'odd-shop-mobile', 'escape' ].join( '-' ) ) ).toBe( false );
 			cleanup?.();
 		} finally {
 			setViewportWidth( origInner );
 		}
 	} );
 
-	it( 'keeps tablet-width browser resizing compact without fullscreen escape', () => {
+	it( 'keeps tablet-width browser resizing compact without local fullscreen escape', () => {
 		const origInner = window.innerWidth;
 		try {
 			setViewportWidth( 800 );
@@ -354,8 +357,8 @@ describe( 'ODD Shop', () => {
 			expect( host.getAttribute( 'data-odd-size' ) ).toBe( 'l' );
 			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 'm' );
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'compact' );
-			expect( host.hasAttribute( 'data-odd-mobile' ) ).toBe( false );
-			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( false );
+			expect( host.hasAttribute( [ 'data-odd', 'mobile' ].join( '-' ) ) ).toBe( false );
+			expect( document.body.classList.contains( [ 'odd-shop-mobile', 'escape' ].join( '-' ) ) ).toBe( false );
 			cleanup?.();
 		} finally {
 			setViewportWidth( origInner );
@@ -368,18 +371,47 @@ describe( 'ODD Shop', () => {
 			setViewportWidth( 1440 );
 			const { host, cleanup } = mountPanel( { width: 1080 } );
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'desktop' );
-			expect( host.hasAttribute( 'data-odd-mobile' ) ).toBe( false );
+			expect( host.hasAttribute( [ 'data-odd', 'mobile' ].join( '-' ) ) ).toBe( false );
 
 			setViewportWidth( 620 );
 			window.dispatchEvent( new Event( 'resize' ) );
 
 			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 's' );
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
-			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
-			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( true );
+			expect( host.hasAttribute( [ 'data-odd', 'mobile' ].join( '-' ) ) ).toBe( false );
+			expect( document.body.classList.contains( [ 'odd-shop-mobile', 'escape' ].join( '-' ) ) ).toBe( false );
 			cleanup?.();
 		} finally {
 			setViewportWidth( origInner );
+		}
+	} );
+
+	it( 'updates host-state attributes from Desktop Mode fullscreen and bounds events', () => {
+		const origInner = window.innerWidth;
+		const win = { state: 'normal' };
+		try {
+			window.wp.desktop = {
+				windowManager: {
+					getById: vi.fn( () => win ),
+				},
+			};
+			const { host, cleanup } = mountPanel( { width: 1080 } );
+			expect( host.getAttribute( 'data-odd-host-state' ) ).toBe( 'normal' );
+			expect( host.getAttribute( 'data-odd-host-fullscreen' ) ).toBe( 'false' );
+
+			win.state = 'fullscreen';
+			document.body.classList.add( 'wp-desktop-has-fullscreen-window' );
+			window.wp.hooks.doAction( 'wp-desktop.window.fullscreen-entered', { windowId: 'odd' } );
+			expect( host.getAttribute( 'data-odd-host-state' ) ).toBe( 'fullscreen' );
+			expect( host.getAttribute( 'data-odd-host-fullscreen' ) ).toBe( 'true' );
+
+			setViewportWidth( 620 );
+			window.wp.hooks.doAction( 'wp-desktop.window.bounds-changed', { windowId: 'odd' } );
+			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
+			cleanup?.();
+		} finally {
+			setViewportWidth( origInner );
+			document.body.classList.remove( 'wp-desktop-has-fullscreen-window' );
 		}
 	} );
 
@@ -391,8 +423,8 @@ describe( 'ODD Shop', () => {
 			expect( host.getAttribute( 'data-odd-size' ) ).toBe( 's' );
 			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 'xl' );
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'compact' );
-			expect( host.hasAttribute( 'data-odd-mobile' ) ).toBe( false );
-			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( false );
+			expect( host.hasAttribute( [ 'data-odd', 'mobile' ].join( '-' ) ) ).toBe( false );
+			expect( document.body.classList.contains( [ 'odd-shop-mobile', 'escape' ].join( '-' ) ) ).toBe( false );
 			cleanup?.();
 		} finally {
 			setViewportWidth( origInner );
