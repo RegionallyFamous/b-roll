@@ -1,7 +1,7 @@
 /**
  * ODD scene: Tide Pool — v1.2.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/tide-pool.webp)
+ * GPT Image 2 painted backdrop (wallpaper.webp)
  * with noon rockpool motion:
  *
  *   1. Two caustic light nets at different scales drift over the sand.
@@ -15,17 +15,17 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var FISH_COUNT = 14;
 	var SPARKLE_COUNT = 70;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'tide-pool' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/tide-pool.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeFish( w, hh ) {

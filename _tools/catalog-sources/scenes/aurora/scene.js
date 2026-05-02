@@ -1,7 +1,7 @@
 /**
  * ODD scene: Aurora — v0.2.0
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/aurora.webp — arctic plateau
+ * Painted backdrop (wallpaper.webp — arctic plateau
  * under a teal/magenta aurora) loaded as a cover-fit Sprite. On top:
  *
  *   1. Twinkling stars — ~220 small additive dots scattered across
@@ -26,17 +26,17 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var STAR_COUNT = 220;
 	var CURTAIN_COUNT = 3;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'aurora' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/aurora.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeStars( count, w, hh ) {

@@ -15,11 +15,9 @@ __pycache__/
 # Local dev scratch
 _tmp/
 
-# ODD 3.x ships empty — bundle content lives in the remote catalog at
-# _tools/catalog-sources/. The odd/assets/wallpapers/ and
-# odd/assets/previews/ directories are scratch output produced by
-# _tools/gen-wallpaper.py for local preview; they must not ship inside
-# the plugin zip. Keep them out of git so a casual `git add -A` never
-# re-adds a 6 MB payload.
+# ODD ships empty — bundle content lives in the remote catalog at
+# _tools/catalog-sources/. These legacy plugin asset folders must not
+# ship inside the plugin zip. Keep them out of git so a casual
+# `git add -A` never re-adds a multi-megabyte payload.
 odd/assets/wallpapers/
 odd/assets/previews/

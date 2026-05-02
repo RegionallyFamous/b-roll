@@ -1,7 +1,7 @@
 /**
  * ODD scene: Beach Umbrellas — v1.2.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/beach-umbrellas.webp),
+ * GPT Image 2 painted backdrop (wallpaper.webp),
  * a high-aerial beach. Motion:
  *
  *   1. A wave foam band at the top edge advances/retreats.
@@ -13,17 +13,17 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var SPARKLE_COUNT = 140;
 	var GULL_COUNT = 3;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'beach-umbrellas' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/beach-umbrellas.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeSparkles( w, hh ) {

@@ -1,7 +1,7 @@
 /**
  * ODD scene: Balcony Noon — v1.2.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/balcony-noon.webp),
+ * GPT Image 2 painted backdrop (wallpaper.webp),
  * a Tokyo balcony at bright noon. Motion:
  *
  *   1. Laundry flap: a few vertical cloth strips above the backdrop
@@ -14,16 +14,16 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var MOTE_COUNT = 90;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'balcony-noon' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/balcony-noon.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	var LAUNDRY = [

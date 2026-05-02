@@ -1,6 +1,6 @@
 ---
-description: Bump the version, commit, and push a release tag. CI builds the zip and cuts the GitHub release.
-argument-hint: <version>  e.g. 0.2.0
+description: Bump ODD's version pins, commit, and push a release tag. CI builds the zip and cuts the GitHub release.
+argument-hint: <version>  e.g. 1.0.1
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
@@ -25,12 +25,13 @@ git log --oneline -5            # sanity check last commits
 
 If on a different branch, stop and ask.
 
-## 2. Bump the version string in two places
+## 2. Bump version pins
 
-In `odd/odd.php`:
+Use the helper so the plugin headers and both Playground blueprints stay in sync:
 
-- The `* Version:` header
-- The `ODD_VERSION` constant
+```bash
+odd/bin/bump-version <version>
+```
 
 Then confirm they agree:
 
@@ -41,7 +42,7 @@ odd/bin/check-version --expect <version>
 Commit:
 
 ```bash
-git add odd/odd.php
+git add odd/odd.php blueprint.json site/playground/blueprint.json
 git commit -m "chore: bump version to v<version>"
 ```
 
@@ -77,7 +78,7 @@ Or browse to the Actions tab in the repo.
 Give the user:
 
 - The release URL: `https://github.com/RegionallyFamous/odd/releases/tag/v<version>`
-- The Playground demo URL (unchanged — it's release-agnostic)
+- The Playground demo URL: `https://playground.wordpress.net/?blueprint-url=https://odd.regionallyfamous.com/playground/blueprint.json`
 - A one-line summary of what shipped
 
 If the auto-generated release notes need editing, open the release in

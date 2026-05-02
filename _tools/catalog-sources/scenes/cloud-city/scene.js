@@ -1,7 +1,7 @@
 /**
  * ODD scene: Cloud City — v1.2.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/cloud-city.webp),
+ * GPT Image 2 painted backdrop (wallpaper.webp),
  * a pastel-sunrise floating-city gondola deck. Motion:
  *
  *   1. Three cloud parallax bands (back/mid/near) drift left.
@@ -13,16 +13,16 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var LANTERNS = 5;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'cloud-city' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/cloud-city.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeCloudBand( w, hh, count, yFrac, rBase ) {

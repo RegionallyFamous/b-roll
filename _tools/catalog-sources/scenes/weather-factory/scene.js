@@ -9,14 +9,14 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'weather-factory' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/weather-factory.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeWeather( w, hh ) {
@@ -132,7 +132,7 @@
 /**
  * ODD scene: Weather Factory � v1.1.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/weather-factory.webp)
+ * GPT Image 2 painted backdrop (wallpaper.webp)
  * with live weather produced by the painted machine:
  *
  *   1. Precipitation in three depth tiers. Rain drops by default;
@@ -164,11 +164,10 @@
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'weather-factory' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/weather-factory.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function seasonMode( season ) {

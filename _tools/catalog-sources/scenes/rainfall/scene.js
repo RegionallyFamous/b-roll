@@ -14,7 +14,7 @@
  *   - Closing / minimizing a window removes its splash surface.
  *   - Widget cards (clock, postcards, etc) get rained on.
  *
- * Painted backdrop (assets/wallpapers/rainfall.webp — dark stormy
+ * Painted backdrop (wallpaper.webp — dark stormy
  * night, slight city-lights haze at the bottom edge). On top:
  *
  *   1. A mid-distance sheet of ~140 thin raindrops falling at
@@ -38,6 +38,7 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var MID_COUNT_HIGH    = 140;
 	var MID_COUNT_NORMAL  = 95;
@@ -50,11 +51,10 @@
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'rainfall' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/rainfall.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeMidDrop( w, hh, wind ) {

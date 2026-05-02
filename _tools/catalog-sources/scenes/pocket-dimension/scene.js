@@ -9,14 +9,14 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'pocket-dimension' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/pocket-dimension.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeMotes( w, hh ) {
@@ -124,7 +124,7 @@
 /**
  * ODD scene: Pocket Dimension � v1.1.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/pocket-dimension.webp)
+ * GPT Image 2 painted backdrop (wallpaper.webp)
  * of an impossible floating room + portal, decorated with live Pixi:
  *
  *   1. A lensing ring around the painted portal that breathes and
@@ -159,11 +159,10 @@
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'pocket-dimension' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/pocket-dimension.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeShards() {

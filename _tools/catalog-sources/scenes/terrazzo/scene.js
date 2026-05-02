@@ -1,7 +1,7 @@
 /**
  * ODD scene: Terrazzo — v1.2.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/terrazzo.webp), a
+ * GPT Image 2 painted backdrop (wallpaper.webp), a
  * flat overhead terrazzo floor. Motion layer is deliberately quiet:
  *
  *   1. A soft warm sun patch (large soft ellipse) traverses the floor
@@ -14,17 +14,17 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var MOTE_COUNT = 80;
 	var SPARKLE_COUNT = 50;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'terrazzo' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/terrazzo.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeMotes( w, hh ) {

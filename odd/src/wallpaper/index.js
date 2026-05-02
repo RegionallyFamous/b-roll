@@ -222,10 +222,8 @@
 
 	function previewBg( slug ) {
 		var s = SCENE_MAP[ slug ] || {};
-		// Installed scenes carry an explicit previewUrl (content_url()
-		// under wp-content/odd-scenes/<slug>/preview.webp). Built-in
-		// scenes fall back to the historical plugin-assets path.
-		var url = s.previewUrl || assetUrl( 'assets/previews/' + slug + '.webp' );
+		var url = s.previewUrl || '';
+		if ( ! url ) return s.fallbackColor || '#111';
 		return "url(\"" + url + "\") center/cover no-repeat, " + ( s.fallbackColor || '#111' );
 	}
 

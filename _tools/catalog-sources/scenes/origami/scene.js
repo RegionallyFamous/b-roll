@@ -1,7 +1,7 @@
 /**
  * ODD scene: Origami — v0.2.0
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/origami.webp — soft cream
+ * Painted backdrop (wallpaper.webp — soft cream
  * washi paper with faint origami crease shadows in the corners).
  * On top:
  *
@@ -29,6 +29,7 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var CRANE_COUNT  = 7;
 	var FOLD_COUNT   = 9;
@@ -46,11 +47,10 @@
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'origami' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/origami.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeCrane( w, hh ) {

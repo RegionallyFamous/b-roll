@@ -8,14 +8,14 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'circuit-garden' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/circuit-garden.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeSparks( w, hh ) {
@@ -127,7 +127,7 @@
 /**
  * ODD scene: Circuit Garden � v1.1.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/circuit-garden.webp)
+ * GPT Image 2 painted backdrop (wallpaper.webp)
  * with a thin layer of "living circuitry":
  *
  *   1. ~80 data fireflies drifting on a slow noise field with short
@@ -159,11 +159,10 @@
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'circuit-garden' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/circuit-garden.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function seasonPalette( season ) {

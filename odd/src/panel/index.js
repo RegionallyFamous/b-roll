@@ -2848,7 +2848,7 @@
 		function renderWallpaperHero( scene ) {
 			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
 			var isActive    = scene.slug === currentSlug;
-			var previewUrl  = scene.previewUrl || ( ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + scene.slug + '.webp' );
+			var previewUrl  = scene.previewUrl || scene.iconUrl || '';
 
 			var hero = el( 'div', {
 				class: 'odd-shop__hero',
@@ -2856,7 +2856,7 @@
 				style: 'background-color:' + ( scene.fallbackColor || '#1d1d1f' ),
 			} );
 			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
-			bg.style.backgroundImage = 'url("' + previewUrl + '")';
+			if ( previewUrl ) bg.style.backgroundImage = 'url("' + previewUrl + '")';
 			hero.appendChild( bg );
 			mountWallpaperHeroScene( bg, scene, previewUrl );
 			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
@@ -2926,7 +2926,7 @@
 				}, 1000 );
 			} ).catch( function () {
 				if ( live.parentNode ) live.parentNode.removeChild( live );
-				bg.style.backgroundImage = 'url("' + previewUrl + '")';
+				if ( previewUrl ) bg.style.backgroundImage = 'url("' + previewUrl + '")';
 			} );
 			function setPaused( paused ) {
 				pausedByVisibility = !! paused;
@@ -5513,9 +5513,7 @@
 				// installed rows have a richer `previewUrl`. Fall back
 				// through the chain so neither path renders a broken
 				// `<img>` placeholder over the CATALOG badge.
-				var sceneUrl = row.previewUrl
-					|| row.iconUrl
-					|| ( ( state.cfg.pluginUrl || '' ) + '/assets/previews/' + row.slug + '.webp' );
+				var sceneUrl = row.previewUrl || row.iconUrl || '';
 				if ( sceneUrl ) {
 					art.appendChild( artImg( sceneUrl ) );
 				} else {

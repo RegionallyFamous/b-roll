@@ -11,8 +11,8 @@ using OpenAI's gpt-image-2 model. Reads OPENAI_API_KEY from one of (in order):
   3. ~/.env.local
 
 Outputs:
-  odd/assets/wallpapers/<slug>.webp  (1920x1080, q82, cover-fit)
-  odd/assets/previews/<slug>.webp    (640x360,  q80)
+  _tools/catalog-sources/scenes/<slug>/wallpaper.webp  (1920x1080, q82, cover-fit)
+  _tools/catalog-sources/scenes/<slug>/preview.webp    (640x360,  q80)
 
 Usage:
   python3 _tools/gen-wallpaper.py <slug> "<prompt>" [--quality high|medium|low]
@@ -55,8 +55,7 @@ except ImportError:
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-WALLPAPER_DIR = REPO_ROOT / "odd" / "assets" / "wallpapers"
-PREVIEW_DIR = REPO_ROOT / "odd" / "assets" / "previews"
+SCENES_DIR = REPO_ROOT / "_tools" / "catalog-sources" / "scenes"
 WALLPAPER_W, WALLPAPER_H = 1920, 1080
 PREVIEW_W, PREVIEW_H = 640, 360
 GEN_W, GEN_H = 1536, 864  # gpt-image-2 16:9 landscape
@@ -141,14 +140,14 @@ def cover_fit(im: Image.Image, target_w: int, target_h: int) -> Image.Image:
 
 
 def write_pair(slug: str, png: bytes) -> tuple[int, int]:
-    WALLPAPER_DIR.mkdir(parents=True, exist_ok=True)
-    PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+    scene_dir = SCENES_DIR / slug
+    scene_dir.mkdir(parents=True, exist_ok=True)
     src = Image.open(io.BytesIO(png)).convert("RGB")
     wp = cover_fit(src, WALLPAPER_W, WALLPAPER_H)
-    out_wp = WALLPAPER_DIR / f"{slug}.webp"
+    out_wp = scene_dir / "wallpaper.webp"
     wp.save(out_wp, "WEBP", quality=82, method=6)
     pv = wp.resize((PREVIEW_W, PREVIEW_H), Image.LANCZOS)
-    out_pv = PREVIEW_DIR / f"{slug}.webp"
+    out_pv = scene_dir / "preview.webp"
     pv.save(out_pv, "WEBP", quality=80, method=6)
     return out_wp.stat().st_size, out_pv.stat().st_size
 
@@ -158,8 +157,8 @@ def gen_one(slug: str, prompt: str, quality: str, key: str) -> None:
     print(f"  prompt: {prompt[:160]}{'...' if len(prompt) > 160 else ''}")
     png = call_gpt_image_2(prompt, quality, key)
     wp_size, pv_size = write_pair(slug, png)
-    print(f"  wrote odd/assets/wallpapers/{slug}.webp ({wp_size:,} B)")
-    print(f"  wrote odd/assets/previews/{slug}.webp ({pv_size:,} B)")
+    print(f"  wrote _tools/catalog-sources/scenes/{slug}/wallpaper.webp ({wp_size:,} B)")
+    print(f"  wrote _tools/catalog-sources/scenes/{slug}/preview.webp ({pv_size:,} B)")
 
 
 def main() -> int:

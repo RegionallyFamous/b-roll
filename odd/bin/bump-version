@@ -4,14 +4,10 @@
 Updates all three declared versions in sync:
   1. `Version:` header in odd/odd.php
   2. `ODD_VERSION` constant in odd/odd.php
-  3. `?v=<x.y.z>` cache-buster on the ODD ZIP URL in blueprint.json
+  3. `v<x.y.z>` release tag ref in blueprint.json
 
-Why the blueprint cache-buster is non-optional: Playground's service
-worker caches fetched plugin ZIPs keyed on the request URL string.
-`/releases/latest/download/odd.zip` is static, so SW happily serves a
-months-old cached ZIP even after we cut a new release. The ?v= query
-is ignored by GitHub's redirect but forces Playground to miss its SW
-cache and re-fetch on every version bump.
+Why the blueprint tag is non-optional: the public Playground demo should
+run the same release as odd.php, not whatever happens to be on main.
 
 Usage:
     odd/bin/bump-version 0.14.0            # edits in place
@@ -33,6 +29,7 @@ PLUGIN_DIR = HERE.parent
 PLUGIN = PLUGIN_DIR / "odd.php"
 REPO_ROOT = PLUGIN_DIR.parent
 BLUEPRINT = REPO_ROOT / "blueprint.json"
+SITE_BLUEPRINT = REPO_ROOT / "site" / "playground" / "blueprint.json"
 
 SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
@@ -67,31 +64,30 @@ def bump_plugin(text: str, new_version: str) -> tuple[str, list[str]]:
     return new_text, lines
 
 
-def bump_blueprint(text: str, new_version: str) -> tuple[str, list[str]]:
-    """Replace the ?v=<x.y.z> query on the ODD ZIP URL in blueprint.json.
+def bump_blueprint(text: str, new_version: str, label: str) -> tuple[str, list[str]]:
+    """Replace the v<x.y.z> ODD git tag ref in blueprint.json.
 
     Preserves indentation + trailing newline of the original file —
     rewriting through json.dumps would churn formatting unnecessarily.
     Returns (new_text, summary_lines).
     """
-    url_re = re.compile(
-        r'("url"\s*:\s*"https://github\.com/RegionallyFamous/odd/releases/[^"]*?odd\.zip)'
-        r'(\?v=[0-9]+\.[0-9]+\.[0-9]+)?'
-        r'(")'
+    ref_re = re.compile(
+        r'("url"\s*:\s*"https://github\.com/RegionallyFamous/odd"\s*,\s*\n'
+        r'\s*"ref"\s*:\s*")v[0-9]+\.[0-9]+\.[0-9]+(")'
     )
-    matches = list(url_re.finditer(text))
+    matches = list(ref_re.finditer(text))
     if not matches:
         raise SystemExit(
-            "error: could not find the ODD odd.zip installPlugin URL in blueprint.json"
+            "error: could not find the ODD git:directory release tag in blueprint.json"
         )
     if len(matches) > 1:
         raise SystemExit(
-            f"error: blueprint.json contains {len(matches)} ODD odd.zip URLs "
+            f"error: blueprint.json contains {len(matches)} ODD release refs "
             "(expected exactly 1) — cowardly refusing to guess which to bump"
         )
 
-    new_text = url_re.sub(
-        lambda m: f'{m.group(1)}?v={new_version}{m.group(3)}',
+    new_text = ref_re.sub(
+        lambda m: f'{m.group(1)}v{new_version}{m.group(2)}',
         text,
         count=1,
     )
@@ -102,7 +98,7 @@ def bump_blueprint(text: str, new_version: str) -> tuple[str, list[str]]:
     except json.JSONDecodeError as e:
         raise SystemExit(f"error: blueprint.json stopped being valid JSON after edit: {e}")
 
-    return new_text, ["  blueprint.json: odd.zip ?v= -> " + new_version]
+    return new_text, [f"  {label}: ODD git tag -> v{new_version}"]
 
 
 def main() -> int:
@@ -125,6 +121,9 @@ def main() -> int:
     if not BLUEPRINT.exists():
         print(f"error: missing {BLUEPRINT}", file=sys.stderr)
         return 1
+    if not SITE_BLUEPRINT.exists():
+        print(f"error: missing {SITE_BLUEPRINT}", file=sys.stderr)
+        return 1
 
     summary: list[str] = []
 
@@ -133,8 +132,20 @@ def main() -> int:
     summary.extend(plugin_lines)
 
     blueprint_text = BLUEPRINT.read_text()
-    new_blueprint_text, blueprint_lines = bump_blueprint(blueprint_text, args.version)
+    new_blueprint_text, blueprint_lines = bump_blueprint(
+        blueprint_text,
+        args.version,
+        "blueprint.json",
+    )
     summary.extend(blueprint_lines)
+
+    site_blueprint_text = SITE_BLUEPRINT.read_text()
+    new_site_blueprint_text, site_blueprint_lines = bump_blueprint(
+        site_blueprint_text,
+        args.version,
+        "site/playground/blueprint.json",
+    )
+    summary.extend(site_blueprint_lines)
 
     print(f"bumping ODD to {args.version}:")
     for line in summary:
@@ -148,6 +159,8 @@ def main() -> int:
         PLUGIN.write_text(new_plugin_text)
     if new_blueprint_text != blueprint_text:
         BLUEPRINT.write_text(new_blueprint_text)
+    if new_site_blueprint_text != site_blueprint_text:
+        SITE_BLUEPRINT.write_text(new_site_blueprint_text)
 
     print("done. run `odd/bin/check-version` to confirm.")
     return 0

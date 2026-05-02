@@ -1,7 +1,7 @@
 /**
  * ODD scene: Wildflower Meadow — v1.2.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/wildflower-meadow.webp).
+ * GPT Image 2 painted backdrop (wallpaper.webp).
  * Motion:
  *
  *   1. Butterflies on slow sine-arc paths across the mid-ground.
@@ -13,6 +13,7 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var BUTTERFLY_COUNT = 6;
 	var BEE_COUNT = 4;
@@ -20,11 +21,10 @@
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'wildflower-meadow' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/wildflower-meadow.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeButterflies( w, hh ) {

@@ -25,6 +25,7 @@ Use this skeleton. Fill in a 1–3 line header comment describing the visual (fr
     window.__odd = window.__odd || {};
     window.__odd.scenes = window.__odd.scenes || {};
     var h = window.__odd.helpers;
+    var scriptUrl = document.currentScript && document.currentScript.src;
 
     window.__odd.scenes[ '<slug>' ] = {
         setup: async function ( env ) {
@@ -33,7 +34,7 @@ Use this skeleton. Fill in a 1–3 line header comment describing the visual (fr
             // Painted backdrop — cover-fit, re-run on resize.
             var sceneMap = ( window.odd && window.odd.sceneMap ) || {};
             var descriptor = sceneMap[ '<slug>' ] || {};
-            var url = descriptor.wallpaperUrl || ( ( window.odd && window.odd.pluginUrl ) + '/assets/wallpapers/<slug>.webp?v=' + window.odd.version );
+            var url = descriptor.wallpaperUrl || ( scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '' );
             var tex = await PIXI.Assets.load( url );
             var backdrop = new PIXI.Sprite( tex );
             app.stage.addChild( backdrop );
@@ -71,7 +72,7 @@ Use this skeleton. Fill in a 1–3 line header comment describing the visual (fr
   "franchise": "<Franchise>",
   "tags": ["tag1", "tag2"],
   "fallbackColor": "#111111",
-  "added": "X.Y.Z"
+  "version": "1.0.0"
 }
 ```
 
@@ -84,10 +85,10 @@ The builder populates `previewUrl` + `wallpaperUrl` from the files on disk.
 
 Run `python3 _tools/build-catalog.py && odd/bin/validate-catalog` — the builder rejects broken source trees and the validator refuses catalogs with missing bundles / hash mismatches / bad manifests.
 
-## 4. Bump the plugin version in `odd/odd.php`
+## 4. Build and validate the catalog
 
-Two places stay in sync: the `Version:` header and `ODD_VERSION`. Pick the next patch version unless the user specified otherwise, then run `odd/bin/check-version`.
+Content ships through the remote catalog, so a new scene does not require a plugin version bump. Run `python3 _tools/build-catalog.py && odd/bin/validate-catalog` after adding the assets.
 
 ## 5. Report back
 
-Tell the user what was created, what's still placeholder, and suggest next steps — typically: flesh out `tick()`, regenerate the painted assets via `_tools/gen-wallpaper.py`, and run `/release <next-version>` when ready.
+Tell the user what was created, what's still placeholder, and suggest next steps — typically: flesh out `tick()`, generate the painted assets via `_tools/gen-wallpaper.py`, and publish the catalog when ready.

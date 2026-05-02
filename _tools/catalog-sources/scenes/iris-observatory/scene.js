@@ -1,7 +1,7 @@
 /**
  * ODD scene: Iris Observatory — v0.15.1
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/iris-observatory.webp)
+ * GPT Image 2 painted backdrop (wallpaper.webp)
  * with restrained Pixi motion:
  *
  *   1. Slow atmospheric dust, biased around the telescope/window light.
@@ -18,17 +18,17 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var DUST_COUNT = 130;
 	var RIBBON_COUNT = 3;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'iris-observatory' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/iris-observatory.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeDust( w, hh ) {

@@ -3,8 +3,8 @@
 
 Background
 ----------
-`blueprint.json` at the repo root is what Playground executes when
-somebody opens the public demo URL. Any step that depends on a
+`blueprint.json` at the repo root and `site/playground/blueprint.json`
+are the source and hosted forms of the public Playground demo. Any step that depends on a
 browser-blocked URL, a wiggly `releases/latest/download` redirect, or
 an unpinned plugin install turns the first-run experience into a CORS
 failure — and that's typically the first thing a new user ever sees.
@@ -14,7 +14,7 @@ regressions are caught before they reach `main`.
 
 Checks (all emit bullets; any failure → exit code 1):
 
-  1. `blueprint.json` exists and parses as JSON.
+  1. Both blueprints exist and parse as JSON.
   2. No `installPlugin` step uses GitHub release asset URLs.
      GitHub serves release assets without Playground-compatible CORS
      headers, even when the tag is pinned.
@@ -45,6 +45,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent.parent
 BLUEPRINT = REPO_ROOT / "blueprint.json"
+SITE_BLUEPRINT = REPO_ROOT / "site" / "playground" / "blueprint.json"
 
 
 def fail(problems: list[str]) -> None:
@@ -54,18 +55,16 @@ def fail(problems: list[str]) -> None:
     sys.exit(1)
 
 
-def main() -> int:
+def validate_file(path: Path) -> tuple[list[str], int]:
     problems: list[str] = []
 
-    if not BLUEPRINT.exists():
-        fail([f"{BLUEPRINT} not found — reliability gate cannot run."])
-        return 1
+    if not path.exists():
+        return [f"{path.relative_to(REPO_ROOT)} not found — reliability gate cannot run."], 0
 
     try:
-        data = json.loads(BLUEPRINT.read_text())
+        data = json.loads(path.read_text())
     except json.JSONDecodeError as e:
-        fail([f"{BLUEPRINT} did not parse as JSON: {e}"])
-        return 1
+        return [f"{path.relative_to(REPO_ROOT)} did not parse as JSON: {e}"], 0
 
     steps = data.get("steps")
     if not isinstance(steps, list) or not steps:
@@ -127,11 +126,22 @@ def main() -> int:
                     "so the plugin folder matches what `Requires Plugins:` expects"
                 )
 
+    return problems, len(steps or [])
+
+
+def main() -> int:
+    problems: list[str] = []
+    total_steps = 0
+    for path in (BLUEPRINT, SITE_BLUEPRINT):
+        file_problems, step_count = validate_file(path)
+        problems.extend(file_problems)
+        total_steps += step_count
+
     if problems:
         fail(problems)
         return 1
 
-    print(f"blueprint ok: {len(steps or [])} steps, no CORS-fragile or unpinned dependencies")
+    print(f"blueprints ok: {total_steps} total steps, no CORS-fragile or unpinned dependencies")
     return 0
 
 

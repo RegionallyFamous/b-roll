@@ -1,7 +1,7 @@
 /**
  * ODD scene: Mercado — v1.2.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/mercado.webp), a
+ * GPT Image 2 painted backdrop (wallpaper.webp), a
  * bright market aisle with papel-picado bunting. Motion:
  *
  *   1. Two rows of colored bunting flags ripple on shared wind curves.
@@ -13,6 +13,7 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var PETAL_COUNT = 110;
 	var FLAG_ROW_A = 16;
@@ -22,11 +23,10 @@
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'mercado' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/mercado.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makePetals( w, hh ) {

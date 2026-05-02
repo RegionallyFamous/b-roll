@@ -9,14 +9,14 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'abyssal-aquarium' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/abyssal-aquarium.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeBubbles( w, hh ) {
@@ -124,7 +124,7 @@
 /**
  * ODD scene: Abyssal Aquarium � v1.1.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/abyssal-aquarium.webp)
+ * GPT Image 2 painted backdrop (wallpaper.webp)
  * with layered Pixi motion that sells the aquarium glass:
  *
  *   1. Three depth bands of jellyfish silhouettes (back / mid / front),
@@ -155,11 +155,10 @@
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'abyssal-aquarium' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/abyssal-aquarium.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeJellies( w, hh ) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assert the Version header, ODD_VERSION constant, and blueprint cache-buster agree.
+"""Assert the Version header, ODD_VERSION constant, and blueprint install ref agree.
 
 With --expect <x.y.z>, also assert all three match that value (used by
 the release workflow to assert the pushed tag matches every declared
@@ -8,9 +8,8 @@ version).
 Checks:
   - `Version:` header in odd/odd.php
   - `ODD_VERSION` constant in odd/odd.php
-  - `?v=<x.y.z>` query string on the ODD ZIP URL in blueprint.json
-    (so Playground's service worker re-fetches the plugin after each
-    release instead of serving a cached copy keyed on a static URL)
+  - ODD's install ref in blueprint.json when it is pinned to a release tag
+    (so the public Playground demo runs the same release as odd.php)
 
 Usage:
     odd/bin/check-version
@@ -30,29 +29,25 @@ PLUGIN_DIR = HERE.parent
 PLUGIN = PLUGIN_DIR / "odd.php"
 REPO_ROOT = PLUGIN_DIR.parent
 BLUEPRINT = REPO_ROOT / "blueprint.json"
+SITE_BLUEPRINT = REPO_ROOT / "site" / "playground" / "blueprint.json"
 
 
 SENTINEL_GIT_DIRECTORY = "__git_directory__"
 
 
-def blueprint_cachebuster() -> str | None:
+def blueprint_install_ref(path: Path) -> str | None:
     """Inspect how blueprint.json installs the ODD plugin.
 
     Returns one of:
-      - a `?v=<x.y.z>` value if the blueprint pins ODD to a release ZIP
-        with a cache-buster (legacy strategy)
-      - SENTINEL_GIT_DIRECTORY if the blueprint pulls ODD via a
-        `git:directory` resource against `RegionallyFamous/odd`. Git
-        resources are version-checked by branch/tag, not URL string,
-        so we don't need to keep a cache-buster in sync with odd.php.
-      - "" if the URL form is present but missing its `v=` query
-        param (treated as an error at the call site).
+      - a bare x.y.z value if the blueprint pins ODD to a vX.Y.Z git tag
+      - SENTINEL_GIT_DIRECTORY if the blueprint pulls ODD via another
+        `git:directory` ref against `RegionallyFamous/odd`.
       - None if no recognizable ODD install step is present.
     """
-    if not BLUEPRINT.exists():
+    if not path.exists():
         return None
     try:
-        data = json.loads(BLUEPRINT.read_text())
+        data = json.loads(path.read_text())
     except json.JSONDecodeError:
         return None
     for step in data.get("steps", []):
@@ -63,15 +58,12 @@ def blueprint_cachebuster() -> str | None:
         if resource == "git:directory":
             repo = plugin_data.get("url", "")
             if "RegionallyFamous/odd" in repo:
+                ref_type = plugin_data.get("refType", "")
+                ref = str(plugin_data.get("ref", ""))
+                if ref_type == "tag" and re.match(r"^v[0-9]+\.[0-9]+\.[0-9]+$", ref):
+                    return ref[1:]
                 return SENTINEL_GIT_DIRECTORY
             continue
-        url = plugin_data.get("url", "")
-        if "odd.zip" not in url or "RegionallyFamous/odd" not in url:
-            continue
-        match = re.search(r"[?&]v=([0-9]+\.[0-9]+\.[0-9]+)(?:[&#]|$)", url)
-        if match:
-            return match.group(1)
-        return ""
     return None
 
 
@@ -97,24 +89,21 @@ def main() -> int:
         "ODD_VERSION": constant.group(1) if constant else None,
     }
 
-    cachebuster = blueprint_cachebuster()
-    if cachebuster is None:
-        print(
-            "error: could not find the ODD installPlugin step in blueprint.json",
-            file=sys.stderr,
-        )
-        return 1
-    if cachebuster == "":
-        print(
-            "error: blueprint.json's odd.zip URL is missing its ?v=<version> "
-            "cache-buster — Playground's service worker will serve a stale "
-            "plugin ZIP until the URL string changes. Add ?v=<current-version>.",
-            file=sys.stderr,
-        )
-        return 1
-
-    if cachebuster != SENTINEL_GIT_DIRECTORY:
-        found["blueprint ?v="] = cachebuster
+    blueprint_refs: dict[str, str] = {}
+    for label, path in (
+        ("blueprint.json ref", BLUEPRINT),
+        ("site/playground/blueprint.json ref", SITE_BLUEPRINT),
+    ):
+        blueprint_ref = blueprint_install_ref(path)
+        if blueprint_ref is None:
+            print(
+                f"error: could not find the ODD installPlugin step in {path.relative_to(REPO_ROOT)}",
+                file=sys.stderr,
+            )
+            return 1
+        blueprint_refs[label] = blueprint_ref
+        if blueprint_ref != SENTINEL_GIT_DIRECTORY:
+            found[label] = blueprint_ref
 
     missing = [k for k, v in found.items() if v is None]
     if missing:
@@ -138,12 +127,12 @@ def main() -> int:
         )
         return 1
 
-    if cachebuster == SENTINEL_GIT_DIRECTORY:
+    if all(ref == SENTINEL_GIT_DIRECTORY for ref in blueprint_refs.values()):
         print(
-            f"OK: odd.php version {version} (blueprint installs ODD via git:directory@main)"
+            f"OK: odd.php version {version} (blueprint installs ODD via git:directory)"
         )
     else:
-        print(f"OK: odd.php + blueprint.json version {version}")
+        print(f"OK: odd.php + blueprint.json install ref version {version}")
     return 0
 
 

@@ -1,7 +1,7 @@
 /**
  * ODD scene: Tropical Greenhouse — v1.2.0
  * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (assets/wallpapers/tropical-greenhouse.webp)
+ * GPT Image 2 painted backdrop (wallpaper.webp)
  * with late-morning palm-house motion:
  *
  *   1. Warm god-ray shafts rake diagonally across the room.
@@ -16,17 +16,17 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var MOTE_COUNT = 110;
 	var SHAFT_COUNT = 4;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'tropical-greenhouse' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/tropical-greenhouse.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	function makeMotes( w, hh ) {

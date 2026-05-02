@@ -1,7 +1,7 @@
 /**
  * ODD scene: Flux — v0.2.0
  * ---------------------------------------------------------------
- * Painted backdrop (assets/wallpapers/flux.webp — deep marbled ink
+ * Painted backdrop (wallpaper.webp — deep marbled ink
  * in navy/crimson/amber) loaded as a cover-fit Sprite. On top:
  *
  *   1. ~900 ribbon particles flowing through a slowly-evolving
@@ -28,17 +28,17 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var BASE_COUNT = 900;
 	var KOI_MAX    = 3;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
-		var qs = cfg.version ? '?v=' + encodeURIComponent( cfg.version ) : '';
 		var sm = cfg.sceneMap || {};
 		var desc = sm[ 'flux' ] || {};
 		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return ( cfg.pluginUrl || '' ) + '/assets/wallpapers/flux.webp' + qs;
+		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
 	// Cheap deterministic 2D noise. Not real Perlin — enough vortex

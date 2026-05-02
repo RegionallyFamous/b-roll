@@ -16,9 +16,10 @@ changed="$(git diff --cached --name-only)"
 
 # Only run when a version-bearing file is in the commit — any other
 # commit is fine regardless of version coherency. Included files:
-#   odd/odd.php   — Version: header + ODD_VERSION constant
-#   blueprint.json — ?v=<x.y.z> cache-buster on the ODD ZIP URL
-if ! grep -qxE "odd/odd\.php|blueprint\.json" <<< "$changed"; then
+#   odd/odd.php                    — Version: header + ODD_VERSION constant
+#   blueprint.json                 — public Playground ODD release tag
+#   site/playground/blueprint.json — hosted Playground ODD release tag
+if ! grep -qxE "odd/odd\.php|blueprint\.json|site/playground/blueprint\.json" <<< "$changed"; then
     exit 0
 fi
 
@@ -28,7 +29,8 @@ if ! "$root/odd/bin/check-version"; then
     echo "  -> bump ALL of:" >&2
     echo "       * 'Version:' header in odd/odd.php" >&2
     echo "       * ODD_VERSION constant in odd/odd.php" >&2
-    echo "       * ?v=<x.y.z> query on the odd.zip URL in blueprint.json" >&2
+    echo "       * ODD release tag in blueprint.json" >&2
+    echo "       * ODD release tag in site/playground/blueprint.json" >&2
     echo "  -> or use 'git commit --no-verify' to skip this check." >&2
     exit 1
 fi
