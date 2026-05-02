@@ -131,6 +131,10 @@ function mountPanel( options = {} ) {
 	return { host, cleanup };
 }
 
+function setViewportWidth( width ) {
+	Object.defineProperty( window, 'innerWidth', { configurable: true, value: width } );
+}
+
 describe( 'ODD Shop', () => {
 	let fetchMock;
 
@@ -278,7 +282,7 @@ describe( 'ODD Shop', () => {
 		} );
 		const origInner = window.innerWidth;
 		try {
-			Object.defineProperty( window, 'innerWidth', { configurable: true, value: 390 } );
+			setViewportWidth( 390 );
 			const { host, cleanup } = mountPanel();
 			// renderPanel applies the .odd-panel.odd-shop classes to
 			// the host itself, so the responsive attributes land on
@@ -296,7 +300,7 @@ describe( 'ODD Shop', () => {
 			cleanup?.();
 		} finally {
 			window.matchMedia = origMM;
-			Object.defineProperty( window, 'innerWidth', { configurable: true, value: origInner } );
+			setViewportWidth( origInner );
 			document.body.classList.remove( 'odd-shop-mobile-escape' );
 		}
 	} );
@@ -313,7 +317,7 @@ describe( 'ODD Shop', () => {
 		} );
 		const origInner = window.innerWidth;
 		try {
-			Object.defineProperty( window, 'innerWidth', { configurable: true, value: 390 } );
+			setViewportWidth( 390 );
 			const { host, cleanup } = mountPanel( { width: 900 } );
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
 			expect( host.getAttribute( 'data-odd-pointer' ) ).toBe( 'fine' );
@@ -322,14 +326,67 @@ describe( 'ODD Shop', () => {
 			cleanup?.();
 		} finally {
 			window.matchMedia = origMM;
-			Object.defineProperty( window, 'innerWidth', { configurable: true, value: origInner } );
+			setViewportWidth( origInner );
+		}
+	} );
+
+	it( 'uses mobile escape on an S phone viewport even when the saved native window is wide', () => {
+		const origInner = window.innerWidth;
+		try {
+			setViewportWidth( 620 );
+			const { host, cleanup } = mountPanel( { width: 1080 } );
+			expect( host.getAttribute( 'data-odd-size' ) ).toBe( 'l' );
+			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 's' );
+			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
+			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
+			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( true );
+			cleanup?.();
+		} finally {
+			setViewportWidth( origInner );
+		}
+	} );
+
+	it( 'keeps tablet-width browser resizing compact without fullscreen escape', () => {
+		const origInner = window.innerWidth;
+		try {
+			setViewportWidth( 800 );
+			const { host, cleanup } = mountPanel( { width: 1080 } );
+			expect( host.getAttribute( 'data-odd-size' ) ).toBe( 'l' );
+			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 'm' );
+			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'compact' );
+			expect( host.hasAttribute( 'data-odd-mobile' ) ).toBe( false );
+			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( false );
+			cleanup?.();
+		} finally {
+			setViewportWidth( origInner );
+		}
+	} );
+
+	it( 'updates layout attributes when the browser is resized under an already-open wide Shop window', () => {
+		const origInner = window.innerWidth;
+		try {
+			setViewportWidth( 1440 );
+			const { host, cleanup } = mountPanel( { width: 1080 } );
+			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'desktop' );
+			expect( host.hasAttribute( 'data-odd-mobile' ) ).toBe( false );
+
+			setViewportWidth( 620 );
+			window.dispatchEvent( new Event( 'resize' ) );
+
+			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 's' );
+			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
+			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
+			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( true );
+			cleanup?.();
+		} finally {
+			setViewportWidth( origInner );
 		}
 	} );
 
 	it( 'uses compact layout for a narrow native window without body-locking a desktop viewport', () => {
 		const origInner = window.innerWidth;
 		try {
-			Object.defineProperty( window, 'innerWidth', { configurable: true, value: 1440 } );
+			setViewportWidth( 1440 );
 			const { host, cleanup } = mountPanel( { width: 620 } );
 			expect( host.getAttribute( 'data-odd-size' ) ).toBe( 's' );
 			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 'xl' );
@@ -338,7 +395,7 @@ describe( 'ODD Shop', () => {
 			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( false );
 			cleanup?.();
 		} finally {
-			Object.defineProperty( window, 'innerWidth', { configurable: true, value: origInner } );
+			setViewportWidth( origInner );
 		}
 	} );
 

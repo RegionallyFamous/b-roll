@@ -528,9 +528,9 @@
 				}
 
 				var layout = 'desktop';
-				if ( size === 'xs' || vSize === 'xs' ) {
+				if ( isPhoneSize( vSize ) ) {
 					layout = 'mobile';
-				} else if ( isPhoneSize( size ) && isPhoneSize( vSize ) ) {
+				} else if ( size === 'xs' ) {
 					layout = 'mobile';
 				} else if ( isPhoneSize( size ) || isPhoneSize( vSize ) || isCompactSize( size ) || isCompactSize( vSize ) ) {
 					layout = 'compact';
