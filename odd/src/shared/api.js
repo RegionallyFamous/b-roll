@@ -299,6 +299,41 @@
 		return addAction( HOOK_ICONSET, 'odd.api-sub-' + Math.random().toString( 36 ).slice( 2 ), cb );
 	}
 
+	function isTouchOnly() {
+		if ( ! window.matchMedia ) return false;
+		try {
+			var coarse   = window.matchMedia( '(pointer: coarse)' ).matches;
+			var noHover  = ! window.matchMedia( '(hover: hover)' ).matches;
+			var narrow   = ( window.innerWidth || document.documentElement.clientWidth || 0 ) < 720;
+			return coarse && noHover && narrow;
+		} catch ( _ ) {
+			return false;
+		}
+	}
+
+	function requestMaximize( d ) {
+		if ( ! d ) return;
+		var names = [ 'maximizeWindow', 'toggleMaximizeWindow' ];
+		for ( var i = 0; i < names.length; i++ ) {
+			if ( typeof d[ names[ i ] ] === 'function' ) {
+				try { d[ names[ i ] ]( 'odd' ); return; } catch ( _ ) {}
+			}
+		}
+		if ( typeof d.setWindowState === 'function' ) {
+			try { d.setWindowState( 'odd', 'maximized' ); return; } catch ( _ ) {}
+		}
+		if ( typeof d.resizeWindow === 'function' ) {
+			try {
+				d.resizeWindow( 'odd', {
+					width:  window.innerWidth,
+					height: window.innerHeight,
+					x:      0,
+					y:      0,
+				} );
+			} catch ( _ ) {}
+		}
+	}
+
 	function openPanel() {
 		var d = window.wp && window.wp.desktop;
 		if ( ! d ) return false;
@@ -309,9 +344,18 @@
 		// script handle. `registerWindow({ id })` is a JS-side shortcut
 		// that bypasses the server registry and opens an unthemed shell
 		// — good for widgets but wrong for our Shop window.
+		var maximize = isTouchOnly();
 		return !! safeCall( function () {
 			if ( typeof d.openWindow === 'function' ) {
 				d.openWindow( 'odd' );
+				if ( maximize ) {
+					// Request maximize *after* the shell has opened
+					// the server-registered window. Any API shape
+					// the host exposes wins; otherwise the in-shop
+					// JS escape hatch (panel/index.js) still takes
+					// over the viewport via fixed positioning.
+					setTimeout( function () { requestMaximize( d ); }, 0 );
+				}
 				return true;
 			}
 			if ( typeof d.registerWindow === 'function' ) {
@@ -324,8 +368,11 @@
 					height:       720,
 					minWidth:     420,
 					minHeight:    420,
-					initialState: 'normal',
+					initialState: maximize ? 'maximized' : 'normal',
 				} );
+				if ( maximize ) {
+					setTimeout( function () { requestMaximize( d ); }, 0 );
+				}
 				return true;
 			}
 			return false;

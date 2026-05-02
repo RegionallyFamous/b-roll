@@ -247,6 +247,46 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
+	it( 'stamps data-odd-pointer + data-odd-mobile when the viewport is phone-class', () => {
+		// Simulate a 390x844 phone with a coarse pointer and no
+		// hover. JSDOM has no matchMedia by default, so synthesize
+		// one that returns truthy for the mobile queries and falsy
+		// for hover: hover.
+		const origMM = window.matchMedia;
+		window.matchMedia = ( q ) => ( {
+			matches:           /pointer:\s*coarse/.test( q ) || /any-pointer:\s*coarse/.test( q ) ? true :
+			                   /hover:\s*hover/.test( q ) ? false :
+			                   false,
+			media:             q,
+			addEventListener:  () => {},
+			removeEventListener: () => {},
+			addListener:       () => {},
+			removeListener:    () => {},
+		} );
+		const origInner = window.innerWidth;
+		try {
+			Object.defineProperty( window, 'innerWidth', { configurable: true, value: 390 } );
+			const { host, cleanup } = mountPanel();
+			// renderPanel applies the .odd-panel.odd-shop classes to
+			// the host itself, so the responsive attributes land on
+			// the same node.
+			expect( host.classList.contains( 'odd-shop' ) ).toBe( true );
+			expect( host.getAttribute( 'data-odd-pointer' ) ).toBe( 'coarse' );
+			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 'xs' );
+			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
+			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( true );
+			// Close handle must be mounted so the user can exit the
+			// escape hatch even though the native titlebar is hidden
+			// behind our overlay.
+			expect( host.querySelector( '[data-odd-mobile-close]' ) ).toBeTruthy();
+			cleanup?.();
+		} finally {
+			window.matchMedia = origMM;
+			Object.defineProperty( window, 'innerWidth', { configurable: true, value: origInner } );
+			document.body.classList.remove( 'odd-shop-mobile-escape' );
+		}
+	} );
+
 	it( 'does not render a topbar Install pill — uploads go through the dedicated Install tab', () => {
 		const { host, cleanup } = mountPanel();
 

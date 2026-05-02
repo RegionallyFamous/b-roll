@@ -486,23 +486,146 @@
 
 		function installResponsiveState( root ) {
 			if ( ! root ) return;
-			function applySize() {
-				var width = root.getBoundingClientRect ? root.getBoundingClientRect().width : 0;
-				var size = 'xl';
-				if ( width < 520 ) size = 'xs';
-				else if ( width < 720 ) size = 's';
-				else if ( width < 960 ) size = 'm';
-				else if ( width < 1280 ) size = 'l';
-				root.setAttribute( 'data-odd-size', size );
+
+			function pickSize( width ) {
+				if ( width < 520 ) return 'xs';
+				if ( width < 720 ) return 's';
+				if ( width < 960 ) return 'm';
+				if ( width < 1280 ) return 'l';
+				return 'xl';
 			}
-			applySize();
+
+			// Pointer-mode detection — coarse means touchscreen-first
+			// device (phone, tablet). Independent of native-window
+			// width because the user's device class drives ergonomics
+			// (tap targets, hover-only affordances, swipe hints) even
+			// when the shell happens to give us a wide window.
+			var coarseMq = window.matchMedia ? window.matchMedia( '(pointer: coarse)' ) : null;
+			var hoverMq  = window.matchMedia ? window.matchMedia( '(hover: hover)' ) : null;
+
+			function applyState() {
+				var rect = root.getBoundingClientRect ? root.getBoundingClientRect() : null;
+				var width = rect ? rect.width : 0;
+				var size = pickSize( width );
+
+				// A parallel "viewport size" lets CSS escape the
+				// native window entirely on phones: when the real
+				// browser viewport is narrow but the native window
+				// is still wide, we can switch the Shop into a
+				// fullscreen layout via data-odd-viewport.
+				var vw = ( window.innerWidth || document.documentElement.clientWidth || 0 );
+				var vSize = pickSize( vw );
+
+				var coarse = !! ( coarseMq && coarseMq.matches );
+				var canHover = !! ( hoverMq && hoverMq.matches );
+				var pointer = coarse && ! canHover ? 'coarse' : 'fine';
+
+				// Mobile escape: genuine phone-class device AND tight
+				// viewport. Driving this from JS (not a media query)
+				// is the only way to make the Shop reliably escape
+				// WP Desktop Mode's window chrome on touch devices —
+				// container queries can't see past the window body.
+				var mobile = pointer === 'coarse' && ( vSize === 'xs' || vSize === 's' );
+
+				root.setAttribute( 'data-odd-size', size );
+				root.setAttribute( 'data-odd-viewport', vSize );
+				root.setAttribute( 'data-odd-pointer', pointer );
+				if ( mobile ) {
+					root.setAttribute( 'data-odd-mobile', 'true' );
+					if ( document && document.body && document.body.classList ) {
+						document.body.classList.add( 'odd-shop-mobile-escape' );
+					}
+				} else {
+					root.removeAttribute( 'data-odd-mobile' );
+					if ( document && document.body && document.body.classList ) {
+						document.body.classList.remove( 'odd-shop-mobile-escape' );
+					}
+				}
+			}
+
+			applyState();
 			if ( typeof ResizeObserver !== 'undefined' ) {
-				var ro = new ResizeObserver( applySize );
+				var ro = new ResizeObserver( applyState );
 				ro.observe( root );
 				cleanupFns.push( function () { ro.disconnect(); } );
-			} else {
-				window.addEventListener( 'resize', applySize );
-				cleanupFns.push( function () { window.removeEventListener( 'resize', applySize ); } );
+			}
+			window.addEventListener( 'resize', applyState );
+			window.addEventListener( 'orientationchange', applyState );
+			cleanupFns.push( function () {
+				window.removeEventListener( 'resize', applyState );
+				window.removeEventListener( 'orientationchange', applyState );
+			} );
+
+			// matchMedia listeners fire when the user plugs/unplugs a
+			// mouse on a Chrome OS device, rotates a tablet into a
+			// docked mode, etc. Use addEventListener where available
+			// and fall back to addListener for Safari < 14.
+			function attachMq( mq ) {
+				if ( ! mq ) return;
+				if ( typeof mq.addEventListener === 'function' ) {
+					mq.addEventListener( 'change', applyState );
+					cleanupFns.push( function () { mq.removeEventListener( 'change', applyState ); } );
+				} else if ( typeof mq.addListener === 'function' ) {
+					mq.addListener( applyState );
+					cleanupFns.push( function () { mq.removeListener( applyState ); } );
+				}
+			}
+			attachMq( coarseMq );
+			attachMq( hoverMq );
+
+			// Expose an in-shop Close handle whenever the escape
+			// hatch takes over — the native titlebar (and its close
+			// button) is hidden behind our full-viewport overlay, so
+			// the user needs a touch-friendly way back to the desk.
+			installMobileCloseHandle( root );
+		}
+
+		/**
+		 * Mount a fixed-position close button visible only in the
+		 * mobile-escape state. Tries every WP Desktop Mode close API
+		 * shape we know about, then falls back to simulating a click
+		 * on the hidden native close button so the shell still gets
+		 * to run its own teardown (persist bounds, clear focus, etc.)
+		 * and we don't end up with a ghost window in session state.
+		 */
+		function installMobileCloseHandle( root ) {
+			if ( ! root || root.querySelector( '[data-odd-mobile-close]' ) ) return;
+			var btn = document.createElement( 'button' );
+			btn.type = 'button';
+			btn.className = 'odd-shop__mobile-close';
+			btn.setAttribute( 'data-odd-mobile-close', 'true' );
+			btn.setAttribute( 'aria-label', __( 'Close ODD Shop' ) );
+			btn.innerHTML = '<span aria-hidden="true">&times;</span>';
+			btn.addEventListener( 'click', function ( ev ) {
+				ev.preventDefault();
+				ev.stopPropagation();
+				closeOddNativeWindow();
+			} );
+			root.appendChild( btn );
+		}
+
+		function closeOddNativeWindow() {
+			var d = window.wp && window.wp.desktop;
+			var attempts = [ 'closeWindow', 'close', 'hideWindow', 'minimizeWindow' ];
+			if ( d ) {
+				for ( var i = 0; i < attempts.length; i++ ) {
+					var name = attempts[ i ];
+					if ( typeof d[ name ] === 'function' ) {
+						try { d[ name ]( 'odd' ); return; } catch ( _ ) {}
+					}
+				}
+			}
+			// Fallback: click the native close button inside the
+			// `odd` window root. WP Desktop Mode renders it with an
+			// aria-label of "Close" — if it's there, that's the
+			// safest way to make the shell tear the window down.
+			var hosts = document.querySelectorAll(
+				'[data-window-id="odd"] [aria-label="Close"], ' +
+				'[data-native-window-id="odd"] [aria-label="Close"], ' +
+				'[data-wp-desktop-window-id="odd"] [aria-label="Close"]'
+			);
+			if ( hosts && hosts.length ) {
+				try { hosts[ 0 ].click(); } catch ( _ ) {}
 			}
 		}
 
