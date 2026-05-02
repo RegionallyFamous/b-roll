@@ -58,14 +58,14 @@
 	// localized config (`appsEnabled`), slash commands, and tests
 	// keep working; only the user-facing labels + icons moved.
 	var SECTIONS = [
-		{ id: 'wallpaper', label: __( 'Wallpapers' ), icon: '🖼', glyph: 'g-wallpaper', group: 'decorate', tint: 'var(--odd-shop-tint-wallpaper)', tagline: __( 'Live generative scenes' ) },
-		{ id: 'icons',     label: __( 'Icon Sets' ),  icon: '🧩', glyph: 'g-icons',     group: 'decorate', tint: 'var(--odd-shop-tint-icons)',     tagline: __( 'Re-skin the dock' ) },
-		{ id: 'cursors',   label: __( 'Cursors' ),    icon: '➹', glyph: 'g-cursors',   group: 'decorate', tint: 'var(--odd-shop-tint-cursors)',   tagline: __( 'Point with personality' ) },
-		{ id: 'widgets',   label: __( 'Widgets' ),    icon: '🧷', glyph: 'g-widgets',   group: 'more',     tint: 'var(--odd-shop-tint-widgets)',   tagline: __( 'Desktop companions' ) },
-		{ id: 'apps',      label: __( 'Apps' ),       icon: '📦', glyph: 'g-apps',      group: 'more',     tint: 'var(--odd-shop-tint-apps)',      tagline: __( 'Mini apps that just run' ), gated: 'appsEnabled' },
-		{ id: 'install',   label: __( 'Install' ),    icon: '⇪', glyph: 'g-install',   group: 'you',      tint: 'var(--odd-shop-accent)',         tagline: __( 'Add a .wp bundle' ),        gated: 'canInstall' },
-		{ id: 'settings',  label: __( 'Settings' ),   icon: '⚙', glyph: 'g-settings',  group: 'you',      tint: 'var(--odd-shop-accent-2)',       tagline: __( 'Shuffle, audio, screensaver' ) },
-		{ id: 'about',     label: __( 'About' ),      icon: '👁', glyph: 'g-about',     group: 'you',      tint: 'var(--odd-shop-tint-wallpaper)', tagline: __( 'Credits & chaos' ) },
+		{ id: 'wallpaper', label: __( 'Wallpapers' ), icon: '🖼', glyph: 'g-wallpaper', group: 'decorate', tint: 'var(--odd-shop-tint-wallpaper)', tagline: __( 'Living desktop weather' ) },
+		{ id: 'icons',     label: __( 'Icon Sets' ),  icon: '🧩', glyph: 'g-icons',     group: 'decorate', tint: 'var(--odd-shop-tint-icons)',     tagline: __( 'Dock disguises' ) },
+		{ id: 'cursors',   label: __( 'Cursors' ),    icon: '➹', glyph: 'g-cursors',   group: 'decorate', tint: 'var(--odd-shop-tint-cursors)',   tagline: __( 'Pointers with opinions' ) },
+		{ id: 'widgets',   label: __( 'Widgets' ),    icon: '🧷', glyph: 'g-widgets',   group: 'more',     tint: 'var(--odd-shop-tint-widgets)',   tagline: __( 'Tiny desktop creatures' ) },
+		{ id: 'apps',      label: __( 'Apps' ),       icon: '📦', glyph: 'g-apps',      group: 'more',     tint: 'var(--odd-shop-tint-apps)',      tagline: __( 'Little tools, big portals' ), gated: 'appsEnabled' },
+		{ id: 'install',   label: __( 'Install' ),    icon: '⇪', glyph: 'g-install',   group: 'you',      tint: 'var(--odd-shop-accent)',         tagline: __( 'Feed it a .wp' ),           gated: 'canInstall' },
+		{ id: 'settings',  label: __( 'Settings' ),   icon: '⚙', glyph: 'g-settings',  group: 'you',      tint: 'var(--odd-shop-accent-2)',       tagline: __( 'Tune the strange' ) },
+		{ id: 'about',     label: __( 'About' ),      icon: '👁', glyph: 'g-about',     group: 'you',      tint: 'var(--odd-shop-tint-wallpaper)', tagline: __( 'Lore & blinking' ) },
 	];
 
 	var renderPanel = function ( body ) {
@@ -166,7 +166,7 @@
 		var brandTitle = el( 'strong' );
 		brandTitle.textContent = __( 'ODD Shop' );
 		var brandSub = el( 'span' );
-		brandSub.textContent = __( 'Outlandish Desktop Decorator' );
+		brandSub.textContent = __( 'Desktop decor with a wink' );
 		brandText.appendChild( brandTitle );
 		brandText.appendChild( brandSub );
 		brandWrap.appendChild( brandMark );
@@ -723,7 +723,7 @@
 			var wrap = el( 'div', { 'data-odd-apps': '1', class: 'odd-shop__dept odd-shop__dept--apps' } );
 			wrap.appendChild( sectionHeader(
 				'Apps',
-				'Install tiny tools that open in their own desktop windows. Pin them to the taskbar, drop them on the desktop, and launch them like native apps.',
+				'Install pocket-sized tools that open in their own desktop windows. Pin them, park them, and launch them like tiny native portals.',
 				{ eyebrow: 'ODD · Mini Apps' }
 			) );
 
@@ -790,7 +790,7 @@
 					gallery.innerHTML = '';
 					if ( ! rows.length ) {
 						var empty = el( 'div', { class: 'odd-apps-empty' } );
-						empty.textContent = 'No apps available — check the catalog endpoint or install from a .wp upload.';
+						empty.textContent = 'No apps have wandered in yet — refresh the catalog or feed ODD a .wp bundle.';
 						gallery.appendChild( empty );
 						return;
 					}
@@ -807,7 +807,7 @@
 			gallery.classList.add( 'odd-catalog-list' );
 			if ( ! rows || ! rows.length ) {
 				var empty = el( 'div', { class: 'odd-apps-empty' } );
-				empty.textContent = 'Catalog is empty.';
+				empty.textContent = 'The catalog shelf is empty right now.';
 				gallery.appendChild( empty );
 				return;
 			}
@@ -1008,7 +1008,7 @@
 			gallery.innerHTML = '';
 			if ( ! apps || ! apps.length ) {
 				var empty = el( 'div', { class: 'odd-apps-empty' } );
-				empty.textContent = 'No apps installed yet — install one from the catalog below, or upload a .wp bundle above.';
+				empty.textContent = 'No apps live here yet — grab one from the catalog, or upload a .wp bundle and give it a room.';
 				gallery.appendChild( empty );
 				return;
 			}
@@ -1980,7 +1980,7 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--install' } );
 			wrap.appendChild( sectionHeader(
 				'Install a .wp bundle',
-				'Drop a .wp archive to add an app, icon set, cursor set, scene, or widget. One manifest, one format, one install flow — no companion plugins needed. Authors: see the .wp manifest reference for the schema.',
+				'Drop a .wp archive to add an app, icon set, cursor set, scene, or widget. One little package, one install ritual, no companion plugins needed. Authors: the .wp manifest reference has the spellbook.',
 				{ eyebrow: 'ODD · Universal Installer' }
 			) );
 
@@ -1997,9 +1997,9 @@
 			var zoneGlyph = el( 'div', { class: 'odd-shop__dropzone-glyph', 'aria-hidden': 'true' } );
 			zoneGlyph.textContent = '⇪';
 			var zoneTitle = el( 'div', { class: 'odd-shop__dropzone-title' } );
-			zoneTitle.textContent = 'Drop a .wp file here';
+			zoneTitle.textContent = 'Drop a .wp bundle here';
 			var zoneSub = el( 'div', { class: 'odd-shop__dropzone-sub' } );
-			zoneSub.textContent = 'or click to choose one from your computer.';
+			zoneSub.textContent = 'or click to summon one from your computer.';
 			var zoneBtn = el( 'button', {
 				type: 'button',
 				class: 'odd-shop__dropzone-btn',
@@ -2057,35 +2057,35 @@
 					type: 'app',
 					label: 'Apps',
 					tint: '#0071e3',
-					desc: 'Sandboxed mini apps with their own dock icon and window.',
+					desc: 'Sandboxed mini apps with their own dock icon and little window.',
 					glyph: '<rect x="3" y="6" width="14" height="11" rx="2"/><path d="M3 9h14"/><circle cx="6" cy="7.5" r=".6" fill="currentColor"/><circle cx="8" cy="7.5" r=".6" fill="currentColor"/>',
 				},
 				{
 					type: 'scene',
 					label: 'Scenes',
 					tint: '#8a5cff',
-					desc: 'Live generative wallpapers that paint across the desktop.',
+					desc: 'Live generative wallpaper weather for the whole desktop.',
 					glyph: '<rect x="3" y="4" width="14" height="12" rx="2"/><circle cx="13.5" cy="7.5" r="1.2" fill="currentColor"/><path d="M3 13l3-3 3 2 4-4 4 4"/>',
 				},
 				{
 					type: 'icon-set',
 					label: 'Icon Sets',
 					tint: '#00a693',
-					desc: 'Themed SVG packs that re-skin the dock and desktop shortcuts.',
+					desc: 'SVG costume racks for the dock and desktop shortcuts.',
 					glyph: '<rect x="3" y="3" width="6" height="6" rx="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.4"/>',
 				},
 				{
 					type: 'cursor-set',
 					label: 'Cursors',
 					tint: '#38e8ff',
-					desc: 'Pointer themes that follow you through Desktop Mode and wp-admin.',
+					desc: 'Pointer wardrobes that follow you through Desktop Mode and wp-admin.',
 					glyph: '<path d="M4 3l10 7-4 1.2 2.5 4.5-2.4 1.3-2.5-4.6L4 16z"/><path d="M13.5 4.5l2-2M16 8h2.5M12 2V.5"/>',
 				},
 				{
 					type: 'widget',
 					label: 'Widgets',
 					tint: '#ff8c1a',
-					desc: 'Draggable cards that live directly on the desktop surface.',
+					desc: 'Draggable desk pets that perch right on the desktop surface.',
 					glyph: '<path d="M4 4h9l3 3v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/><path d="M13 4v3h3"/>',
 				},
 			];
@@ -2134,7 +2134,7 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--settings' } );
 			wrap.appendChild( sectionHeader(
 				'Settings',
-				'Tweak how the ODD desktop behaves — rotate scenes automatically, react to sound, or dim into a full-screen screensaver when you step away.',
+				'Tune the desktop creature: rotate scenes, let sound wake the wallpaper, or dim everything into screensaver mode when you step away.',
 				{ eyebrow: 'ODD · Preferences' }
 			) );
 			wrap.appendChild( renderSystemHealth() );
@@ -2149,7 +2149,7 @@
 			var themeLbl = el( 'strong' );
 			themeLbl.textContent = __( 'Appearance' );
 			var themeHint = el( 'span' );
-			themeHint.textContent = __( 'Choose a light, dark, or system-matched ODD Shop.' );
+			themeHint.textContent = __( 'Choose sunny, midnight, or let your system steer.' );
 			themeText.appendChild( themeLbl );
 			themeText.appendChild( themeHint );
 			themeRow.appendChild( themeIcon );
@@ -2198,7 +2198,7 @@
 			var shuffleLabel = el( 'strong' );
 			shuffleLabel.textContent = __( 'Shuffle every' );
 			var shuffleHint = el( 'span' );
-			shuffleHint.textContent = __( 'Rotate scenes automatically while the desktop is open.' );
+			shuffleHint.textContent = __( 'Let the wallpaper wander while the desktop is open.' );
 			shuffleText.appendChild( shuffleLabel );
 			shuffleText.appendChild( shuffleHint );
 			var minutes = el( 'input', {
@@ -2248,7 +2248,7 @@
 			var audioLbl = el( 'strong' );
 			audioLbl.textContent = __( 'Audio-reactive' );
 			var audioHint = el( 'span' );
-			audioHint.textContent = __( 'Let scenes pulse subtly with sound when supported.' );
+			audioHint.textContent = __( 'Let supported scenes pulse along with nearby sound.' );
 			audioText.appendChild( audioLbl );
 			audioText.appendChild( audioHint );
 			audioRow.appendChild( audioBox );
@@ -2272,7 +2272,7 @@
 			var sfxLbl = el( 'strong' );
 			sfxLbl.textContent = __( 'Shop sound effects' );
 			var sfxHint = el( 'span' );
-			sfxHint.textContent = __( 'Play soft clicks and chimes while browsing the ODD Shop.' );
+			sfxHint.textContent = __( 'Play tiny clicks and velvet chimes while browsing.' );
 			sfxText.appendChild( sfxLbl );
 			sfxText.appendChild( sfxHint );
 			sfxRow.appendChild( sfxBox );
@@ -2292,7 +2292,7 @@
 			var chaosLbl = el( 'strong' );
 			chaosLbl.textContent = __( 'Chaos mode' );
 			var chaosHint = el( 'span' );
-			chaosHint.textContent = __( 'Boost ODD color and invite a bigger chaos cast into the Shop.' );
+			chaosHint.textContent = __( 'Turn up the color and invite more Oddlings into the aisles.' );
 			chaosText.appendChild( chaosLbl );
 			chaosText.appendChild( chaosHint );
 			chaosRow.appendChild( chaosBox );
@@ -2321,7 +2321,7 @@
 			var dockLbl = el( 'strong' );
 			dockLbl.textContent = __( 'Show ODD in Taskbar' );
 			var dockHint = el( 'span' );
-			dockHint.textContent = __( 'Add a launcher for the ODD Shop to the Desktop Mode taskbar.' );
+			dockHint.textContent = __( 'Keep a quick ODD Shop portal in the Desktop Mode taskbar.' );
 			dockText.appendChild( dockLbl );
 			dockText.appendChild( dockHint );
 			dockRow.appendChild( dockBox );
@@ -2355,7 +2355,7 @@
 			var ssLbl = el( 'strong' );
 			ssLbl.textContent = __( 'Screensaver after' );
 			var ssHint = el( 'span' );
-			ssHint.textContent = __( 'Dim into a full-screen scene when the admin sits idle.' );
+			ssHint.textContent = __( 'Let the desktop drift into a full-screen scene while you are away.' );
 			ssText.appendChild( ssLbl );
 			ssText.appendChild( ssHint );
 			var ssControls = el( 'div', { class: 'odd-setting-card__controls odd-setting-card__controls--screensaver' } );
@@ -2638,7 +2638,7 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--wallpaper' } );
 			wrap.appendChild( sectionHeader(
 				'Wallpapers',
-				'Live generative scenes for your WordPress desktop. Preview before you commit.',
+				'Living generative scenes for your WordPress desktop. Audition the weather before you let it move in.',
 				{ eyebrow: 'ODD · Living Art' }
 			) );
 
@@ -2672,12 +2672,12 @@
 
 			if ( ! rows.length ) {
 				if ( activeFilterLabel() ) {
-					wrap.appendChild( renderEmptyResults( 'No scenes match "' + activeFilterLabel() + '".' ) );
+					wrap.appendChild( renderEmptyResults( 'No scenes match "' + activeFilterLabel() + '" yet.' ) );
 					return wrap;
 				}
 				wrap.appendChild( renderEmptyDept(
 					'scenes',
-					'Install one from the catalog below — or wait a moment while ODD finishes its first-run setup.',
+					'Install one from the catalog below, or give ODD a moment to finish unpacking its first scene.',
 					'🎨'
 				) );
 				return wrap;
@@ -2739,7 +2739,7 @@
 
 			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
 			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
-			eyebrow.textContent = isActive ? 'Now playing' : 'Featured scene';
+			eyebrow.textContent = isActive ? 'Currently haunting your desktop' : 'Featured scene';
 			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
 			title.textContent = scene.label || scene.slug;
 			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
@@ -2748,7 +2748,7 @@
 
 			if ( isActive && ! state.preview ) {
 				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
-				active.textContent = '✓ Active';
+				active.textContent = '✓ Living here';
 				actions.appendChild( active );
 			} else {
 				var previewBtn = el( 'button', {
@@ -2840,8 +2840,8 @@
 			switch ( scene.franchise ) {
 				case 'Atmosphere':    return 'Painterly weather and ambient light.';
 				case 'Paper':         return 'Folded forms drifting through negative space.';
-				case 'ODD Originals': return 'House specials from the ODD studio.';
-				default:              return 'A generative scene that lives on your desktop.';
+				case 'ODD Originals': return 'House specials from the ODD studio, gently misbehaving.';
+				default:              return 'A generative scene that lives, loops, and loiters on your desktop.';
 			}
 		}
 
@@ -2856,7 +2856,7 @@
 			var eyebrow = el( 'div', { class: 'odd-shop__editorial-eyebrow' } );
 			eyebrow.textContent = __( 'Today at ODD' );
 			var title = el( 'h3', { class: 'odd-shop__editorial-title' } );
-			title.textContent = __( 'Featured weirdness' );
+			title.textContent = __( 'Fresh from the weird shelf' );
 			head.appendChild( eyebrow );
 			head.appendChild( title );
 			strip.appendChild( head );
@@ -2893,9 +2893,9 @@
 			var icon = el( 'div', { class: 'odd-shop__empty-icon', 'aria-hidden': 'true' } );
 			icon.textContent = '🔍';
 			var big = el( 'div', { class: 'odd-shop__empty-title' } );
-			big.textContent = 'No results';
+			big.textContent = 'No weirdness found';
 			var sub = el( 'div', { class: 'odd-shop__empty-sub' } );
-			sub.textContent = message || 'Try a different search term.';
+			sub.textContent = message || 'Try another search term and rattle the shelves again.';
 			wrap.appendChild( icon );
 			wrap.appendChild( big );
 			wrap.appendChild( sub );
@@ -2908,8 +2908,8 @@
 			wrap.appendChild( sectionHeader(
 				'Search',
 				query
-					? 'Results from every department in one place.'
-					: 'Search wallpapers, icon sets, widgets, and apps.',
+					? 'Matches from every department, gathered into one tray.'
+					: 'Search wallpapers, icon sets, cursors, widgets, and apps from one little command nest.',
 				{ eyebrow: 'ODD · All Departments' }
 			) );
 
@@ -2917,7 +2917,7 @@
 			var matches = filterByQuery( allRows, query );
 
 			if ( ! matches.length ) {
-				wrap.appendChild( renderEmptyResults( 'No Shop results match "' + query + '".' ) );
+				wrap.appendChild( renderEmptyResults( 'No Shop results match "' + query + '" yet.' ) );
 				return wrap;
 			}
 
@@ -3743,7 +3743,7 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--icons' } );
 			wrap.appendChild( sectionHeader(
 				'Icon Sets',
-				'Themed packs re-skin the dock and desktop shortcuts. Preview swaps icons in place — only the "Default" set needs a reload.',
+				'Dress the dock and desktop shortcuts in a new costume. Preview the look in place; only the "Default" reset needs a reload.',
 				{ eyebrow: 'ODD · Dock Couture' }
 			) );
 
@@ -3765,7 +3765,7 @@
 				slug:        'none',
 				label:       'Default',
 				franchise:   'WP Desktop Mode',
-				description: 'Ship the stock Dashicons / WP Desktop Mode icons.',
+				description: 'Bring back the stock Dashicons and WP Desktop Mode icons.',
 				preview:     '',
 				icons:       {},
 			};
@@ -3791,7 +3791,7 @@
 				var resetIcon = el( 'span', { class: 'odd-shop__reset-icon', 'aria-hidden': 'true' } );
 				resetIcon.textContent = '↺';
 				var resetText = el( 'span', { class: 'odd-shop__reset-text' } );
-				resetText.textContent = 'Want the stock WordPress icons back?';
+				resetText.textContent = 'Missing the stock WordPress icon wardrobe?';
 				resetLeft.appendChild( resetIcon );
 				resetLeft.appendChild( resetText );
 				var resetBtn = el( 'button', {
@@ -3813,12 +3813,12 @@
 
 			if ( ! filtered.length ) {
 				if ( activeFilterLabel() ) {
-					wrap.appendChild( renderEmptyResults( 'No icon sets match "' + activeFilterLabel() + '".' ) );
+					wrap.appendChild( renderEmptyResults( 'No icon costumes match "' + activeFilterLabel() + '" yet.' ) );
 					return wrap;
 				}
 				wrap.appendChild( renderEmptyDept(
 					'icon sets',
-					'Install one from the catalog below to re-skin the dock and desktop shortcuts.',
+					'Install one from the catalog below and give the dock a fresh disguise.',
 					'🎛️'
 				) );
 				return wrap;
@@ -3871,16 +3871,16 @@
 
 			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
 			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
-			eyebrow.textContent = isActive ? 'Active set' : 'Featured set';
+			eyebrow.textContent = isActive ? 'Current costume' : 'Featured costume';
 			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
 			title.textContent = set.label || set.slug;
 			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = set.description || 'A themed pack for the WordPress desktop dock.';
+			sub.textContent = set.description || 'A themed costume pack for the WordPress desktop dock.';
 			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
 
 			if ( isActive && ! state.preview ) {
 				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
-				active.textContent = '✓ Active';
+				active.textContent = '✓ Wearing it';
 				actions.appendChild( active );
 			} else {
 				var previewBtn = el( 'button', {
@@ -3945,9 +3945,9 @@
 			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
 			eyebrow.textContent = 'Mini Apps';
 			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
-			title.textContent = 'Apps that just run.';
+			title.textContent = 'Tiny apps. Real windows. Zero fuss.';
 			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = 'Tiny standalone programs that live on your WordPress desktop. They don\'t use WordPress, they don\'t know about WordPress — they just run.';
+			sub.textContent = 'Standalone little programs that live on your WordPress desktop. They do not need WordPress to babysit them; they just open, do the thing, and behave.';
 			inner.appendChild( eyebrow );
 			inner.appendChild( title );
 			inner.appendChild( sub );
@@ -3991,7 +3991,7 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--cursors' } );
 			wrap.appendChild( sectionHeader(
 				'Cursors',
-				'Pointer themes for Desktop Mode and classic wp-admin. Preview swaps instantly; Apply saves it for every admin page you open.',
+				'Give your pointer a personality. Preview instantly; Apply lets it follow you through Desktop Mode and classic wp-admin.',
 				{ eyebrow: 'ODD · Pointer Wardrobe' }
 			) );
 
@@ -4002,7 +4002,7 @@
 				slug: 'none',
 				label: 'Default',
 				franchise: 'Browser',
-				description: 'Use the stock browser and operating-system cursors.',
+				description: 'Return to the stock browser and operating-system cursors.',
 				preview: '',
 				cursors: {},
 			};
@@ -4022,7 +4022,7 @@
 				var resetIcon = el( 'span', { class: 'odd-shop__reset-icon', 'aria-hidden': 'true' } );
 				resetIcon.textContent = '↺';
 				var resetText = el( 'span', { class: 'odd-shop__reset-text' } );
-				resetText.textContent = 'Want native browser cursors back?';
+				resetText.textContent = 'Want the native pointer back on duty?';
 				resetLeft.appendChild( resetIcon );
 				resetLeft.appendChild( resetText );
 				var resetBtn = el( 'button', { type: 'button', class: 'odd-shop__reset-btn' } );
@@ -4039,12 +4039,12 @@
 
 			if ( ! filtered.length ) {
 				if ( activeFilterLabel() ) {
-					wrap.appendChild( renderEmptyResults( 'No cursor sets match "' + activeFilterLabel() + '".' ) );
+					wrap.appendChild( renderEmptyResults( 'No pointer personalities match "' + activeFilterLabel() + '" yet.' ) );
 					return wrap;
 				}
 				wrap.appendChild( renderEmptyDept(
 					'cursor sets',
-					'Install one from the catalog below to theme the pointer across Desktop Mode and wp-admin.',
+					'Install one from the catalog below and teach the pointer a new strut.',
 					'➹'
 				) );
 				return wrap;
@@ -4085,15 +4085,15 @@
 
 			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
 			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
-			eyebrow.textContent = isActive ? 'Active cursor set' : 'Featured cursor set';
+			eyebrow.textContent = isActive ? 'Current pointer mood' : 'Featured pointer mood';
 			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
 			title.textContent = set.label || set.slug;
 			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = set.description || 'A pointer theme for Desktop Mode and wp-admin.';
+			sub.textContent = set.description || 'A pointer theme with just enough attitude for Desktop Mode and wp-admin.';
 			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
 			if ( isActive && ! state.preview ) {
 				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
-				active.textContent = '✓ Active';
+				active.textContent = '✓ Pointing now';
 				actions.appendChild( active );
 			} else {
 				var previewBtn = el( 'button', { type: 'button', class: 'odd-shop__hero-btn odd-shop__hero-btn--primary' } );
@@ -4652,7 +4652,7 @@
 				var tipIcon = el( 'span', { class: 'odd-shop__tip-icon', 'aria-hidden': 'true' } );
 				tipIcon.textContent = '💡';
 				var tipText = el( 'span', { class: 'odd-shop__tip-text' } );
-				tipText.textContent = 'Added widgets appear on your desktop\'s right column — drag one by its title bar to park it wherever you like.';
+				tipText.textContent = 'Added widgets land on the desktop — grab the title bar and park them wherever your dashboard goblin heart desires.';
 				tip.appendChild( tipIcon );
 				tip.appendChild( tipText );
 				wrap.appendChild( tip );
