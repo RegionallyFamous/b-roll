@@ -1,34 +1,55 @@
-# ODD — Outlandish Desktop Decorator
+<p align="center">
+  <a href="https://odd.regionallyfamous.com/">
+    <img src="https://odd.regionallyfamous.com/og.png" alt="ODD — the Luxe + Weird shop for WP Desktop Mode" width="840">
+  </a>
+</p>
 
-**The Luxe + Weird desktop shop for WP Desktop Mode.**
+<h1 align="center">ODD — Outlandish Desktop Decorator</h1>
 
-[WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a polished, updateable shop for living wallpapers, icon costumes, pointer themes, draggable widgets, and tiny apps that open in native Desktop Mode windows.
+<p align="center">
+  <strong>The Luxe + Weird desktop shop for WP Desktop Mode.</strong><br>
+  Living wallpapers, icon costumes, pointer themes, draggable widgets, and tiny apps for the WordPress admin desktop.
+</p>
 
-### [Try it live in WordPress Playground](https://odd.regionallyfamous.com/playground/)
+<p align="center">
+  <a href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json"><strong>Launch the live demo</strong></a>
+  ·
+  <a href="https://github.com/RegionallyFamous/odd/releases/latest"><strong>Download ODD</strong></a>
+  ·
+  <a href="https://odd.regionallyfamous.com/"><strong>Marketing site</strong></a>
+  ·
+  <a href="https://github.com/RegionallyFamous/odd/wiki"><strong>Docs</strong></a>
+</p>
 
-No install, no signup, nothing to uninstall. Boots ODD + WP Desktop Mode in your browser in ~20–30 seconds.
+<p align="center">
+  <a href="https://github.com/RegionallyFamous/odd/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/RegionallyFamous/odd?style=for-the-badge&label=release"></a>
+  <a href="https://github.com/RegionallyFamous/odd/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/RegionallyFamous/odd/ci.yml?branch=main&style=for-the-badge&label=ci"></a>
+  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/github/license/RegionallyFamous/odd?style=for-the-badge"></a>
+</p>
 
 ---
 
-## Why Use ODD
+[WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a polished, updateable shop for visual themes and small tools.
 
-### Make WordPress Feel Like Your Place
+The live demo is pinned to the `v1.0.0` release blueprint. No install, no signup, nothing to uninstall. Playground boots ODD + WP Desktop Mode in about 20–30 seconds.
 
-ODD turns the admin desktop into a place people actually want to open. Pick a live wallpaper, dress the dock in a new icon set, give the pointer a personality, and park useful widgets exactly where you want them. Fresh installs get a complete starter look right away; the catalog keeps growing without making you chase plugin updates.
+---
 
-### Add Useful Tools Without More Plugins
+## What You Get
 
-Apps install from the same card you use to open them. Each app gets its own desktop icon, native window, and optional taskbar launcher, but it does not require a separate WordPress plugin. The catalog includes tools for focus, planning, invoices, writing, color systems, pixel art, and sound design.
+| Surface | What It Adds |
+| --- | --- |
+| **Wallpapers** | Generative PixiJS scenes over painted backdrops, with live preview and shuffle. |
+| **Icon Sets** | Full dock and desktop shortcut re-skins, including first-party recycle bin coverage. |
+| **Cursor Sets** | Pointer themes that reach Desktop Mode windows, chrome, widgets, and same-origin app frames. |
+| **Widgets** | Small desktop tiles like notes, prompts, and embeds, installed from catalog bundles. |
+| **Apps** | Sandboxed HTML/CSS/JS tools that open in native Desktop Mode windows with optional launchers. |
 
-### Browse A Real Shop, Not A Settings Dump
+## Why It Feels Different
 
-The ODD Shop has responsive light/dark chrome, department glyphs, editorial shelves, global search, preview bars, compact settings, and just enough Oddling chaos to feel alive. Wallpapers, icon sets, and cursors preview before they commit, so exploration stays playful and reversible.
-
-### Keep The Shop Fresh Without Plugin Releases
-
-Visual content and app bundles live in a remote catalog. That means new wallpapers, card art, widgets, apps, icon sets, and cursor sets can publish through GitHub Pages without forcing every site to install a new plugin zip. Plugin releases are reserved for runtime changes and security fixes.
-
-### Preview Before You Commit
+| ODD Shop | Remote Catalog | Safe Installation |
+| --- | --- | --- |
+| Mac App Store-style browsing with editorial shelves, department glyphs, global search, preview bars, and responsive chrome. | New wallpapers, card art, widgets, apps, icon sets, and cursor sets publish without forcing every site to update the plugin. | `.wp` bundles are validated, catalog downloads are SHA256-checked, and app files are served behind authenticated paths. |
 
 Wallpapers, icon sets, and cursor sets preview instantly. Try a scene, theme, or cursor set, then keep it or roll back from the preview bar. Catalog cards update in place after install, so the thing you install is the thing you use.
 
@@ -38,7 +59,7 @@ Wallpapers, icon sets, and cursor sets preview instantly. Try a scene, theme, or
 
 ### One-click demo
 
-[**Launch ODD in WordPress Playground →**](https://odd.regionallyfamous.com/playground/)
+[**Launch ODD in WordPress Playground →**](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json)
 
 First load takes ~20–30 seconds while Playground boots the site and installs the plugin. Throwaway — close the tab and it's gone.
 
@@ -53,20 +74,20 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 
 ---
 
-## Build your own
+## Build Your Own
 
 Anyone can ship a scene, icon set, cursor set, widget, or app as a single `.wp` file. ODD validates the archive, checks catalog downloads against SHA256, and keeps app files behind authenticated serve paths. First-party content lives under `_tools/catalog-sources/` and publishes to the remote catalog through GitHub Pages; plugin releases are only for runtime/API changes.
 
-- [Building an App](docs/building-an-app.md)
-- [Building a Scene](docs/building-a-scene.md)
-- [Building an Icon Set](docs/building-an-icon-set.md)
-- [Building a Cursor Set](docs/building-a-cursor-set.md)
-- [Building a Widget](docs/building-a-widget.md)
-- [`.wp` Manifest Reference](docs/wp-manifest.md)
-- [ODD Shop State Machine](docs/store-state-machine.md)
-- [Release Runbook](docs/release-runbook.md)
+| Guide | Use It For |
+| --- | --- |
+| [Building an App](docs/building-an-app.md) | Package a sandboxed mini-app with optional desktop/taskbar launchers. |
+| [Building a Scene](docs/building-a-scene.md) | Create a PixiJS wallpaper scene with preview and wallpaper art. |
+| [Building an Icon Set](docs/building-an-icon-set.md) | Ship a themed SVG pack for Desktop Mode chrome. |
+| [Building a Cursor Set](docs/building-a-cursor-set.md) | Add custom pointer roles and cursor assets. |
+| [Building a Widget](docs/building-a-widget.md) | Register a small draggable desktop widget. |
+| [`.wp` Manifest Reference](docs/wp-manifest.md) | Validate bundle metadata and file contracts. |
 
-## Repo layout
+## Project Map
 
 - `odd/` — the plugin itself (what ships in `odd.zip`). The 1.0 runtime is intentionally lightweight; catalog content installs on demand.
 - `_tools/catalog-sources/` — source of truth for every bundle (scene / icon set / cursor set / widget / app). Rebuilt into `site/catalog/v1/` by `_tools/build-catalog.py`.
@@ -75,8 +96,13 @@ Anyone can ship a scene, icon set, cursor set, widget, or app as a single `.wp` 
 - `ci/smoke/` — MU-plugin fixtures used by `install-smoke.yml` to test the starter-pack installer hermetically.
 - `bin/` → see `odd/bin/` — `validate-catalog`, `validate-blueprint`, `check-version`, `build-zip`, `make-pot`.
 
+## Useful Links
+
+- [ODD Shop State Machine](docs/store-state-machine.md)
+- [Release Runbook](docs/release-runbook.md)
+- [Building on ODD](docs/building-on-odd.md)
+- [Project wiki](https://github.com/RegionallyFamous/odd/wiki)
+
 ## License
 
 GPLv2 or later, matching [WP Desktop Mode](https://github.com/WordPress/desktop-mode). See [LICENSE](./LICENSE).
-
-Integrating ODD into a larger plugin or theme? The filter / event / registry surface is documented in [Building on ODD](docs/building-on-odd.md) and on the [wiki](https://github.com/RegionallyFamous/odd/wiki).
