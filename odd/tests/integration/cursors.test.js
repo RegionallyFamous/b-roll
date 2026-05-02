@@ -136,4 +136,50 @@ describe( 'ODD cursor runtime', () => {
 
 		expect( window.__odd.cursors.status().windows.roots ).toBe( 1 );
 	} );
+
+	it( 'bridges unstamped titlebars inside a marked native-window root', () => {
+		loadRuntime();
+
+		// Simulate the shape WP Desktop Mode produces: a window root
+		// that we've marked with data-odd-cursor-root, containing a
+		// titlebar element with an inline `cursor: grab` but *no*
+		// data-odd-cursor stamp (this is the gap that causes "cursor
+		// doesn't work on the title bar" bug reports).
+		const shell = document.createElement( 'div' );
+		shell.className = 'desktop-mode-shell';
+		const win = document.createElement( 'div' );
+		win.setAttribute( 'data-window-id', 'odd' );
+		const titlebar = document.createElement( 'div' );
+		titlebar.style.cursor = 'grab';
+		win.appendChild( titlebar );
+		shell.appendChild( win );
+		document.body.appendChild( shell );
+
+		window.__odd.cursors.markRoot( win );
+		window.__odd.cursors.bridgeTarget( titlebar );
+
+		expect( titlebar.style.cursor ).toContain( 'url(' );
+		expect( window.__odd.cursors.status().bridged ).toBeGreaterThanOrEqual( 1 );
+	} );
+
+	it( 'bridges minimize/close buttons inside native window chrome', () => {
+		loadRuntime();
+
+		const win = document.createElement( 'div' );
+		win.setAttribute( 'data-window-id', 'odd' );
+		const close = document.createElement( 'button' );
+		close.setAttribute( 'aria-label', 'Close' );
+		close.style.cursor = 'pointer';
+		win.appendChild( close );
+		document.body.appendChild( win );
+
+		window.__odd.cursors.markRoot( win );
+		// Simulate markInteractiveDescendants NOT having stamped this
+		// yet (can happen for chrome injected after boot). The bridge
+		// must still replace the native pointer with the ODD URL.
+		close.removeAttribute( 'data-odd-cursor' );
+		window.__odd.cursors.bridgeTarget( close );
+
+		expect( close.style.cursor ).toContain( 'url(' );
+	} );
 } );

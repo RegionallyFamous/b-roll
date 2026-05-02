@@ -67,9 +67,48 @@ add_action(
 	}
 );
 
+/**
+ * Guarantee that the ODD Shop window advertises a small minimum size in
+ * every config surface WP Desktop Mode might read — `nativeWindows[]`
+ * (the registered-window array the shell boots with) and
+ * `session.windows[]` (persisted per-user resize state) — and force-
+ * migrate legacy saved widths that were locked by older builds (720 or
+ * 960 hard minimums). Without this, users whose session still remembers
+ * the old 720x520 minimum can't drag the window narrower than that even
+ * after we lowered `min_width` on the registration.
+ */
 add_filter(
 	'desktop_mode_shell_config',
 	function ( $config ) {
+		if ( ! is_array( $config ) ) {
+			return $config;
+		}
+
+		$min_w = 420;
+		$min_h = 420;
+		$max_w = 1080;
+		$max_h = 720;
+
+		// Native-window registry → some shell builds use these to
+		// derive resize-handle limits, so reassert on every boot and
+		// carry the values in both snake_case and camelCase.
+		if ( ! empty( $config['nativeWindows'] ) && is_array( $config['nativeWindows'] ) ) {
+			foreach ( $config['nativeWindows'] as $i => $entry ) {
+				if ( ! is_array( $entry ) ) {
+					continue;
+				}
+				$id      = isset( $entry['id'] ) ? (string) $entry['id'] : '';
+				$base_id = isset( $entry['baseId'] ) ? (string) $entry['baseId'] : '';
+				if ( 'odd' !== $id && 'odd' !== $base_id ) {
+					continue;
+				}
+				$config['nativeWindows'][ $i ]['min_width']  = $min_w;
+				$config['nativeWindows'][ $i ]['min_height'] = $min_h;
+				$config['nativeWindows'][ $i ]['minWidth']   = $min_w;
+				$config['nativeWindows'][ $i ]['minHeight']  = $min_h;
+			}
+		}
+
 		if ( empty( $config['session']['windows'] ) || ! is_array( $config['session']['windows'] ) ) {
 			return $config;
 		}
@@ -90,12 +129,30 @@ add_filter(
 			// narrow QA/mobile layouts. Only clamp impossible legacy
 			// values and oversized saved states that would reopen as
 			// a faux-maximized Shop forever.
-			$width  = isset( $window['width'] ) ? (int) $window['width'] : 1080;
-			$height = isset( $window['height'] ) ? (int) $window['height'] : 720;
+			$width  = isset( $window['width'] ) ? (int) $window['width'] : $max_w;
+			$height = isset( $window['height'] ) ? (int) $window['height'] : $max_h;
 
-			$config['session']['windows'][ $i ]['state']  = 'normal';
-			$config['session']['windows'][ $i ]['width']  = max( 420, min( 1080, $width ) );
-			$config['session']['windows'][ $i ]['height'] = max( 420, min( 720, $height ) );
+			// One-time migration: users whose saved width exactly
+			// matches an older hard minimum (720 or 960) are likely
+			// stuck there because the shell enforced that minimum
+			// when the window was last opened. Reset those to the
+			// new default so the next open doesn't look "frozen".
+			// If a user genuinely wanted 720/960 they can drag back
+			// to it — now that min_width is 420 they'll be able to.
+			if ( 720 === $width || 960 === $width ) {
+				$width = $max_w;
+			}
+			if ( 520 === $height || 480 === $height || 620 === $height ) {
+				$height = $max_h;
+			}
+
+			$config['session']['windows'][ $i ]['state']      = 'normal';
+			$config['session']['windows'][ $i ]['width']      = max( $min_w, min( $max_w, $width ) );
+			$config['session']['windows'][ $i ]['height']     = max( $min_h, min( $max_h, $height ) );
+			$config['session']['windows'][ $i ]['min_width']  = $min_w;
+			$config['session']['windows'][ $i ]['min_height'] = $min_h;
+			$config['session']['windows'][ $i ]['minWidth']   = $min_w;
+			$config['session']['windows'][ $i ]['minHeight']  = $min_h;
 		}
 
 		return $config;

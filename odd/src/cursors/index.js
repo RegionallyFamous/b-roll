@@ -322,8 +322,24 @@
 		if ( ! state.href || ! node ) return;
 		var limit = document.body;
 		while ( node && node !== document && node.nodeType === 1 ) {
-			if ( node.closest && node.closest( '[data-odd-cursor], [data-odd-cursor-root], .desktop-mode, .desktop-mode-shell, .wp-desktop, .wp-desktop-root' ) ) {
-				return;
+			// Skip elements we've already stamped with a semantic role. The
+			// CSS endpoint resolves those through `[data-odd-cursor="*"]`
+			// directly, so the bridge has nothing to add there.
+			//
+			// IMPORTANT: Do *not* bail when an ancestor is the generic
+			// Desktop Mode shell (`.desktop-mode`, `.wp-desktop-root`
+			// etc.). Those shells contain native window chrome that WP
+			// Desktop Mode styles with inline `cursor: grab` / `cursor:
+			// pointer` on titlebars and control buttons. The static CSS
+			// can only target known class names, but real builds ship
+			// slightly different class names per version, so the bridge
+			// is our fallback — it reads the computed native cursor and
+			// substitutes the ODD custom URL in its place.
+			if ( node.hasAttribute && node.hasAttribute( 'data-odd-cursor' ) ) return;
+			if ( node.closest && node.closest( '[data-odd-cursor], [data-odd-cursor-root]' ) ) {
+				// Still bridge the *current* node if it sits inside a
+				// marked root but hasn't itself been stamped — this is
+				// exactly the titlebar / minimize-button case.
 			}
 			var computed = '';
 			try { computed = window.getComputedStyle( node ).cursor; } catch ( e ) {}
