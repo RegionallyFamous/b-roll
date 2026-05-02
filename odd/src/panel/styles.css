@@ -444,10 +444,11 @@
 .odd-panel.odd-shop .odd-shop__dept--settings{max-width:980px}
 .odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:1fr;gap:10px;margin:0 0 22px}
 .odd-panel.odd-shop .odd-setting-card{min-height:0;padding:14px 16px;border-radius:16px;border-color:var(--odd-shop-border);background:linear-gradient(180deg,#fff 0%,#fbfbfd 100%);box-shadow:0 1px 2px rgba(0,0,0,.035),0 14px 30px -28px rgba(20,14,40,.42)}
-.odd-panel.odd-shop .odd-setting-card:not(.odd-switch-row){display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px 18px}
-.odd-panel.odd-shop .odd-setting-card.odd-switch-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px 18px;cursor:pointer}
-.odd-panel.odd-shop .odd-switch-row .odd-switch{grid-column:2;grid-row:1;margin:0}
-.odd-panel.odd-shop .odd-switch-row .odd-setting-card__text{grid-column:1;grid-row:1}
+.odd-panel.odd-shop .odd-setting-card:not(.odd-switch-row){display:grid;grid-template-columns:minmax(280px,1fr) minmax(180px,auto);align-items:center;gap:14px 22px}
+.odd-panel.odd-shop .odd-setting-card.odd-switch-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px 18px;cursor:pointer}
+.odd-panel.odd-shop .odd-setting-card:not(.odd-switch-row) > .odd-switch-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px 16px;min-width:280px}
+.odd-panel.odd-shop .odd-switch-row .odd-switch{grid-column:1;grid-row:1;margin:0}
+.odd-panel.odd-shop .odd-switch-row .odd-setting-card__text{grid-column:2;grid-row:1}
 .odd-panel.odd-shop .odd-switch-row--static{cursor:default}
 .odd-panel.odd-shop .odd-switch-row--static .odd-setting-card__icon{grid-column:1;grid-row:1}
 .odd-panel.odd-shop .odd-switch-row--static .odd-setting-card__text{grid-column:2;grid-row:1}
@@ -456,7 +457,7 @@
 .odd-panel.odd-shop .odd-setting-card__text span{max-width:44ch;color:var(--odd-shop-ink-3)}
 .odd-panel.odd-shop .odd-setting-card__controls{grid-column:2;grid-row:1;margin-left:0;padding-top:0;justify-content:flex-end;white-space:nowrap}
 .odd-panel.odd-shop .odd-setting-card__controls--appearance{align-self:center}
-.odd-panel.odd-shop .odd-setting-card--screensaver{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 18px;min-height:0;margin:0;padding:14px 16px;background:linear-gradient(135deg,#fff 0%,#f7f9ff 62%,#fff9ed 100%)}
+.odd-panel.odd-shop .odd-setting-card--screensaver{grid-column:1/-1;display:grid;grid-template-columns:minmax(280px,1fr) minmax(260px,auto);align-items:center;gap:12px 22px;min-height:0;margin:0;padding:14px 16px;background:linear-gradient(135deg,#fff 0%,#f7f9ff 62%,#fff9ed 100%)}
 .odd-panel.odd-shop .odd-setting-card--screensaver .odd-switch-row{grid-column:1;grid-row:1}
 .odd-panel.odd-shop .odd-setting-card__controls--screensaver{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:flex-end;gap:10px;max-width:none}
 .odd-panel.odd-shop .odd-setting-card--screensaver .odd-setting-field{grid-template-columns:auto minmax(180px,240px)}
@@ -466,7 +467,7 @@
 .odd-panel.odd-shop .odd-select{min-height:38px;min-width:170px;border-radius:12px}
 .odd-panel.odd-shop .odd-setting-preview{min-height:40px;margin-left:0;padding:0 20px;background:#0f172a;color:#fff;border-color:#0f172a;box-shadow:0 12px 22px -16px rgba(15,23,42,.8)}
 .odd-panel.odd-shop .odd-switch-row input[type="checkbox"]:checked + .odd-switch{background:var(--odd-shop-accent);box-shadow:0 8px 20px -14px rgba(0,113,227,.7)}
-@media (max-width:760px){.odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:1fr}.odd-panel.odd-shop .odd-setting-card:not(.odd-switch-row),.odd-panel.odd-shop .odd-setting-card--screensaver{grid-template-columns:1fr;align-items:start}.odd-panel.odd-shop .odd-setting-card__controls,.odd-panel.odd-shop .odd-setting-card__controls--screensaver{grid-column:1;grid-row:auto;margin-left:0;justify-content:flex-start}.odd-panel.odd-shop .odd-setting-card__controls--screensaver{display:grid;grid-template-columns:auto minmax(0,1fr);max-width:none}.odd-panel.odd-shop .odd-setting-field{grid-column:1/-1;grid-template-columns:auto minmax(0,1fr)}.odd-panel.odd-shop .odd-setting-preview{grid-column:1/-1;justify-content:center;width:100%}.odd-panel.odd-shop .odd-select{min-width:0;width:100%}}
+@media (max-width:760px){.odd-panel.odd-shop .odd-wallpaper-settings{grid-template-columns:1fr}.odd-panel.odd-shop .odd-setting-card:not(.odd-switch-row),.odd-panel.odd-shop .odd-setting-card--screensaver{grid-template-columns:1fr;align-items:start}.odd-panel.odd-shop .odd-setting-card:not(.odd-switch-row) > .odd-switch-row{min-width:0}.odd-panel.odd-shop .odd-setting-card__controls,.odd-panel.odd-shop .odd-setting-card__controls--screensaver{grid-column:1;grid-row:auto;margin-left:0;justify-content:flex-start}.odd-panel.odd-shop .odd-setting-card__controls--screensaver{display:grid;grid-template-columns:auto minmax(0,1fr);max-width:none}.odd-panel.odd-shop .odd-setting-field{grid-column:1/-1;grid-template-columns:auto minmax(0,1fr)}.odd-panel.odd-shop .odd-setting-preview{grid-column:1/-1;justify-content:center;width:100%}.odd-panel.odd-shop .odd-select{min-width:0;width:100%}}
 
 /* Catalog rows (icon sets + app catalog) feel more "store-shelf"
 * with a soft lift on hover so the row reads as "tappable
