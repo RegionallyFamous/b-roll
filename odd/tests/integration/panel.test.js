@@ -110,10 +110,22 @@ function loadPanel() {
 	fn.call( globalThis );
 }
 
-function mountPanel() {
+function mountPanel( options = {} ) {
+	const width = typeof options.width === 'number' ? options.width : 900;
 	const host = document.createElement( 'div' );
-	host.style.width = '900px';
+	host.style.width = `${ width }px`;
 	host.style.height = '600px';
+	host.getBoundingClientRect = () => ( {
+		width,
+		height: 600,
+		top: 0,
+		left: 0,
+		right: width,
+		bottom: 600,
+		x: 0,
+		y: 0,
+		toJSON: () => {},
+	} );
 	document.body.appendChild( host );
 	const cleanup = window.wpDesktopNativeWindows.odd( host );
 	return { host, cleanup };
@@ -143,6 +155,7 @@ describe( 'ODD Shop', () => {
 
 	afterEach( () => {
 		delete globalThis.fetch;
+		document.body.classList.remove( 'odd-shop-mobile-escape' );
 	} );
 
 	it( 'registers a render callback under window.wpDesktopNativeWindows.odd', () => {
@@ -247,7 +260,7 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'stamps data-odd-pointer + data-odd-mobile when the viewport is phone-class', () => {
+	it( 'stamps separate layout, pointer, and escape signals for a phone viewport', () => {
 		// Simulate a 390x844 phone with a coarse pointer and no
 		// hover. JSDOM has no matchMedia by default, so synthesize
 		// one that returns truthy for the mobile queries and falsy
@@ -271,6 +284,7 @@ describe( 'ODD Shop', () => {
 			// the host itself, so the responsive attributes land on
 			// the same node.
 			expect( host.classList.contains( 'odd-shop' ) ).toBe( true );
+			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
 			expect( host.getAttribute( 'data-odd-pointer' ) ).toBe( 'coarse' );
 			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 'xs' );
 			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
@@ -284,6 +298,47 @@ describe( 'ODD Shop', () => {
 			window.matchMedia = origMM;
 			Object.defineProperty( window, 'innerWidth', { configurable: true, value: origInner } );
 			document.body.classList.remove( 'odd-shop-mobile-escape' );
+		}
+	} );
+
+	it( 'uses mobile layout on a phone viewport even when pointer detection is fine', () => {
+		const origMM = window.matchMedia;
+		window.matchMedia = ( q ) => ( {
+			matches:           /hover:\s*hover/.test( q ),
+			media:             q,
+			addEventListener:  () => {},
+			removeEventListener: () => {},
+			addListener:       () => {},
+			removeListener:    () => {},
+		} );
+		const origInner = window.innerWidth;
+		try {
+			Object.defineProperty( window, 'innerWidth', { configurable: true, value: 390 } );
+			const { host, cleanup } = mountPanel( { width: 900 } );
+			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
+			expect( host.getAttribute( 'data-odd-pointer' ) ).toBe( 'fine' );
+			expect( host.getAttribute( 'data-odd-mobile' ) ).toBe( 'true' );
+			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( true );
+			cleanup?.();
+		} finally {
+			window.matchMedia = origMM;
+			Object.defineProperty( window, 'innerWidth', { configurable: true, value: origInner } );
+		}
+	} );
+
+	it( 'uses compact layout for a narrow native window without body-locking a desktop viewport', () => {
+		const origInner = window.innerWidth;
+		try {
+			Object.defineProperty( window, 'innerWidth', { configurable: true, value: 1440 } );
+			const { host, cleanup } = mountPanel( { width: 620 } );
+			expect( host.getAttribute( 'data-odd-size' ) ).toBe( 's' );
+			expect( host.getAttribute( 'data-odd-viewport' ) ).toBe( 'xl' );
+			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'compact' );
+			expect( host.hasAttribute( 'data-odd-mobile' ) ).toBe( false );
+			expect( document.body.classList.contains( 'odd-shop-mobile-escape' ) ).toBe( false );
+			cleanup?.();
+		} finally {
+			Object.defineProperty( window, 'innerWidth', { configurable: true, value: origInner } );
 		}
 	} );
 

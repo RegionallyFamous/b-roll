@@ -520,15 +520,31 @@
 				var canHover = !! ( hoverMq && hoverMq.matches );
 				var pointer = coarse && ! canHover ? 'coarse' : 'fine';
 
-				// Mobile escape: genuine phone-class device AND tight
-				// viewport. Driving this from JS (not a media query)
-				// is the only way to make the Shop reliably escape
-				// WP Desktop Mode's window chrome on touch devices —
-				// container queries can't see past the window body.
-				var mobile = pointer === 'coarse' && ( vSize === 'xs' || vSize === 's' );
+				function isPhoneSize( value ) {
+					return value === 'xs' || value === 's';
+				}
+				function isCompactSize( value ) {
+					return value === 'm';
+				}
+
+				var layout = 'desktop';
+				if ( size === 'xs' || vSize === 'xs' ) {
+					layout = 'mobile';
+				} else if ( isPhoneSize( size ) && isPhoneSize( vSize ) ) {
+					layout = 'mobile';
+				} else if ( isPhoneSize( size ) || isPhoneSize( vSize ) || isCompactSize( size ) || isCompactSize( vSize ) ) {
+					layout = 'compact';
+				}
+
+				// Fullscreen escape is separate from structure. A narrow
+				// desktop-mode window should stack like mobile, but it
+				// must not body-lock the whole browser unless the real
+				// viewport is phone-class.
+				var mobile = layout === 'mobile' && isPhoneSize( vSize );
 
 				root.setAttribute( 'data-odd-size', size );
 				root.setAttribute( 'data-odd-viewport', vSize );
+				root.setAttribute( 'data-odd-layout', layout );
 				root.setAttribute( 'data-odd-pointer', pointer );
 				if ( mobile ) {
 					root.setAttribute( 'data-odd-mobile', 'true' );

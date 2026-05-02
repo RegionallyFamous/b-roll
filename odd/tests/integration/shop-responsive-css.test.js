@@ -7,13 +7,31 @@ const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const STYLES_CSS = resolve( __dirname, '../../src/panel/styles.css' );
 
 describe( 'ODD Shop responsive CSS contract', () => {
-	it( 'uses the mobile store layout for native-window XS and S sizes', () => {
+	it( 'uses data-odd-layout as the structural responsive contract', () => {
 		const css = readFileSync( STYLES_CSS, 'utf8' );
 
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-size="xs"],.odd-panel.odd-shop[data-odd-size="s"]{grid-template-rows:auto auto minmax(0,1fr)!important;grid-template-columns:1fr!important}' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:row' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__content,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__content{grid-column:1;grid-row:3' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__install-type,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__install-type{min-height:0' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"]{grid-template-rows:auto auto minmax(0,1fr)!important;grid-template-columns:1fr!important;overflow:hidden}' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="compact"]{grid-template-columns:64px minmax(0,1fr)!important}' );
+		expect( css ).toContain( 'data-odd-pointer` owns touch ergonomics; `data-odd-mobile` only' );
+	} );
+
+	it( 'keeps mobile sticky chrome from overlapping', () => {
+		const css = readFileSync( STYLES_CSS, 'utf8' );
+
+		expect( css ).toContain( '--odd-shop-mobile-topbar-h:104px' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__topbar{grid-column:1;grid-row:1' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail{grid-column:1;grid-row:2' );
+		expect( css ).toContain( 'top:var(--odd-shop-mobile-topbar-h)' );
+		expect( css ).toContain( 'padding-right:max(68px,calc(14px + env(safe-area-inset-right) + 54px))' );
+	} );
+
+	it( 'stacks shelves and catalog rows in mobile layout', () => {
+		const css = readFileSync( STYLES_CSS, 'utf8' );
+
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__shelf-track{display:grid;grid-template-columns:1fr;gap:12px;overflow:visible;scroll-snap-type:none;padding:0;margin:0}' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__shelf-track--tiles{grid-template-columns:repeat(auto-fill,minmax(min(100%,168px),1fr))}' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__shelf-track--list > .odd-catalog-row,.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-catalog-row{display:grid;grid-template-columns:72px minmax(0,1fr)' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-catalog-row__actions{grid-column:1/-1' );
 	} );
 
 	it( 'ships a mobile escape hatch that pins the Shop to the browser viewport', () => {
