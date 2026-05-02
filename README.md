@@ -1,8 +1,8 @@
 # ODD — Outlandish Desktop Decorator
 
-**A desktop shop for WP Desktop Mode.**
+**The Luxe + Weird desktop shop for WP Desktop Mode.**
 
-[WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a safe, updateable shop for wallpapers, icons, cursors, widgets, and small apps.
+[WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a polished, updateable shop for living wallpapers, icon costumes, pointer themes, draggable widgets, and tiny apps that open in native Desktop Mode windows.
 
 ### [Try it live in WordPress Playground](https://odd.regionallyfamous.com/playground/)
 
@@ -12,13 +12,17 @@ No install, no signup, nothing to uninstall. Boots ODD + WP Desktop Mode in your
 
 ## Why Use ODD
 
-### Make WordPress Feel Personal
+### Make WordPress Feel Like Your Place
 
-ODD turns the admin desktop into a place people actually want to use. Pick a live wallpaper, switch the dock icons, theme the cursor, and keep small desktop widgets nearby. New users get a starter look right away; admins can refresh the catalog as new content ships.
+ODD turns the admin desktop into a place people actually want to open. Pick a live wallpaper, dress the dock in a new icon set, give the pointer a personality, and park useful widgets exactly where you want them. Fresh installs get a complete starter look right away; the catalog keeps growing without making you chase plugin updates.
 
 ### Add Useful Tools Without More Plugins
 
-Apps install from the same card you use to open them. Each app gets its own desktop icon, native window, and optional taskbar icon, but it does not require a separate WordPress plugin. The catalog includes tools for focus, planning, invoices, writing, color systems, pixel art, and sound design.
+Apps install from the same card you use to open them. Each app gets its own desktop icon, native window, and optional taskbar launcher, but it does not require a separate WordPress plugin. The catalog includes tools for focus, planning, invoices, writing, color systems, pixel art, and sound design.
+
+### Browse A Real Shop, Not A Settings Dump
+
+The ODD Shop has responsive light/dark chrome, department glyphs, editorial shelves, global search, preview bars, compact settings, and just enough Oddling chaos to feel alive. Wallpapers, icon sets, and cursors preview before they commit, so exploration stays playful and reversible.
 
 ### Keep The Shop Fresh Without Plugin Releases
 

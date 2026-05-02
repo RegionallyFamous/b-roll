@@ -8,23 +8,23 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Install wallpapers, icons, cursors, widgets, and small apps for WP Desktop Mode from a safe remote catalog.
+Install living wallpapers, icon sets, cursors, widgets, and tiny desktop apps for WP Desktop Mode from a safe remote catalog.
 
 == Description ==
 
-ODD (Outlandish Desktop Decorator) layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Once both plugins are active, the WordPress admin becomes a desktop with a shop for visual themes, desktop widgets, and small tools.
+ODD (Outlandish Desktop Decorator) layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). Once both plugins are active, the WordPress admin becomes a desktop with a polished shop for visual themes, desktop widgets, and small tools.
 
 ODD ships as a lightweight runtime. The content lives in a remote catalog at [odd.regionallyfamous.com/catalog/v1/](https://odd.regionallyfamous.com/catalog/v1/registry.json), installs as universal `.wp` bundles, and can be updated without shipping a new plugin zip.
 
 ODD manages five content types:
 
-* **Canvas wallpapers** — generative PixiJS scenes painted on top of desktop backdrops.
-* **Icon sets** — themed SVG packs that reskin dock and desktop shortcuts.
-* **Cursor sets** — themed cursor artwork for Desktop Mode and classic wp-admin.
-* **Desktop widgets** — small desktop tiles like Sticky Note, Magic 8-Ball, and Spotify Embed.
-* **Apps** — sandboxed HTML/CSS/JS bundles that open in their own Desktop Mode windows.
+* **Canvas wallpapers** — living PixiJS scenes painted on top of desktop backdrops.
+* **Icon sets** — themed SVG costume packs for dock and desktop shortcuts.
+* **Cursor sets** — pointer themes for Desktop Mode and classic wp-admin.
+* **Desktop widgets** — draggable desk companions like Sticky Note, Magic 8-Ball, and Spotify Embed.
+* **Apps** — sandboxed HTML/CSS/JS tools that open in their own Desktop Mode windows.
 
-Fresh installs get a starter pack so the desktop looks complete immediately. Everything else is one click away in the ODD Shop.
+Fresh installs get a starter pack so the desktop looks complete immediately. Everything else is one click away in the ODD Shop, with responsive light/dark chrome, global search, editorial shelves, reversible previews, compact preferences, and just enough Oddling weirdness to make the admin feel alive.
 
 == Installation ==
 
@@ -66,7 +66,7 @@ Open ODD Shop → About → Copy diagnostics, then paste the markdown into a Git
 
 = Unreleased =
 
-ODD Shop gets a Luxe + Weird overhaul with responsive light/dark chrome, SVG rail glyphs, live wallpaper hero previews, editorial cards, Chaos mode, and an animated Oddling cast.
+ODD Shop gets a Luxe + Weird overhaul with responsive light/dark chrome, SVG rail glyphs, live wallpaper hero previews, editorial cards, compact settings rows, higher-contrast shelf controls, Chaos mode, and an animated Oddling cast.
 
 = 1.0.0 =
 
