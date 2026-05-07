@@ -5808,6 +5808,15 @@
 				if ( typeof onDone === 'function' ) onDone( null );
 				return;
 			}
+			// Route through shared `api.savePrefs` so prefs POSTs get the same
+			// side effects as slash commands/widgets: merges `wallpaper` into
+			// `window.odd`, and notifies Desktop Mode to select the `odd`
+			// engine via `updateOsSettings` (live; PHP alone persists meta).
+			var api = window.__odd && window.__odd.api;
+			if ( api && typeof api.savePrefs === 'function' ) {
+				api.savePrefs( body, onDone );
+				return;
+			}
 			fetch( cfg.restUrl, {
 				method:      'POST',
 				credentials: 'same-origin',
