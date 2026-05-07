@@ -30,12 +30,32 @@
 		return sp;
 	}
 
+	/** True when `src` belongs on `<img>` (absolute URL, proto-relative, site-relative SVG, data URI). */
+	function isIconImgSrc( u ) {
+		if ( typeof u !== 'string' || '' === u ) {
+			return false;
+		}
+		if ( /^https?:\/\//i.test( u ) ) {
+			return true;
+		}
+		if ( u.slice( 0, 2 ) === '//' ) {
+			return true;
+		}
+		if ( u.slice( 0, 5 ) === 'data:' ) {
+			return true;
+		}
+		if ( u.slice( 0, 1 ) === '/' ) {
+			return true;
+		}
+		return false;
+	}
+
 	function thumbForItem( icon ) {
 		icon = typeof icon === 'string' ? icon : '';
 		if ( icon.slice( 0, 12 ) === 'dashicons-' ) {
 			return dashIconMarkup( icon );
 		}
-		if ( icon.slice( 0, 5 ) === 'http' || icon.slice( 0, 5 ) === 'data:' ) {
+		if ( isIconImgSrc( icon ) ) {
 			var img = document.createElement( 'img' );
 			img.loading = 'lazy';
 			img.decoding = 'async';
