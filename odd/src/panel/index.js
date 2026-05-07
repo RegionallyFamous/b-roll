@@ -3773,7 +3773,6 @@
 		function pickSceneLive( slug ) {
 			if ( window.wp && window.wp.hooks && typeof window.wp.hooks.doAction === 'function' ) {
 				try { window.wp.hooks.doAction( 'odd.pickScene', slug ); } catch ( e ) {}
-				try { window.wp.hooks.doAction( 'odd/pickScene', slug ); } catch ( e2 ) {}
 			}
 		}
 

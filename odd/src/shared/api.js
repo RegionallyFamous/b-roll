@@ -267,8 +267,8 @@
 		// visual swap; we fire both during the transition period.
 		if ( store ) store.set( { user: { wallpaper: slug } }, { source: 'api.setScene' } );
 		emitBus( 'odd.scene-changed', { from: prev, to: slug } );
+		// Only `odd.pickScene` — slash `odd/pickScene` is not a valid @wordpress/hooks name.
 		doAction( HOOK_SCENE, slug );
-		doAction( 'odd/pickScene', slug );
 		savePrefs( { wallpaper: slug } );
 
 		var quiet = opts && opts.quiet;

@@ -98,11 +98,11 @@ test.describe( 'ODD admin smoke', () => {
 
 		const hookFired = await page.evaluate( async ( targetSlug ) => {
 			if ( ! ( window.wp && window.wp.hooks && window.wp.hooks.doAction ) ) return false;
-			window.wp.hooks.doAction( 'odd/pickScene', targetSlug );
+			window.wp.hooks.doAction( 'odd.pickScene', targetSlug );
 			await new Promise( ( r ) => setTimeout( r, 800 ) );
 			return true;
 		}, registeredScenes[ 0 ] );
-		expect( hookFired, 'wp.hooks must fire odd/pickScene' ).toBe( true );
+		expect( hookFired, 'wp.hooks must fire odd.pickScene' ).toBe( true );
 
 		await openOddShop( page );
 		const results = await new AxeBuilder( { page } )

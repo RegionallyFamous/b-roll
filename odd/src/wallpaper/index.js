@@ -157,6 +157,32 @@
 		SCENE_MAP[ SCENES[ si ].slug ] = SCENES[ si ];
 	}
 
+	/**
+	 * Merge scene descriptors discovered after page load. The Shop
+	 * updates `window.odd.sceneMap` when a bundle installs without
+	 * reloading; the store/registry can also grow. The wallpaper engine
+	 * snapshots `cfg.scenes` once — fold those in so `swap` resolves.
+	 */
+	function mergeSceneDescriptor( slug ) {
+		if ( ! slug ) return null;
+		if ( SCENE_MAP[ slug ] ) return SCENE_MAP[ slug ];
+		var om = window.odd && window.odd.sceneMap && window.odd.sceneMap[ slug ];
+		if ( om && typeof om === 'object' ) {
+			SCENE_MAP[ slug ] = om;
+			return om;
+		}
+		try {
+			if ( window.__odd.registries && typeof window.__odd.registries.findScene === 'function' ) {
+				var r = window.__odd.registries.findScene( slug );
+				if ( r && typeof r === 'object' ) {
+					SCENE_MAP[ slug ] = r;
+					return r;
+				}
+			}
+		} catch ( _reg ) {}
+		return null;
+	}
+
 	// Self-register the pending scene impl. A thin animated gradient:
 	// two soft radial blobs drifting over a dark midnight field. No
 	// assets, no network — works on a fresh install with zero bundles.
@@ -221,7 +247,7 @@
 	}
 
 	function previewBg( slug ) {
-		var s = SCENE_MAP[ slug ] || {};
+		var s = mergeSceneDescriptor( slug ) || {};
 		var url = s.previewUrl || '';
 		if ( ! url ) return s.fallbackColor || '#111';
 		return "url(\"" + url + "\") center/cover no-repeat, " + ( s.fallbackColor || '#111' );
@@ -282,7 +308,7 @@
 
 	function loadScene( slug ) {
 		if ( window.__odd.scenes[ slug ] ) return Promise.resolve();
-		var desc = SCENE_MAP[ slug ] || {};
+		var desc = mergeSceneDescriptor( slug ) || {};
 		// Installed scenes are enqueued via wp_enqueue_script with a
 		// dependency on `odd`, so by the time we get here their
 		// scene.js has already run and self-registered. If it
@@ -407,9 +433,9 @@
 		if ( lsRaw ) {
 			var ls = JSON.parse( lsRaw );
 			if ( ls && typeof ls === 'object' ) {
-				if ( ! cfg.scene && typeof ls.scene === 'string' && SCENE_MAP[ ls.scene ] ) prefsState.scene = ls.scene;
-				if ( ( ! Array.isArray( cfg.favorites ) || ! cfg.favorites.length ) && Array.isArray( ls.favorites ) ) prefsState.favorites = ls.favorites.filter( function ( s ) { return !! SCENE_MAP[ s ]; } );
-				if ( ( ! Array.isArray( cfg.recents ) || ! cfg.recents.length ) && Array.isArray( ls.recents ) ) prefsState.recents = ls.recents.filter( function ( s ) { return !! SCENE_MAP[ s ]; } );
+				if ( ! cfg.scene && typeof ls.scene === 'string' && mergeSceneDescriptor( ls.scene ) ) prefsState.scene = ls.scene;
+				if ( ( ! Array.isArray( cfg.favorites ) || ! cfg.favorites.length ) && Array.isArray( ls.favorites ) ) prefsState.favorites = ls.favorites.filter( function ( s ) { return !! mergeSceneDescriptor( s ); } );
+				if ( ( ! Array.isArray( cfg.recents ) || ! cfg.recents.length ) && Array.isArray( ls.recents ) ) prefsState.recents = ls.recents.filter( function ( s ) { return !! mergeSceneDescriptor( s ); } );
 				if ( cfg.shuffle == null && ls.shuffle ) prefsState.shuffle = coerceShuffle( ls.shuffle );
 				if ( cfg.audioReactive == null && typeof ls.audioReactive === 'boolean' ) prefsState.audioReactive = ls.audioReactive;
 			}
@@ -459,9 +485,8 @@
 	// Live scene picks (`odd.pickScene`) can fire from the Shop
 	// while `mountODD` is still awaiting Pixi (`app.init`). Bridge
 	// early: queue the slug until the mount assigns a real `swap`.
-	//
-	// Also subscribe to legacy `odd/pickScene` (slash form) — some
-	// extensions and stale snippets still emit it.
+	// (Legacy slash hook names are invalid in @wordpress/hooks — use
+	// `odd.pickScene` only.)
 	// ------------------------------------------------------------ //
 
 	var wallpaperPickSink  = null;
@@ -491,7 +516,6 @@
 		if ( ! hooks || typeof hooks.addAction !== 'function' ) return;
 		wallpaperPickBridged = true;
 		try { hooks.addAction( 'odd.pickScene', 'odd.wallpaper-bridge', routeWallpaperScenePick ); } catch ( _a ) {}
-		try { hooks.addAction( 'odd/pickScene', 'odd.wallpaper-bridge-slash', routeWallpaperScenePick ); } catch ( _b ) {}
 	}
 
 	// ------------------------------------------------------------ //
@@ -548,7 +572,7 @@
 				'transition:opacity .4s ease;opacity:1;pointer-events:none;';
 			container.appendChild( firstPaint );
 			function setFirstPaint( slug ) {
-				var s = SCENE_MAP[ slug ] || {};
+				var s = mergeSceneDescriptor( slug ) || {};
 				if ( slug === PENDING_SLUG || ! s.wallpaperUrl ) {
 					// Pending fallback + edge cases (no installed bundle
 					// yet) have no static backdrop — fade the Pixi canvas
@@ -591,7 +615,7 @@
 				'clip-path:inset(50%);white-space:nowrap;';
 			document.body.appendChild( live );
 			function announce( slug ) {
-				var s = SCENE_MAP[ slug ];
+				var s = mergeSceneDescriptor( slug );
 				if ( ! s ) return;
 				live.textContent = 'Now playing: ' + ( s.label || slug );
 			}
@@ -700,7 +724,7 @@
 			var originalAccent = document.documentElement.style.getPropertyValue( '--wp-admin-theme-color' );
 			function sampleAccent( slug ) {
 				if ( accentCache[ slug ] ) return Promise.resolve( accentCache[ slug ] );
-				var s   = SCENE_MAP[ slug ] || {};
+				var s   = mergeSceneDescriptor( slug ) || {};
 				if ( ! s.wallpaperUrl ) return Promise.resolve( null );
 				var url = s.wallpaperUrl;
 				return new Promise( function ( resolve ) {
@@ -820,7 +844,7 @@
 					return { ok: false, error: new Error( 'queued' ) };
 				}
 				if ( nextSlug === currentSlug ) return { ok: true };
-				if ( ! SCENE_MAP[ nextSlug ] ) {
+				if ( ! mergeSceneDescriptor( nextSlug ) ) {
 					return { ok: false, error: new Error( 'unknown scene: ' + nextSlug ) };
 				}
 				swapping = true;
@@ -958,7 +982,7 @@
 
 			var shuffleTimer = null;
 			function shufflePool() {
-				var favs = ( prefsState.favorites || [] ).filter( function ( s ) { return !! SCENE_MAP[ s ]; } );
+				var favs = ( prefsState.favorites || [] ).filter( function ( s ) { return !! mergeSceneDescriptor( s ); } );
 				if ( favs.length >= 2 ) return favs;
 				return SCENES.map( function ( s ) { return s.slug; } );
 			}
