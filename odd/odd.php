@@ -23,6 +23,21 @@ define( 'ODD_DESKTOP_MODE_MIN_VERSION', '0.7.2' );
 define( 'ODD_FILE', __FILE__ );
 define( 'ODD_DIR', plugin_dir_path( __FILE__ ) );
 
+/**
+ * True when HTTP_HOST is WordPress Playground (parent or playground-scoped).
+ *
+ * @return bool
+ */
+function odd_is_playground_host() {
+	$host = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) : '';
+	$host = preg_replace( '/:\d+$/', '', $host );
+	if ( '' === $host ) {
+		return false;
+	}
+
+	return 'playground.wordpress.net' === $host || ( strlen( $host ) > 25 && '.playground.wordpress.net' === substr( $host, -25 ) );
+}
+
 function odd_request_uses_https() {
 	if ( is_ssl() ) {
 		return true;
@@ -43,9 +58,7 @@ function odd_request_uses_https() {
 		return true;
 	}
 
-	$host = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) : '';
-	$host = preg_replace( '/:\d+$/', '', $host );
-	return 'playground.wordpress.net' === $host || '.playground.wordpress.net' === substr( $host, -25 );
+	return odd_is_playground_host();
 }
 
 function odd_url_current_scheme( $url ) {
@@ -63,6 +76,7 @@ function odd_url_current_scheme( $url ) {
 define( 'ODD_URL', untrailingslashit( odd_url_current_scheme( plugins_url( '', __FILE__ ) ) ) );
 
 require_once ODD_DIR . 'includes/dependencies.php';
+require_once ODD_DIR . 'includes/playground-compat.php';
 require_once ODD_DIR . 'includes/extensions.php';
 require_once ODD_DIR . 'includes/migrations.php';
 require_once ODD_DIR . 'includes/wallpaper/registry.php';
