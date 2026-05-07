@@ -24,7 +24,7 @@
  *   - `odd`           wallpaper engine boot (Pixi + scene registrar).
  *                     Registers the `odd` wallpaper with WP Desktop Mode.
  *   - `odd-panel`     ODD Shop native-window render callback,
- *                     declared on `window.wpDesktopNativeWindows.odd`.
+ *                     declared on `window.desktopModeNativeWindows.odd`.
  *                     (1.0+: the stock Sticky Note + Magic 8-Ball
  *                     widgets ship as remote catalog bundles and
  *                     self-enqueue from wp-content/odd-widgets/ when
@@ -110,7 +110,7 @@ add_action(
 		// module so downstream scripts can assume the full stack is
 		// installed before their IIFE runs.
 		$foundation_deps = array(
-			'wp-desktop',
+			'desktop-mode',
 			'wp-hooks',
 			'odd-store',
 			'odd-events',
@@ -220,7 +220,7 @@ add_action(
 		wp_enqueue_style(
 			'odd-icon-contrast',
 			ODD_URL . '/src/icons/contrast.css',
-			array( 'wp-desktop' ),
+			array( 'desktop-mode' ),
 			ODD_VERSION
 		);
 
@@ -326,7 +326,7 @@ add_action(
 		// convenience for the app's own fetches.
 		//
 		// Emitted under `appServeUrls` so window-host.js can register
-		// a `wpDesktopNativeWindows[id]` render callback that builds
+		// a `desktopModeNativeWindows[id]` render callback that builds
 		// the iframe directly in JS — independent of any server-
 		// rendered <template> being present in the DOM.
 		$app_serve_urls = array();

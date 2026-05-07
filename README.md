@@ -31,7 +31,7 @@
 
 [WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a polished, updateable shop for visual themes and small tools.
 
-The live demo is pinned to the `v1.0.0` release blueprint. No install, no signup, nothing to uninstall. Playground boots ODD + WP Desktop Mode in about 20–30 seconds.
+The hosted [Playground blueprint](https://odd.regionallyfamous.com/playground/blueprint.json) installs WP Desktop Mode from [wordpress.org](https://wordpress.org/plugins/desktop-mode/) (latest compatible build) and ODD straight from branch `main` — so quick clicks track merged plugin work; **release quality** stays tied to semver-tagged **`odd.zip`** on [Releases](https://github.com/RegionallyFamous/odd/releases/latest). Equivalent raw blueprint: [`blueprint.json` on GitHub](https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json).
 
 ---
 
@@ -65,12 +65,12 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 
 ### A real WordPress install
 
-1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.6.0 or newer.
+1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) **v0.7.2** or newer (install from [WordPress.org](https://wordpress.org/plugins/desktop-mode/) for the compiled shell).
 2. Download the latest `odd.zip` from the [Releases](https://github.com/RegionallyFamous/odd/releases/latest) page.
 3. WP Admin → Plugins → Add New → Upload Plugin → pick the zip → Activate.
 4. Double-click the **ODD** desktop icon, use the taskbar icon, or run `/odd-panel` from the command palette to open the Shop.
 
-**Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.6.0+
+**Requires:** WordPress 6.0+ · PHP 7.4+ · WP Desktop Mode v0.7.2+
 
 ---
 

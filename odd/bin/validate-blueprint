@@ -12,6 +12,10 @@ failure — and that's typically the first thing a new user ever sees.
 This script parses the blueprint and fails on known-fragile patterns so
 regressions are caught before they reach `main`.
 
+Note: demos may deliberately install ODD from `git:directory` branch `main`
+so Playground stays aligned with merged plugin changes; `ref`/`refType` are still
+explicitly pinned for reliability (see checklist #3).
+
 Checks (all emit bullets; any failure → exit code 1):
 
   1. Both blueprints exist and parse as JSON.

@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------
  * Subscribes to the WP Desktop Mode hooks listed in the plan,
  * re-emits them as dot-namespaced `odd.*` events on the ODD bus
- * (so third-party extensions don't have to know the `wp-desktop.*`
+ * (so third-party extensions don't have to know the `desktop-mode.*`
  * convention), and triggers the matching motion primitive on the
  * active scene.
  *
@@ -74,7 +74,7 @@
 		var c = centerOf( payload && payload.bounds );
 		if ( c ) motion( 'glance', { x: c.x, y: c.y } );
 	} );
-	on( 'wp-desktop.shell.error', function ( payload ) {
+	on( 'desktop-mode.shell.error', function ( payload ) {
 		emit( 'odd.shell-error', payload || {} );
 		motion( 'glitch', { ms: 220 } );
 		throttleShellErr( function () { say( 'shellError' ); } );
@@ -83,11 +83,11 @@
 		motion( 'glitch', { ms: 220 } );
 		throttleShellErr( function () { say( 'shellError' ); } );
 	} );
-	on( 'wp-desktop.dock.item-appended', function ( payload ) {
+	on( 'desktop-mode.dock.item-appended', function ( payload ) {
 		var c = centerOf( payload && payload.bounds );
 		motion( 'ripple', c ? { x: c.x, y: c.y, intensity: 0.3 } : { x: 0.85, y: 0.95, intensity: 0.3, normalized: true } );
 	} );
-	on( 'wp-desktop.command.after-run', function () {
+	on( 'desktop-mode.command.after-run', function () {
 		motion( 'glance', { nod: true } );
 	} );
 	onOdd( 'odd.visibility-changed', function ( payload ) {

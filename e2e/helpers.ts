@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 /**
- * Enters the WP Desktop Mode shell. ODD’s `wp-desktop` script dependency
+ * Enters the WP Desktop Mode shell. ODD’s `desktop-mode` script dependency
  * only loads when the shell renders (`includes/render.php`); a bare
  * `/wp-admin/` request can look “classic” and skip the canvas + scenes.
  * The `/wp-desktop/` portal redirects into `wp-admin` with the shell.
@@ -10,7 +10,7 @@ import { expect } from '@playwright/test';
 export async function goDesktopShell( page: Page ) {
 	await page.goto( '/wp-desktop/', { waitUntil: 'load', timeout: 45_000 } );
 	await page.waitForURL( /\/wp-admin/, { timeout: 45_000 } );
-	await expect( page.locator( '#wp-desktop-shell' ) ).toBeVisible( { timeout: 20_000 } );
+	await expect( page.locator( '#desktop-mode-shell' ) ).toBeVisible( { timeout: 20_000 } );
 	await page.waitForFunction( () => {
 		const w = window as unknown as { __odd?: object };
 		return typeof w.__odd !== 'undefined';
@@ -35,22 +35,22 @@ export async function waitForWallpaperScenes( page: Page ) {
 				wp?: { desktop?: Record<string, unknown> };
 			} ).wp;
 			const wallpapers = ( window as unknown as {
-				wpDesktopWallpapers?: Record<string, unknown>;
-			} ).wpDesktopWallpapers;
+				desktopModeWallpapers?: Record<string, unknown>;
+			} ).desktopModeWallpapers;
 			const cfg = ( window as unknown as {
-				wpDesktopConfig?: { osSettings?: { wallpaper?: string } };
-			} ).wpDesktopConfig;
+				desktopModeConfig?: { osSettings?: { wallpaper?: string } };
+			} ).desktopModeConfig;
 			const odd = ( window as unknown as {
 				__odd?: { scenes?: Record<string, object>; api?: object };
 			} ).__odd;
 			return {
-				hasWpDesktop: !! wp?.desktop,
-				wpDesktopKeys: wp?.desktop ? Object.keys( wp.desktop ).sort() : null,
+				hasDesktop: !! wp?.desktop,
+				desktopKeys: wp?.desktop ? Object.keys( wp.desktop ).sort() : null,
 				configWallpaper: cfg?.osSettings?.wallpaper ?? null,
 				wallpaperKeys: wallpapers ? Object.keys( wallpapers ) : null,
 				oddScenes: odd?.scenes ? Object.keys( odd.scenes ) : null,
 				oddApi: !! odd?.api,
-				shellVisible: !! document.getElementById( 'wp-desktop-shell' ),
+				shellVisible: !! document.getElementById( 'desktop-mode-shell' ),
 			};
 		} );
 		// eslint-disable-next-line no-console

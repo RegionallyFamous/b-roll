@@ -76,7 +76,7 @@ function seed( overrides = {} ) {
 function mount() {
 	const host = document.createElement( 'div' );
 	document.body.appendChild( host );
-	const cleanup = window.wpDesktopNativeWindows.odd( host );
+	const cleanup = window.desktopModeNativeWindows.odd( host );
 	return { host, cleanup };
 }
 
@@ -96,7 +96,7 @@ describe( 'ODD Shop · install flows', () => {
 		document.body.innerHTML = '';
 		const existing = document.getElementById( 'odd-panel-styles' );
 		if ( existing ) existing.remove();
-		delete window.wpDesktopNativeWindows;
+		delete window.desktopModeNativeWindows;
 		try { window.sessionStorage.removeItem( 'odd.justInstalled' ); } catch ( e ) {}
 		installHooks();
 

@@ -228,7 +228,7 @@ Covered in full by [Building a Widget](building-a-widget.md).
 | `preview`     | no       | Optional preview art. First-party catalog widgets prefer `preview.svg` for card art; older bundles can still rely on generated tiles. |
 | `defaultSize` | no       | `{ width, height }` in CSS px.                                      |
 
-Widget JavaScript is enqueued on every admin page with `wp-desktop`
+Widget JavaScript is enqueued on every admin page with `desktop-mode`
 and `odd-api` as dependencies. Installing a widget triggers the
 one-time JS confirmation prompt (admins only).
 

@@ -57,7 +57,7 @@ my-widget.wp
 
 ## widget.js — the runtime contract
 
-ODD enqueues your entry JS on every admin page with `wp-desktop` and
+ODD enqueues your entry JS on every admin page with `desktop-mode` and
 `odd-api` as dependencies, so `wp.desktop.registerWidget` and
 `window.__odd.api` are guaranteed to exist by the time your file runs.
 Self-register and do nothing else at load time:
@@ -198,9 +198,8 @@ need to integrate cleanly:
   install, your `registerWidget` call probably threw during page load.
   Open the console — ODD logs the error with
   `source: 'widget.<slug>'`.
-- Persisted state lives in localStorage under
-  `wp-desktop-widget-state:<id>`. Clear it if a bug trapped the widget
-  in a bad state.
+- Persisted widget enablement aggregates under `desktop-mode.widgets` in localStorage,
+  alongside any per-widget transient keys Desktop Mode uses for sizing or state.
 
 ## See also
 

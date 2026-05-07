@@ -5,7 +5,7 @@
  * onto `window.__odd`, so to drive them from a Vitest test we read
  * each source file, wrap it in `new Function`, and execute it against
  * the current jsdom window. Between tests we reset `window.__odd`
- * (and `window.odd`, and `window.wpDesktopConfig`) so every test
+ * (and `window.odd`, and `window.desktopModeConfig`) so every test
  * starts from a clean boot.
  */
 import { readFileSync } from 'node:fs';
@@ -64,7 +64,7 @@ export function seedConfig( patch = {} ) {
 export function loadFoundation( { config, debug = false } = {} ) {
 	resetOdd();
 	if ( debug ) {
-		window.wpDesktopConfig = Object.assign( {}, window.wpDesktopConfig, { debug: true } );
+		window.desktopModeConfig = Object.assign( {}, window.desktopModeConfig, { debug: true } );
 	}
 	seedConfig( config || {} );
 	for ( const file of MODULE_ORDER ) {

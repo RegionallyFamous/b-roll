@@ -46,7 +46,7 @@ describe( 'ODD cursor runtime', () => {
 				},
 			],
 		};
-		delete window.wpDesktopConfig;
+		delete window.desktopModeConfig;
 		installHooks();
 	} );
 
@@ -115,7 +115,7 @@ describe( 'ODD cursor runtime', () => {
 	it( 'stamps semantic roles and resolves them through the runtime controller', () => {
 		loadRuntime();
 		const shell = document.createElement( 'div' );
-		shell.className = 'wp-desktop-root';
+		shell.className = 'desktop-mode-shell';
 		const tile = document.createElement( 'button' );
 		tile.style.cursor = 'pointer';
 		shell.appendChild( tile );

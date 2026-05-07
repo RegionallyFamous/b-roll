@@ -97,7 +97,7 @@
 		var downAt = 0;
 		var isIrisTarget = function ( el ) {
 			while ( el && el !== document.body ) {
-				if ( el.dataset && ( el.dataset.wpDesktopIconId === 'odd' || el.dataset.oddEye ) ) return true;
+				if ( el.dataset && ( el.dataset.desktopModeIconId === 'odd' || el.dataset.oddEye ) ) return true;
 				el = el.parentNode;
 			}
 			return false;

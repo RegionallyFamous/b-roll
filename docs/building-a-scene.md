@@ -170,7 +170,7 @@ visible on its own, which is almost always fine.
 The runner pauses `tick` when:
 
 - The browser tab is hidden (`document.visibilitychange`).
-- WP Desktop Mode's `wp-desktop.wallpaper.visibility` hook reports
+- WP Desktop Mode's `desktop-mode.wallpaper.visibility` hook reports
   `{ id, state: 'hidden' }` — e.g. when the dock covers the desktop.
 
 You don't need to subscribe to either. `dt` is already clamped to 2.5,

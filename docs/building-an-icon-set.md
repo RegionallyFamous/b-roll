@@ -106,7 +106,7 @@ stable logical keys via `odd_icons_slug_to_key()`:
 | `fallback`    | yes      | Anything unmapped                         |
 | `profile`     | no       | Your own profile tile                     |
 | `links`       | no       | Legacy Links, any URL-browsing tool       |
-| `recycle-bin` | no       | WP Desktop Mode Recycle Bin (`wpdm-recycle-bin`) |
+| `recycle-bin` | no       | WP Desktop Mode Recycle Bin (`desktop-mode-recycle-bin`) |
 
 If the active set can't provide one of the logical keys, ODD reaches
 for the set's own `fallback`, then for whatever WP Desktop Mode served

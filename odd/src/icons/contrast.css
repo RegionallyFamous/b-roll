@@ -8,30 +8,30 @@
  * changing the SVG artwork itself.
  */
 
-body.wp-desktop-active {
+body.desktop-mode-active {
 	--odd-dock-tile-size: 60px;
 	--odd-dock-icon-size: 48px;
 	--odd-dock-custom-icon-size: 56px;
 	--odd-dock-gap: 8px;
 }
 
-body.wp-desktop-active .wp-desktop-dock {
+body.desktop-mode-active .desktop-mode-dock {
 	min-height: 82px;
 	padding: 10px 14px;
 	gap: var( --odd-dock-gap );
 	border-radius: 24px;
 }
 
-body.wp-desktop-active .wp-desktop-dock__items,
-body.wp-desktop-active .wp-desktop-dock__list {
+body.desktop-mode-active .desktop-mode-dock__items,
+body.desktop-mode-active .desktop-mode-dock__list {
 	gap: var( --odd-dock-gap );
 }
 
-body.wp-desktop-active .wp-desktop-dock__item {
+body.desktop-mode-active .desktop-mode-dock__item {
 	min-width: var( --odd-dock-tile-size );
 }
 
-body.wp-desktop-active .wp-desktop-dock__item-primary {
+body.desktop-mode-active .desktop-mode-dock__item-primary {
 	display: grid;
 	place-items: center;
 	width: var( --odd-dock-tile-size );
@@ -46,8 +46,8 @@ body.wp-desktop-active .wp-desktop-dock__item-primary {
 		0 8px 20px rgba( 0, 0, 0, 0.22 );
 }
 
-body.wp-desktop-active .wp-desktop-dock__item-primary:hover,
-body.wp-desktop-active .wp-desktop-dock__item-primary:focus-visible {
+body.desktop-mode-active .desktop-mode-dock__item-primary:hover,
+body.desktop-mode-active .desktop-mode-dock__item-primary:focus-visible {
 	background: rgba( 8, 14, 28, 0.68 );
 }
 
@@ -60,16 +60,16 @@ body.wp-desktop-active .wp-desktop-dock__item-primary:focus-visible {
  * instead of apps floating bare against the wallpaper. Keep them in
  * the default plate rule above.
  */
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ) {
+body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"] ),
+body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/assets/icons/"] ) {
 	background: transparent;
 	box-shadow: none;
 }
 
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):hover,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):hover,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):focus-visible,
-body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__item-img[src*="/assets/icons/"] ):focus-visible {
+body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):hover,
+body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/assets/icons/"] ):hover,
+body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):focus-visible,
+body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/assets/icons/"] ):focus-visible {
 	background: rgba( 255, 255, 255, 0.08 );
 }
 
@@ -80,14 +80,14 @@ body.wp-desktop-active .wp-desktop-dock__item-primary:has( img.wp-desktop-dock__
  * corners so they match the softer monoline/filament style. App
  * icons sit inside the default dark plate, so they don't need this.
  */
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"] {
+body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"],
+body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img[src*="/assets/icons/"] {
 	border-radius: 14px;
 }
 
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img,
-body.wp-desktop-active .wp-desktop-dock__item-svg,
-body.wp-desktop-active .wp-desktop-dock__item .dashicons {
+body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img,
+body.desktop-mode-active .desktop-mode-dock__item-svg,
+body.desktop-mode-active .desktop-mode-dock__item .dashicons {
 	width: var( --odd-dock-icon-size );
 	height: var( --odd-dock-icon-size );
 	max-width: var( --odd-dock-icon-size );
@@ -99,32 +99,32 @@ body.wp-desktop-active .wp-desktop-dock__item .dashicons {
 		drop-shadow( 0 0 4px rgba( 0, 0, 0, 0.72 ) );
 }
 
-body.wp-desktop-active .wp-desktop-dock__item .dashicons {
+body.desktop-mode-active .desktop-mode-dock__item .dashicons {
 	font-size: 38px;
 	line-height: var( --odd-dock-icon-size );
 }
 
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/wp-json/odd/v1/icons/"],
-body.wp-desktop-active .wp-desktop-dock__item img.wp-desktop-dock__item-img[src*="/assets/icons/"] {
+body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"],
+body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img[src*="/assets/icons/"] {
 	width: var( --odd-dock-custom-icon-size );
 	height: var( --odd-dock-custom-icon-size );
 	max-width: var( --odd-dock-custom-icon-size );
 	max-height: var( --odd-dock-custom-icon-size );
 }
 
-body.wp-desktop-active .wp-desktop-icon {
+body.desktop-mode-active .desktop-mode-icon {
 	padding: 10px 6px;
 	border-radius: 12px;
 }
 
-body.wp-desktop-active .wp-desktop-icon:hover,
-body.wp-desktop-active .wp-desktop-icon:focus-visible {
+body.desktop-mode-active .desktop-mode-icon:hover,
+body.desktop-mode-active .desktop-mode-icon:focus-visible {
 	background: rgba( 4, 8, 18, 0.34 );
 	backdrop-filter: blur( 12px );
 	-webkit-backdrop-filter: blur( 12px );
 }
 
-body.wp-desktop-active .wp-desktop-icon__image {
+body.desktop-mode-active .desktop-mode-icon__image {
 	width: 54px;
 	height: 54px;
 	border-radius: 16px;
@@ -139,7 +139,7 @@ body.wp-desktop-active .wp-desktop-icon__image {
 	-webkit-backdrop-filter: blur( 12px );
 }
 
-body.wp-desktop-active .wp-desktop-icon__image img {
+body.desktop-mode-active .desktop-mode-icon__image img {
 	max-width: 42px;
 	max-height: 42px;
 	filter:
@@ -155,8 +155,8 @@ body.wp-desktop-active .wp-desktop-icon__image img {
  * plate so the desktop reads as a coherent grid of tiles, not a
  * bunch of floating stickers.
  */
-body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ) {
+body.desktop-mode-active .desktop-mode-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
+body.desktop-mode-active .desktop-mode-icon__image:has( img[src*="/assets/icons/"] ) {
 	background: none;
 	border: none;
 	box-shadow: none;
@@ -164,21 +164,21 @@ body.wp-desktop-active .wp-desktop-icon__image:has( img[src*="/assets/icons/"] )
 	-webkit-backdrop-filter: none;
 }
 
-body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon:hover .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.wp-desktop-active .wp-desktop-icon:focus-visible .wp-desktop-icon__image:has( img[src*="/assets/icons/"] ) {
+body.desktop-mode-active .desktop-mode-icon:hover .desktop-mode-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
+body.desktop-mode-active .desktop-mode-icon:hover .desktop-mode-icon__image:has( img[src*="/assets/icons/"] ),
+body.desktop-mode-active .desktop-mode-icon:focus-visible .desktop-mode-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
+body.desktop-mode-active .desktop-mode-icon:focus-visible .desktop-mode-icon__image:has( img[src*="/assets/icons/"] ) {
 	background: rgba( 255, 255, 255, 0.10 );
 }
 
-body.wp-desktop-active .wp-desktop-icon__image img[src*="/wp-json/odd/v1/icons/"],
-body.wp-desktop-active .wp-desktop-icon__image img[src*="/assets/icons/"] {
+body.desktop-mode-active .desktop-mode-icon__image img[src*="/wp-json/odd/v1/icons/"],
+body.desktop-mode-active .desktop-mode-icon__image img[src*="/assets/icons/"] {
 	max-width: 54px;
 	max-height: 54px;
 	border-radius: 14px;
 }
 
-body.wp-desktop-active .wp-desktop-icon__label {
+body.desktop-mode-active .desktop-mode-icon__label {
 	padding: 2px 6px;
 	border-radius: 999px;
 	background: rgba( 4, 8, 18, 0.56 );
@@ -191,9 +191,9 @@ body.wp-desktop-active .wp-desktop-icon__label {
 }
 
 @media (prefers-reduced-transparency: reduce) {
-	body.wp-desktop-active .wp-desktop-dock__item-primary,
-	body.wp-desktop-active .wp-desktop-icon__image,
-	body.wp-desktop-active .wp-desktop-icon__label {
+	body.desktop-mode-active .desktop-mode-dock__item-primary,
+	body.desktop-mode-active .desktop-mode-icon__image,
+	body.desktop-mode-active .desktop-mode-icon__label {
 		background: #10131c;
 	}
 }

@@ -50,14 +50,14 @@ describe( 'Desktop Mode hook bridge', () => {
 		window.__odd.events.on( 'odd.iframe-error', ( payload ) => seen.push( payload ) );
 
 		loadDesktopHooks();
-		window.wp.hooks.doAction( 'wp-desktop.iframe.error', {
+		window.wp.hooks.doAction( 'desktop-mode.iframe.error', {
 			windowId: 'odd-app-demo',
 			message: 'boom',
 		} );
 
 		expect( seen ).toHaveLength( 1 );
 		expect( seen[ 0 ].message ).toBe( 'boom' );
-		expect( window.__odd.diagnostics.recent().some( ( row ) => row.message.includes( 'wp-desktop.iframe.error' ) ) ).toBe( true );
+		expect( window.__odd.diagnostics.recent().some( ( row ) => row.message.includes( 'desktop-mode.iframe.error' ) ) ).toBe( true );
 	} );
 
 	it( 'seeds a desktopState snapshot before any Desktop Mode hooks fire', () => {
@@ -84,7 +84,7 @@ describe( 'Desktop Mode hook bridge', () => {
 		window.__odd.events.on( 'odd.desktop-state-changed', ( payload ) => stateChanges.push( payload ) );
 
 		loadDesktopHooks();
-		window.wp.hooks.doAction( 'wp-desktop.window.opened', {
+		window.wp.hooks.doAction( 'desktop-mode.window.opened', {
 			windowId: 'odd-app-demo',
 			title: 'Demo',
 			bounds: { x: 10, y: 20, width: 300, height: 200 },
@@ -120,7 +120,7 @@ describe( 'Desktop Mode hook bridge', () => {
 			} ),
 		};
 
-		window.wp.hooks.doAction( 'wp-desktop.window.opened', { windowId: 'odd' } );
+		window.wp.hooks.doAction( 'desktop-mode.window.opened', { windowId: 'odd' } );
 
 		expect( window.__odd.api.requestMaximize ).toHaveBeenCalledWith( window.wp.desktop );
 		expect( toggleFullscreen ).toHaveBeenCalledTimes( 1 );
@@ -144,7 +144,7 @@ describe( 'Desktop Mode hook bridge', () => {
 			requestMaximize,
 		};
 
-		window.wp.hooks.doAction( 'wp-desktop.window.reopened', { windowId: 'odd' } );
+		window.wp.hooks.doAction( 'desktop-mode.window.reopened', { windowId: 'odd' } );
 
 		expect( requestMaximize ).not.toHaveBeenCalled();
 	} );
@@ -155,7 +155,7 @@ describe( 'Desktop Mode hook bridge', () => {
 		window.__odd.events.on( 'odd.visibility-changed', ( payload ) => seen.push( payload ) );
 
 		loadDesktopHooks();
-		window.wp.hooks.doAction( 'wp-desktop.wallpaper.visibility', {
+		window.wp.hooks.doAction( 'desktop-mode.wallpaper.visibility', {
 			id: 'odd',
 			state: 'hidden',
 		} );
@@ -171,7 +171,7 @@ describe( 'Desktop Mode hook bridge', () => {
 
 		const overlay = document.createElement( 'div' );
 		const next = window.wp.hooks.applyFilters(
-			'wp-desktop.window.loading-overlay',
+			'desktop-mode.window.loading-overlay',
 			overlay,
 			{ windowId: 'odd' },
 		);
@@ -204,7 +204,7 @@ describe( 'Desktop Mode hook bridge', () => {
 		loadDesktopHooks();
 
 		const classes = window.wp.hooks.applyFilters(
-			'wp-desktop.dock.tile-class',
+			'desktop-mode.dock.tile-class',
 			[ 'tile' ],
 			{ item: { id: 'odd-app-demo', title: 'Demo' } },
 		);
@@ -212,7 +212,7 @@ describe( 'Desktop Mode hook bridge', () => {
 
 		const tile = document.createElement( 'button' );
 		const next = window.wp.hooks.applyFilters(
-			'wp-desktop.dock.tile-element',
+			'desktop-mode.dock.tile-element',
 			tile,
 			{ item: { id: 'odd', title: 'ODD Shop' } },
 		);
@@ -226,20 +226,20 @@ describe( 'Desktop Mode hook bridge', () => {
 		loadDesktopHooks();
 
 		const win = document.createElement( 'div' );
-		win.innerHTML = '<div class="wp-desktop-window-titlebar"></div><button>Run</button><input type="text">';
-		window.wp.hooks.doAction( 'wp-desktop.window.opened', {
+		win.innerHTML = '<div class="desktop-mode-window-titlebar"></div><button>Run</button><input type="text">';
+		window.wp.hooks.doAction( 'desktop-mode.window.opened', {
 			windowId: 'odd-app-demo',
 			element: win,
 		} );
 
 		expect( win.getAttribute( 'data-odd-cursor-root' ) ).toBe( 'true' );
-		expect( win.querySelector( '.wp-desktop-window-titlebar' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'grab' );
+		expect( win.querySelector( '.desktop-mode-window-titlebar' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'grab' );
 		expect( win.querySelector( 'button' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
 		expect( win.querySelector( 'input' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'text' );
 
 		const widget = document.createElement( 'div' );
 		widget.innerHTML = '<div class="odd-widget__move"></div><button>Tap</button>';
-		window.wp.hooks.doAction( 'wp-desktop.widget.mounted', {
+		window.wp.hooks.doAction( 'desktop-mode.widget.mounted', {
 			id: 'odd/weather',
 			element: widget,
 		} );
@@ -255,7 +255,7 @@ describe( 'Desktop Mode hook bridge', () => {
 		loadDesktopHooks();
 
 		const doc = document.implementation.createHTMLDocument( 'frame' );
-		window.wp.hooks.doAction( 'wp-desktop.iframe.ready', {
+		window.wp.hooks.doAction( 'desktop-mode.iframe.ready', {
 			windowId: 'plugins',
 			document: doc,
 		} );
@@ -272,7 +272,7 @@ describe( 'Desktop Mode hook bridge', () => {
 		win.innerHTML = '<div data-window-titlebar></div><button>Close</button><textarea></textarea>';
 		document.body.appendChild( win );
 
-		window.wp.hooks.doAction( 'wp-desktop.window.content-loaded', {
+		window.wp.hooks.doAction( 'desktop-mode.window.content-loaded', {
 			windowId: 'plugins',
 		} );
 
@@ -288,7 +288,7 @@ describe( 'Desktop Mode hook bridge', () => {
 		window.wp.desktop = { ready: ( cb ) => cb(), openWindow };
 		loadDesktopHooks();
 
-		const items = window.wp.hooks.applyFilters( 'wp-desktop.open-command.items', [] );
+		const items = window.wp.hooks.applyFilters( 'desktop-mode.open-command.items', [] );
 		expect( items.map( ( item ) => item.id ) ).toEqual( expect.arrayContaining( [ 'odd', 'odd-app-timer' ] ) );
 
 		items.find( ( item ) => item.id === 'odd-app-timer' ).open();
@@ -299,14 +299,14 @@ describe( 'Desktop Mode hook bridge', () => {
 		window.wp.desktop = { ready: ( cb ) => cb() };
 		loadDesktopHooks();
 
-		window.wp.hooks.applyFilters( 'wp-desktop.command.before-run', { slug: 'shuffle', args: '' } );
-		window.wp.hooks.doAction( 'wp-desktop.command.error', {
+		window.wp.hooks.applyFilters( 'desktop-mode.command.before-run', { slug: 'shuffle', args: '' } );
+		window.wp.hooks.doAction( 'desktop-mode.command.error', {
 			slug: 'odd-panel',
 			error: new Error( 'nope' ),
 		} );
 
 		const log = window.__odd.diagnostics.recent().map( ( row ) => row.message );
-		expect( log.some( ( row ) => row.includes( 'wp-desktop.command.before-run' ) ) ).toBe( true );
-		expect( log.some( ( row ) => row.includes( 'wp-desktop.command.error' ) ) ).toBe( true );
+		expect( log.some( ( row ) => row.includes( 'desktop-mode.command.before-run' ) ) ).toBe( true );
+		expect( log.some( ( row ) => row.includes( 'desktop-mode.command.error' ) ) ).toBe( true );
 	} );
 } );

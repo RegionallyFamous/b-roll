@@ -12,7 +12,7 @@
  *
  * Installed widgets live at `wp-content/odd-widgets/<slug>/`. Each
  * `widget.js` is enqueued on `admin_enqueue_scripts` so it runs
- * after `wp-desktop` initialises, which is enough for
+ * after `desktop-mode` initialises, which is enough for
  * `wp.desktop.registerWidget()` to hook the widget into the desktop
  * right column. Declared `"css"` files are linked on the same hook so
  * widget markup can be styled — previously only `.js` was loaded and
@@ -274,7 +274,7 @@ add_action(
 				wp_enqueue_style(
 					$css_handle,
 					$css_url,
-					array( 'wp-desktop' ),
+					array( 'desktop-mode' ),
 					$ver,
 					'all'
 				);
@@ -284,7 +284,7 @@ add_action(
 			wp_enqueue_script(
 				'odd-widget-' . $slug,
 				$url,
-				array( 'wp-desktop', 'odd-api' ),
+				array( 'desktop-mode', 'odd-api' ),
 				$ver,
 				true
 			);

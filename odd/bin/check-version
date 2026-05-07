@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
-"""Assert the Version header, ODD_VERSION constant, and blueprint install ref agree.
+"""Assert Version header + ODD_VERSION constant agree, and blueprint refs when tagged.
 
-With --expect <x.y.z>, also assert all three match that value (used by
-the release workflow to assert the pushed tag matches every declared
-version).
-
-Checks:
-  - `Version:` header in odd/odd.php
-  - `ODD_VERSION` constant in odd/odd.php
-  - ODD's install ref in blueprint.json when it is pinned to a release tag
-    (so the public Playground demo runs the same release as odd.php)
+With --expect <x.y.z>, assert the plugin header and constant match that value.
+When Playground blueprints install ODD via a semver git **tag**, that tag must
+also match `odd.php`. Branch installs (`main`) skip blueprint↔semver checks.
 
 Usage:
     odd/bin/check-version

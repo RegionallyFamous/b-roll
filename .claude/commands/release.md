@@ -27,19 +27,19 @@ If on a different branch, stop and ask.
 
 ## 2. Bump version pins
 
-Use the helper so the plugin headers and both Playground blueprints stay in sync:
+Use the helper — it updates `odd/odd.php` and, when Playground installs ODD from a semver **git tag**, rewrites both blueprints’ `ref` pins. Hosted demos currently install from branch `main`, so **`bump-version` only bumps `odd.php` for those blueprints.** Manually fork a semver-tagged blueprint (or revert the branch pin locally) before release if you need tag parity baked into JSON.
 
 ```bash
 odd/bin/bump-version <version>
 ```
 
-Then confirm they agree:
+Then confirm they agree (`check-version` only cross-checks blueprint vs `odd.php` when blueprints pin a release tag):
 
 ```bash
 odd/bin/check-version --expect <version>
 ```
 
-Commit:
+Commit whatever changed (always `odd.php`; blueprints too if bump-version rewrote tags):
 
 ```bash
 git add odd/odd.php blueprint.json site/playground/blueprint.json
@@ -78,7 +78,7 @@ Or browse to the Actions tab in the repo.
 Give the user:
 
 - The release URL: `https://github.com/RegionallyFamous/odd/releases/tag/v<version>`
-- The Playground demo URL: `https://playground.wordpress.net/?blueprint-url=https://odd.regionallyfamous.com/playground/blueprint.json`
+- The Playground demo URL (hosted blueprint on `main` + wordpress.org Desktop Mode): `https://playground.wordpress.net/?blueprint-url=https://odd.regionallyfamous.com/playground/blueprint.json`. Raw GitHub mirror: `https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json`.
 - A one-line summary of what shipped
 
 If the auto-generated release notes need editing, open the release in

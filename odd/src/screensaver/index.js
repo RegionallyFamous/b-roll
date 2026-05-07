@@ -19,7 +19,7 @@
  *
  * Zero host-API surface: this is a plain DOM overlay parked at max
  * z-index, so it works on any WP Desktop Mode build that loads the
- * ODD wallpaper. Does not use any `wp-desktop.*` hooks.
+ * ODD wallpaper. Does not use any `desktop-mode.*` hooks.
  */
 ( function () {
 	'use strict';

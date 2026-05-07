@@ -25,20 +25,19 @@ defined( 'ABSPATH' ) || exit;
 function odd_icons_slug_to_key( $slug ) {
 	$slug = (string) $slug;
 	$map  = array(
-		'index.php'               => 'dashboard',
-		'edit.php'                => 'posts',
-		'edit.php?post_type=page' => 'pages',
-		'upload.php'              => 'media',
-		'edit-comments.php'       => 'comments',
-		'themes.php'              => 'appearance',
-		'plugins.php'             => 'plugins',
-		'users.php'               => 'users',
-		'tools.php'               => 'tools',
-		'options-general.php'     => 'settings',
-		'profile.php'             => 'profile',
-		'link-manager.php'        => 'links',
-		'wpdc-editor'             => 'tools',
-		'wpdm-recycle-bin'        => 'recycle-bin',
+		'index.php'                => 'dashboard',
+		'edit.php'                 => 'posts',
+		'edit.php?post_type=page'  => 'pages',
+		'upload.php'               => 'media',
+		'edit-comments.php'        => 'comments',
+		'themes.php'               => 'appearance',
+		'plugins.php'              => 'plugins',
+		'users.php'                => 'users',
+		'tools.php'                => 'tools',
+		'options-general.php'      => 'settings',
+		'profile.php'              => 'profile',
+		'link-manager.php'         => 'links',
+		'desktop-mode-recycle-bin' => 'recycle-bin',
 	);
 	if ( isset( $map[ $slug ] ) ) {
 		return $map[ $slug ];
@@ -58,7 +57,11 @@ function odd_icons_entry_recycle_key( $entry_id, $window, $title = '' ) {
 		sanitize_key( (string) $title ),
 	);
 	foreach ( $needles as $needle ) {
-		if ( 'wpdm-recycle-bin' === $needle || 'recycle-bin' === $needle || 'trash' === $needle ) {
+		if (
+			'desktop-mode-recycle-bin' === $needle
+			|| 'recycle-bin' === $needle
+			|| 'trash' === $needle
+		) {
 			return 'recycle-bin';
 		}
 	}
@@ -148,52 +151,4 @@ add_filter(
 		return $registry;
 	},
 	20
-);
-
-/**
- * Desktop Mode's Code editor is both a desktop shortcut and a native
- * window with `placement: taskbar`. The desktop shortcut passes
- * through `desktop_mode_icons`; the taskbar tile is rendered from
- * `nativeWindows[]`, so mirror the themed desktop icon there.
- */
-add_filter(
-	'desktop_mode_shell_config',
-	function ( $config ) {
-		if ( ! is_array( $config ) || empty( $config['nativeWindows'] ) || empty( $config['desktopIcons'] ) ) {
-			return $config;
-		}
-
-		$code_icon = '';
-		foreach ( (array) $config['desktopIcons'] as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			$id     = isset( $entry['id'] ) ? (string) $entry['id'] : '';
-			$window = isset( $entry['window'] ) ? (string) $entry['window'] : '';
-			if ( 'wpdc-editor' !== $id && 'wpdc-editor' !== $window ) {
-				continue;
-			}
-			if ( ! empty( $entry['icon'] ) ) {
-				$code_icon = (string) $entry['icon'];
-				break;
-			}
-		}
-
-		if ( '' === $code_icon ) {
-			return $config;
-		}
-
-		foreach ( $config['nativeWindows'] as $i => $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			$id = isset( $entry['id'] ) ? (string) $entry['id'] : '';
-			if ( 'wpdc-editor' === $id ) {
-				$config['nativeWindows'][ $i ]['icon'] = $code_icon;
-			}
-		}
-
-		return $config;
-	},
-	30
 );

@@ -66,7 +66,7 @@ catalog-only changes.
 ## Playground Smoke
 
 1. Open `https://odd.regionallyfamous.com/playground/`.
-2. Confirm WordPress Playground loads Desktop Mode v0.6.0 and ODD.
+2. Confirm WordPress Playground loads Desktop Mode v0.7.2+ and ODD.
 3. Confirm the ODD Shop opens.
 4. Confirm the starter wallpaper, icon set, and cursor set install or show a
    visible retry state.

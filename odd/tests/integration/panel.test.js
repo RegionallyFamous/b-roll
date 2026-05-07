@@ -2,7 +2,7 @@
  * panel.test.js — smoke-test the ODD Shop render pipeline.
  *
  * Loads odd/src/panel/index.js, which registers a render callback on
- * `window.wpDesktopNativeWindows.odd`. We invoke the callback against
+ * `window.desktopModeNativeWindows.odd`. We invoke the callback against
  * a detached host element with a stubbed `window.odd` config and
  * stubbed global.fetch, then exercise the critical paths:
  *
@@ -127,7 +127,7 @@ function mountPanel( options = {} ) {
 		toJSON: () => {},
 	} );
 	document.body.appendChild( host );
-	const cleanup = window.wpDesktopNativeWindows.odd( host );
+	const cleanup = window.desktopModeNativeWindows.odd( host );
 	return { host, cleanup };
 }
 
@@ -142,9 +142,9 @@ describe( 'ODD Shop', () => {
 		document.body.innerHTML = '';
 		const existing = document.getElementById( 'odd-panel-styles' );
 		if ( existing ) existing.remove();
-		delete window.wpDesktopNativeWindows;
+		delete window.desktopModeNativeWindows;
 		if ( window.wp && window.wp.desktop ) delete window.wp.desktop.widgetLayer;
-		try { window.localStorage.removeItem( 'wp-desktop-widgets' ); } catch ( e ) {}
+		try { window.localStorage.removeItem( 'desktop-mode.widgets' ); } catch ( e ) {}
 		seedConfig();
 		installHooks();
 
@@ -159,11 +159,11 @@ describe( 'ODD Shop', () => {
 
 	afterEach( () => {
 		delete globalThis.fetch;
-		document.body.classList.remove( 'wp-desktop-has-fullscreen-window' );
+		document.body.classList.remove( 'desktop-mode-has-fullscreen-window' );
 	} );
 
-	it( 'registers a render callback under window.wpDesktopNativeWindows.odd', () => {
-		expect( typeof window.wpDesktopNativeWindows.odd ).toBe( 'function' );
+	it( 'registers a render callback under window.desktopModeNativeWindows.odd', () => {
+		expect( typeof window.desktopModeNativeWindows.odd ).toBe( 'function' );
 	} );
 
 	it( 'renders the department rail + shelf-grouped scene grid', () => {
@@ -276,7 +276,7 @@ describe( 'ODD Shop', () => {
 				getById: vi.fn( () => win ),
 			},
 		};
-		document.body.classList.add( 'wp-desktop-has-fullscreen-window' );
+		document.body.classList.add( 'desktop-mode-has-fullscreen-window' );
 		window.matchMedia = ( q ) => ( {
 			matches:           /pointer:\s*coarse/.test( q ) || /any-pointer:\s*coarse/.test( q ) ? true :
 			                   /hover:\s*hover/.test( q ) ? false :
@@ -306,7 +306,7 @@ describe( 'ODD Shop', () => {
 		} finally {
 			window.matchMedia = origMM;
 			setViewportWidth( origInner );
-			document.body.classList.remove( 'wp-desktop-has-fullscreen-window' );
+			document.body.classList.remove( 'desktop-mode-has-fullscreen-window' );
 		}
 	} );
 
@@ -400,18 +400,18 @@ describe( 'ODD Shop', () => {
 			expect( host.getAttribute( 'data-odd-host-fullscreen' ) ).toBe( 'false' );
 
 			win.state = 'fullscreen';
-			document.body.classList.add( 'wp-desktop-has-fullscreen-window' );
-			window.wp.hooks.doAction( 'wp-desktop.window.fullscreen-entered', { windowId: 'odd' } );
+			document.body.classList.add( 'desktop-mode-has-fullscreen-window' );
+			window.wp.hooks.doAction( 'desktop-mode.window.fullscreen-entered', { windowId: 'odd' } );
 			expect( host.getAttribute( 'data-odd-host-state' ) ).toBe( 'fullscreen' );
 			expect( host.getAttribute( 'data-odd-host-fullscreen' ) ).toBe( 'true' );
 
 			setViewportWidth( 620 );
-			window.wp.hooks.doAction( 'wp-desktop.window.bounds-changed', { windowId: 'odd' } );
+			window.wp.hooks.doAction( 'desktop-mode.window.bounds-changed', { windowId: 'odd' } );
 			expect( host.getAttribute( 'data-odd-layout' ) ).toBe( 'mobile' );
 			cleanup?.();
 		} finally {
 			setViewportWidth( origInner );
-			document.body.classList.remove( 'wp-desktop-has-fullscreen-window' );
+			document.body.classList.remove( 'desktop-mode-has-fullscreen-window' );
 		}
 	} );
 

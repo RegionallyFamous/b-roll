@@ -1,7 +1,7 @@
 /**
  * ODD debug inspector (window.__odd.debug)
  * ---------------------------------------------------------------
- * Opt-in runtime inspector. Enabled only when `wpDesktopConfig.debug`
+ * Opt-in runtime inspector. Enabled only when `desktopModeConfig.debug`
  * is true or the page URL carries `?odd-debug=1`. In production the
  * module installs a no-op stub so callers can always invoke it safely.
  *

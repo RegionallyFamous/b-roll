@@ -18,7 +18,7 @@ All four are managed from a single native WP Desktop Mode window (the **ODD Shop
 - **Repo:** `RegionallyFamous/odd`
 - **Live demo:** https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json
 - **Remote catalog:** https://odd.regionallyfamous.com/catalog/v1/registry.json
-- **Host plugin (required at runtime):** WP Desktop Mode v0.6.0+
+- **Host plugin (required at runtime):** WP Desktop Mode v0.7.2+ (wordpress.org/plugins/desktop-mode)
 
 ## Architecture at a glance
 

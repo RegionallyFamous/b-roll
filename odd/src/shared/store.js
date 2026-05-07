@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------
  * One source of truth for user prefs + registries + runtime state.
  * Hydrates from the inlined `window.odd` config (populated via
- * wp_localize_script on odd-api) and the host `wpDesktopConfig`
+ * wp_localize_script on odd-api) and the host `desktopModeConfig`
  * blob. Subscribers can listen to the whole store ('*') or to a
  * dotted path ('user.wallpaper', 'registries.scenes', …).
  *
@@ -175,7 +175,7 @@
 		if ( hydrated ) return state;
 		hydrated = true;
 		var cfg = window.odd || {};
-		var wdc = window.wpDesktopConfig || {};
+		var wdc = window.desktopModeConfig || {};
 		var rm  = false;
 		try {
 			rm = !! ( window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches );

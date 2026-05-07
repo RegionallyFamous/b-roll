@@ -926,7 +926,7 @@
 				else if ( ! ctx.prefersReducedMotion ) app.ticker.start();
 			}
 			if ( window.wp && window.wp.hooks ) {
-				window.wp.hooks.addAction( 'wp-desktop.wallpaper.visibility', visHook, onVis );
+				window.wp.hooks.addAction( 'desktop-mode.wallpaper.visibility', visHook, onVis );
 
 				// Panel / widgets / slash commands all fire this action
 				// to swap the live scene without waiting on REST. The
@@ -975,7 +975,7 @@
 					try { window.__odd.audio.disable(); } catch ( e ) { /* ignore */ }
 				}
 				if ( window.wp && window.wp.hooks ) {
-					window.wp.hooks.removeAction( 'wp-desktop.wallpaper.visibility', visHook );
+					window.wp.hooks.removeAction( 'desktop-mode.wallpaper.visibility', visHook );
 					window.wp.hooks.removeAction( 'odd.pickScene', 'odd.wallpaper' );
 				}
 				document.removeEventListener( 'visibilitychange', onDocVis );

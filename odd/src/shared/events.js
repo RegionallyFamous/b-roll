@@ -8,7 +8,7 @@
  *
  * Canonical events (firing contract). All names follow WordPress's
  * @wordpress/hooks naming rule — ASCII letters / digits / dashes /
- * periods / underscores, matching the `wp-desktop.*` convention in
+ * periods / underscores, matching the `desktop-mode.*` convention in
  * the host shell.
  *
  *   Lifecycle phases (fired by the lifecycle module):
@@ -62,7 +62,7 @@
  * should subscribe to `odd.scene-changed` / `odd.icon-set-changed`.
  *
  * The `log()` accessor exposes the most recent 200 events when debug
- * mode is on (`wpDesktopConfig.debug === true` or ?odd-debug=1). In
+ * mode is on (`desktopModeConfig.debug === true` or ?odd-debug=1). In
  * production the log is a no-op so there's no unbounded memory growth.
  */
 ( function () {

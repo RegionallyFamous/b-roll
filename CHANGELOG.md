@@ -17,6 +17,10 @@ notes to GitHub Releases.
 - `window.__odd.mountSceneInto(container, slug, opts)` for low-power scene previews outside the desktop wallpaper runner.
 
 ### Changed
+- **Breaking: WP Desktop Mode v0.7.2+ only.** Hooks use the `desktop-mode.*` namespace, the bundled script handle is `desktop-mode`, shell roots use `#desktop-mode-shell` / `body.desktop-mode-active`, native window renderers live on `desktopModeNativeWindows`, and host config/wallpapers use `desktopModeConfig` / `desktopModeWallpapers`. CI installs Desktop Mode from WordPress.org.
+- Public Playground blueprints install ODD via `git:directory` **branch `main`** (with Desktop Mode from wordpress.org) so hosted demos track `main` while release zips remain semver-tagged.
+- `odd/bin/bump-version` skips blueprint tag rewrites when those blueprints pin `main`.
+- Icon-set dock/desktop mapping targets the recycle bin slug `desktop-mode-recycle-bin` (WP Desktop Mode v0.7+).
 - The ODD Shop native window now defaults to 1080x720 with a 720x520 minimum.
 - Scene bundles can carry `heroSafe:false` to keep desktop-only scenes out of the Shop hero.
 

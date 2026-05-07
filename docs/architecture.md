@@ -107,7 +107,7 @@ The registered desktop icon (`includes/native-window.php`), the
 WP Desktop Mode's window manager reuses any window with a matching
 `baseId`, so there's always at most one Shop window on screen.
 
-The Shop body renders from `window.wpDesktopNativeWindows.odd = body
+The Shop body renders from `window.desktopModeNativeWindows.odd = body
 => { … }` in `src/panel/index.js`. The layout is the Mac App
 Store-style design: top search bar, sidebar (Wallpapers / Icon Sets /
 Cursors / Widgets / Apps / Install / Settings / About), content pane, and detail
@@ -118,7 +118,7 @@ registers its own `baseId: 'odd-app-<slug>'` window, so users can
 have the Shop plus any number of app windows open simultaneously
 (still capped to one window per app).
 
-ODD targets WP Desktop Mode v0.6.0+ as its host baseline. It declares
+ODD targets WP Desktop Mode v0.7.2+ as its host baseline. It declares
 command, settings-tab, and title-bar button scripts through Desktop
 Mode's registration APIs, then uses `src/shared/desktop-hooks.js` as the
 single bridge for window, iframe, widget, wallpaper, dock, command,
@@ -284,7 +284,7 @@ fields are unaffected.
 The shared mount runner in `src/wallpaper/index.js` owns:
 
 - Pixi app creation (`await app.init`, `app.canvas`)
-- The `wp-desktop.wallpaper.visibility` subscription +
+- The `desktop-mode.wallpaper.visibility` subscription +
   `document.visibilitychange` pause
 - Per-minute `env.tod` recompute, rolling-FPS `env.perfTier` sampler
 - The shuffle scheduler (every `odd_shuffle.minutes`)

@@ -16,7 +16,7 @@ function loadWindowHost() {
 describe( 'ODD app window host', () => {
 	beforeEach( () => {
 		document.body.innerHTML = '';
-		delete window.wpDesktopNativeWindows;
+		delete window.desktopModeNativeWindows;
 		loadFoundation( {
 			config: {
 				userApps:     { installed: [ 'demo' ], pinned: [] },
@@ -32,7 +32,7 @@ describe( 'ODD app window host', () => {
 		const markContentLoading = vi.fn();
 		const markContentLoaded = vi.fn();
 
-		window.wpDesktopNativeWindows[ 'odd-app-demo' ]( body, {
+		window.desktopModeNativeWindows[ 'odd-app-demo' ]( body, {
 			window: { markContentLoading, markContentLoaded },
 		} );
 
@@ -55,7 +55,7 @@ describe( 'ODD app window host', () => {
 		const errors = [];
 		window.__odd.events.on( 'odd.iframe-error', ( payload ) => errors.push( payload ) );
 
-		window.wpDesktopNativeWindows[ 'odd-app-demo' ]( body, {} );
+		window.desktopModeNativeWindows[ 'odd-app-demo' ]( body, {} );
 
 		expect( body.querySelector( 'iframe.odd-app-frame' ) ).toBeNull();
 		expect( body.textContent ).toContain( 'No serve URL is registered' );

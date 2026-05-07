@@ -85,7 +85,7 @@ class Test_Cursors extends WP_UnitTestCase {
 		$css = odd_cursors_build_css( odd_cursors_get_set( 'test-cursors' ) );
 
 		$this->assertStringContainsString(
-			'[data-window-id], [data-windowid], [data-wp-desktop-window-id], [data-desktop-window-id], [data-native-window-id]',
+			'[data-window-id], [data-windowid], [data-desktop-window-id], [data-native-window-id]',
 			$css
 		);
 		$this->assertStringNotContainsString( '.native-window-titlebar { cursor: var(--odd-cursor-grab); }', $css );

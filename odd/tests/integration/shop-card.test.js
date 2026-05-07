@@ -86,7 +86,7 @@ function mount() {
 	host.style.width = '900px';
 	host.style.height = '600px';
 	document.body.appendChild( host );
-	const cleanup = window.wpDesktopNativeWindows.odd( host );
+	const cleanup = window.desktopModeNativeWindows.odd( host );
 	return { host, cleanup };
 }
 
@@ -104,7 +104,7 @@ describe( 'ODD Shop · unified card state machine', () => {
 		document.body.innerHTML = '';
 		const existing = document.getElementById( 'odd-panel-styles' );
 		if ( existing ) existing.remove();
-		delete window.wpDesktopNativeWindows;
+		delete window.desktopModeNativeWindows;
 		try { window.sessionStorage.removeItem( 'odd.justInstalled' ); } catch ( e ) {}
 		installHooks();
 

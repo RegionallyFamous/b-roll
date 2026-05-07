@@ -147,7 +147,7 @@
 				return true;
 			}
 			if ( typeof d.getSystemTile === 'function' ) {
-				var tile = d.getSystemTile( 'wp-desktop-os-settings' );
+				var tile = d.getSystemTile( 'desktop-mode-os-settings' );
 				if ( tile && typeof tile.onOpen === 'function' ) {
 					tile.onOpen();
 					return true;
@@ -212,7 +212,7 @@
 			var win = d.windowManager && typeof d.windowManager.getById === 'function' ? d.windowManager.getById( 'odd' ) : null;
 			var panel = document.querySelector ? document.querySelector( '.odd-panel.odd-shop' ) : null;
 			var hostWindowState = win && typeof win.state === 'string' ? win.state : 'normal';
-			var hostFullscreen = !! ( document.body && document.body.classList && document.body.classList.contains( 'wp-desktop-has-fullscreen-window' ) );
+			var hostFullscreen = !! ( document.body && document.body.classList && document.body.classList.contains( 'desktop-mode-has-fullscreen-window' ) );
 			out.shop = {
 				hostWindowState: hostWindowState,
 				hostFullscreen:  hostFullscreen,

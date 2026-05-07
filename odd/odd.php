@@ -19,7 +19,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'ODD_VERSION', '1.0.0' );
-define( 'ODD_DESKTOP_MODE_MIN_VERSION', '0.6.0' );
+define( 'ODD_DESKTOP_MODE_MIN_VERSION', '0.7.2' );
 define( 'ODD_FILE', __FILE__ );
 define( 'ODD_DIR', plugin_dir_path( __FILE__ ) );
 

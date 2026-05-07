@@ -22,7 +22,7 @@ All extension points follow WordPress conventions:
 
 - **PHP surfaces** use `apply_filters` with well-defined registry shapes.
 - **JS surfaces** use `@wordpress/hooks` actions/filters using
-  dot-separated names (`odd.*`), matching WP Desktop Mode's `wp-desktop.*`
+  dot-separated names (`odd.*`), matching WP Desktop Mode's `desktop-mode.*`
   convention.
 
 Everything below is part of the 1.0 contract. Event names and filter
@@ -255,7 +255,7 @@ failures.
 
 Enable debug mode one of two ways:
 
-- Set `wpDesktopConfig.debug = true` (WP Desktop Mode exposes this).
+- Set `desktopModeConfig.debug = true` (WP Desktop Mode exposes this).
 - Append `?odd-debug=1` to any URL that loads the Desktop shell.
 
 Then in devtools:

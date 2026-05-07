@@ -1,9 +1,9 @@
 /**
  * ODD ↔ WP Desktop Mode hook bridge.
  * ---------------------------------------------------------------
- * Newer Desktop Mode builds expose richer lifecycle, widget, iframe,
- * layout, settings-tab, and activity APIs. This module adopts them
- * opportunistically while staying silent on older host versions.
+ * WP Desktop Mode v0.7.2+ uses the `desktop-mode.*` hook namespace plus
+ * layout, settings-tab, and activity APIs. Older Desktop Mode builds
+ * (pre-0.7) are not supported.
  */
 ( function () {
 	'use strict';
@@ -190,7 +190,7 @@
 		var id = windowIdFromPayload( payload );
 		if ( ! id ) return;
 		setDesktopSupport( 'windows' );
-		if ( hookName === 'wp-desktop.window.closed' || hookName === 'wp-desktop.native-window.before-close' ) {
+		if ( hookName === 'desktop-mode.window.closed' || hookName === 'desktop-mode.native-window.before-close' ) {
 			delete windowStateById[ id ];
 			if ( desktopState.windows.focusedId === id ) desktopState.windows.focusedId = '';
 			refreshWindowList();
@@ -214,9 +214,9 @@
 		if ( payload && typeof payload.title === 'string' ) row.title = payload.title;
 		if ( payload && payload.config && typeof payload.config.title === 'string' ) row.title = payload.config.title;
 		if ( payload && typeof payload.state === 'string' ) row.state = payload.state;
-		if ( hookName === 'wp-desktop.window.maximized' ) row.state = 'maximized';
-		if ( hookName === 'wp-desktop.window.unmaximized' || hookName === 'wp-desktop.window.fullscreen-exited' ) row.state = 'normal';
-		if ( hookName === 'wp-desktop.window.fullscreen-entered' ) row.state = 'fullscreen';
+		if ( hookName === 'desktop-mode.window.maximized' ) row.state = 'maximized';
+		if ( hookName === 'desktop-mode.window.unmaximized' || hookName === 'desktop-mode.window.fullscreen-exited' ) row.state = 'normal';
+		if ( hookName === 'desktop-mode.window.fullscreen-entered' ) row.state = 'fullscreen';
 		var bounds = normalizeBounds( payload );
 		if ( bounds ) row.bounds = bounds;
 		if ( payload && ( payload.width != null || payload.height != null ) ) {
@@ -225,13 +225,13 @@
 				height: numericOrNull( payload.height ) || 0,
 			};
 		}
-		if ( hookName === 'wp-desktop.window.focused' || hookName === 'wp-desktop.window.opened' || hookName === 'wp-desktop.window.reopened' ) {
+		if ( hookName === 'desktop-mode.window.focused' || hookName === 'desktop-mode.window.opened' || hookName === 'desktop-mode.window.reopened' ) {
 			desktopState.windows.focusedId = id;
 			row.focused = true;
 			Object.keys( windowStateById ).forEach( function ( otherId ) {
 				if ( otherId !== id ) windowStateById[ otherId ].focused = false;
 			} );
-		} else if ( hookName === 'wp-desktop.window.blurred' ) {
+		} else if ( hookName === 'desktop-mode.window.blurred' ) {
 			row.focused = false;
 			if ( desktopState.windows.focusedId === id ) {
 				desktopState.windows.focusedId = payload && payload.focusedTo ? String( payload.focusedTo ) : '';
@@ -369,11 +369,10 @@
 		var selectors = [
 			'[data-window-id="' + q + '"]',
 			'[data-windowid="' + q + '"]',
-			'[data-wp-desktop-window-id="' + q + '"]',
 			'[data-desktop-window-id="' + q + '"]',
 			'[data-window="' + q + '"]',
 			'[data-native-window-id="' + q + '"]',
-			'#wpdm-window-' + q,
+			'#desktop-mode-native-window-' + q,
 			'#desktop-mode-window-' + q,
 		];
 		for ( var i = 0; i < selectors.length; i++ ) {
@@ -461,7 +460,7 @@
 	function markWindowChrome( root ) {
 		if ( ! root || ! root.querySelectorAll ) return 0;
 		var count = 0;
-		var chrome = root.querySelectorAll( '.desktop-mode-window-titlebar, .desktop-mode-window-header, .wp-desktop-window-titlebar, .wp-desktop-window-header, .wpdm-window__titlebar, .wpdm-window__header, [data-window-titlebar], [data-window-header], [data-drag-handle], [data-resize-handle], [data-window-drag-handle], [data-window-resize-handle]' );
+		var chrome = root.querySelectorAll( '.desktop-mode-window-titlebar, .desktop-mode-window-header, [data-window-titlebar], [data-window-header], [data-drag-handle], [data-resize-handle], [data-window-drag-handle], [data-window-resize-handle]' );
 		for ( var i = 0; i < chrome.length; i++ ) {
 			markCursor( chrome[ i ], 'grab' );
 			count++;
@@ -576,30 +575,30 @@
 
 	function setupWindowDiagnostics() {
 		var map = {
-			'wp-desktop.window.opened':              'odd.window-opened',
-			'wp-desktop.window.reopened':            'odd.window-reopened',
-			'wp-desktop.window.content-loading':     'odd.window-content-loading',
-			'wp-desktop.window.content-loaded':      'odd.window-content-loaded',
-			'wp-desktop.window.closing':             'odd.window-closing',
-			'wp-desktop.window.closed':              'odd.window-closed',
-			'wp-desktop.window.focused':             'odd.window-focused',
-			'wp-desktop.window.blurred':             'odd.window-blurred',
-			'wp-desktop.window.changed':             'odd.window-changed',
-			'wp-desktop.window.detached':            'odd.window-detached',
-			'wp-desktop.window.bounds-changed':      'odd.window-bounds-changed',
-			'wp-desktop.window.body-resized':        'odd.window-body-resized',
-			'wp-desktop.window.maximized':           'odd.window-maximized',
-			'wp-desktop.window.unmaximized':         'odd.window-unmaximized',
-			'wp-desktop.window.fullscreen-entered':  'odd.window-fullscreen-entered',
-			'wp-desktop.window.fullscreen-exited':   'odd.window-fullscreen-exited',
-			'wp-desktop.native-window.after-render': 'odd.native-window-after-render',
-			'wp-desktop.native-window.before-close': 'odd.native-window-before-close',
+			'desktop-mode.window.opened':              'odd.window-opened',
+			'desktop-mode.window.reopened':            'odd.window-reopened',
+			'desktop-mode.window.content-loading':     'odd.window-content-loading',
+			'desktop-mode.window.content-loaded':      'odd.window-content-loaded',
+			'desktop-mode.window.closing':             'odd.window-closing',
+			'desktop-mode.window.closed':              'odd.window-closed',
+			'desktop-mode.window.focused':             'odd.window-focused',
+			'desktop-mode.window.blurred':             'odd.window-blurred',
+			'desktop-mode.window.changed':             'odd.window-changed',
+			'desktop-mode.window.detached':            'odd.window-detached',
+			'desktop-mode.window.bounds-changed':      'odd.window-bounds-changed',
+			'desktop-mode.window.body-resized':        'odd.window-body-resized',
+			'desktop-mode.window.maximized':           'odd.window-maximized',
+			'desktop-mode.window.unmaximized':         'odd.window-unmaximized',
+			'desktop-mode.window.fullscreen-entered':  'odd.window-fullscreen-entered',
+			'desktop-mode.window.fullscreen-exited':   'odd.window-fullscreen-exited',
+			'desktop-mode.native-window.after-render': 'odd.native-window-after-render',
+			'desktop-mode.native-window.before-close': 'odd.native-window-before-close',
 		};
 		Object.keys( map ).forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
 				var windowId = payload && ( payload.windowId || payload.id );
 				updateDesktopWindowState( hookName, payload || {} );
-				if ( hookName === 'wp-desktop.window.opened' || hookName === 'wp-desktop.window.reopened' ) {
+				if ( hookName === 'desktop-mode.window.opened' || hookName === 'desktop-mode.window.reopened' ) {
 					fullscreenOddShopOnTouch( payload || {} );
 				}
 				if ( ! isOddWindow( windowId ) ) return;
@@ -609,26 +608,26 @@
 			} );
 		} );
 
-		addFilter( 'wp-desktop.window.loading-overlay', function ( host, ctx ) {
+		addFilter( 'desktop-mode.window.loading-overlay', function ( host, ctx ) {
 			var windowId = ctx && ctx.windowId;
 			if ( ! host || ! isOddWindow( windowId ) ) return host;
 			try {
 				host.setAttribute( 'data-odd-loading-observed', 'true' );
 			} catch ( _ ) {}
-			record( 'info', 'wp-desktop.window.loading-overlay', { windowId: windowId } );
+			record( 'info', 'desktop-mode.window.loading-overlay', { windowId: windowId } );
 			return host;
 		} );
 
-		addFilter( 'wp-desktop.native-window.before-render', function ( body, ctx ) {
+		addFilter( 'desktop-mode.native-window.before-render', function ( body, ctx ) {
 			var windowId = ctx && ( ctx.windowId || ctx.id || ( ctx.config && ctx.config.id ) );
 			if ( ! body ) return body;
 			if ( isOddWindow( windowId ) ) {
 				try { body.setAttribute( 'data-odd-native-window', windowId ); } catch ( _ ) {}
-				record( 'info', 'wp-desktop.native-window.before-render', { windowId: windowId } );
+				record( 'info', 'desktop-mode.native-window.before-render', { windowId: windowId } );
 			}
 			markCursorRoot( body );
 			if ( ! observeCursorSurface( body, {
-				source:   'wp-desktop.native-window.before-render',
+				source:   'desktop-mode.native-window.before-render',
 				windowId: windowId || '',
 			} ) ) {
 				markWindowChrome( body );
@@ -639,20 +638,20 @@
 	}
 
 	function setupIframeDiagnostics() {
-		addAction( 'wp-desktop.iframe.error', function ( payload ) {
-			record( 'error', 'wp-desktop.iframe.error', payload || {} );
+		addAction( 'desktop-mode.iframe.error', function ( payload ) {
+			record( 'error', 'desktop-mode.iframe.error', payload || {} );
 			emit( 'odd.iframe-error', payload || {} );
 		} );
-		addAction( 'wp-desktop.iframe.network-completed', function ( payload ) {
+		addAction( 'desktop-mode.iframe.network-completed', function ( payload ) {
 			if ( ! payload ) return;
 			if ( payload.failed || Number( payload.status || 0 ) >= 400 ) {
-				record( 'warn', 'wp-desktop.iframe.network-completed', payload );
+				record( 'warn', 'desktop-mode.iframe.network-completed', payload );
 			}
 		} );
-		addAction( 'wp-desktop.iframe.ready', function ( payload ) {
+		addAction( 'desktop-mode.iframe.ready', function ( payload ) {
 			var windowId = payload && payload.windowId;
 			var injected = injectCursorIntoFrame( payload );
-			record( isOddWindow( windowId ) || injected ? 'info' : 'warn', 'wp-desktop.iframe.ready', {
+			record( isOddWindow( windowId ) || injected ? 'info' : 'warn', 'desktop-mode.iframe.ready', {
 				windowId: windowId,
 				cursorInjected: injected,
 			} );
@@ -661,11 +660,11 @@
 
 	function setupWidgetDiagnostics() {
 		[
-			'wp-desktop.widget.mounting',
-			'wp-desktop.widget.added',
-			'wp-desktop.widget.removed',
-			'wp-desktop.widget.mounted',
-			'wp-desktop.widget.unmounting',
+			'desktop-mode.widget.mounting',
+			'desktop-mode.widget.added',
+			'desktop-mode.widget.removed',
+			'desktop-mode.widget.mounted',
+			'desktop-mode.widget.unmounting',
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
 				if ( payload && isOddWidget( payload.id ) ) {
@@ -673,7 +672,7 @@
 					if ( el ) {
 						markCursorRoot( el );
 						if ( ! observeCursorSurface( el, {
-							source: 'wp-desktop.widget',
+							source: 'desktop-mode.widget',
 							id:     payload.id || '',
 						} ) ) {
 							markWidgetChrome( el );
@@ -683,9 +682,9 @@
 				}
 			} );
 		} );
-		addAction( 'wp-desktop.widget.mount-failed', function ( payload ) {
+		addAction( 'desktop-mode.widget.mount-failed', function ( payload ) {
 			if ( payload && isOddWidget( payload.id ) ) {
-				record( 'error', 'wp-desktop.widget.mount-failed', payload );
+				record( 'error', 'desktop-mode.widget.mount-failed', payload );
 				emit( 'odd.error', {
 					source:   'desktop.widget.mount-failed',
 					severity: 'error',
@@ -698,20 +697,20 @@
 
 	function setupWallpaperDiagnostics() {
 		[
-			'wp-desktop.wallpaper.mounting',
-			'wp-desktop.wallpaper.mounted',
-			'wp-desktop.wallpaper.unmounting',
-			'wp-desktop.wallpaper.visibility',
+			'desktop-mode.wallpaper.mounting',
+			'desktop-mode.wallpaper.mounted',
+			'desktop-mode.wallpaper.unmounting',
+			'desktop-mode.wallpaper.visibility',
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
 				record( 'info', hookName, payload || {} );
-				if ( hookName === 'wp-desktop.wallpaper.visibility' ) {
+				if ( hookName === 'desktop-mode.wallpaper.visibility' ) {
 					updateWallpaperState( payload || {} );
 				}
 			} );
 		} );
-		addAction( 'wp-desktop.wallpaper.mount-failed', function ( payload ) {
-			record( 'error', 'wp-desktop.wallpaper.mount-failed', payload || {} );
+		addAction( 'desktop-mode.wallpaper.mount-failed', function ( payload ) {
+			record( 'error', 'desktop-mode.wallpaper.mount-failed', payload || {} );
 			emit( 'odd.error', {
 				source:   'desktop.wallpaper.mount-failed',
 				severity: 'error',
@@ -719,30 +718,30 @@
 				err:      payload && payload.error,
 			} );
 		} );
-		addFilter( 'wp-desktop.wallpaper.surfaces', function ( surfaces ) {
+		addFilter( 'desktop-mode.wallpaper.surfaces', function ( surfaces ) {
 			surfaces = Array.isArray( surfaces ) ? surfaces : [];
 			updateWallpaperSurfaces( surfaces );
-			record( 'info', 'wp-desktop.wallpaper.surfaces', { count: surfaces.length } );
+			record( 'info', 'desktop-mode.wallpaper.surfaces', { count: surfaces.length } );
 			return surfaces;
 		} );
 	}
 
 	function setupDockDiagnostics() {
-		addAction( 'wp-desktop.dock.before-render', function ( ctx ) {
+		addAction( 'desktop-mode.dock.before-render', function ( ctx ) {
 			pulseActivity( 'dock' );
-			record( 'info', 'wp-desktop.dock.before-render', {
+			record( 'info', 'desktop-mode.dock.before-render', {
 				dockId: ctx && ctx.dockId,
 				rail:   ctx && ctx.rail,
 				items:  ctx && Array.isArray( ctx.items ) ? ctx.items.length : 0,
 			} );
 		} );
-		addFilter( 'wp-desktop.dock.tile-class', function ( classes, ctx ) {
+		addFilter( 'desktop-mode.dock.tile-class', function ( classes, ctx ) {
 			if ( ctx && isOddDockItem( ctx.item ) ) {
 				return applyClass( classes, 'odd-desktop-tile' );
 			}
 			return classes;
 		} );
-		addFilter( 'wp-desktop.dock.tile-element', function ( el, ctx ) {
+		addFilter( 'desktop-mode.dock.tile-element', function ( el, ctx ) {
 			if ( el && ctx ) {
 				markCursor( el, 'pointer' );
 				if ( isOddDockItem( ctx.item ) ) {
@@ -751,17 +750,17 @@
 			}
 			return el;
 		} );
-		addFilter( 'wp-desktop.dock.tile-tooltip', function ( label, ctx ) {
+		addFilter( 'desktop-mode.dock.tile-tooltip', function ( label, ctx ) {
 			if ( ctx && isOddDockItem( ctx.item ) && label && String( label ).indexOf( 'ODD' ) === -1 ) {
 				return String( label ) + ' · ODD';
 			}
 			return label;
 		} );
 		[
-			'wp-desktop.dock.tile-rendered',
-			'wp-desktop.dock.after-render',
-			'wp-desktop.dock.item-appended',
-			'wp-desktop.dock.item-removed',
+			'desktop-mode.dock.tile-rendered',
+			'desktop-mode.dock.after-render',
+			'desktop-mode.dock.item-appended',
+			'desktop-mode.dock.item-removed',
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
 				pulseActivity( 'dock' );
@@ -791,19 +790,19 @@
 			return true;
 		}
 		[
-			'wp-desktop.window.opened',
-			'wp-desktop.window.reopened',
-			'wp-desktop.window.content-loaded',
-			'wp-desktop.window.focused',
-			'wp-desktop.window.body-resized',
-			'wp-desktop.window.bounds-changed',
-			'wp-desktop.window.chrome.applied',
+			'desktop-mode.window.opened',
+			'desktop-mode.window.reopened',
+			'desktop-mode.window.content-loaded',
+			'desktop-mode.window.focused',
+			'desktop-mode.window.body-resized',
+			'desktop-mode.window.bounds-changed',
+			'desktop-mode.window.chrome.applied',
 		].forEach( function ( hookName ) {
 			addAction( hookName, mapWindowSurface );
 		} );
 		if ( typeof document !== 'undefined' ) {
 			ready( function () {
-				var roots = document.querySelectorAll ? document.querySelectorAll( '.desktop-mode, .desktop-mode-shell, .wp-desktop, .wp-desktop-root, [data-window-id], [data-windowid], [data-wp-desktop-window-id], [data-desktop-window-id], [data-native-window-id]' ) : [];
+				var roots = document.querySelectorAll ? document.querySelectorAll( '#desktop-mode-shell, .desktop-mode, .desktop-mode-shell, [data-window-id], [data-windowid], [data-desktop-window-id], [data-native-window-id]' ) : [];
 				for ( var i = 0; i < roots.length; i++ ) {
 					markCursorRoot( roots[ i ] );
 					if ( ! observeCursorSurface( roots[ i ], { source: 'desktop-ready-sweep' } ) ) {
@@ -815,20 +814,20 @@
 	}
 
 	function setupCommandDiagnostics() {
-		addFilter( 'wp-desktop.command.before-run', function ( intent ) {
+		addFilter( 'desktop-mode.command.before-run', function ( intent ) {
 			if ( intent && isOddCommand( intent.slug ) ) {
-				record( 'info', 'wp-desktop.command.before-run', intent );
+				record( 'info', 'desktop-mode.command.before-run', intent );
 			}
 			return intent;
 		} );
-		addAction( 'wp-desktop.command.after-run', function ( payload ) {
+		addAction( 'desktop-mode.command.after-run', function ( payload ) {
 			if ( payload && isOddCommand( payload.slug ) ) {
-				record( 'info', 'wp-desktop.command.after-run', payload );
+				record( 'info', 'desktop-mode.command.after-run', payload );
 			}
 		} );
-		addAction( 'wp-desktop.command.error', function ( payload ) {
+		addAction( 'desktop-mode.command.error', function ( payload ) {
 			if ( payload && isOddCommand( payload.slug ) ) {
-				record( 'error', 'wp-desktop.command.error', payload );
+				record( 'error', 'desktop-mode.command.error', payload );
 				emit( 'odd.error', {
 					source:   'desktop.command.' + payload.slug,
 					severity: 'error',
@@ -837,7 +836,7 @@
 				} );
 			}
 		} );
-		addFilter( 'wp-desktop.open-command.items', function ( items ) {
+		addFilter( 'desktop-mode.open-command.items', function ( items ) {
 			items = Array.isArray( items ) ? items : [];
 			var api = window.__odd && window.__odd.api;
 			items.push( {
@@ -865,27 +864,27 @@
 	}
 
 	function setupLayoutDiagnostics() {
-		addDomEvent( 'wp-desktop-layout-changed', function ( event ) {
+		addDomEvent( 'desktop-mode-layout-changed', function ( event ) {
 			var detail = event && event.detail || {};
-			record( 'info', 'wp-desktop-layout-changed', detail );
+			record( 'info', 'desktop-mode-layout-changed', detail );
 			emit( 'odd.desktop-layout-changed', detail );
 		} );
-		addDomEvent( 'wp-desktop-presence-changed', function ( event ) {
+		addDomEvent( 'desktop-mode-presence-changed', function ( event ) {
 			pulseActivity( 'presence' );
-			record( 'info', 'wp-desktop-presence-changed', event && event.detail || {} );
+			record( 'info', 'desktop-mode-presence-changed', event && event.detail || {} );
 		} );
 		addDomEvent( 'visibilitychange', updateDocumentVisibilityState );
 	}
 
 	function setupActivityDiagnostics() {
 		[
-			'wp-desktop/toast-requested',
-			'wp-desktop/toast-shown',
-			'wp-desktop/window-attention-requested',
-			'wp-desktop/badge-changed',
-			'wp-desktop/open-requested',
-			'wp-desktop/presence-changed',
-			'wp-desktop/presence-snapshot-applied',
+			'desktop-mode/toast-requested',
+			'desktop-mode/toast-shown',
+			'desktop-mode/window-attention-requested',
+			'desktop-mode/badge-changed',
+			'desktop-mode/open-requested',
+			'desktop-mode/presence-changed',
+			'desktop-mode/presence-snapshot-applied',
 		].forEach( function ( channel ) {
 			addActivity( channel, function ( payload ) {
 				if ( channel.indexOf( 'presence' ) !== -1 ) pulseActivity( 'presence' );
@@ -920,7 +919,7 @@
 
 	function setupDevtoolsDiagnostics() {
 		var requestDisposers = {};
-		addAction( 'wp-desktop.window.opened', function ( payload ) {
+		addAction( 'desktop-mode.window.opened', function ( payload ) {
 			var windowId = payload && ( payload.windowId || payload.id );
 			var d = desktop();
 			if ( ! isOddWindow( windowId ) || ! d || ! d.devtools || typeof d.devtools.onRequest !== 'function' ) return;
@@ -943,16 +942,16 @@
 
 	function setupBroadSurfaceDiagnostics() {
 		[
-			'wp-desktop.window.chrome.theme-changed',
-			'wp-desktop.window.chrome.applied',
+			'desktop-mode.window.chrome.theme-changed',
+			'desktop-mode.window.chrome.applied',
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
 				stampChromeTheme( payload || {} );
 				record( 'info', hookName, payload || {} );
 			} );
 		} );
-		addAction( 'wp-desktop.window.attention', function ( payload ) {
-			record( 'info', 'wp-desktop.window.attention', payload || {} );
+		addAction( 'desktop-mode.window.attention', function ( payload ) {
+			record( 'info', 'desktop-mode.window.attention', payload || {} );
 		} );
 
 		ready( function () {

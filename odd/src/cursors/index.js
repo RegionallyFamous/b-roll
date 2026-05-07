@@ -46,7 +46,7 @@
 	}
 
 	function shellConfig() {
-		return ( window.wpDesktopConfig && typeof window.wpDesktopConfig === 'object' ) ? window.wpDesktopConfig : {};
+		return ( window.desktopModeConfig && typeof window.desktopModeConfig === 'object' ) ? window.desktopModeConfig : {};
 	}
 
 	function configuredHref() {
@@ -300,7 +300,7 @@
 	}
 
 	function dragLike( node ) {
-		return matches( node, '[draggable="true"], [data-drag], [data-drag-handle], [data-window-drag-handle], [data-window-titlebar], [data-window-header], .desktop-mode-window-titlebar, .desktop-mode-window-header, .wp-desktop-window-titlebar, .wp-desktop-window-header, .wpdm-window__titlebar, .wpdm-window__header, .window-titlebar, .native-window-titlebar, .desktop-mode-window__titlebar, .wp-desktop-window__titlebar, .desktop-window__titlebar' );
+		return matches( node, '[draggable="true"], [data-drag], [data-drag-handle], [data-window-drag-handle], [data-window-titlebar], [data-window-header], .desktop-mode-window-titlebar, .desktop-mode-window-header, .window-titlebar, .native-window-titlebar, .desktop-mode-window__titlebar, .desktop-window__titlebar' );
 	}
 
 	function nativeKind( cursor ) {
@@ -652,7 +652,7 @@
 	function windowCoverage() {
 		if ( ! document.querySelectorAll ) return { roots: 0, iframes: 0 };
 		return {
-			roots: document.querySelectorAll( '[data-window-id][data-odd-cursor-root], [data-windowid][data-odd-cursor-root], [data-wp-desktop-window-id][data-odd-cursor-root], [data-desktop-window-id][data-odd-cursor-root], [data-native-window-id][data-odd-cursor-root]' ).length,
+			roots: document.querySelectorAll( '[data-window-id][data-odd-cursor-root], [data-windowid][data-odd-cursor-root], [data-desktop-window-id][data-odd-cursor-root], [data-native-window-id][data-odd-cursor-root]' ).length,
 			iframes: iframeStatuses().filter( function ( row ) { return row.link; } ).length,
 		};
 	}

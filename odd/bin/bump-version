@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 """Bump every place ODD's version is pinned, in one command.
 
-Updates all three declared versions in sync:
+Updates all declared versions in sync:
   1. `Version:` header in odd/odd.php
   2. `ODD_VERSION` constant in odd/odd.php
-  3. `v<x.y.z>` release tag ref in blueprint.json
+  3. `v<x.y.z>` release tag ref in each Playground blueprint.json *when* the
+     hosted demo installs ODD from a semver git tag.
 
-Why the blueprint tag is non-optional: the public Playground demo should
-run the same release as odd.php, not whatever happens to be on main.
+Public Playground blueprints that install ODD from branch `main`
+intentionally track `main` (while release zips stay semver-tagged). For
+those blueprints, `odd/bin/bump-version` updates only `odd.php` and skips
+the blueprint edits — use `odd/bin/check-version` after bumping (it only
+requires blueprint ↔ odd.php agreement when the blueprint pins a release tag).
 
 Usage:
     odd/bin/bump-version 0.14.0            # edits in place
     odd/bin/bump-version 0.14.0 --dry-run  # prints what would change
 
-Run odd/bin/check-version after bumping to confirm all three agree.
+Run odd/bin/check-version after bumping to confirm everything agrees.
 """
 from __future__ import annotations
 
@@ -64,13 +68,47 @@ def bump_plugin(text: str, new_version: str) -> tuple[str, list[str]]:
     return new_text, lines
 
 
-def bump_blueprint(text: str, new_version: str, label: str) -> tuple[str, list[str]]:
-    """Replace the v<x.y.z> ODD git tag ref in blueprint.json.
+def odd_blueprint_install_ref(text: str, label: str) -> tuple[str | None, str | None]:
+    """Return (refType, ref) for ODD's git:directory install step, or (None, None).
 
-    Preserves indentation + trailing newline of the original file —
-    rewriting through json.dumps would churn formatting unnecessarily.
+    Exits the process if JSON is invalid or the ODD step is missing.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise SystemExit(f"error: {label} is not valid JSON: {e}") from e
+    steps = data.get("steps")
+    if not isinstance(steps, list):
+        raise SystemExit(f"error: {label} has no steps array")
+    for step in steps:
+        if not isinstance(step, dict) or step.get("step") != "installPlugin":
+            continue
+        plugin = step.get("pluginData")
+        if not isinstance(plugin, dict):
+            continue
+        if plugin.get("resource") != "git:directory":
+            continue
+        if "RegionallyFamous/odd" not in str(plugin.get("url", "")):
+            continue
+        ref_type = plugin.get("refType")
+        ref = plugin.get("ref")
+        if not isinstance(ref_type, str) or not isinstance(ref, str):
+            raise SystemExit(f"error: ODD git step in {label} has invalid ref/refType")
+        return ref_type, ref
+    raise SystemExit(f"error: could not find ODD installPlugin step in {label}")
+
+
+def bump_blueprint(text: str, new_version: str, label: str) -> tuple[str, list[str]]:
+    """Replace `v<x.y.z>` in ODD's git:directory ref, or skip branch-main installs.
+
     Returns (new_text, summary_lines).
     """
+    lines: list[str] = []
+    ref_type, cur_ref = odd_blueprint_install_ref(text, label)
+    if ref_type == "branch" and cur_ref == "main":
+        lines.append(f"  {label}: ODD branch main — skipped (release tag bump not applicable)")
+        return text, lines
+
     ref_re = re.compile(
         r'("url"\s*:\s*"https://github\.com/RegionallyFamous/odd"\s*,\s*\n'
         r'\s*"ref"\s*:\s*")v[0-9]+\.[0-9]+\.[0-9]+(")'
@@ -78,27 +116,28 @@ def bump_blueprint(text: str, new_version: str, label: str) -> tuple[str, list[s
     matches = list(ref_re.finditer(text))
     if not matches:
         raise SystemExit(
-            "error: could not find the ODD git:directory release tag in blueprint.json"
+            f"error: could not find a semver git tag ref for ODD in {label} "
+            f"(refType={ref_type!r}, ref={cur_ref!r})"
         )
     if len(matches) > 1:
         raise SystemExit(
-            f"error: blueprint.json contains {len(matches)} ODD release refs "
+            f"error: {label} contains {len(matches)} ODD release refs "
             "(expected exactly 1) — cowardly refusing to guess which to bump"
         )
 
     new_text = ref_re.sub(
-        lambda m: f'{m.group(1)}v{new_version}{m.group(2)}',
+        lambda m: f"{m.group(1)}v{new_version}{m.group(2)}",
         text,
         count=1,
     )
 
-    # json-validity sanity check so we never ship a corrupt blueprint.
     try:
         json.loads(new_text)
     except json.JSONDecodeError as e:
-        raise SystemExit(f"error: blueprint.json stopped being valid JSON after edit: {e}")
+        raise SystemExit(f"error: {label} stopped being valid JSON after edit: {e}") from e
 
-    return new_text, [f"  {label}: ODD git tag -> v{new_version}"]
+    lines.append(f"  {label}: ODD git tag -> v{new_version}")
+    return new_text, lines
 
 
 def main() -> int:

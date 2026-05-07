@@ -1,7 +1,7 @@
 /**
  * ODD Shop — native-window render callback.
  * ---------------------------------------------------------------
- * Registered on `window.wpDesktopNativeWindows.odd`; the shell
+ * Registered on `window.desktopModeNativeWindows.odd`; the shell
  * invokes this when the window opens and re-invokes it every
  * time the user re-opens a previously-closed instance. The
  * returned function is the teardown, called on close.
@@ -25,7 +25,7 @@
 		return ( wpI18nOdd && typeof wpI18nOdd.__ === 'function' ) ? wpI18nOdd.__( s, 'odd' ) : s;
 	}
 
-	window.wpDesktopNativeWindows = window.wpDesktopNativeWindows || {};
+	window.desktopModeNativeWindows = window.desktopModeNativeWindows || {};
 
 	var _safeCall = ( window.__odd && window.__odd.safeCall ) || function ( fn ) { try { return fn(); } catch ( e ) {} };
 	var _events   = window.__odd && window.__odd.events;
@@ -535,7 +535,7 @@
 			}
 
 			function hostFullscreenActive() {
-				return !! ( document && document.body && document.body.classList && document.body.classList.contains( 'wp-desktop-has-fullscreen-window' ) );
+				return !! ( document && document.body && document.body.classList && document.body.classList.contains( 'desktop-mode-has-fullscreen-window' ) );
 			}
 
 			function panelWindowId( payload ) {
@@ -603,13 +603,13 @@
 			if ( window.wp && window.wp.hooks && typeof window.wp.hooks.addAction === 'function' ) {
 				var ns = 'odd.panel-responsive-' + Math.random().toString( 36 ).slice( 2 );
 				[
-					'wp-desktop.window.bounds-changed',
-					'wp-desktop.window.body-resized',
-					'wp-desktop.native-window.after-render',
-					'wp-desktop.window.maximized',
-					'wp-desktop.window.unmaximized',
-					'wp-desktop.window.fullscreen-entered',
-					'wp-desktop.window.fullscreen-exited',
+					'desktop-mode.window.bounds-changed',
+					'desktop-mode.window.body-resized',
+					'desktop-mode.native-window.after-render',
+					'desktop-mode.window.maximized',
+					'desktop-mode.window.unmaximized',
+					'desktop-mode.window.fullscreen-entered',
+					'desktop-mode.window.fullscreen-exited',
 				].forEach( function ( hookName ) {
 					var cb = function ( payload ) {
 						if ( panelWindowId( payload ) === 'odd' ) applyState();
@@ -770,8 +770,8 @@
 			// section on every widget add/remove.
 			try {
 				if ( window.wp && window.wp.hooks ) {
-					window.wp.hooks.removeAction( 'wp-desktop.widget.added',   'odd.widgets' );
-					window.wp.hooks.removeAction( 'wp-desktop.widget.removed', 'odd.widgets' );
+					window.wp.hooks.removeAction( 'desktop-mode.widget.added',   'odd.widgets' );
+					window.wp.hooks.removeAction( 'desktop-mode.widget.removed', 'odd.widgets' );
 				}
 			} catch ( e ) {}
 		};
@@ -4418,11 +4418,11 @@
 
 		function snapshotIconDom() {
 			var snap = [];
-			var tiles = document.querySelectorAll( '.wp-desktop-dock__item[data-menu-slug] img' );
+			var tiles = document.querySelectorAll( '.desktop-mode-dock__item[data-menu-slug] img' );
 			for ( var i = 0; i < tiles.length; i++ ) {
 				snap.push( { img: tiles[ i ], src: tiles[ i ].getAttribute( 'src' ) } );
 			}
-			var shortcuts = document.querySelectorAll( '.wp-desktop-icon[data-icon-id] img' );
+			var shortcuts = document.querySelectorAll( '.desktop-mode-icon[data-icon-id] img' );
 			for ( var j = 0; j < shortcuts.length; j++ ) {
 				snap.push( { img: shortcuts[ j ], src: shortcuts[ j ].getAttribute( 'src' ) } );
 			}
@@ -4547,7 +4547,7 @@
 			}
 
 			// Dock tiles (left rail + taskbar).
-			var tiles = document.querySelectorAll( '.wp-desktop-dock__item[data-menu-slug]' );
+			var tiles = document.querySelectorAll( '.desktop-mode-dock__item[data-menu-slug]' );
 			for ( var t = 0; t < tiles.length; t++ ) {
 				var tile = tiles[ t ];
 				var url = resolve( keyFromMenuSlug( tile.getAttribute( 'data-menu-slug' ) ) );
@@ -4555,8 +4555,8 @@
 				replaceTileIcon( tile, url );
 			}
 
-			// Desktop shortcut icons (buttons inside .wp-desktop-icons).
-			var shortcuts = document.querySelectorAll( '.wp-desktop-icon[data-icon-id]' );
+			// Desktop shortcut icons (buttons inside .desktop-mode-icons).
+			var shortcuts = document.querySelectorAll( '.desktop-mode-icon[data-icon-id]' );
 			for ( var s = 0; s < shortcuts.length; s++ ) {
 				var sc = shortcuts[ s ];
 				var id = sc.getAttribute( 'data-icon-id' );
@@ -4570,20 +4570,20 @@
 		}
 
 		function replaceTileIcon( tile, url ) {
-			var primary = tile.querySelector( '.wp-desktop-dock__item-primary' );
+			var primary = tile.querySelector( '.desktop-mode-dock__item-primary' );
 			if ( ! primary ) return;
-			var img = primary.querySelector( '.wp-desktop-dock__item-img' );
+			var img = primary.querySelector( '.desktop-mode-dock__item-img' );
 			if ( img ) { img.src = url; return; }
-			var span = primary.querySelector( '.wp-desktop-dock__item-svg' );
+			var span = primary.querySelector( '.desktop-mode-dock__item-svg' );
 			if ( span ) { span.style.backgroundImage = 'url("' + url + '")'; return; }
 			// First paint landed on a letter badge or dashicon —
 			// replace it with a fresh <img>.
 			var existing = primary.querySelector(
-				'.wp-desktop-dock__item-letter, .dashicons'
+				'.desktop-mode-dock__item-letter, .dashicons'
 			);
 			if ( existing ) existing.remove();
 			var fresh = document.createElement( 'img' );
-			fresh.className = 'wp-desktop-dock__item-img';
+			fresh.className = 'desktop-mode-dock__item-img';
 			fresh.src = url;
 			fresh.alt = '';
 			fresh.setAttribute( 'aria-hidden', 'true' );
@@ -4593,9 +4593,9 @@
 		}
 
 		function replaceShortcutIcon( sc, url ) {
-			var host = sc.querySelector( '.wp-desktop-icon__image' );
+			var host = sc.querySelector( '.desktop-mode-icon__image' );
 			if ( ! host ) return;
-			host.className = 'wp-desktop-icon__image';
+			host.className = 'desktop-mode-icon__image';
 			host.style.background = '';
 			var img = host.querySelector( 'img' );
 			if ( img ) { img.src = url; return; }
@@ -4615,7 +4615,7 @@
 		 * exposes `wp.desktop.widgetLayer.add(id)` / `.remove(id)` /
 		 * `.getEnabledIds()` for programmatic wiring. Everything in
 		 * this tab is a thin UI over those three calls plus the
-		 * `wp-desktop.widget.added` / `.removed` hooks for the case
+		 * `desktop-mode.widget.added` / `.removed` hooks for the case
 		 * where the user dismisses a widget from its own × button
 		 * while the Shop is open.
 		 */
@@ -4634,7 +4634,7 @@
 			// desktop layer object is temporarily unavailable (e.g.
 			// during boot races after a hard reload).
 			try {
-				var raw = window.localStorage.getItem( 'wp-desktop-widgets' );
+				var raw = window.localStorage.getItem( 'desktop-mode.widgets' );
 				if ( ! raw ) return [];
 				var parsed = JSON.parse( raw );
 				return Array.isArray( parsed ) ? parsed.filter( function ( x ) { return typeof x === 'string'; } ) : [];
@@ -4687,7 +4687,7 @@
 				notify( 'Couldn\'t toggle that widget.' );
 				return;
 			}
-			// The widgetLayer fires the `wp-desktop.widget.added` /
+			// The widgetLayer fires the `desktop-mode.widget.added` /
 			// `.removed` hooks we're listening to below, but re-render
 			// synchronously too so the Shop doesn't flicker with a
 			// stale "Add" state while the hook propagates.
@@ -4703,10 +4703,10 @@
 			state.widgetHooksInstalled = true;
 			try {
 				if ( window.wp && window.wp.hooks ) {
-					window.wp.hooks.addAction( 'wp-desktop.widget.added', 'odd.widgets', function () {
+					window.wp.hooks.addAction( 'desktop-mode.widget.added', 'odd.widgets', function () {
 						if ( state.active === 'widgets' ) renderSection( 'widgets', { keepQuery: true } );
 					} );
-					window.wp.hooks.addAction( 'wp-desktop.widget.removed', 'odd.widgets', function () {
+					window.wp.hooks.addAction( 'desktop-mode.widget.removed', 'odd.widgets', function () {
 						if ( state.active === 'widgets' ) renderSection( 'widgets', { keepQuery: true } );
 					} );
 				}
@@ -5819,7 +5819,7 @@
 		}
 	};
 
-	window.wpDesktopNativeWindows.odd = function ( body ) {
+	window.desktopModeNativeWindows.odd = function ( body ) {
 		var win = hostOddWindow();
 		try {
 			markShopLoading( win );

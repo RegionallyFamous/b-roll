@@ -49,8 +49,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$this->assertSame( 'pages', odd_icons_slug_to_key( 'edit.php?post_type=page' ) );
 		$this->assertSame( 'media', odd_icons_slug_to_key( 'upload.php' ) );
 		$this->assertSame( 'settings', odd_icons_slug_to_key( 'options-general.php' ) );
-		$this->assertSame( 'tools', odd_icons_slug_to_key( 'wpdc-editor' ) );
-		$this->assertSame( 'recycle-bin', odd_icons_slug_to_key( 'wpdm-recycle-bin' ) );
+		$this->assertSame( 'recycle-bin', odd_icons_slug_to_key( 'desktop-mode-recycle-bin' ) );
 		$this->assertSame( 'posts', odd_icons_slug_to_key( 'edit.php?post_type=book' ), 'CPT edit screen routes to posts key.' );
 		$this->assertSame( '', odd_icons_slug_to_key( 'something-else' ) );
 		$this->assertSame( '', odd_icons_slug_to_key( '' ) );
@@ -113,21 +112,21 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$this->assertNotSame( 'original-posts.svg', $registry_after['posts']['icon'], 'Regular desktop icon gets re-themed.' );
 	}
 
-	public function test_desktop_icons_filter_uses_recycle_bin_icon_when_available() {
+	public function test_desktop_icons_filter_uses_recycle_bin_icon_dm07_ids() {
 		$set_slug = $this->pick_set_with_fallback();
 		odd_icons_set_active_slug( $set_slug );
 
 		$registry_before = array(
-			'wpdm-recycle-bin' => array(
-				'id'     => 'wpdm-recycle-bin',
+			'desktop-mode-recycle-bin' => array(
+				'id'     => 'desktop-mode-recycle-bin',
 				'title'  => 'Recycle Bin',
 				'icon'   => 'original-trash.svg',
-				'window' => 'wpdm-recycle-bin',
+				'window' => 'desktop-mode-recycle-bin',
 			),
 		);
 		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
 
-		$this->assertStringContainsString( '/recycle-bin.svg', $registry_after['wpdm-recycle-bin']['icon'] );
+		$this->assertStringContainsString( '/recycle-bin.svg', $registry_after['desktop-mode-recycle-bin']['icon'] );
 	}
 
 	public function test_desktop_icons_filter_falls_back_when_recycle_bin_icon_is_missing() {
@@ -154,7 +153,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 				'id'     => 'legacy-trash',
 				'title'  => 'Recycle Bin',
 				'icon'   => 'original-trash.svg',
-				'window' => 'wpdm-recycle-bin',
+				'window' => 'desktop-mode-recycle-bin',
 			),
 		);
 		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );

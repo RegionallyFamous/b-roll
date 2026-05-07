@@ -2,7 +2,7 @@
 /**
  * ODD — host-plugin dependency guards.
  *
- * ODD is an add-on for WP Desktop Mode v0.6.0+. In normal installs WordPress
+ * ODD is an add-on for WP Desktop Mode v0.7.2+. In normal installs WordPress
  * loads Desktop Mode first, then ODD. In Playground or manual installs, though,
  * the host plugin can fail to download or activate. Keep ODD loadable in that
  * state so recovery is possible, but never call host APIs unless the baseline
@@ -80,7 +80,7 @@ function odd_desktop_mode_missing_functions( $capability = 'core' ) {
 }
 
 function odd_desktop_mode_min_version() {
-	return defined( 'ODD_DESKTOP_MODE_MIN_VERSION' ) ? ODD_DESKTOP_MODE_MIN_VERSION : '0.6.0';
+	return defined( 'ODD_DESKTOP_MODE_MIN_VERSION' ) ? ODD_DESKTOP_MODE_MIN_VERSION : '0.7.2';
 }
 
 function odd_desktop_mode_version() {

@@ -28,7 +28,7 @@ Fresh installs get a starter pack so the desktop looks complete immediately. Eve
 
 == Installation ==
 
-1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.6.0 or newer.
+1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.7.2 or newer (WordPress.org distribution recommended).
 2. Upload and activate ODD from the Plugins screen, or install the release zip.
 3. Enable desktop mode for your user.
 4. Open the ODD Shop from its desktop icon, taskbar icon, or `/odd-panel` command.
@@ -70,10 +70,10 @@ ODD Shop gets a Luxe + Weird overhaul with responsive light/dark chrome, SVG rai
 
 = 1.0.0 =
 
-The clean public baseline for ODD: a catalog-driven app store and decorator layer for WP Desktop Mode v0.6.0+, with unified store cards, hardened bundle installs, local-only diagnostics, starter content, and release-quality CI gates.
+The clean public baseline for ODD: a catalog-driven app store and decorator layer for WP Desktop Mode v0.7.2+, with unified store cards, hardened bundle installs, local-only diagnostics, starter content, and release-quality CI gates.
 
 == Upgrade Notice ==
 
 = 1.0.0 =
 
-ODD now targets WP Desktop Mode v0.6.0+ and resets the public release line to a clean 1.0 baseline. Fresh installs are recommended for sites that were testing earlier development releases.
+ODD now targets WP Desktop Mode v0.7.2+ and resets the public release line to a clean 1.0 baseline. Fresh installs are recommended for sites that were testing earlier development releases.

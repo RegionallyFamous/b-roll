@@ -21,7 +21,7 @@ function installHooks() {
 function resetGlobals() {
 	try { delete window.__odd; } catch ( e ) { window.__odd = undefined; }
 	try { delete window.odd; } catch ( e ) { window.odd = undefined; }
-	try { delete window.wpDesktopConfig; } catch ( e ) { window.wpDesktopConfig = undefined; }
+	try { delete window.desktopModeConfig; } catch ( e ) { window.desktopModeConfig = undefined; }
 	installHooks();
 }
 

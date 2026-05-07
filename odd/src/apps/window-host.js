@@ -5,7 +5,7 @@
  * sandboxed iframe. Supports two render paths, belt-and-suspenders:
  *
  *   1. Client-side hydration (PREFERRED) — for every installed app
- *      we register `window.wpDesktopNativeWindows[ 'odd-app-{slug}' ]`
+ *      we register `window.desktopModeNativeWindows[ 'odd-app-{slug}' ]`
  *      at boot. When WPDM opens the window, it invokes our callback
  *      directly on the body element; we build the mount div and
  *      iframe with no dependency on any server-rendered <template>.
@@ -304,7 +304,7 @@
 	/**
 	 * Build a `.odd-app-host` mount div inside an arbitrary body
 	 * element and install the iframe. Used by the JS hydration
-	 * path (wpDesktopNativeWindows callback) so app windows render
+	 * path (desktopModeNativeWindows callback) so app windows render
 	 * correctly even when the server-side `<template>` was never
 	 * emitted or was dropped before reaching the DOM.
 	 */
@@ -393,7 +393,7 @@
 
 	/**
 	 * Defensive fallback. Not every WPDM build fires
-	 * `wp-desktop.window.opened` for server-templated windows — e.g.
+	 * `desktop-mode.window.opened` for server-templated windows — e.g.
 	 * a window that was restored from a persisted session at page
 	 * load may just be dropped into the DOM with no hook call. To
 	 * keep installed apps from appearing "dead", we also watch the
@@ -449,7 +449,7 @@
 	}
 
 	/**
-	 * Client-side hydration — register a `wpDesktopNativeWindows`
+	 * Client-side hydration — register a `desktopModeNativeWindows`
 	 * render callback for every installed app. WPDM's window
 	 * manager prefers these callbacks over the server `<template>`
 	 * clone path, so even if the template emission failed for any
@@ -465,7 +465,7 @@
 	 *     fires `load` (so the user always sees SOMETHING).
 	 */
 	function registerWpdmCallbacks() {
-		var reg = window.wpDesktopNativeWindows = window.wpDesktopNativeWindows || {};
+		var reg = window.desktopModeNativeWindows = window.desktopModeNativeWindows || {};
 		var slugs = installedSlugs();
 		for ( var i = 0; i < slugs.length; i++ ) {
 			( function ( slug ) {
