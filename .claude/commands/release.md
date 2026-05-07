@@ -79,7 +79,7 @@ Or browse to the Actions tab in the repo.
 Give the user:
 
 - The release URL: `https://github.com/RegionallyFamous/odd/releases/tag/v<version>`
-- The Playground demo URL (hosted blueprint): `https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dv2-desktop-zip`. Raw GitHub mirror: `https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fraw.githubusercontent.com%2FRegionallyFamous%2Fodd%2Fmain%2Fblueprint.json%3Foddbp%3Dv2-desktop-zip`.
+- The Playground demo URL (hosted blueprint): `https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dv2-1.0.3`. Raw GitHub mirror: `https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fraw.githubusercontent.com%2FRegionallyFamous%2Fodd%2Fmain%2Fblueprint.json%3Foddbp%3Dv2-1.0.3`.
 - A one-line summary of what shipped
 
 If the auto-generated release notes need editing, open the release in
