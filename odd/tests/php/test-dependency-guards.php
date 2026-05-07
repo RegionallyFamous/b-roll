@@ -119,6 +119,14 @@ class Test_Dependency_Guards extends WP_UnitTestCase {
 		$this->assertFalse( odd_starter_seed_host_wallpaper( $user_id ) );
 	}
 
+	public function test_ensure_host_engine_selected_is_noop_without_host() {
+		if ( odd_desktop_mode_supports( 'os_settings' ) || odd_desktop_mode_supports( 'wallpaper' ) ) {
+			$this->markTestSkipped( 'Host OS-settings + wallpaper APIs available; degraded-path test skipped.' );
+		}
+		$user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$this->assertFalse( odd_wallpaper_ensure_host_engine_selected( $user_id ) );
+	}
+
 	public function test_admin_notice_renders_when_host_is_missing() {
 		if ( odd_desktop_mode_available() ) {
 			$this->markTestSkipped( 'Host Desktop Mode loaded; admin notice suppressed.' );

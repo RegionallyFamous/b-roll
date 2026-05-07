@@ -250,6 +250,22 @@
 							c.iconSet = data.iconSet;
 						}
 					}
+					// Desktop Mode only lazy-loads Pixi and runs ODD's canvas mount when
+					// the host wallpaper id is `odd`. Without this, users who stayed on the
+					// built-in `dark` gradient never get the ODD engine — Shop scene picks
+					// look broken until a full reload. updateOsSettings persists + applies live.
+					var patchObj = patch && typeof patch === 'object' ? patch : {};
+					var hostOdd    = Object.prototype.hasOwnProperty.call( patchObj, 'wallpaper' )
+						|| Object.prototype.hasOwnProperty.call( patchObj, 'scene' );
+					var prefsOk    = data && typeof data === 'object' && typeof data.code !== 'string';
+					if ( hostOdd && prefsOk && typeof data.wallpaper === 'string' ) {
+						var desk = window.wp && window.wp.desktop;
+						if ( desk && typeof desk.updateOsSettings === 'function' ) {
+							try {
+								desk.updateOsSettings( { wallpaper: 'odd' } );
+							} catch ( _e ) {}
+						}
+					}
 					if ( cb ) cb( data );
 				} )
 				.catch( function () { if ( cb ) cb( null ); } );

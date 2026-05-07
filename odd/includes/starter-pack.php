@@ -702,6 +702,47 @@ function odd_starter_seed_host_wallpaper( $user_id ) {
 	return odd_starter_save_host_settings_for_user( $user_id, $next );
 }
 
+/**
+ * Select the ODD canvas wallpaper in WP Desktop Mode so the scene engine mounts.
+ *
+ * Used when the user picks an ODD scene via REST — unlike
+ * odd_starter_seed_host_wallpaper() this always targets `"odd"` whenever
+ * host APIs exist, so users who left the shell on `"dark"` still get a
+ * working canvas after choosing a scene in the Shop.
+ *
+ * @param int $user_id User ID.
+ * @return bool Whether a write occurred.
+ */
+function odd_wallpaper_ensure_host_engine_selected( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+	if ( ! function_exists( 'odd_desktop_mode_supports' )
+		|| ! odd_desktop_mode_supports( 'os_settings' )
+		|| ! odd_desktop_mode_supports( 'wallpaper' ) ) {
+		return false;
+	}
+
+	$current = odd_starter_get_host_settings_for_user( $user_id );
+	if ( ! is_array( $current ) && function_exists( 'desktop_mode_default_os_settings' ) ) {
+		$defaults = desktop_mode_default_os_settings();
+		$current  = is_array( $defaults ) ? $defaults : null;
+	}
+	if ( ! is_array( $current ) ) {
+		return false;
+	}
+
+	if ( ( isset( $current['wallpaper'] ) ? (string) $current['wallpaper'] : '' ) === 'odd' ) {
+		return false;
+	}
+
+	$next              = $current;
+	$next['wallpaper'] = 'odd';
+
+	return odd_starter_save_host_settings_for_user( $user_id, $next );
+}
+
 function odd_starter_get_state_for_rest() {
 	$state    = odd_starter_get_state();
 	$registry = function_exists( 'odd_catalog_load' ) ? odd_catalog_load( false ) : array();

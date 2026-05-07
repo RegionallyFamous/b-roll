@@ -4,7 +4,8 @@ name: e2e
 # activated. Picks up JS regressions that install-smoke misses
 # because install-smoke never loads a browser.
 #
-# One combined smoke test (see e2e/panel.spec.ts) — no duplicate login/shell
+# One combined smoke test (see e2e/panel.spec.ts) covering wallpaper mount,
+# ODD Shop axe, and shop rail / preview interactions — no duplicate login/shell
 # boot. `playwright-report` artifact on failure.
 
 on:
@@ -130,6 +131,12 @@ jobs:
         run: |
           wp user meta update 1 desktop_mode_os_settings '{"wallpaper":"odd"}' --format=json
           wp eval 'var_export( desktop_mode_get_os_settings( 1 ) );'
+
+      - name: Pretty permalinks for REST (/wp-json) on wp server
+        working-directory: /tmp/wp
+        run: |
+          wp option update permalink_structure '/%postname%/'
+          wp rewrite flush --hard
 
       - name: Start WP server
         working-directory: /tmp/wp

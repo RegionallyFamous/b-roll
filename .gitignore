@@ -15,6 +15,10 @@ __pycache__/
 # Local e2e WordPress tree (bin/e2e-local.sh)
 .e2e/
 
+# Playwright output (never commit ephemeral reports)
+/playwright-report/
+/test-results/
+
 # ODD ships empty — bundle content lives in the remote catalog at
 # _tools/catalog-sources/. These legacy plugin asset folders must not
 # ship inside the plugin zip. Keep them out of git so a casual

@@ -1,12 +1,33 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
+const DEFAULT_ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
+const DEFAULT_ADMIN_PASS = process.env.WP_ADMIN_PASS || 'password';
+
+/**
+ * Signs in as the standard local/dev admin (override with WP_ADMIN_USER /
+ * WP_ADMIN_PASS). Use a shared helper so e2e specs do not each duplicate
+ * the login ritual and accidentally drift.
+ */
+export async function loginAdmin(
+	page: Page,
+	opts?: { user?: string; pass?: string }
+): Promise<void> {
+	const user = opts?.user ?? DEFAULT_ADMIN_USER;
+	const pass = opts?.pass ?? DEFAULT_ADMIN_PASS;
+	await page.goto( '/wp-login.php' );
+	await page.fill( '#user_login', user );
+	await page.fill( '#user_pass', pass );
+	await page.click( '#wp-submit' );
+	await page.waitForURL( /\/wp-admin\/?/ );
+}
+
 /**
  * Enters the WP Desktop Mode shell. ODD’s `desktop-mode` script dependency
  * only loads when the shell renders (`includes/render.php`); a bare
  * `/wp-admin/` request can look “classic” and skip the canvas + scenes.
- * Use `?desktop_mode_portal=1` on wp-admin — the legacy `/wp-desktop/` route
- * shipped in older Desktop Mode builds was removed from wordpress.org releases.
+ * Use the Desktop Mode admin portal query (not legacy `/wp-desktop/`, removed
+ * in current wordpress.org Desktop Mode — see CHANGELOG / Playground blueprints).
  */
 export async function goDesktopShell( page: Page ) {
 	await page.goto( '/wp-admin/index.php?desktop_mode_portal=1', { waitUntil: 'load', timeout: 45_000 } );
@@ -118,4 +139,74 @@ export async function openOddShop( page: Page ) {
 		}
 	} );
 	await expect( page.locator( '[data-odd-panel], .odd-panel' ).first() ).toBeVisible( { timeout: 20_000 } );
+}
+
+const SHOP_SECTION_ORDER = [
+	'wallpaper',
+	'icons',
+	'cursors',
+	'widgets',
+	'apps',
+	'install',
+	'settings',
+	'about',
+] as const;
+
+async function installFirstCatalogSceneIfNeeded( pane: ReturnType<Page['locator']> ) {
+	const catalogTile = pane
+		.locator( '[data-odd-card-type="scene"][data-catalog-slug]' )
+		.first();
+	if ( ( await catalogTile.count() ) < 1 ) {
+		return;
+	}
+	const installBtn = catalogTile.locator( '.odd-shop__card-btn', { hasText: /^Install$/ } );
+	if ( ( await installBtn.count() ) < 1 ) {
+		return;
+	}
+	await installBtn.click();
+	await expect( pane.locator( '.odd-shop__card-btn', { hasText: /^Preview$/ } ).first() ).toBeVisible( {
+		timeout: 120_000,
+	} );
+}
+
+/**
+ * Assumes the ODD Shop is already open. Clicks every visible rail department,
+ * exercises search, and opens a wallpaper preview then cancels — no prefs
+ * commit and no icon-set reload.
+ */
+export async function exerciseOddShopInteractions( page: Page ) {
+	const shop = page.locator( '.odd-panel.odd-shop' ).first();
+	await expect( shop ).toBeVisible( { timeout: 15_000 } );
+
+	const content = shop.getByTestId( 'odd-shop-content' );
+	for ( const id of SHOP_SECTION_ORDER ) {
+		const nav = shop.getByTestId( `odd-shop-nav-${ id }` );
+		if ( ! await nav.isVisible() ) {
+			continue;
+		}
+		await nav.click();
+		await expect( content ).toBeVisible();
+		await expect( shop.getByTestId( 'odd-shop-content' ) ).toBeAttached();
+	}
+
+	const search = shop.locator( '[data-odd-search]' );
+	await search.fill( 'odd' );
+	await expect( search ).toHaveValue( 'odd' );
+	await search.clear();
+	await expect( search ).toHaveValue( '' );
+
+	await shop.getByTestId( 'odd-shop-nav-wallpaper' ).click();
+
+	const pane = shop.getByTestId( 'odd-shop-content' );
+	await installFirstCatalogSceneIfNeeded( pane );
+
+	const previewBtn = pane.locator( '.odd-shop__card-btn', { hasText: /^Preview$/ } ).first();
+	await expect( previewBtn ).toBeVisible( { timeout: 20_000 } );
+	await previewBtn.click();
+
+	await expect( shop.getByTestId( 'odd-preview-cancel' ) ).toBeVisible( { timeout: 15_000 } );
+	await expect( shop.getByTestId( 'odd-preview-commit' ) ).toBeVisible();
+
+	await shop.getByTestId( 'odd-preview-cancel' ).click();
+	await expect( shop.locator( '[data-odd-preview-bar]' ) ).toHaveCount( 0, { timeout: 10_000 } );
 }

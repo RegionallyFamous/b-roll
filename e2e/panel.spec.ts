@@ -1,29 +1,22 @@
 /**
  * End-to-end: one browser session — login → desktop shell → wallpaper
- * scenes + canvas pixel check → optional scene hook → ODD Shop + axe.
+ * scenes + canvas pixel check → optional scene hook → ODD Shop + axe +
+ * shop rail / search / wallpaper preview-cancel.
  *
  * Kept in a *single* test so CI does not pay login/shell/PIXI waits twice
  * (that was the main driver of 15m+ job times).
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { goDesktopShell, openOddShop, waitForWallpaperScenes } from './helpers';
+import { installOddFailureDiagnostics } from './diagnostics-hooks';
+import { exerciseOddShopInteractions, goDesktopShell, loginAdmin, openOddShop, waitForWallpaperScenes } from './helpers';
 
-const ADMIN_USER = process.env.WP_ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.WP_ADMIN_PASS || 'password';
-
-async function login( page ) {
-	await page.goto( '/wp-login.php' );
-	await page.fill( '#user_login', ADMIN_USER );
-	await page.fill( '#user_pass', ADMIN_PASS );
-	await page.click( '#wp-submit' );
-	await page.waitForURL( /\/wp-admin\/?/ );
-}
+installOddFailureDiagnostics();
 
 test.describe( 'ODD admin smoke', () => {
-	test( 'wallpaper + scene hook, then shop has no serious/critical axe issues', async ( { page } ) => {
-		// ~3–6m cold CI; one combined flow, not two full boots.
-		test.setTimeout( 150_000 );
+	test( 'wallpaper + scene hook, shop axe, then rail + preview', async ( { page } ) => {
+		// ~3–8m cold CI; one combined flow, not two full boots.
+		test.setTimeout( 300_000 );
 
 		page.on( 'console', ( msg ) => {
 			const type = msg.type();
@@ -56,7 +49,7 @@ test.describe( 'ODD admin smoke', () => {
 			console.log( '[page:requestfailed]', request.url(), request.failure()?.errorText );
 		} );
 
-		await login( page );
+		await loginAdmin( page );
 		await goDesktopShell( page );
 		await waitForWallpaperScenes( page );
 
@@ -113,5 +106,7 @@ test.describe( 'ODD admin smoke', () => {
 			( v ) => v.impact === 'critical' || v.impact === 'serious',
 		);
 		expect( bad, JSON.stringify( bad, null, 2 ) ).toEqual( [] );
+
+		await exerciseOddShopInteractions( page );
 	} );
 } );

@@ -82,6 +82,7 @@ require_once ODD_DIR . 'includes/apps/bootstrap.php';
 // odd_apps_install() for back-compat.
 require_once ODD_DIR . 'includes/content/bootstrap.php';
 require_once ODD_DIR . 'includes/starter-pack.php';
+require_once ODD_DIR . 'includes/e2e-diagnostics.php';
 require_once ODD_DIR . 'includes/enqueue.php';
 
 /**

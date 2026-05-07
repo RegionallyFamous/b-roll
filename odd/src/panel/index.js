@@ -318,6 +318,7 @@
 
 		var content = el( 'section', {
 			'data-odd-content': '1',
+			'data-testid': 'odd-shop-content',
 			class: 'odd-shop__content',
 		} );
 
@@ -691,6 +692,7 @@
 			var btn = el( 'button', {
 				type: 'button',
 				'data-section': section.id,
+				'data-testid': 'odd-shop-nav-' + section.id,
 			} );
 			btn.className = 'odd-panel__nav odd-shop__rail-item';
 			btn.style.setProperty( '--odd-shop-active-tint', section.tint || 'var(--odd-shop-accent)' );
@@ -5118,12 +5120,12 @@
 			bar.appendChild( text );
 
 			var actions = el( 'div', { class: 'odd-preview-bar__actions' } );
-			var cancel = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+			var cancel = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill', 'data-testid': 'odd-preview-cancel' } );
 			cancel.textContent = 'Cancel';
 			cancel.addEventListener( 'click', function () { cancelPreview(); } );
 			actions.appendChild( cancel );
 
-			var commit = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-apps-btn--primary' } );
+			var commit = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-apps-btn--primary', 'data-testid': 'odd-preview-commit' } );
 			if ( kind === 'wallpaper' ) {
 				commit.textContent = 'Keep';
 				commit.addEventListener( 'click', function () { confirmScenePreview(); } );

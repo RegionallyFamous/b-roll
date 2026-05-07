@@ -118,6 +118,9 @@ function odd_rest_prefs_post( WP_REST_Request $request ) {
 		if ( $scene === '' || in_array( $scene, $slugs, true ) ) {
 			update_user_meta( $uid, 'odd_wallpaper', $scene );
 			$out['wallpaper'] = $scene;
+			if ( function_exists( 'odd_wallpaper_ensure_host_engine_selected' ) ) {
+				odd_wallpaper_ensure_host_engine_selected( $uid );
+			}
 		} else {
 			return new WP_Error(
 				'odd_invalid_wallpaper',
