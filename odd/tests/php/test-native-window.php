@@ -4,19 +4,71 @@
  * desktop_mode_shell_config filter that governs how the ODD Shop
  * window participates in WP Desktop Mode's shell boot config.
  *
- * These exercise two classes of behavior:
+ * These exercise classes of behavior:
  *
- *  1. Make sure the registered native window advertises a small
- *     minimum size (420x420) on BOTH the `nativeWindows[]` entries
- *     (snake_case and camelCase) AND any `session.windows[]` entries
- *     the shell replays on boot. Shell builds read from different
- *     surfaces.
- *
- *  2. Preserve Desktop Mode's own persisted state values so fullscreen
- *     and maximized host presentation survive across boots.
+ *  1. Registered native-window minimum size limits (420x420) on BOTH
+ *     `nativeWindows[]` entries (snake_case and camelCase) AND any
+ *     `session.windows[]` replayed at boot (shell variants differ).
+ *  2. Preserving Desktop Mode persisted state values (fullscreen/maximized).
+ *  3. `desktop_mode_file_serialize`: HTTP(S) shortcut icons copy into previewUrl,
+ *     because Desktop Mode ≥0.9 file-tiles only emit an img when previewUrl is set.
  */
 
 class Test_Native_Window extends WP_UnitTestCase {
+
+	public function test_file_serialize_shortcut_http_icon_gains_preview_url() {
+		$eye = 'https://example.test/wp-content/plugins/odd/assets/odd-eye.svg';
+
+		$shape = apply_filters(
+			'desktop_mode_file_serialize',
+			array(
+				'type'       => 'shortcut',
+				'ref'        => 'odd',
+				'title'      => 'ODD',
+				'icon'       => $eye,
+				'previewUrl' => '',
+				'exists'     => true,
+			),
+			null
+		);
+
+		$this->assertSame( $eye, $shape['previewUrl'] );
+		$this->assertSame( 'dashicons-media-default', $shape['icon'] );
+	}
+
+	public function test_file_serialize_leaves_explicit_preview_only() {
+		$icon    = 'https://example.test/icon.svg';
+		$preview = 'https://example.test/thumb.webp';
+
+		$shape = apply_filters(
+			'desktop_mode_file_serialize',
+			array(
+				'type'       => 'shortcut',
+				'ref'        => 'odd',
+				'title'      => 'ODD',
+				'icon'       => $icon,
+				'previewUrl' => $preview,
+				'exists'     => true,
+			),
+			null
+		);
+
+		$this->assertSame( $preview, $shape['previewUrl'], 'Existing preview wins.' );
+		$this->assertSame( $icon, $shape['icon'], 'Leave icon untouched when preview is set.' );
+	}
+
+	public function test_file_serialize_non_shortcut_icon_unchanged() {
+		$icon = 'https://example.test/item.svg';
+		$row  = array(
+			'type'       => 'attachment',
+			'ref'        => '7',
+			'title'      => 'File',
+			'icon'       => $icon,
+			'previewUrl' => '',
+			'exists'     => true,
+		);
+		$this->assertSame( $row, apply_filters( 'desktop_mode_file_serialize', $row, null ) );
+	}
 
 	public function test_native_window_entry_gets_camelcase_and_snakecase_mins() {
 		$config = apply_filters(
