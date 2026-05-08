@@ -2,8 +2,8 @@
  * ODD ↔ WP Desktop Mode hook bridge.
  * ---------------------------------------------------------------
  * Targets the **wordpress.org** shipping line — currently Desktop Mode
- * **0.7.2** — `desktop-mode.*` wp.hooks, `wp.desktop.*`, layout + registry
- * CustomEvents, and the activity bus. Older host builds (pre-0.7.2) are
+ * **0.8.0** — `desktop-mode.*` wp.hooks, `wp.desktop.*`, layout + registry
+ * CustomEvents, and the activity bus. Older host builds (pre-0.8.0) are
  * not supported.
  */
 ( function () {
@@ -877,7 +877,7 @@
 			// Host shell/live-activation syncs `nativeWindows` without always
 			// reloading the page. Re-run app window registration when an ODD app
 			// id appears so `desktopModeNativeWindows['odd-app-*']` exists before
-			// `openWindow` (matches WP.org desktop-mode 0.7.2+ payload apply).
+			// `openWindow` (matches WP.org desktop-mode 0.8.0+ payload apply).
 			if ( ! detail || detail.registry !== 'native-windows' || ! Array.isArray( detail.added ) ) return;
 			var needsOdd = false;
 			for ( var i = 0; i < detail.added.length; i++ ) {
