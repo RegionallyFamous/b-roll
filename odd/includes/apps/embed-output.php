@@ -64,6 +64,63 @@ function odd_apps_inject_iframe_fetch_bootstrap( $html ) {
 }
 
 /**
+ * Strip `<base href="…">` from app HTML streamed into `/odd-app/{slug}/`.
+ *
+ * Default Vite `base: '/'` emits `<base href="/">`, which resolves every
+ * relative URL against the install root (`/blog/` or scoped Playground
+ * roots) instead of the iframe document `/odd-app/{slug}/`. The browser
+ * then requests `/assets/*.js` at the WordPress root (404 → white screen)
+ * rather than `/…/odd-app/{slug}/assets/*.js`.
+ *
+ * Removing `base` makes resolution follow the iframe URL WordPress ships
+ * (always ends with `/`), so `./assets/` rewrites behave correctly.
+ *
+ * @param string $html Document HTML bytes.
+ *
+ * @return string
+ */
+function odd_apps_strip_iframe_document_base_tags( $html ) {
+	if ( ! is_string( $html ) || '' === $html ) {
+		return $html;
+	}
+	if ( ! apply_filters( 'odd_apps_strip_iframe_base_tags', true ) ) {
+		return $html;
+	}
+
+	return (string) preg_replace( '#\s*<base\b[^>]*>\s*#i', '', $html );
+}
+
+/**
+ * Turn root-absolute Vite artefact URLs into document-relative `./…`
+ * refs so `<script src="/assets/*.js">` loads from `/odd-app/{slug}/…`.
+ *
+ * @param string $html Document HTML after base-tag stripping is recommended.
+ *
+ * @return string
+ */
+function odd_apps_rewrite_iframe_absolute_asset_roots( $html ) {
+	if ( ! is_string( $html ) || '' === $html ) {
+		return $html;
+	}
+	if ( ! apply_filters( 'odd_apps_rewrite_iframe_root_asset_refs', true ) ) {
+		return $html;
+	}
+
+	$out = (string) preg_replace(
+		'#(\s(?:src|href)\s*=\s*)(["\'])/(assets|chunks|static|build)/#',
+		'$1$2./$3/',
+		$html
+	);
+
+	// Dev-bundle leftovers only (production builds omit the client harness).
+	return (string) preg_replace(
+		'#(\s(?:src|href)\s*=\s*)(["\'])/@vite/client#',
+		'$1$2./@vite/client',
+		$out
+	);
+}
+
+/**
  * Minor HTML/JS sanitization before streaming an app iframe asset.
  *
  * @param string $contents Response body.
@@ -122,6 +179,8 @@ function odd_apps_transform_embed_bundle_output( $contents, $mime ) {
  */
 function odd_apps_prepare_app_html_output( $raw ) {
 	$html = odd_apps_transform_embed_bundle_output( $raw, 'text/html; charset=utf-8' );
+	$html = odd_apps_strip_iframe_document_base_tags( $html );
+	$html = odd_apps_rewrite_iframe_absolute_asset_roots( $html );
 	$html = odd_apps_inject_iframe_fetch_bootstrap( $html );
 	if ( function_exists( 'odd_apps_inject_runtime_importmap' ) ) {
 		return odd_apps_inject_runtime_importmap( $html );

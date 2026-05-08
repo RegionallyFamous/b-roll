@@ -266,4 +266,20 @@ class Test_Apps_Install extends ODD_REST_Test_Case {
 		$this->assertStringContainsString( "frame-ancestors 'self'", $csp );
 		$this->assertStringContainsString( "worker-src 'self' blob:", $csp );
 	}
+
+	public function test_prepare_app_html_output_strips_base_and_rewrites_root_asset_refs() {
+		$raw = '<!DOCTYPE html><html><head><base href="/">'
+			. '<link rel="stylesheet" href="/assets/index.css">'
+			. '<script type="module" src="/chunks/main.js"></script>'
+			. '<script type="module" src="/@vite/client"></script>'
+			. '</head><body></body></html>';
+
+		$result = odd_apps_prepare_app_html_output( $raw );
+
+		$this->assertStringNotContainsString( '<base', $result );
+		$this->assertStringContainsString( 'href="./assets/index.css"', $result );
+		$this->assertStringContainsString( 'src="./chunks/main.js"', $result );
+		$this->assertStringContainsString( 'src="./@vite/client"', $result );
+		$this->assertStringContainsString( 'odd_apps_iframe_fetch_bootstrap', $result );
+	}
 }
