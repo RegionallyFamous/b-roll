@@ -13,7 +13,8 @@
  * Exposes:
  *   window.__odd.diagnostics.collect()              → payload object
  *   window.__odd.diagnostics.collectMarkdown()      → markdown string
- *   window.__odd.diagnostics.copy()                 → Promise<boolean>
+ *   window.__odd.diagnostics.appsSnapshot()     → structured apps / iframe peek
+ *   window.__odd.diagnostics.appIframes()       → live iframe snapshots only
  *
  * Also installs a ring buffer that captures the last 100 entries from
  * console.error + console.warn + unhandled errors so the report has
@@ -151,8 +152,111 @@
 			window.__odd.events.on( 'odd.error', function ( payload ) {
 				record( 'error', [ 'odd.error', payload && payload.scope, payload && payload.error && payload.error.message ] );
 			} );
+			window.__odd.events.on( 'odd.iframe-error', function ( payload ) {
+				record( 'error', [
+					'odd.iframe-error',
+					payload && payload.message,
+					payload && payload.slug,
+					payload && payload.err,
+				] );
+				pushAppIframeError( payload || {} );
+			} );
 		}
 	} catch ( _ ) {}
+
+	var APP_ERRORS_MAX = 24;
+	var appIframeErrors = [];
+
+	function pushAppIframeError( row ) {
+		try {
+			appIframeErrors.push( {
+				at:      now(),
+				message: row && row.message ? String( row.message ) : '',
+				slug:    row && row.slug ? String( row.slug ) : '',
+			} );
+			while ( appIframeErrors.length > APP_ERRORS_MAX ) appIframeErrors.shift();
+		} catch ( _ ) {}
+	}
+
+	function redactAppServeUrlForReport( url ) {
+		if ( typeof url !== 'string' || ! url ) return '';
+		return url.replace( /([?&])_wpnonce=[^&]*/g, '$1_wpnonce=[redacted]' );
+	}
+
+	/**
+	 * Live snapshot of sandboxed app iframes (parent document only).
+	 *
+	 * @return {array}
+	 */
+	function appIframesSnapshot() {
+		var out = [];
+		try {
+			var frames = document.querySelectorAll ? document.querySelectorAll( 'iframe.odd-app-frame' ) : [];
+			for ( var i = 0; i < frames.length; i++ ) {
+				var frame = frames[ i ];
+				var mount = frame.closest ? frame.closest( '.odd-app-host' ) : null;
+				var slug = mount && mount.getAttribute ? mount.getAttribute( 'data-odd-app-slug' ) : '';
+				var row = {
+					slug:       slug || '',
+					iframeSrc:  redactAppServeUrlForReport( frame.getAttribute( 'src' ) || '' ),
+					title:      '',
+					rootKids:   null,
+					bodyScript: null,
+				};
+				try {
+					var doc = frame.contentDocument;
+					if ( doc ) {
+						row.title = doc.title || '';
+						var rt = doc.getElementById( 'root' ) || doc.body;
+						if ( rt ) {
+							row.rootKids = rt.children ? rt.children.length : 0;
+						}
+						row.bodyScript = doc.body ? doc.body.querySelectorAll( 'script' ).length : 0;
+						try {
+							if ( frame.contentWindow && frame.contentWindow.location && frame.contentWindow.location.href ) {
+								row.frameLocation = redactAppServeUrlForReport( frame.contentWindow.location.href );
+							}
+						} catch ( _ ) {
+							row.frameLocation = '(cross-origin or blocked)';
+						}
+					}
+				} catch ( _ ) {
+					row.peekError = 'no document access';
+				}
+				out.push( row );
+			}
+		} catch ( _ ) {}
+		return out;
+	}
+
+	function appServeUrlsSnapshot() {
+		try {
+			var m = window.odd && window.odd.appServeUrls;
+			if ( ! m || typeof m !== 'object' ) return {};
+			var o = {};
+			Object.keys( m ).slice( 0, 40 ).forEach( function ( k ) {
+				o[ k ] = redactAppServeUrlForReport( m[ k ] );
+			} );
+			return o;
+		} catch ( _ ) {
+			return {};
+		}
+	}
+
+	function appsDiagnosticsSnapshot() {
+		var snap = {
+			appsEnabled: typeof window.odd !== 'undefined' && !! window.odd.appsEnabled,
+			serveUrls:   appServeUrlsSnapshot(),
+			iframes:     appIframesSnapshot(),
+			iframeErrors: appIframeErrors.slice(),
+		};
+		try {
+			if ( window.__odd && window.__odd.debug && window.__odd.debug.enabled && typeof window.__odd.debug.apps === 'function' ) {
+				snap.debugRegistry = window.__odd.debug.apps();
+			}
+		} catch ( _ ) {}
+		return snap;
+	}
 
 	function environment() {
 		var c = window.odd || {};
@@ -228,6 +332,7 @@
 			state:         storeSnapshot(),
 			systemHealth:  systemHealthSnapshot(),
 			desktop:       desktopSnapshot(),
+			apps:          appsDiagnosticsSnapshot(),
 			metrics:       metricsSnapshot(),
 			recentLog:     buffer.slice().reverse().slice( 0, 50 ),
 		};
@@ -283,6 +388,14 @@
 				p.desktop.palettes && p.desktop.palettes.length || 0,
 			].join( '/' ) + '`',
 			'',
+			'## Apps (ODD Shop / odd-app iframes)',
+			'- apps feature flag (localized): `' + ( p.apps && p.apps.appsEnabled ? 'yes' : 'no' ) + '`',
+			'- open app iframes: `' + ( p.apps && p.apps.iframes && p.apps.iframes.length || 0 ) + '`',
+			'- recent odd.iframe-error events: `' + ( p.apps && p.apps.iframeErrors && p.apps.iframeErrors.length || 0 ) + '`',
+			'```json',
+			JSON.stringify( p.apps || {}, null, 2 ),
+			'```',
+			'',
 			'## Local Metrics',
 			'- timings captured: `' + ( p.metrics.timings && p.metrics.timings.length || 0 ) + '`',
 			'- counters: `' + Object.keys( p.metrics.counters || {} ).map( function ( key ) { return key + '=' + p.metrics.counters[ key ]; } ).join( ', ' ) + '`',
@@ -330,5 +443,7 @@
 		recent:          function () { return buffer.slice(); },
 		time:            time,
 		timing:          timing,
+		appsSnapshot:    appsDiagnosticsSnapshot,
+		appIframes:      appIframesSnapshot,
 	};
 } )();

@@ -29,6 +29,7 @@ class Test_REST_E2E_Diagnostics extends ODD_REST_Test_Case {
 		// phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- JSON field name from REST.
 		$this->assertArrayHasKey( 'wordpress', $data );
 		$this->assertArrayHasKey( 'version', $data['wordpress'] );
+		$this->assertArrayHasKey( 'siteUrl', $data['wordpress'] );
 		$this->assertArrayHasKey( 'odd', $data );
 		$this->assertArrayHasKey( 'version', $data['odd'] );
 		$this->assertSame( ODD_VERSION, $data['odd']['version'] );

@@ -83,6 +83,7 @@ function odd_e2e_diagnostics_payload( $probe_catalog = false ) {
 		'wordpress'   => array(
 			'version' => get_bloginfo( 'version' ),
 			'url'     => home_url( '/' ),
+			'siteUrl' => site_url( '/' ),
 		),
 		'php'         => PHP_VERSION,
 		'server'      => array(

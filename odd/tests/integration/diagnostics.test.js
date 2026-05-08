@@ -19,6 +19,8 @@ describe( 'ODD diagnostics metrics', () => {
 		expect( snap.timings.map( ( row ) => row.name ) ).toEqual( expect.arrayContaining( [ 'panel.render', 'iframe.load' ] ) );
 		expect( snap.timings.find( ( row ) => row.name === 'panel.render' ).meta ).toEqual( { section: 'apps' } );
 		expect( d.collect().metrics.counters[ 'catalog.fetch.failure' ] ).toBe( 3 );
+		expect( d.collect().apps ).toBeDefined();
+		expect( Array.isArray( d.collect().apps.iframes ) ).toBe( true );
 		expect( d.collectMarkdown() ).toContain( '## Local Metrics' );
 	} );
 } );

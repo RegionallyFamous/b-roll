@@ -51,6 +51,10 @@
  *   - If `window.odd.appServeUrls` is missing for a slug, we render
  *     a visible error card inside the window body instead of leaving
  *     it blank — never pure white.
+ *   - Verbose trace: add `?odd-apps-debug=1` to the **admin** URL *or*
+ *     enable `?odd-debug=1` (ODD debug inspector) and watch the console
+ *     for `[ODD apps]` lines. Copy diagnostics still includes an Apps
+ *     section via `window.__odd.diagnostics.collect()`.
  *   - If the iframe `error` or `load`-with-zero-size fires, we
  *     emit odd.iframe-error and leave the loading placeholder in
  *     place so the user sees a visible failure rather than a blank
@@ -73,6 +77,38 @@
 
 	function diagnostics() {
 		return window.__odd && window.__odd.diagnostics;
+	}
+
+	function diagInfo( msg, meta ) {
+		var d = diagnostics();
+		if ( d && typeof d.record === 'function' ) {
+			try {
+				d.record( 'info', meta !== undefined ? [ msg, meta ] : [ msg ] );
+			} catch ( _ ) {}
+		}
+	}
+	function appsVerboseOn() {
+		try {
+			if ( window.__odd && window.__odd.debug && window.__odd.debug.enabled ) {
+				return true;
+			}
+			var q = ( window.location && window.location.search ) || '';
+			return /(?:^|[?&])odd-apps-debug=1(?:&|$)/.test( q );
+		} catch ( _ ) {
+			return false;
+		}
+	}
+	function appsLog() {
+		if ( ! appsVerboseOn() ) return;
+		try {
+			var a = Array.prototype.slice.call( arguments );
+			a.unshift( '[ODD apps]' );
+			if ( window.console && window.console.debug ) {
+				window.console.debug.apply( window.console, a );
+			} else if ( window.console && window.console.log ) {
+				window.console.log.apply( window.console, a );
+			}
+		} catch ( _ ) {}
 	}
 	function diagTime( name, meta ) {
 		var d = diagnostics();
@@ -196,6 +232,8 @@
 		}
 		if ( ! src ) {
 			markContentLoaded( ctx );
+			appsLog( 'installFrame: missing serve URL', { slug: slugForMetric } );
+			diagInfo( 'app.iframe.missingServeUrl', { slug: slugForMetric } );
 			var missing = mount.querySelector( '.odd-app-host__loading' );
 			if ( missing ) {
 				missing.style.display = 'grid';
@@ -210,6 +248,9 @@
 			return 'skipped';
 		}
 
+		appsLog( 'installFrame: creating iframe', { slug: slugForMetric, srcLen: ( src || '' ).length } );
+		diagInfo( 'app.iframe.create', { slug: slugForMetric } );
+
 		var stopLoadTimer = diagTime( 'app.iframe.load', { slug: slugForMetric } );
 		var frame = document.createElement( 'iframe' );
 		frame.className = 'odd-app-frame';
@@ -221,6 +262,8 @@
 		frame.setAttribute( 'allow', 'clipboard-read; clipboard-write; fullscreen' );
 		frame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#101014;';
 		frame.addEventListener( 'error', function ( e ) {
+			appsLog( 'iframe error event', slugForMetric, e );
+			diagInfo( 'app.iframe.elementError', { slug: slugForMetric } );
 			events.emit( events.NAMES.IFRAME_ERROR, { message: 'app frame error', err: e } );
 			stopLoadTimer( { status: 'error' } );
 			diagCount( 'app.iframe.error' );
@@ -230,6 +273,8 @@
 			markContentLoaded( ctx );
 			stopLoadTimer( { status: 'loaded' } );
 			diagCount( 'app.iframe.loaded' );
+			appsLog( 'iframe load', slugForMetric );
+			diagInfo( 'app.iframe.loaded', { slug: slugForMetric } );
 			var loading = mount.querySelector( '.odd-app-host__loading' );
 			if ( loading ) loading.style.display = 'none';
 			injectCursorStylesheet( frame );
@@ -246,6 +291,32 @@
 			window.setTimeout( function () {
 				watchdogCheckEmpty( mount, frame );
 			}, 1500 );
+
+			window.setTimeout( function () {
+				try {
+					if ( ! appsVerboseOn() ) return;
+					var doc = frame.contentDocument;
+					if ( ! doc ) {
+						appsLog( 'post-load peek: no contentDocument', slugForMetric );
+						return;
+					}
+					var rt = doc.getElementById( 'root' ) || doc.body;
+					var kids = rt && rt.children ? rt.children.length : -1;
+					var scripts = doc.querySelectorAll( 'script[src]' ).length;
+					var mod = doc.querySelectorAll( 'script[type="module"]' ).length;
+					var imp = doc.querySelectorAll( 'script[type="importmap"]' ).length;
+					appsLog( 'post-load peek ~500ms', slugForMetric, {
+						docTitle: doc.title || '',
+						rootChildren: kids,
+						scriptsWithSrc: scripts,
+						moduleScripts: mod,
+						importMaps: imp,
+						bootstrap: !! doc.getElementById( 'odd_apps_iframe_fetch_bootstrap' ),
+					} );
+				} catch ( err ) {
+					appsLog( 'post-load peek threw', slugForMetric, err );
+				}
+			}, 500 );
 		} );
 		mount.appendChild( frame );
 		stopInstallTimer( { status: 'mounted' } );
@@ -271,6 +342,9 @@
 		if ( mountTarget.children.length > 0 ) return;
 		if ( ( mountTarget.textContent || '' ).trim().length > 0 ) return;
 
+		var slug = mount.getAttribute( 'data-odd-app-slug' ) || '';
+		appsLog( 'watchdog: empty root after grace', slug, { title: doc.title || '' } );
+		diagInfo( 'app.iframe.emptyRootWatchdog', { slug: slug, docTitle: doc.title || '' } );
 		// Still empty. The ODD plugin now ships its own React 19
 		// runtime under /odd-app-runtime/*.js, so the classic
 		// `wp.element`-missing / bare-react-imports failure mode
@@ -506,4 +580,14 @@
 	window.__odd.apps.installFrame = installFrame;
 	window.__odd.apps.injectCursorStylesheet = injectCursorStylesheet;
 	window.__odd.apps.registerWpdmCallbacks = registerWpdmCallbacks;
+	window.__odd.apps.verbose = appsVerboseOn;
+	window.__odd.apps.peek = function peekAppMounts() {
+		try {
+			return window.__odd.diagnostics && typeof window.__odd.diagnostics.appsSnapshot === 'function'
+				? window.__odd.diagnostics.appsSnapshot()
+				: {};
+		} catch ( _ ) {
+			return {};
+		}
+	};
 } )();

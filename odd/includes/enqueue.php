@@ -14,6 +14,9 @@
  *   - `odd-safecall`   window.__odd.safeCall — error boundary helper
  *   - `odd-debug`      window.__odd.debug — inspector (self-gates)
  *
+ * Apps: `?odd-apps-debug=1` on wp-admin traces `[ODD apps]` iframe
+ * hydration in the console without enabling full odd-debug store mode.
+ *
  * Feature surfaces:
  *
  *   - `odd-api`       shared client helpers on window.__odd.api
