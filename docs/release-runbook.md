@@ -17,7 +17,7 @@
 Run locally before tagging:
 
 ```sh
-odd/bin/check-version --expect 1.0.0
+	odd/bin/check-version --expect <version>
 odd/bin/check-plugin-metadata
 python3 _tools/build-catalog.py
 ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog
@@ -65,8 +65,8 @@ catalog-only changes.
 
 ## Playground Smoke
 
-1. Open `https://odd.regionallyfamous.com/playground/` (stable: ODD **1.0.3** + Desktop Mode **0.7.2**). For trunk, use [`/playground/dev/`](https://odd.regionallyfamous.com/playground/dev/) instead — **do not** use the stable URL to validate `main`.
-2. Confirm WordPress Playground loads Desktop Mode v0.7.2+ and ODD.
+1. Open `https://odd.regionallyfamous.com/playground/` (stable: ODD **1.0.4** + Desktop Mode **0.8.0**). For trunk, use [`/playground/dev/`](https://odd.regionallyfamous.com/playground/dev/) instead — **do not** use the stable URL to validate `main`.
+2. Confirm WordPress Playground loads Desktop Mode v0.8.0+ and ODD.
 3. Confirm the ODD Shop opens.
 4. Confirm the starter wallpaper, icon set, and cursor set install or show a
    visible retry state.

@@ -1,6 +1,6 @@
 # Desktop Mode hook coverage
 
-ODD targets WP Desktop Mode v0.7.2+ for its desktop integration. This
+ODD targets WP Desktop Mode v0.8.0+ for its desktop integration. This
 matrix tracks every Desktop Mode hook/API family that matters to ODD and
 states whether ODD uses it for product behavior, diagnostics, or
 documented non-participation.

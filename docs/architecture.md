@@ -118,7 +118,7 @@ registers its own `baseId: 'odd-app-<slug>'` window, so users can
 have the Shop plus any number of app windows open simultaneously
 (still capped to one window per app).
 
-ODD targets WP Desktop Mode v0.7.2+ as its host baseline. It declares
+ODD targets WP Desktop Mode v0.8.0+ as its host baseline. It declares
 command, settings-tab, and title-bar button scripts through Desktop
 Mode's registration APIs, then uses `src/shared/desktop-hooks.js` as the
 single bridge for window, iframe, widget, wallpaper, dock, command,

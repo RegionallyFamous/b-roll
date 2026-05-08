@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, desktop, wallpaper, widgets, apps
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,7 +28,7 @@ Fresh installs get a starter pack so the desktop looks complete immediately. Eve
 
 == Installation ==
 
-1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.7.2 or newer (WordPress.org distribution recommended).
+1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.8.0 or newer (WordPress.org distribution recommended).
 2. Upload and activate ODD from the Plugins screen, or install the release zip.
 3. Enable desktop mode for your user.
 4. Open the ODD Shop from its desktop icon, taskbar icon, or `/odd-panel` command.
@@ -64,6 +64,10 @@ Open ODD Shop → About → Copy diagnostics, then paste the markdown into a Git
 
 == Changelog ==
 
+= 1.0.4 =
+
+Fixes Playground app loading by preserving scoped app/runtime/REST URLs, mounting app iframes from the live Desktop Mode window payload, and keeping the iframe visible inside native windows. Adds local app-loading diagnostics and pins the public Playground blueprints to ODD 1.0.4 plus WP Desktop Mode 0.8.0.
+
 = 1.0.3 =
 
 Fixes PHPUnit coverage for native-window icons vs themed desktop shortcuts (`desktop_mode_shell_config`) so **GitHub Actions can publish `odd.zip` again** — the v1.0.1 and v1.0.2 release workflows stopped in CI for the same reason. Dev Playground blueprint (latest Desktop Mode + `main`), `/go` short redirects, stricter blueprint validation, and Playground commit-pin tooling.
@@ -81,6 +85,10 @@ Shop Luxe + Weird overhaul, Shop theme/chaos prefs, Desktop Mode **v0.7.2+** int
 The clean public baseline for ODD: a catalog-driven app store and decorator layer for WP Desktop Mode v0.7.2+, with unified store cards, hardened bundle installs, local-only diagnostics, starter content, and release-quality CI gates.
 
 == Upgrade Notice ==
+
+= 1.0.4 =
+
+Updates the Desktop Mode host baseline to v0.8.0+ and fixes blank Playground app windows.
 
 = 1.0.3 =
 

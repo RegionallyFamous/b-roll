@@ -11,6 +11,17 @@ notes to GitHub Releases.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.0.4"></a>
+## [1.0.4] — 2026-05-08
+
+### Fixed
+- **Playground app loading:** app windows now mount the live iframe from the Desktop Mode window payload, preserve visibility inside the native window body, and include diagnostics that can probe served app HTML, module scripts, runtime modules, and live iframe render state.
+- **Scoped Playground URLs:** generated app iframe, runtime import-map, rewritten React runtime, REST root, icon, and diagnostic URLs keep the active `/scope:<id>/` prefix so requests stay inside the running Playground instance.
+
+### Changed
+- **Playground pins:** the stable blueprint now installs ODD **1.0.4** and pins WP Desktop Mode to the official **0.8.0** release zip. The dev blueprint still tracks ODD **`main`**, but also pins Desktop Mode **0.8.0** instead of using the moving `desktop-mode.zip`.
+- **Host baseline:** ODD now requires WP Desktop Mode **v0.8.0+**.
+
 <a id="v1.0.3"></a>
 ## [1.0.3] — 2026-05-07
 

@@ -5,8 +5,9 @@ Background
 ----------
 `blueprint.json` at the repo root and `site/playground/blueprint.json`
 are the source and hosted forms of the public Playground demo. The pair
-`blueprint-dev.json` / `site/playground/blueprint-dev.json` installs latest
-Desktop Mode from WordPress.org plus ODD **main** for throwaway trunk tests.
+`blueprint-dev.json` / `site/playground/blueprint-dev.json` installs the
+pinned current Desktop Mode release from WordPress.org plus ODD **main** for
+throwaway trunk tests.
 Any step that depends on a
 browser-blocked URL, a wiggly `releases/latest/download` redirect, or
 an unpinned plugin install turns the first-run experience into a CORS
@@ -61,9 +62,9 @@ Checks (all emit bullets; any failure → exit code 1):
      RegionallyFamous/odd installs use either `refType: commit`
      (recommended) whose `ref` peels `v` + `ODD_VERSION`, or legacy
      `refType: tag` with `ref: v` + `ODD_VERSION`.
-  9. Dev blueprints: Desktop Mode from
-     `https://downloads.wordpress.org/plugin/desktop-mode.zip` (targetFolderName
-     desktop-mode); ODD from `git:directory` **branch** `main` on
+  9. Dev blueprints: Desktop Mode from the pinned release zip matching
+     `ODD_DESKTOP_MODE_MIN_VERSION` (targetFolderName desktop-mode);
+     ODD from `git:directory` **branch** `main` on
      `RegionallyFamous/odd` with `path` `odd`.
 """
 from __future__ import annotations
@@ -91,8 +92,7 @@ ODD_CONST_RE = re.compile(
 
 ODD_GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
-# Dev Playground: latest shell from WordPress.org + ODD trunk (non-deterministic).
-DEV_DESKTOP_MODE_LATEST_URL = "https://downloads.wordpress.org/plugin/desktop-mode.zip"
+# Dev Playground: pinned current shell from WordPress.org + ODD trunk.
 
 
 def odd_peeled_tag_commit(repo_root: Path, odd_version: str) -> str | None:
@@ -293,8 +293,8 @@ def validate_file(path: Path, odd_version: str, dm_min: str) -> tuple[list[str],
     return problems, len(steps or [])
 
 
-def validate_dev_file(path: Path) -> tuple[list[str], int]:
-    """Lint the trunk / latest-Desktop-Mode dev blueprint."""
+def validate_dev_file(path: Path, dm_min: str) -> tuple[list[str], int]:
+    """Lint the trunk / pinned-Desktop-Mode dev blueprint."""
 
     problems: list[str] = []
 
@@ -311,8 +311,9 @@ def validate_dev_file(path: Path) -> tuple[list[str], int]:
         problems.append("blueprint has no steps array")
 
     allowed_ref_types = {"tag", "branch", "commit", "refname"}
-    pinned_dm_latest = False
+    pinned_dm_release = False
     pinned_odd_trunk = False
+    dm_zip_expected = desktop_mode_zip_url(dm_min)
 
     for idx, step in enumerate(steps or []):
         if not isinstance(step, dict):
@@ -339,22 +340,22 @@ def validate_dev_file(path: Path) -> tuple[list[str], int]:
                 problems.append(
                     f"step[{idx}] resource=url must be https, got {url!r}"
                 )
-            if url == DEV_DESKTOP_MODE_LATEST_URL:
+            if url == dm_zip_expected:
                 if options.get("targetFolderName") != "desktop-mode":
                     problems.append(
                         f"step[{idx}] Desktop Mode zip must use "
                         'options.targetFolderName "desktop-mode"'
                     )
                 else:
-                    pinned_dm_latest = True
+                    pinned_dm_release = True
 
         elif resource == "wordpress.org/plugins":
             slug = plugin.get("slug")
             if slug == "desktop-mode":
                 problems.append(
                     f"step[{idx}] dev blueprint must install Desktop Mode via "
-                    f"resource=url → {DEV_DESKTOP_MODE_LATEST_URL!r} "
-                    "(wordpress.org/plugins slug installs are not pinned to latest.zip)"
+                    f"resource=url → {dm_zip_expected!r} "
+                    "(wordpress.org/plugins slug installs cannot pin a version)"
                 )
 
         elif resource == "git:directory":
@@ -394,10 +395,10 @@ def validate_dev_file(path: Path) -> tuple[list[str], int]:
                     pinned_odd_trunk = True
 
     rel = path.relative_to(REPO_ROOT)
-    if not pinned_dm_latest:
+    if not pinned_dm_release:
         problems.append(
             f"{rel}: dev blueprint must install Desktop Mode from "
-            f"{DEV_DESKTOP_MODE_LATEST_URL!r} (resource=url, targetFolderName=desktop-mode)"
+            f"{dm_zip_expected!r} (resource=url, targetFolderName=desktop-mode)"
         )
     if not pinned_odd_trunk:
         problems.append(
@@ -421,7 +422,7 @@ def main() -> int:
         total_steps += step_count
 
     for path in (BLUEPRINT_DEV, SITE_BLUEPRINT_DEV):
-        file_problems, step_count = validate_dev_file(path)
+        file_problems, step_count = validate_dev_file(path, dm_min)
         problems.extend(file_problems)
         total_steps += step_count
 
