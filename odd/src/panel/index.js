@@ -2209,9 +2209,6 @@
 			}
 
 			function isHorizontalRail() {
-				var layout = body.getAttribute( 'data-odd-layout' );
-				var size = body.getAttribute( 'data-odd-size' );
-				if ( layout === 'mobile' || size === 'xs' || size === 's' ) return true;
 				try {
 					return window.getComputedStyle && window.getComputedStyle( rail ).flexDirection === 'row';
 				} catch ( e ) {

@@ -11,7 +11,7 @@ describe( 'ODD Shop responsive CSS contract', () => {
 		const css = readFileSync( STYLES_CSS, 'utf8' );
 
 		expect( css ).toContain( '.odd-panel.odd-shop,.odd-panel.odd-shop *,.odd-panel.odd-shop *::before,.odd-panel.odd-shop *::after{box-sizing:border-box}' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"]{grid-template-rows:auto auto minmax(0,1fr)!important;grid-template-columns:minmax(0,1fr)!important;width:100%;max-width:100%;max-inline-size:100vw;inline-size:min(100%,100vw);min-width:0;overflow:hidden;overflow-x:hidden}' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"]{grid-template-rows:auto minmax(0,1fr)!important;grid-template-columns:64px minmax(0,1fr)!important;width:100%;max-width:100%;max-inline-size:100vw;inline-size:min(100%,100vw);min-width:0;overflow:hidden;overflow-x:hidden}' );
 		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="compact"]{grid-template-columns:64px minmax(0,1fr)!important}' );
 		expect( css ).toContain( '`data-odd-pointer` owns touch ergonomics. The host window owns' );
 	} );
@@ -19,14 +19,14 @@ describe( 'ODD Shop responsive CSS contract', () => {
 	it( 'prevents fixed desktop widths from leaking into mobile content', () => {
 		const css = readFileSync( STYLES_CSS, 'utf8' );
 
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__topbar{grid-column:1;grid-row:1;grid-template-columns:minmax(0,1fr)' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__topbar{grid-column:1/-1;grid-row:1;grid-template-columns:minmax(0,1fr)' );
 		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__command{justify-self:stretch;width:100%;min-width:0' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:row;gap:8px;min-width:0' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__content{grid-column:1;grid-row:3;width:100%;max-width:100%;min-width:0' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;min-width:0;overflow-x:hidden;overflow-y:auto' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__content{grid-column:2;grid-row:2;width:100%;max-width:100%;min-width:0' );
 		expect( css ).toContain( 'padding:16px 14px max(18px,env(safe-area-inset-bottom)) 14px;overflow-x:hidden;overflow-y:auto' );
 	} );
 
-	it( 'hides the native shop rail scrollbar behind accessible overflow controls', () => {
+	it( 'keeps every shop rail vertical behind accessible overflow controls', () => {
 		const css = readFileSync( STYLES_CSS, 'utf8' );
 
 		expect( css ).toContain( '.odd-panel.odd-shop{color:var(--odd-shop-ink);position:relative}' );
@@ -34,18 +34,20 @@ describe( 'ODD Shop responsive CSS contract', () => {
 		expect( css ).toContain( '.odd-panel.odd-shop .odd-shop__rail::-webkit-scrollbar{display:none}' );
 		expect( css ).toContain( '.odd-panel.odd-shop .odd-shop__rail-scroll:not([hidden]){opacity:.96;pointer-events:auto}' );
 		expect( css ).toContain( '.odd-panel.odd-shop .odd-shop__rail-fade{position:absolute;z-index:5;height:54px;pointer-events:none' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail-scroll,.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail-fade{display:none!important}' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-scroll,.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-fade,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail-scroll,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail-fade{display:none!important}' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;overflow-x:hidden;overflow-y:auto' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;min-width:0;overflow-x:hidden;overflow-y:auto' );
+		expect( css ).not.toMatch( /odd-shop__rail\{[^}]*flex-direction:row/ );
+		expect( css ).not.toMatch( /odd-shop__rail\{[^}]*overflow-x:auto/ );
 	} );
 
 	it( 'keeps mobile sticky chrome from overlapping', () => {
 		const css = readFileSync( STYLES_CSS, 'utf8' );
 
 		expect( css ).toContain( '--odd-shop-mobile-topbar-h:104px' );
-		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__topbar{grid-column:1;grid-row:1' );
+		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__topbar{grid-column:1/-1;grid-row:1' );
 		expect( css ).toContain( 'padding-top:max(10px,env(safe-area-inset-top))' );
 		expect( css ).toContain( '.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__rail{grid-column:1;grid-row:2' );
-		expect( css ).toContain( 'top:var(--odd-shop-mobile-topbar-h)' );
+		expect( css ).toContain( 'position:relative;top:auto;z-index:3' );
 	} );
 
 	it( 'stacks shelves and catalog rows in mobile layout', () => {
