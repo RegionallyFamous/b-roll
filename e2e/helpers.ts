@@ -59,19 +59,22 @@ export async function dismissDesktopModeWelcomeIfPresent( page: Page ) {
 	const dismiss = welcome
 		.locator( '[data-desktop-mode-welcome-dismiss], [data-desktop-mode-welcome-cta]' )
 		.first();
-	if ( await dismiss.isVisible().catch( () => false ) ) {
-		await dismiss.click( { timeout: 5_000 } );
-	} else {
-		await page.keyboard.press( 'Escape' );
-	}
+	await page.keyboard.press( 'Escape' );
 
 	try {
 		await expect( welcome ).toHaveCount( 0, { timeout: 10_000 } );
 	} catch {
-		await page.evaluate( () => {
-			document.querySelectorAll( '.desktop-mode-welcome' ).forEach( ( el ) => el.remove() );
-			document.body.classList.remove( 'desktop-mode-welcome-open' );
-		} );
+		if ( await dismiss.isVisible().catch( () => false ) ) {
+			await dismiss.click( { force: true, timeout: 5_000 } );
+		}
+		try {
+			await expect( welcome ).toHaveCount( 0, { timeout: 5_000 } );
+		} catch {
+			await page.evaluate( () => {
+				document.querySelectorAll( '.desktop-mode-welcome' ).forEach( ( el ) => el.remove() );
+				document.body.classList.remove( 'desktop-mode-welcome-open' );
+			} );
+		}
 	}
 }
 
