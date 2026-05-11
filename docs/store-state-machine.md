@@ -50,7 +50,7 @@ capabilities, hashes, and manifest fields are never trusted from the browser.
 
 ## Tests
 
-`odd/tests/integration/shop-card.test.js` owns the card state-machine coverage:
+`tests/integration/shop-card.test.js` owns the card state-machine coverage:
 
 - available → Install
 - incompatible → disabled Incompatible
@@ -61,5 +61,5 @@ capabilities, hashes, and manifest fields are never trusted from the browser.
 - installed widget → Add / Active
 - installed app → Open
 
-`odd/tests/integration/apps-surfaces.test.js` covers the Apps department using
+`tests/integration/apps-surfaces.test.js` covers the Apps department using
 the unified bundle catalog/install endpoints plus app-specific surface toggles.

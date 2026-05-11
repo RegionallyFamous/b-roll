@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const CURSORS_JS = resolve( __dirname, '../../src/cursors/index.js' );
+const CURSORS_JS = resolve( __dirname, '../../odd/src/cursors/index.js' );
 
 function installHooks() {
 	const handlers = new Map();

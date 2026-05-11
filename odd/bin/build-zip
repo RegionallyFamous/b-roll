@@ -42,8 +42,8 @@ EXCLUDE_DIRS = {
 EXCLUDE_SUFFIXES = { ".pyc" }
 EXCLUDE_NAMES = {
     ".DS_Store",
-    ".gitkeep",
     ".gitignore",
+    ".gitkeep",
 }
 
 
@@ -51,6 +51,8 @@ def should_include(rel: Path) -> bool:
     if not rel.parts:
         return False
     if rel.parts[0] in EXCLUDE_DIRS:
+        return False
+    if rel.name.startswith("."):
         return False
     if rel.name in EXCLUDE_NAMES:
         return False

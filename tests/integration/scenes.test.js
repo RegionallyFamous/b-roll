@@ -27,7 +27,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const SCENES_DIR = resolve( __dirname, '../../../_tools/catalog-sources/scenes' );
+const SCENES_DIR = resolve( __dirname, '../../_tools/catalog-sources/scenes' );
 
 function readScenes() {
 	if ( ! existsSync( SCENES_DIR ) ) return [];

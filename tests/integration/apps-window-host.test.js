@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { loadFoundation, sleep } from './harness.js';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const SRC = resolve( __dirname, '../../src/apps/window-host.js' );
+const SRC = resolve( __dirname, '../../odd/src/apps/window-host.js' );
 
 function loadWindowHost() {
 	const src = readFileSync( SRC, 'utf8' );

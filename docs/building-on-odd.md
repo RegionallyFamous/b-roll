@@ -535,7 +535,7 @@ window.__odd.debug.apps();
 
 ## Testing
 
-ODD ships a Vitest + jsdom harness under `odd/tests/integration/`. To
+ODD ships a Vitest + jsdom harness under `tests/integration/`. To
 add a test for your extension:
 
 1. Install ODD locally and `npm install`.
@@ -543,7 +543,7 @@ add a test for your extension:
 3. `npm test`.
 
 The harness provides `resetOdd`, `seedConfig`, `loadFoundation`, and
-`sleep` helpers under `odd/tests/integration/harness.js`.
+`sleep` helpers under `tests/integration/harness.js`.
 
 ## Versioning and stability
 

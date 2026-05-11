@@ -15,7 +15,7 @@
 
 $_tests_dir = getenv( 'WP_PHPUNIT__DIR' );
 if ( false === $_tests_dir ) {
-	$_tests_dir = __DIR__ . '/../../../vendor/wp-phpunit/wp-phpunit';
+	$_tests_dir = __DIR__ . '/../../vendor/wp-phpunit/wp-phpunit';
 }
 
 if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
@@ -24,7 +24,7 @@ if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
 	exit( 1 );
 }
 
-require_once dirname( __DIR__, 3 ) . '/vendor/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php';
+require_once dirname( __DIR__, 2 ) . '/vendor/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php';
 require_once $_tests_dir . '/includes/functions.php';
 
 /**
@@ -34,7 +34,7 @@ require_once $_tests_dir . '/includes/functions.php';
 tests_add_filter(
 	'muplugins_loaded',
 	static function () {
-		require dirname( __DIR__, 3 ) . '/odd/odd.php';
+		require dirname( __DIR__, 2 ) . '/odd/odd.php';
 	}
 );
 

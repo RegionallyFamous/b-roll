@@ -4,7 +4,7 @@
  * Phase 1 (now): load every scene, run `setup` + 120 `tick` calls under
  * both `perfTier: 'normal'` and `'low'`, record median + p95 of the
  * per-tick duration, and write the result to
- * `odd/tests/integration/scene-perf-baseline.json`. We do NOT fail CI
+ * `tests/integration/scene-perf-baseline.json`. We do NOT fail CI
  * on budget overruns yet — we need a trustworthy baseline first, and
  * jsdom + a Proxy-backed Pixi stub are far enough from a real GPU
  * pipeline that "X is slow here" doesn't always mean "X is slow on
@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 // Scenes live under _tools/catalog-sources/scenes/<slug>/.
-const SCENES_DIR = resolve( __dirname, '../../../_tools/catalog-sources/scenes' );
+const SCENES_DIR = resolve( __dirname, '../../_tools/catalog-sources/scenes' );
 const BASELINE_FILE = resolve( __dirname, 'scene-perf-baseline.json' );
 const BUDGETS_FILE = resolve( __dirname, 'scene-perf-budget.json' );
 

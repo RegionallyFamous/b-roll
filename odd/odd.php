@@ -3,7 +3,7 @@
  * Plugin Name:       ODD — Outlandish Desktop Decorator
  * Plugin URI:        https://github.com/RegionallyFamous/odd
  * Description:       App store and decorator for WP Desktop Mode: install wallpapers, icons, cursors, widgets, and apps from a safe catalog.
- * Version:           1.0.5
+ * Version:           1.0.6
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            regionallyfamous
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ODD_VERSION', '1.0.5' );
+define( 'ODD_VERSION', '1.0.6' );
 define( 'ODD_DESKTOP_MODE_MIN_VERSION', '0.8.0' );
 define( 'ODD_FILE', __FILE__ );
 define( 'ODD_DIR', plugin_dir_path( __FILE__ ) );
@@ -90,8 +90,7 @@ function odd_url_with_playground_scope( $url ) {
 		return '';
 	}
 
-	$uri      = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-	$uri      = sanitize_text_field( $uri );
+	$uri      = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 	$req_path = explode( '?', $uri, 2 )[0];
 	if ( '' !== $req_path && '/' !== $req_path[0] ) {
 		$req_path = '/' . $req_path;

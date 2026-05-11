@@ -104,6 +104,6 @@ the removal major.
 - `odd/src/shared/api.js` — the `API_VERSION` constant is the source
   of truth. The `2.x.y` line is current; bump major only for breaking
   surface changes (see Versioning rules above).
-- `odd/tests/integration/api-surface.test.js` (to land with the test
+- `tests/integration/api-surface.test.js` (to land with the test
   harness rollout) — snapshots the surface and fails the test when the
   constant and the snapshot drift without a deliberate update.

@@ -23,13 +23,13 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const WIDGETS_ROOT = resolve( __dirname, '../../../_tools/catalog-sources/widgets' );
+const WIDGETS_ROOT = resolve( __dirname, '../../_tools/catalog-sources/widgets' );
 const STICKY_JS    = resolve( WIDGETS_ROOT, 'sticky/widget.js' );
 const STICKY_CSS   = resolve( WIDGETS_ROOT, 'sticky/widget.css' );
 const EIGHTBALL_JS  = resolve( WIDGETS_ROOT, 'eight-ball/widget.js' );
 const EIGHTBALL_CSS = resolve( WIDGETS_ROOT, 'eight-ball/widget.css' );
 const EIGHTBALL_ASSET = resolve( WIDGETS_ROOT, 'eight-ball/assets/oracle-texture.webp' );
-const EIGHTBALL_BUNDLE = resolve( __dirname, '../../../site/catalog/v1/bundles/widget-eight-ball.wp' );
+const EIGHTBALL_BUNDLE = resolve( __dirname, '../../site/catalog/v1/bundles/widget-eight-ball.wp' );
 const SPOTIFY_JS    = resolve( WIDGETS_ROOT, 'spotify/widget.js' );
 
 function installWpDesktop() {

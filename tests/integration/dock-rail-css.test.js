@@ -4,8 +4,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const CONTRAST_CSS = resolve( __dirname, '../../src/icons/contrast.css' );
-const RAIL_CSS = resolve( __dirname, '../../src/shell/odd-dock-rail.css' );
+const CONTRAST_CSS = resolve( __dirname, '../../odd/src/icons/contrast.css' );
+const RAIL_CSS = resolve( __dirname, '../../odd/src/shell/odd-dock-rail.css' );
 
 describe( 'Desktop Mode dock rail CSS contract', () => {
 	it( 'keeps side docks vertical-only without visible native scrollbars', () => {

@@ -93,16 +93,16 @@ jobs:
           ODD_REQUIRE_JSONSCHEMA: '1'
         run: |
           odd/bin/validate-manifest \
-            odd/tests/fixtures/manifests/scene-ok.json \
-            odd/tests/fixtures/manifests/iconset-ok.json \
-            odd/tests/fixtures/manifests/cursorset-ok.json \
-            odd/tests/fixtures/manifests/widget-ok.json \
-            odd/tests/fixtures/manifests/app-ok.json
+            tests/fixtures/manifests/scene-ok.json \
+            tests/fixtures/manifests/iconset-ok.json \
+            tests/fixtures/manifests/cursorset-ok.json \
+            tests/fixtures/manifests/widget-ok.json \
+            tests/fixtures/manifests/app-ok.json
       - name: Validate bad manifest fixture (must fail)
         env:
           ODD_REQUIRE_JSONSCHEMA: '1'
         run: |
-          if odd/bin/validate-manifest odd/tests/fixtures/manifests/scene-bad.json; then
+          if odd/bin/validate-manifest tests/fixtures/manifests/scene-bad.json; then
             echo "schema failed to catch known-bad manifest" >&2
             exit 1
           fi
@@ -191,7 +191,7 @@ jobs:
         env:
           WP_VERSION: ${{ matrix.wp }}
         run: |
-          bash odd/tests/php/install-wp-tests.sh wordpress_test root root 127.0.0.1:3306 "$WP_VERSION"
+          bash tests/php/install-wp-tests.sh wordpress_test root root 127.0.0.1:3306 "$WP_VERSION"
       - run: composer phpunit
 
   site-lint:

@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { loadFoundation } from './harness.js';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const SHARED_DIR = resolve( __dirname, '../../src/shared' );
+const SHARED_DIR = resolve( __dirname, '../../odd/src/shared' );
 
 const EXPECTED_METHODS = [
 	'scenes', 'sceneBySlug', 'currentScene',

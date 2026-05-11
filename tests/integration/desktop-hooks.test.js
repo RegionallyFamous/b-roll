@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { loadFoundation } from './harness.js';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const SRC = resolve( __dirname, '../../src/shared/desktop-hooks.js' );
+const SRC = resolve( __dirname, '../../odd/src/shared/desktop-hooks.js' );
 
 function loadDesktopHooks() {
 	const src = readFileSync( SRC, 'utf8' );

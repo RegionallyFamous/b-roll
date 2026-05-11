@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <phpunit
-	bootstrap="odd/tests/php/bootstrap.php"
+	bootstrap="tests/php/bootstrap.php"
 	colors="true"
 	verbose="true"
 	beStrictAboutCoversAnnotation="false"
@@ -15,10 +15,10 @@
 >
 	<testsuites>
 		<testsuite name="odd">
-			<directory suffix=".php">odd/tests/php</directory>
-			<exclude>odd/tests/php/bootstrap.php</exclude>
-			<exclude>odd/tests/php/fixtures</exclude>
-			<exclude>odd/tests/php/includes</exclude>
+			<directory suffix=".php">tests/php</directory>
+			<exclude>tests/php/bootstrap.php</exclude>
+			<exclude>tests/php/fixtures</exclude>
+			<exclude>tests/php/includes</exclude>
 		</testsuite>
 	</testsuites>
 	<php>

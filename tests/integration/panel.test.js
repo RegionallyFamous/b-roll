@@ -21,7 +21,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const PANEL_JS = resolve( __dirname, '../../src/panel/index.js' );
+const PANEL_JS = resolve( __dirname, '../../odd/src/panel/index.js' );
 
 function seedConfig() {
 	window.odd = {

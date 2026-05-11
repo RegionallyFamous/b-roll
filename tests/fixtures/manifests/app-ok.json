@@ -1,5 +1,5 @@
 {
-	"$schema": "../../../../docs/schemas/manifest.schema.json",
+	"$schema": "../../../docs/schemas/manifest.schema.json",
 	"type": "app",
 	"slug": "example-app",
 	"name": "Example App",

@@ -13,7 +13,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const SHARED_DIR = resolve( __dirname, '../../src/shared' );
+const SHARED_DIR = resolve( __dirname, '../../odd/src/shared' );
 
 const MODULE_ORDER = [
 	'store.js',

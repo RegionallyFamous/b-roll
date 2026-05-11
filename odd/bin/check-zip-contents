@@ -37,6 +37,8 @@ FORBIDDEN_NAMES = {
     ".DS_Store",
     ".env",
     ".env.local",
+    ".gitignore",
+    ".gitkeep",
     "composer.json",
     "composer.lock",
     "package.json",
@@ -89,6 +91,9 @@ def main() -> int:
             forbidden.append(f"{name} (not under odd/)")
             continue
         if any(part in FORBIDDEN_PARTS for part in path.parts):
+            forbidden.append(name)
+            continue
+        if path.name.startswith("."):
             forbidden.append(name)
             continue
         if path.name in FORBIDDEN_NAMES:

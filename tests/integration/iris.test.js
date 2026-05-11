@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { loadFoundation } from './harness.js';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const IRIS_DIR  = resolve( __dirname, '../../src/iris' );
+const IRIS_DIR  = resolve( __dirname, '../../odd/src/iris' );
 
 function execInWindow( src, filename ) {
 	const fn = new Function( `${ src }\n//# sourceURL=${ filename }` );

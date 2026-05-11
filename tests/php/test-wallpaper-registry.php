@@ -15,11 +15,11 @@ class Test_Wallpaper_Registry extends WP_UnitTestCase {
 
 	/**
 	 * Locate the catalog-sources scenes directory relative to the
-	 * repo root (`dirname( __DIR__, 3 )` walks up from
-	 * odd/tests/php/ to the repo root).
+	 * repo root (`dirname( __DIR__, 2 )` walks up from
+	 * tests/php/ to the repo root).
 	 */
 	private function scenes_dir() {
-		return dirname( __DIR__, 3 ) . '/_tools/catalog-sources/scenes';
+		return dirname( __DIR__, 2 ) . '/_tools/catalog-sources/scenes';
 	}
 
 	private function read_source_scenes() {

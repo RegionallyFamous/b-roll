@@ -2,7 +2,7 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json",
 	"title": "ODD .wp bundle manifest",
-	"description": "Authoritative schema for the manifest.json that ships at the root of every ODD .wp bundle. Mirrors the PHP validators in odd/includes/content/*.php. Bundle authors can enable live validation by adding `\"$schema\": \"https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json\"` to their manifest.\n\nThis schema is advisory — the canonical behaviour lives in the PHP validators and _tools/validators/validate_manifest.py. When the two disagree, the PHP validator wins at install time; this schema is kept in sync by CI (see odd/tests/php/test-manifest-schema-alignment.php once that test lands).",
+	"description": "Authoritative schema for the manifest.json that ships at the root of every ODD .wp bundle. Mirrors the PHP validators in odd/includes/content/*.php. Bundle authors can enable live validation by adding `\"$schema\": \"https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json\"` to their manifest.\n\nThis schema is advisory — the canonical behaviour lives in the PHP validators and _tools/validators/validate_manifest.py. When the two disagree, the PHP validator wins at install time; this schema is kept in sync by CI (see tests/php/test-manifest-schema-alignment.php once that test lands).",
 	"type": "object",
 	"required": ["name", "slug", "version"],
 	"additionalProperties": true,

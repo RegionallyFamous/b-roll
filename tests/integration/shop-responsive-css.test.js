@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const STYLES_CSS = resolve( __dirname, '../../src/panel/styles.css' );
+const STYLES_CSS = resolve( __dirname, '../../odd/src/panel/styles.css' );
 
 describe( 'ODD Shop responsive CSS contract', () => {
 	it( 'uses data-odd-layout as the structural responsive contract', () => {

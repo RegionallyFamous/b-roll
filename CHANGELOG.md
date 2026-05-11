@@ -11,6 +11,16 @@ notes to GitHub Releases.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+<a id="v1.0.6"></a>
+## [1.0.6] — 2026-05-11
+
+### Fixed
+- **Plugin Check / WP.org packaging:** development tests now live outside the plugin directory, the hidden language placeholder is gone, and release zip validation rejects hidden files and test scaffolding before shipping.
+- **Playground scope sanitization:** the active Playground scope helper now sanitizes `REQUEST_URI` in a PHPCS-recognized expression without changing scoped URL behavior.
+
+### Changed
+- **Stable Playground:** the public blueprint now installs ODD **1.0.6** with WP Desktop Mode pinned to the official **0.8.0** release zip.
+
 <a id="v1.0.5"></a>
 ## [1.0.5] — 2026-05-09
 

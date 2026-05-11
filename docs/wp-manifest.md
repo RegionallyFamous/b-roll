@@ -12,7 +12,7 @@ body (entry points, icons, preview assets).
 > VS Code, or run `odd/bin/validate-manifest path/to/manifest.json`
 > locally (set `ODD_REQUIRE_JSONSCHEMA=1` after `pip install jsonschema`
 > for the full ruleset). CI runs this validator against the fixtures
-> in `odd/tests/fixtures/manifests/` on every PR.
+> in `tests/fixtures/manifests/` on every PR.
 >
 > [schema]: schemas/manifest.schema.json
 

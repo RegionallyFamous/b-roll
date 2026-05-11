@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const WALLPAPER_JS = resolve( __dirname, '../../src/wallpaper/index.js' );
+const WALLPAPER_JS = resolve( __dirname, '../../odd/src/wallpaper/index.js' );
 
 describe( 'wallpaper desktop env contract', () => {
 	it( 'seeds env.desktop from the shared desktopState reference', () => {
