@@ -67,6 +67,7 @@ jobs:
         uses: WordPress/plugin-check-action@v1
         with:
           build-dir: './dist/plugin/odd'
+          slug: 'odd'
 
       - name: Upload zip for install-smoke
         uses: actions/upload-artifact@v7
