@@ -11,8 +11,17 @@ notes to GitHub Releases.
 <a id="unreleased"></a>
 ## [Unreleased]
 
+No unreleased changes yet.
+
+<a id="v1.0.7"></a>
+## [1.0.7] — 2026-05-13
+
+### Fixed
+- **WordPress.org review readiness:** documents the external catalog service and generated React runtime source, uses the plugin-slug text domain, stores installed content under uploads, avoids global PHP limit and current-user switching, adopts the longer `oddout` PHP prefix, and keeps development-only tests/hidden files out of the release zip.
+- **CI site lint:** runs the static-site HTML validator on a supported Node runtime so `html-validate@latest` no longer crashes before checking markup.
+
 ### Changed
-- **Playground pin:** the hosted stable and dev blueprints now pin WP Desktop Mode to the official **0.8.2** release zip while keeping the ODD runtime baseline at Desktop Mode **v0.8.0+**.
+- **Stable Playground:** the public blueprint now installs ODD **1.0.7** with WP Desktop Mode pinned to the official **0.8.2** release zip.
 
 <a id="v1.0.6"></a>
 ## [1.0.6] — 2026-05-11
