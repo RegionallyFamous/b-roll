@@ -13,6 +13,13 @@ notes to GitHub Releases.
 
 No unreleased changes yet.
 
+<a id="v1.0.8"></a>
+## [1.0.8] — 2026-05-13
+
+### Fixed
+- **Release publishing:** removes the duplicate WordPress Plugin Check action from the tag release job. The shared quality gate still runs Plugin Check, and the release job no longer fails after a clean Plugin Check result by trying to upload the same artifact name twice.
+- **Stable Playground:** the public blueprint now installs ODD **1.0.8** with WP Desktop Mode pinned to the official **0.8.2** release zip.
+
 <a id="v1.0.7"></a>
 ## [1.0.7] — 2026-05-13
 

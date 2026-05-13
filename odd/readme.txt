@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, desktop, wallpaper, widgets, apps
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,6 +87,10 @@ Open ODD Shop → About → Copy diagnostics, then paste the markdown into a Git
 
 == Changelog ==
 
+= 1.0.8 =
+
+Fixes the tag release workflow so the already-passing WordPress Plugin Check quality gate does not collide with a duplicate Plugin Check artifact upload during publishing.
+
 = 1.0.7 =
 
 Addresses WordPress.org review feedback: documents the external catalog service and generated runtime source, uses the plugin slug text domain, stores installed content under uploads, avoids global PHP limit/user switching, adopts the longer `oddout` PHP prefix, keeps development-only tests/hidden files out of the release zip, and fixes CI site lint on the latest HTML validator.
@@ -120,6 +124,10 @@ Shop Luxe + Weird overhaul, Shop theme/chaos prefs, Desktop Mode **v0.7.2+** int
 The clean public baseline for ODD: a catalog-driven app store and decorator layer for WP Desktop Mode v0.7.2+, with unified store cards, hardened bundle installs, local-only diagnostics, starter content, and release-quality CI gates.
 
 == Upgrade Notice ==
+
+= 1.0.8 =
+
+Release-publishing fix for the WordPress.org-ready package; no user-facing runtime migration is required.
 
 = 1.0.7 =
 

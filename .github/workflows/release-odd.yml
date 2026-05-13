@@ -56,18 +56,9 @@ jobs:
           odd/bin/build-zip
           odd/bin/check-zip-contents --list
 
-      - name: Expand release package for Plugin Check
-        run: |
-          set -e
-          rm -rf dist/plugin
-          mkdir -p dist/plugin
-          unzip -q dist/odd.zip -d dist/plugin
-
-      - name: Run WordPress Plugin Check
-        uses: WordPress/plugin-check-action@v1
-        with:
-          build-dir: './dist/plugin/odd'
-          slug: 'odd-outlandish-desktop-decorator'
+      # The quality-gates workflow already runs WordPress Plugin Check for this
+      # tag. Running the action a second time in the same workflow run uploads
+      # the same fixed artifact name and fails with a 409 conflict.
 
       - name: Upload zip for install-smoke
         uses: actions/upload-artifact@v7
