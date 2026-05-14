@@ -35,6 +35,30 @@ function oddout_cursorsets_url_for( $slug ) {
 	return '' === $slug || '' === $base ? '' : $base . $slug . '/';
 }
 
+function oddout_cursorsets_asset_path( $slug, $file ) {
+	$slug = sanitize_key( (string) $slug );
+	$file = function_exists( 'oddout_content_sanitize_relative_path' ) ? oddout_content_sanitize_relative_path( (string) $file ) : '';
+	if ( '' === $slug || '' === $file || 'svg' !== strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) ) {
+		return '';
+	}
+	$dir = oddout_cursorsets_dir_for( $slug );
+	return '' === $dir || ! function_exists( 'oddout_content_resolve_path' ) ? '' : oddout_content_resolve_path( $dir, $file );
+}
+
+function oddout_cursorsets_asset_url( $slug, $file ) {
+	$slug = sanitize_key( (string) $slug );
+	$file = function_exists( 'oddout_content_sanitize_relative_path' ) ? oddout_content_sanitize_relative_path( (string) $file ) : '';
+	if ( '' === $slug || '' === $file || 'svg' !== strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) ) {
+		return '';
+	}
+	return esc_url_raw(
+		add_query_arg(
+			array( 'file' => $file ),
+			oddout_https_rest_url( 'odd/v1/cursors/asset/' . $slug )
+		)
+	);
+}
+
 function oddout_cursorsets_ensure_storage() {
 	$base = oddout_cursorsets_base_dir();
 	if ( '' === $base ) {
@@ -219,8 +243,7 @@ function oddout_cursorsets_bust_registry_cache() {
 function oddout_cursorsets_scan_installed() {
 	$out      = array();
 	$base_dir = oddout_cursorsets_base_dir();
-	$base_url = oddout_cursorsets_base_url();
-	if ( '' === $base_dir || '' === $base_url || ! is_dir( $base_dir ) ) {
+	if ( '' === $base_dir || ! is_dir( $base_dir ) ) {
 		return $out;
 	}
 	$dirs = glob( rtrim( $base_dir, '/' ) . '/*', GLOB_ONLYDIR );
@@ -247,7 +270,7 @@ function oddout_cursorsets_scan_installed() {
 		$out[ $slug ] = array(
 			'data'     => $data,
 			'base_dir' => $dir,
-			'base_url' => untrailingslashit( $base_url ) . '/' . rawurlencode( $slug ),
+			'base_url' => '',
 			'source'   => 'installed',
 		);
 	}

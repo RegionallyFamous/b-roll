@@ -17,6 +17,18 @@ add_action(
 				'permission_callback' => '__return_true',
 			)
 		);
+		// Public cursor SVG endpoint. CSS cursor images load without
+		// REST nonce headers, and the callback only serves sanitized
+		// SVG files from an installed cursor set directory.
+		register_rest_route(
+			'odd/v1',
+			'/cursors/asset/(?P<slug>[a-z0-9-]+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => 'oddout_cursors_rest_asset',
+				'permission_callback' => '__return_true',
+			)
+		);
 	}
 );
 
@@ -117,5 +129,36 @@ function oddout_cursors_rest_active_css( WP_REST_Request $request ) {
 		exit;
 	}
 	oddout_emit_raw_response( $css );
+	exit;
+}
+
+function oddout_cursors_rest_asset( WP_REST_Request $request ) {
+	$slug = sanitize_key( (string) $request->get_param( 'slug' ) );
+	$file = (string) $request->get_param( 'file' );
+	$path = function_exists( 'oddout_cursorsets_asset_path' ) ? oddout_cursorsets_asset_path( $slug, $file ) : '';
+	if ( '' === $path || ! is_readable( $path ) ) {
+		return new WP_Error(
+			'cursor_asset_not_found',
+			__( 'Cursor asset not found.', 'odd-outlandish-desktop-decorator' ),
+			array( 'status' => 404 )
+		);
+	}
+	$body = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	if ( false === $body ) {
+		return new WP_Error(
+			'cursor_asset_unreadable',
+			__( 'Cursor asset could not be read.', 'odd-outlandish-desktop-decorator' ),
+			array( 'status' => 404 )
+		);
+	}
+
+	while ( ob_get_level() > 0 ) {
+		@ob_end_clean();
+	}
+
+	header( 'Content-Type: image/svg+xml; charset=UTF-8' );
+	header( 'Cache-Control: public, max-age=86400' );
+	header( 'X-Content-Type-Options: nosniff' );
+	oddout_emit_raw_response( $body );
 	exit;
 }

@@ -29,7 +29,7 @@ function oddout_cursors_resolve_set_path( $set_dir, $rel ) {
 }
 
 function oddout_cursors_registry_transient_key() {
-	return 'oddout_cursor_registry_v' . ( defined( 'ODDOUT_VERSION' ) ? ODDOUT_VERSION : '0' );
+	return 'oddout_cursor_registry_v' . ( defined( 'ODDOUT_VERSION' ) ? ODDOUT_VERSION : '0' ) . '_asset1';
 }
 
 add_action(
@@ -107,6 +107,7 @@ function oddout_cursors_get_sets( $reset = false ) {
 		$data     = $entry['data'];
 		$base_dir = $entry['base_dir'];
 		$base_url = $entry['base_url'];
+		$source   = isset( $entry['source'] ) ? (string) $entry['source'] : '';
 		$cursors  = array();
 		if ( isset( $data['cursors'] ) && is_array( $data['cursors'] ) ) {
 			foreach ( $data['cursors'] as $kind => $def ) {
@@ -119,12 +120,19 @@ function oddout_cursors_get_sets( $reset = false ) {
 				if ( '' === $abs || ! is_readable( $abs ) ) {
 					continue;
 				}
-				$hotspot          = isset( $def['hotspot'] ) && is_array( $def['hotspot'] ) ? array_values( $def['hotspot'] ) : array( 0, 0 );
-				$x                = isset( $hotspot[0] ) ? max( 0, min( 128, (int) $hotspot[0] ) ) : 0;
-				$y                = isset( $hotspot[1] ) ? max( 0, min( 128, (int) $hotspot[1] ) ) : 0;
+				$hotspot = isset( $def['hotspot'] ) && is_array( $def['hotspot'] ) ? array_values( $def['hotspot'] ) : array( 0, 0 );
+				$x       = isset( $hotspot[0] ) ? max( 0, min( 128, (int) $hotspot[0] ) ) : 0;
+				$y       = isset( $hotspot[1] ) ? max( 0, min( 128, (int) $hotspot[1] ) ) : 0;
+				$url     = $base_url ? $base_url . '/' . rawurlencode( basename( $abs ) ) : '';
+				if ( 'installed' === $source && function_exists( 'oddout_cursorsets_asset_url' ) ) {
+					$url = oddout_cursorsets_asset_url( $slug, $file );
+				}
+				if ( '' === $url ) {
+					continue;
+				}
 				$cursors[ $kind ] = array(
 					'file'    => basename( $abs ),
-					'url'     => $base_url . '/' . rawurlencode( basename( $abs ) ),
+					'url'     => $url,
 					'hotspot' => array( $x, $y ),
 				);
 			}
@@ -137,6 +145,9 @@ function oddout_cursors_get_sets( $reset = false ) {
 			$preview_abs = oddout_cursors_resolve_set_path( $base_dir, (string) $data['preview'] );
 			if ( '' !== $preview_abs && is_readable( $preview_abs ) ) {
 				$preview = $base_url . '/' . rawurlencode( basename( $preview_abs ) );
+				if ( 'installed' === $source && function_exists( 'oddout_cursorsets_asset_url' ) ) {
+					$preview = oddout_cursorsets_asset_url( $slug, (string) $data['preview'] );
+				}
 			}
 		}
 		$cache[ $slug ] = array(

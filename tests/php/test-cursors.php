@@ -156,7 +156,7 @@ class Test_Cursors extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_installed_cursor_urls_remain_absolute_when_upload_baseurl_is_empty() {
+	public function test_installed_cursor_urls_use_rest_asset_endpoint_when_upload_baseurl_is_empty() {
 		$this->temp_upload_base = trailingslashit( sys_get_temp_dir() ) . 'odd-cursor-uploads-' . wp_generate_uuid4();
 		$set_dir                = $this->temp_upload_base . '/odd/cursor-sets/fancy';
 		wp_mkdir_p( $set_dir );
@@ -191,16 +191,28 @@ class Test_Cursors extends WP_UnitTestCase {
 		);
 
 		$sets = oddout_cursors_get_sets( true );
+		$url  = oddout_cursorsets_asset_url( 'fancy', 'default.svg' );
 
 		$this->assertArrayHasKey( 'fancy', $sets );
+		$this->assertSame( realpath( $set_dir . '/default.svg' ), oddout_cursorsets_asset_path( 'fancy', 'default.svg' ) );
+		$this->assertStringNotContainsString( '/uploads/odd/', $url );
+		$this->assertStringContainsString( 'file=default.svg', $url );
 		$this->assertSame(
-			'https://cdn.example.test/uploads/odd/cursor-sets/fancy/default.svg',
+			$url,
 			$sets['fancy']['cursors']['default']['url']
 		);
 		$this->assertStringContainsString(
-			'url("https://cdn.example.test/uploads/odd/cursor-sets/fancy/default.svg") 2 3, default',
+			'url("' . $url . '") 2 3, default',
 			oddout_cursors_build_css( $sets['fancy'] )
 		);
+	}
+
+	public function test_cursor_rest_asset_route_is_registered_publicly() {
+		global $wp_rest_server;
+		$wp_rest_server = new WP_REST_Server();
+		do_action( 'rest_api_init' );
+
+		$this->assertArrayHasKey( '/odd/v1/cursors/asset/(?P<slug>[a-z0-9-]+)', $wp_rest_server->get_routes() );
 	}
 
 	public function test_shared_url_scheme_helper_respects_https_proxy_headers() {
