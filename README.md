@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dv2-1.0.9"><strong>Launch the live demo</strong></a>
+  <a href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dv2-1.0.0"><strong>Launch the live demo</strong></a>
   ·
   <a href="https://github.com/RegionallyFamous/odd/releases/latest"><strong>Download ODD</strong></a>
   ·
@@ -31,7 +31,7 @@
 
 [WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a polished, updateable shop for visual themes and small tools.
 
-The hosted [Playground blueprint](https://odd.regionallyfamous.com/playground/blueprint.json?oddbp=v2-1.0.9) pins **[WP Desktop Mode](https://wordpress.org/plugins/desktop-mode/)** to **0.8.2** via the official release zip URL (`resource: "url"` -> `downloads.wordpress.org/.../desktop-mode.0.8.2.zip`, matching `ODDOUT_DESKTOP_MODE_PLAYGROUND_VERSION`) and **[ODD 1.0.9](https://github.com/RegionallyFamous/odd/releases/tag/v1.0.9)** to the release git ref in `blueprint.json` (peeled commit once the tag is available locally). Raw GitHub copy: [`blueprint.json`](https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json) (add `?oddbp=v2-1.0.9` if Playground still loads a cached older file). **Production installs:** **`odd.zip`** on [Releases](https://github.com/RegionallyFamous/odd/releases/latest). **Bleeding edge:** use [`/go/dev`](https://odd.regionallyfamous.com/go/dev/) or [`site/playground/blueprint-dev.json`](https://odd.regionallyfamous.com/playground/blueprint-dev.json) (ODD `main` + pinned Desktop Mode 0.8.2; not tied to ODD releases).
+The hosted [Playground blueprint](https://odd.regionallyfamous.com/playground/blueprint.json?oddbp=v2-1.0.0) pins **[WP Desktop Mode](https://wordpress.org/plugins/desktop-mode/)** to **0.8.2** via the official release zip URL (`resource: "url"` -> `downloads.wordpress.org/.../desktop-mode.0.8.2.zip`, matching `ODDOUT_DESKTOP_MODE_PLAYGROUND_VERSION`) and **[ODD 1.0.0](https://github.com/RegionallyFamous/odd/releases/tag/v1.0.0)** to the release git ref in `blueprint.json` (peeled commit once the tag is available locally). Raw GitHub copy: [`blueprint.json`](https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json) (add `?oddbp=v2-1.0.0` if Playground still loads a cached older file). **Production installs:** **`odd.zip`** on [Releases](https://github.com/RegionallyFamous/odd/releases/latest) or [WordPress.org](https://wordpress.org/plugins/odd-outlandish-desktop-decorator/). **Bleeding edge:** use [`/go/dev`](https://odd.regionallyfamous.com/go/dev/) or [`site/playground/blueprint-dev.json`](https://odd.regionallyfamous.com/playground/blueprint-dev.json) (ODD `main` + pinned Desktop Mode 0.8.2; not tied to ODD releases).
 
 ---
 
@@ -59,7 +59,7 @@ Wallpapers, icon sets, and cursor sets preview instantly. Try a scene, theme, or
 
 ### One-click demo
 
-[**Launch ODD in WordPress Playground ->**](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dv2-1.0.9)
+[**Launch ODD in WordPress Playground ->**](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dv2-1.0.0)
 
 First load takes ~20–30 seconds while Playground boots the site and installs the plugin. Throwaway — close the tab and it's gone.
 
@@ -68,7 +68,7 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 ### A real WordPress install
 
 1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) **v0.8.0** or newer (install from [WordPress.org](https://wordpress.org/plugins/desktop-mode/) for the compiled shell).
-2. Download the latest `odd.zip` from the [Releases](https://github.com/RegionallyFamous/odd/releases/latest) page.
+2. Install ODD from [WordPress.org](https://wordpress.org/plugins/odd-outlandish-desktop-decorator/) or download the latest `odd.zip` from the [Releases](https://github.com/RegionallyFamous/odd/releases/latest) page.
 3. WP Admin → Plugins → Add New → Upload Plugin → pick the zip → Activate.
 4. Double-click the **ODD** desktop icon, use the taskbar icon, or run `/odd-panel` from the command palette to open the Shop.
 
@@ -100,7 +100,7 @@ Anyone can ship a scene, icon set, cursor set, widget, or app as a single `.wp` 
 
 ## Useful Links
 
-- **Playground:** [Stable — short link `/go/`](https://odd.regionallyfamous.com/go/) (ODD **1.0.9** + Desktop Mode **0.8.2**) · [Trunk — `/go/dev`](https://odd.regionallyfamous.com/go/dev/) · [Launcher hub `/playground/`](https://odd.regionallyfamous.com/playground/) · [Trunk launcher `/playground/dev/`](https://odd.regionallyfamous.com/playground/dev/)
+- **Playground:** [Stable — short link `/go/`](https://odd.regionallyfamous.com/go/) (ODD **1.0.0** + Desktop Mode **0.8.2**) · [Trunk — `/go/dev`](https://odd.regionallyfamous.com/go/dev/) · [Launcher hub `/playground/`](https://odd.regionallyfamous.com/playground/) · [Trunk launcher `/playground/dev/`](https://odd.regionallyfamous.com/playground/dev/)
 - [ODD Shop State Machine](docs/store-state-machine.md)
 - [Release Runbook](docs/release-runbook.md)
 - [Building on ODD](docs/building-on-odd.md)

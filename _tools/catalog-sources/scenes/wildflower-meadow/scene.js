@@ -1,5 +1,5 @@
 /**
- * ODD scene: Wildflower Meadow — v1.2.0
+ * ODD scene: Wildflower Meadow — v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp).
  * Motion:

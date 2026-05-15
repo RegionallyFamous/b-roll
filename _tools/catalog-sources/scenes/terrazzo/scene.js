@@ -1,5 +1,5 @@
 /**
- * ODD scene: Terrazzo — v1.2.0
+ * ODD scene: Terrazzo — v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp), a
  * flat overhead terrazzo floor. Motion layer is deliberately quiet:

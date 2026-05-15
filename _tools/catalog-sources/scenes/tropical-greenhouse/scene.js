@@ -1,5 +1,5 @@
 /**
- * ODD scene: Tropical Greenhouse — v1.2.0
+ * ODD scene: Tropical Greenhouse — v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp)
  * with late-morning palm-house motion:

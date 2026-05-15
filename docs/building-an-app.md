@@ -425,7 +425,7 @@ straight from its manifest. Add an `extensions` object:
     "type":    "app",
     "slug":    "ledger",
     "name":    "Ledger",
-    "version": "1.2.0",
+    "version": "1.0.0",
     "extensions": {
         "muses": [
             {

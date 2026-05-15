@@ -4,7 +4,7 @@ Tags: wp-desktop-mode, desktop, wallpaper, widgets, apps
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.9
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,84 +87,12 @@ Open ODD Shop → About → Copy diagnostics, then paste the markdown into a Git
 
 == Changelog ==
 
-= 1.0.9 =
-
-Addresses WordPress.org review feedback for upload-directory resolution and REST permissions, serves installed cursor assets through a public ODD REST asset endpoint, and fixes custom cursor hover across Desktop Mode desktop icons, icon children, dock items, and window controls.
-
-= 1.0.8 =
-
-Fixes the tag release workflow so the already-passing WordPress Plugin Check quality gate does not collide with a duplicate Plugin Check artifact upload during publishing.
-
-= 1.0.7 =
-
-Addresses WordPress.org review feedback: documents the external catalog service and generated runtime source, uses the plugin slug text domain, stores installed content under uploads, avoids global PHP limit/user switching, adopts the longer `oddout` PHP prefix, keeps development-only tests/hidden files out of the release zip, and fixes CI site lint on the latest HTML validator.
-
-= 1.0.6 =
-
-Addresses WordPress.org review feedback: documents the external catalog service and generated runtime source, uses the plugin slug text domain, stores installed content under uploads, avoids global PHP limit/user switching, adopts the longer `oddout` PHP prefix, and keeps development-only tests/hidden files out of the release zip.
-
-= 1.0.5 =
-
-Fixes Desktop Mode dock rail horizontal drift, clamps ODD Shop horizontal overflow, keeps the Shop rendering when a live wallpaper hero scene asset is missing, and ships the polished Magic 8-Ball widget refresh. Pins the public Playground blueprints to ODD 1.0.5 plus WP Desktop Mode 0.8.0.
-
-= 1.0.4 =
-
-Fixes Playground app loading by preserving scoped app/runtime/REST URLs, mounting app iframes from the live Desktop Mode window payload, and keeping the iframe visible inside native windows. Adds local app-loading diagnostics and pins the public Playground blueprints to ODD 1.0.4 plus WP Desktop Mode 0.8.0.
-
-= 1.0.3 =
-
-Fixes PHPUnit coverage for native-window icons vs themed desktop shortcuts (`desktop_mode_shell_config`) so **GitHub Actions can publish `odd.zip` again** — the v1.0.1 and v1.0.2 release workflows stopped in CI for the same reason. Dev Playground blueprint (latest Desktop Mode + `main`), `/go` short redirects, stricter blueprint validation, and Playground commit-pin tooling.
-
-= 1.0.2 =
-
-Reliable wallpaper scene swaps from the Shop (early hook bridge + prefs confirm path). Vertical dock rails scroll instead of clipping when many menu icons are visible. Wallpapers honor `desktop-mode.wallpaper.visibility` during Pixi bootstrap. Screensaver/API/panel dual-emit the legacy `odd/pickScene` hook. WordPress Playground installs pin the peeled git **commit** for this release tag (avoids flaky tag archive fetches).
-
-= 1.0.1 =
-
-Shop Luxe + Weird overhaul, Shop theme/chaos prefs, Desktop Mode **v0.7.2+** integration (`desktop-mode.*` hooks and globals), install-smoke/E2E on wordpress.org Desktop Mode, and Playground opens the wp-admin desktop portal.
-
 = 1.0.0 =
 
-The clean public baseline for ODD: a catalog-driven app store and decorator layer for WP Desktop Mode v0.7.2+, with unified store cards, hardened bundle installs, local-only diagnostics, starter content, and release-quality CI gates.
+The clean public baseline for ODD: a catalog-driven app store and decorator layer for WP Desktop Mode v0.8.0+, with unified store cards, hardened bundle installs, Playground app-loading fixes, custom cursor fixes, local-only diagnostics, starter content, and release-quality CI gates.
 
 == Upgrade Notice ==
 
-= 1.0.9 =
-
-Fixes custom cursor hover on Desktop Mode icons and includes WordPress.org compliance polish; no data migration is required.
-
-= 1.0.8 =
-
-Release-publishing fix for the WordPress.org-ready package; no user-facing runtime migration is required.
-
-= 1.0.7 =
-
-WordPress.org review-readiness release; no user-facing runtime migration is required.
-
-= 1.0.6 =
-
-Packaging cleanup for Plugin Check / WP.org readiness; no user-facing runtime migration is required.
-
-= 1.0.5 =
-
-Fixes horizontal dock/Shop drift and hardens the Shop against missing live hero scene assets.
-
-= 1.0.4 =
-
-Updates the Desktop Mode host baseline to v0.8.0+ and fixes blank Playground app windows.
-
-= 1.0.3 =
-
-Use this build if you relied on GitHub **Releases** for **1.0.1** or **1.0.2** — those tags did not finish uploading `odd.zip` because CI failed.
-
-= 1.0.2 =
-
-Fixes dock overflow with long menus and unreliable wallpaper swaps triggered from the ODD Shop during shell boot.
-
-= 1.0.1 =
-
-**Requires WP Desktop Mode v0.7.2 or newer.** Upgrade Desktop Mode first if you are still on an older shell.
-
 = 1.0.0 =
 
-ODD now targets WP Desktop Mode v0.7.2+ and resets the public release line to a clean 1.0 baseline. Fresh installs are recommended for sites that were testing earlier development releases.
+Initial WordPress.org release. Requires WP Desktop Mode v0.8.0 or newer.

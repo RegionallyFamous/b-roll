@@ -5,7 +5,7 @@
   "accent": "#ff5f4f",
   "preview": "dashboard.svg",
   "description": "Heavy stencil-cut glyphs with concrete-poster weight, sharp cutouts, and small hazard-orange accents.",
-  "version": "1.1.1",
+  "version": "1.0.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.svg",

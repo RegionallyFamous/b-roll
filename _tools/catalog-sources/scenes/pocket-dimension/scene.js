@@ -122,7 +122,7 @@
 	};
 } )();
 /**
- * ODD scene: Pocket Dimension � v1.1.0
+ * ODD scene: Pocket Dimension � v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp)
  * of an impossible floating room + portal, decorated with live Pixi:

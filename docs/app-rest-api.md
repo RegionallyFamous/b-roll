@@ -64,7 +64,7 @@ List all installed apps.
         {
             "slug":        "ledger",
             "name":        "Ledger",
-            "version":     "1.1.0",
+            "version":     "1.0.0",
             "enabled":     true,
             "icon":        "icon.svg",
             "description": "Get paid. Track clients, generate invoices.",

@@ -1,5 +1,5 @@
 /**
- * ODD scene: Beach Umbrellas — v1.2.0
+ * ODD scene: Beach Umbrellas — v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp),
  * a high-aerial beach. Motion:

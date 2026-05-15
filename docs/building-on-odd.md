@@ -414,7 +414,7 @@ pre-populated from an app's manifest:
 {
     "slug":    "ledger",
     "name":    "Ledger",
-    "version": "1.2.0",
+    "version": "1.0.0",
     "extensions": {
         "muses":            [ { "slug": "ledger", "voice": { … } } ],
         "commands":         [ { "slug": "open-ledger", "label": "Open Ledger", "run": "odd.apps.open:ledger" } ],

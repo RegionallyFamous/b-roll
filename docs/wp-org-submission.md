@@ -4,7 +4,7 @@ This doc records the steps and the current state of ODD's submission to https://
 
 ## Status
 
-- [x] Slug chosen: `odd` (requested on submit form)
+- [x] Slug chosen: `odd-outlandish-desktop-decorator`
 - [x] `readme.txt` written per plugin directory conventions ([`odd/readme.txt`](../odd/readme.txt))
 - [x] Plugin header fields are complete and match the readme (verified by `odd/bin/check-version` and `odd/bin/check-plugin-metadata`)
 - [x] Text domain declared and wired to `load_plugin_textdomain` + `wp_set_script_translations`
@@ -13,7 +13,8 @@ This doc records the steps and the current state of ODD's submission to https://
 - [x] Licensing of every first-party catalog asset recorded in [`LICENSES.md`](../LICENSES.md), all CC0-1.0 or GPL-compatible
 - [x] No server-side telemetry ([ADR 0004](adr/0004-zero-server-side-telemetry.md))
 - [x] Remote catalog is a single HTTPS JSON fetch to a static GitHub Pages URL, configurable via `ODDOUT_CATALOG_URL` for enterprise mirrors ([ADR 0005](adr/0005-remote-catalog-empty-plugin.md))
-- [ ] Submitted to the plugin directory for review (manual step, done via https://wordpress.org/plugins/developers/add/)
+- [x] Submitted to the plugin directory for review (manual step, done via https://wordpress.org/plugins/developers/add/)
+- [x] Accepted on WordPress.org: https://wordpress.org/plugins/odd-outlandish-desktop-decorator/
 - [ ] SVN trunk seeded once the submission is approved (manual, see below)
 - [ ] Screenshots captured and uploaded to `assets/` in SVN (5 screenshots listed in readme.txt)
 
@@ -33,7 +34,7 @@ Screenshots live in `/assets/` on the SVN side (sibling of `/trunk/`, `/tags/`, 
 | `icon-256x256.png`    | 256×256          | Directory icon                                          |
 | `icon-128x128.png`    | 128×128          | Directory icon (low-DPI)                                |
 
-All screenshots are captured in the live demo (`https://playground.wordpress.net/?blueprint-url=` + URL-encoded `https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json?oddbp=v2-1.0.9`) at 1× zoom, cropped to the desktop surface, saved as PNG through `cmd-shift-4` + OSX screenshot viewer "Export" (use PNG — the directory rejects JPEG).
+All screenshots are captured in the live demo (`https://playground.wordpress.net/?blueprint-url=` + URL-encoded `https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json?oddbp=v2-1.0.0`) at 1× zoom, cropped to the desktop surface, saved as PNG through `cmd-shift-4` + OSX screenshot viewer "Export" (use PNG — the directory rejects JPEG).
 
 ## SVN workflow
 
@@ -41,10 +42,10 @@ Once the plugin submission is approved:
 
 ```sh
 # Check out the SVN repo the directory publishes.
-svn co https://plugins.svn.wordpress.org/odd ~/plugins-svn/odd
+svn co https://plugins.svn.wordpress.org/odd-outlandish-desktop-decorator ~/plugins-svn/odd-outlandish-desktop-decorator
 
 # Stage the trunk.
-cd ~/plugins-svn/odd
+cd ~/plugins-svn/odd-outlandish-desktop-decorator
 rsync -a --delete \
   --exclude='.git' \
   --exclude='node_modules' \

@@ -1,5 +1,5 @@
 /**
- * ODD scene: Tide Pool — v1.2.0
+ * ODD scene: Tide Pool — v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp)
  * with noon rockpool motion:

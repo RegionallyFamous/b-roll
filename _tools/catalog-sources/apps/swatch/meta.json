@@ -2,7 +2,7 @@
   "slug": "swatch",
   "name": "Swatch",
   "description": "Pick colors like you mean it. Full HSL editing, harmony rules, WCAG contrast checks, and one-click export to CSS, Tailwind, or SVG.",
-  "version": "1.2.0",
+  "version": "1.0.0",
   "author": "Regionally Famous",
   "tags": [
     "creative",

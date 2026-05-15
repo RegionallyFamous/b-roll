@@ -125,7 +125,7 @@
 	};
 } )();
 /**
- * ODD scene: Circuit Garden � v1.1.0
+ * ODD scene: Circuit Garden � v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp)
  * with a thin layer of "living circuitry":

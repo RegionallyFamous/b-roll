@@ -5,7 +5,7 @@
   "accent": "#7c5cff",
   "preview": "dashboard.svg",
   "description": "Origami-inspired standalone glyphs with folded paper facets, purple shadows, and warm paper accents.",
-  "version": "1.1.1",
+  "version": "1.0.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.svg",

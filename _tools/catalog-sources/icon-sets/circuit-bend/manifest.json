@@ -5,7 +5,7 @@
   "accent": "#2fb37a",
   "preview": "dashboard.svg",
   "description": "Standalone PCB-trace glyphs with gold routing, dark green enamel, solder pads, and tiny LED accents.",
-  "version": "1.1.1",
+  "version": "1.0.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.svg",

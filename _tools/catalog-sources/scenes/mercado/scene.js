@@ -1,5 +1,5 @@
 /**
- * ODD scene: Mercado — v1.2.0
+ * ODD scene: Mercado — v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp), a
  * bright market aisle with papel-picado bunting. Motion:

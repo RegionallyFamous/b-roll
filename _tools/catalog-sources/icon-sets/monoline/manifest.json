@@ -5,7 +5,7 @@
   "accent": "#00c2ff",
   "preview": "dashboard.svg",
   "description": "Elegant standalone neon monoline glyphs with cream strokes, electric-blue glow, and tiny pink sparks.",
-  "version": "1.1.1",
+  "version": "1.0.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.svg",

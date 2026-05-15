@@ -5,7 +5,7 @@
   "accent": "#4da3ff",
   "preview": "dashboard.svg",
   "description": "Transparent blueprint glyphs: cyan construction lines, brass registration marks, and precise drafting details.",
-  "version": "1.1.1",
+  "version": "1.0.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.svg",
