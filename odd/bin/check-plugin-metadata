@@ -29,6 +29,7 @@ REQUIRED_HEADER_FIELDS = (
     "Version",
     "Requires at least",
     "Requires PHP",
+    "Requires Plugins",
     "Author",
     "Author URI",
     "License",
@@ -92,6 +93,8 @@ def main() -> int:
         return fail("odd.php Version header and ODDOUT_VERSION constant disagree")
     if header["Text Domain"] != PLUGIN_SLUG:
         return fail(f"odd.php Text Domain must match WordPress.org slug {PLUGIN_SLUG!r}")
+    if header["Requires Plugins"] != "desktop-mode":
+        return fail("odd.php Requires Plugins must declare desktop-mode")
 
     stable = readme_field(readme_txt, "Stable tag")
     if stable != version:
@@ -107,12 +110,14 @@ def main() -> int:
         return fail("readme.txt Requires at least does not match odd.php")
     if readme_field(readme_txt, "Requires PHP") != php_min:
         return fail("readme.txt Requires PHP does not match odd.php")
+    if readme_field(readme_txt, "Requires Plugins") != header["Requires Plugins"]:
+        return fail("readme.txt Requires Plugins does not match odd.php")
 
     desktop_min = constant(plugin, "ODDOUT_DESKTOP_MODE_MIN_VERSION")
     expected_requirement = f"WordPress {wp_min}+ · PHP {php_min}+ · WP Desktop Mode v{desktop_min}+"
     if expected_requirement not in readme_md:
         return fail(f"README.md does not contain requirement line: {expected_requirement}")
-    if f"WP Desktop Mode](https://github.com/WordPress/desktop-mode) v{desktop_min}" not in readme_txt:
+    if f"WP Desktop Mode](https://wordpress.org/plugins/desktop-mode/) v{desktop_min}" not in readme_txt:
         return fail("readme.txt install instructions do not mention the Desktop Mode minimum")
 
     anchor = f'<a id="v{version}"></a>'

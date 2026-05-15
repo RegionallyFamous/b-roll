@@ -4,6 +4,7 @@ Tags: wp-desktop-mode, desktop, wallpaper, widgets, apps
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
+Requires Plugins: desktop-mode
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -51,7 +52,7 @@ ODD is made for WP Desktop Mode, the plugin that turns wp-admin into a desktop-s
 
 == Installation ==
 
-1. Install and activate [WP Desktop Mode](https://github.com/WordPress/desktop-mode) v0.8.0 or newer.
+1. Install and activate [WP Desktop Mode](https://wordpress.org/plugins/desktop-mode/) v0.8.0 or newer. WordPress will also show it as a required plugin dependency for ODD.
 2. Install and activate ODD.
 3. Enable Desktop Mode for your user.
 4. Open the ODD Shop from the desktop.
