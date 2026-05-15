@@ -80,10 +80,9 @@ Open ODD Shop → About → Copy diagnostics, then paste the markdown into a Git
 
 == Screenshots ==
 
-1. ODD Shop with unified catalog cards.
+1. Desktop with themed wallpaper, icons, cursors, widgets, and docked ODD apps.
 2. Wallpaper department with preview/apply controls.
-3. Apps department with install/open cards.
-4. Desktop with themed wallpaper, icons, cursors, and widgets.
+3. Icon Sets department with catalog cards and install actions.
 
 == Changelog ==
 

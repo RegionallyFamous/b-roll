@@ -16,7 +16,7 @@ This doc records the current WordPress.org status for ODD and the manual publish
 - [x] Submitted to the plugin directory for review (manual step, done via https://wordpress.org/plugins/developers/add/)
 - [x] Accepted on WordPress.org: https://wordpress.org/plugins/odd-outlandish-desktop-decorator/
 - [ ] SVN trunk seeded for the 1.0.0 public baseline (manual, see below)
-- [ ] Screenshots captured and uploaded to `assets/` in SVN (4 screenshots listed in readme.txt)
+- [ ] Screenshots captured and uploaded to `assets/` in SVN (3 screenshots listed in readme.txt)
 - [x] Banner and icon assets generated in [`wporg-assets/`](../wporg-assets/)
 
 ## Directory asset checklist
@@ -29,10 +29,9 @@ Directory assets live in `/assets/` on the SVN side (sibling of `/trunk/`, `/tag
 | `banner-772x250.png`  | 772x250          | Standard directory header banner                        |
 | `icon-256x256.gif`    | 256x256          | High-DPI animated directory icon                        |
 | `icon-128x128.gif`    | 128x128          | Standard animated directory icon                        |
-| `screenshot-1.png`    | 1280x720 target  | ODD Shop with unified catalog cards                     |
+| `screenshot-1.png`    | 1280x720 target  | Desktop with themed wallpaper, icons, cursors, widgets  |
 | `screenshot-2.png`    | 1280x720 target  | Wallpaper department with preview/apply controls        |
-| `screenshot-3.png`    | 1280x720 target  | Apps department with install/open cards                 |
-| `screenshot-4.png`    | 1280x720 target  | Desktop with themed wallpaper, icons, cursors, widgets  |
+| `screenshot-3.png`    | 1280x720 target  | Icon Sets department with catalog cards                 |
 
 Generated banner and animated icon files are kept in [`wporg-assets/`](../wporg-assets/). WordPress.org documents GIF as a valid extension for `icon-128x128` and `icon-256x256`; do not upload `icon.svg` with the animated icon set because SVG can take precedence over raster icons in WordPress icon selection paths. Screenshots should be captured from the live demo (`https://playground.wordpress.net/?blueprint-url=` + URL-encoded `https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json?oddbp=v3-1.0.0-dm-0.8.5`) at 1x zoom, cropped to the desktop surface, and saved as lowercase PNG files that match the `readme.txt` screenshot captions. WordPress.org permits PNG or JPG screenshots, but local PNG keeps the desktop UI crisp.
 

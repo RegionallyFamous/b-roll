@@ -10,6 +10,9 @@ These files are staged for the top-level `assets/` directory in the WordPress.or
 | `banner-1544x500.png` | 1544x500 | High-DPI plugin page banner |
 | `icon-128x128.gif` | 128x128 | Standard animated directory icon |
 | `icon-256x256.gif` | 256x256 | High-DPI animated directory icon |
+| `screenshot-1.png` | 1280x720 | Desktop with themed wallpaper, icons, cursors, widgets, and docked ODD apps |
+| `screenshot-2.png` | 1280x720 | Wallpaper department with preview/apply controls |
+| `screenshot-3.png` | 1280x720 | Icon Sets department with catalog cards and install actions |
 | `source/banner-texture.png` | Source | Exact high-DPI no-text header base used to export the banners |
 | `source/banner-imagegen-header.png` | Source | Original generated header artwork before exact WP.org cropping |
 | `source/static-icon/` | Source | Static PNG/SVG icon fallbacks retained for future use |
