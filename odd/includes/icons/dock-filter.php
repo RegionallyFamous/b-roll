@@ -1,14 +1,11 @@
 <?php
 /**
- * ODD icons — dock item + desktop icon overrides.
+ * ODD icons — native Desktop Mode icon feeds.
  *
- * Hooks into WP Desktop Mode's singular `desktop_mode_dock_item` filter
- * (fires once per tile inside `desktop_mode_build_dock_items()` with
- * the real admin menu slug — `edit.php`, `upload.php`,
- * `options-general.php`… — as the 2nd argument) and replaces each
- * item's `icon` field with a URL pointing at the active icon set's
- * SVG when a mapping exists for that menu slug. Desktop icons are
- * themed through the matching `desktop_mode_icons` filter.
+ * Icon sets theme Desktop Mode surfaces through Desktop Mode's own
+ * server-side data filters. No CSS plates, no DOM surgery, no private
+ * rail renderer assumptions: ODD only swaps the icon values that
+ * Desktop Mode already asks plugins to provide.
  *
  * Why slug-based: dock items ship keyed by their admin menu file and
  * sets declare icons under those same keys in `manifest.json#icons`,
@@ -68,143 +65,130 @@ function oddout_icons_entry_recycle_key( $entry_id, $window, $title = '' ) {
 	return '';
 }
 
-add_filter(
-	'desktop_mode_dock_item',
-	function ( $item, $menu_slug ) {
-		if ( ! is_array( $item ) ) {
-			return $item;
-		}
-		$slug = oddout_icons_get_active_slug();
-		if ( '' === $slug ) {
-			return $item;
-		}
-		$set = oddout_icons_get_set( $slug );
-		if ( ! $set || empty( $set['icons'] ) ) {
-			return $item;
-		}
+function oddout_icons_active_set_for_native_surfaces() {
+	$slug = oddout_icons_get_active_slug();
+	if ( '' === $slug ) {
+		return null;
+	}
+	$set = oddout_icons_get_set( $slug );
+	return ( $set && ! empty( $set['icons'] ) && is_array( $set['icons'] ) ) ? $set : null;
+}
 
-		$key = oddout_icons_slug_to_key( (string) $menu_slug );
-		if ( '' !== $key && ! empty( $set['icons'][ $key ] ) ) {
-			$item['icon'] = (string) $set['icons'][ $key ];
-			return $item;
-		}
-		// Always-on fallback so every dock tile feels themed even when
-		// a set ships no match for e.g. a third-party admin page.
-		if ( ! empty( $set['icons']['fallback'] ) ) {
-			$item['icon'] = (string) $set['icons']['fallback'];
-		}
+function oddout_icons_icon_url_for_key( array $set, $key ) {
+	$icons = isset( $set['icons'] ) && is_array( $set['icons'] ) ? $set['icons'] : array();
+	$key   = sanitize_key( (string) $key );
+	if ( '' !== $key && ! empty( $icons[ $key ] ) ) {
+		return (string) $icons[ $key ];
+	}
+	if ( ! empty( $icons['fallback'] ) ) {
+		return (string) $icons['fallback'];
+	}
+	return '';
+}
+
+function oddout_icons_filter_dock_item( $item, $menu_slug ) {
+	if ( ! is_array( $item ) ) {
 		return $item;
-	},
-	20,
-	2
-);
+	}
+	$set = oddout_icons_active_set_for_native_surfaces();
+	if ( ! $set ) {
+		return $item;
+	}
 
-add_filter(
-	'desktop_mode_icons',
-	function ( $registry ) {
-		if ( ! is_array( $registry ) || empty( $registry ) ) {
-			return $registry;
-		}
-		$slug = oddout_icons_get_active_slug();
-		if ( '' === $slug ) {
-			return $registry;
-		}
-		$set = oddout_icons_get_set( $slug );
-		if ( ! $set || empty( $set['icons'] ) ) {
-			return $registry;
-		}
+	$url = oddout_icons_icon_url_for_key( $set, oddout_icons_slug_to_key( (string) $menu_slug ) );
+	if ( '' !== $url ) {
+		$item['icon'] = $url;
+	}
+	return $item;
+}
+add_filter( 'desktop_mode_dock_item', 'oddout_icons_filter_dock_item', 20, 2 );
+add_filter( 'wp_desktop_dock_item', 'oddout_icons_filter_dock_item', 20, 2 );
 
-		foreach ( $registry as $id => $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			// Skip ODD-owned native launchers — keep their app-specific art.
-			$entry_id = isset( $entry['id'] ) ? (string) $entry['id'] : (string) $id;
-			if ( 'odd' === $entry_id || 0 === strpos( $entry_id, 'odd-app-' ) ) {
-				continue;
-			}
-			$window = isset( $entry['window'] ) ? (string) $entry['window'] : '';
-			if ( 0 === strpos( $window, 'odd-app-' ) ) {
-				continue;
-			}
-			$key = oddout_icons_slug_to_key( $window );
-			if ( '' === $key ) {
-				$key = oddout_icons_entry_recycle_key(
-					$entry_id,
-					$window,
-					isset( $entry['title'] ) ? (string) $entry['title'] : ''
-				);
-			}
-			if ( '' === $key ) {
-				// Desktop icons can also target URLs — try matching by the
-				// icon id as a last-ditch key.
-				$key = sanitize_key( $entry_id );
-			}
-			if ( '' !== $key && ! empty( $set['icons'][ $key ] ) ) {
-				$registry[ $id ]['icon'] = (string) $set['icons'][ $key ];
-				continue;
-			}
-			if ( ! empty( $set['icons']['fallback'] ) ) {
-				$registry[ $id ]['icon'] = (string) $set['icons']['fallback'];
-			}
-		}
+function oddout_icons_filter_desktop_icons_registry( $registry ) {
+	if ( ! is_array( $registry ) || empty( $registry ) ) {
 		return $registry;
-	},
-	20
-);
+	}
+	$set = oddout_icons_active_set_for_native_surfaces();
+	if ( ! $set ) {
+		return $registry;
+	}
 
-/**
- * Keep native-window taskbar icons aligned with themed desktop shortcuts.
- *
- * WP Desktop Mode can surface the same logical surface as both a wallpaper
- * shortcut (`desktopIcons[]`) and a dock/taskbar entry (`nativeWindows[]`).
- * After icon-set theming runs, the desktop entry carries the SVG URL while
- * the native window may still advertise a Dashicon name — copy the desktop
- * art onto the matching native window when their `id` values match.
- */
-add_filter(
-	'desktop_mode_shell_config',
-	function ( $config ) {
-		if ( ! is_array( $config ) ) {
-			return $config;
+	foreach ( $registry as $id => $entry ) {
+		if ( ! is_array( $entry ) ) {
+			continue;
 		}
-		if ( empty( $config['nativeWindows'] ) || ! is_array( $config['nativeWindows'] ) ) {
-			return $config;
+		// Skip ODD-owned native launchers — keep their app-specific art.
+		$entry_id = isset( $entry['id'] ) ? (string) $entry['id'] : (string) $id;
+		if ( 'odd' === $entry_id || 0 === strpos( $entry_id, 'odd-app-' ) ) {
+			continue;
 		}
-		if ( empty( $config['desktopIcons'] ) || ! is_array( $config['desktopIcons'] ) ) {
-			return $config;
+		$window = isset( $entry['window'] ) ? (string) $entry['window'] : '';
+		if ( 0 === strpos( $window, 'odd-app-' ) ) {
+			continue;
 		}
+		$key = oddout_icons_slug_to_key( $window );
+		if ( '' === $key ) {
+			$key = oddout_icons_entry_recycle_key(
+				$entry_id,
+				$window,
+				isset( $entry['title'] ) ? (string) $entry['title'] : ''
+			);
+		}
+		if ( '' === $key ) {
+			// Desktop icons can also target URLs — try matching by the
+			// icon id as a last-ditch key.
+			$key = sanitize_key( $entry_id );
+		}
+		$url = oddout_icons_icon_url_for_key( $set, $key );
+		if ( '' !== $url ) {
+			$registry[ $id ]['icon'] = $url;
+		}
+	}
+	return $registry;
+}
+add_filter( 'desktop_mode_icons', 'oddout_icons_filter_desktop_icons_registry', 20 );
+add_filter( 'wp_desktop_icons', 'oddout_icons_filter_desktop_icons_registry', 20 );
 
-		$by_id = array();
-		foreach ( $config['desktopIcons'] as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			$id = isset( $entry['id'] ) ? (string) $entry['id'] : '';
-			if ( '' === $id || ! isset( $entry['icon'] ) || '' === (string) $entry['icon'] ) {
-				continue;
-			}
-			$by_id[ $id ] = (string) $entry['icon'];
-		}
-		if ( empty( $by_id ) ) {
-			return $config;
-		}
-
-		foreach ( $config['nativeWindows'] as $i => $win ) {
-			if ( ! is_array( $win ) ) {
-				continue;
-			}
-			$wid = isset( $win['id'] ) ? (string) $win['id'] : '';
-			if ( '' === $wid || ! isset( $by_id[ $wid ] ) ) {
-				continue;
-			}
-			$config['nativeWindows'][ $i ]['icon'] = $by_id[ $wid ];
-		}
-
+function oddout_icons_align_native_window_icons_with_shortcuts( $config ) {
+	if ( ! is_array( $config ) ) {
 		return $config;
-	},
-	18
-);
+	}
+	if ( empty( $config['nativeWindows'] ) || ! is_array( $config['nativeWindows'] ) ) {
+		return $config;
+	}
+	if ( empty( $config['desktopIcons'] ) || ! is_array( $config['desktopIcons'] ) ) {
+		return $config;
+	}
+
+	$by_id = array();
+	foreach ( $config['desktopIcons'] as $entry ) {
+		if ( ! is_array( $entry ) ) {
+			continue;
+		}
+		$id = isset( $entry['id'] ) ? (string) $entry['id'] : '';
+		if ( '' === $id || ! isset( $entry['icon'] ) || '' === (string) $entry['icon'] ) {
+			continue;
+		}
+		$by_id[ $id ] = (string) $entry['icon'];
+	}
+	if ( empty( $by_id ) ) {
+		return $config;
+	}
+
+	foreach ( $config['nativeWindows'] as $i => $win ) {
+		if ( ! is_array( $win ) ) {
+			continue;
+		}
+		$wid = isset( $win['id'] ) ? (string) $win['id'] : '';
+		if ( '' === $wid || ! isset( $by_id[ $wid ] ) ) {
+			continue;
+		}
+		$config['nativeWindows'][ $i ]['icon'] = $by_id[ $wid ];
+	}
+	return $config;
+}
+add_filter( 'desktop_mode_shell_config', 'oddout_icons_align_native_window_icons_with_shortcuts', 18 );
+add_filter( 'wp_desktop_shell_config', 'oddout_icons_align_native_window_icons_with_shortcuts', 18 );
 
 /**
  * Re-run {@see desktop_mode_icons} against a single static-registry entry so
@@ -224,8 +208,7 @@ function oddout_icons_overlay_desktop_icons_on_shortcut_shape( array $shape, arr
 	}
 
 	/** @var array<string, mixed> */
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Desktop Mode owns this integration hook.
-	$singleton = apply_filters( 'desktop_mode_icons', array( $ref => $registry_entry ) );
+	$singleton = oddout_icons_filter_desktop_icons_registry( array( $ref => $registry_entry ) );
 	if (
 		is_array( $singleton )
 		&& isset( $singleton[ $ref ] )

@@ -11,8 +11,7 @@
  * a right content pane that groups items into franchise
  * "shelves". All state still flows through the same REST
  * endpoint used by ODD's runtime — wallpaper via WP Desktop Mode's
- * per-user settings, icons via a soft reload (the server-side dock
- * filter is the canonical renderer).
+ * per-user settings, icons via Desktop Mode's dock/icon registries.
  */
 ( function () {
 	'use strict';
@@ -76,11 +75,11 @@
 	// keep working; only the user-facing labels + icons moved.
 	var SECTIONS = [
 		{ id: 'wallpaper', label: __( 'Wallpapers' ), icon: '🖼', glyph: 'g-wallpaper', group: 'decorate', tint: 'var(--odd-shop-tint-wallpaper)', tagline: __( 'Living desktop weather' ) },
-		{ id: 'icons',     label: __( 'Icon Sets' ),  icon: '🧩', glyph: 'g-icons',     group: 'decorate', tint: 'var(--odd-shop-tint-icons)',     tagline: __( 'Dock disguises' ) },
+		{ id: 'icons',     label: __( 'Icon Sets' ),  icon: '🧩', glyph: 'g-icons',     group: 'decorate', tint: 'var(--odd-shop-tint-icons)',     tagline: __( 'Native disguises' ) },
 		{ id: 'cursors',   label: __( 'Cursors' ),    icon: '➹', glyph: 'g-cursors',   group: 'decorate', tint: 'var(--odd-shop-tint-cursors)',   tagline: __( 'Pointers with opinions' ) },
 		{ id: 'widgets',   label: __( 'Widgets' ),    icon: '🧷', glyph: 'g-widgets',   group: 'more',     tint: 'var(--odd-shop-tint-widgets)',   tagline: __( 'Tiny desktop creatures' ) },
 		{ id: 'apps',      label: __( 'Apps' ),       icon: '📦', glyph: 'g-apps',      group: 'more',     tint: 'var(--odd-shop-tint-apps)',      tagline: __( 'Little tools, big portals' ), gated: 'appsEnabled' },
-		{ id: 'install',   label: __( 'Install' ),    icon: '⇪', glyph: 'g-install',   group: 'you',      tint: 'var(--odd-shop-accent)',         tagline: __( 'Feed it a .wp' ),           gated: 'canInstall' },
+		{ id: 'install',   label: __( 'Install' ),    icon: '⇪', glyph: 'g-install',   group: 'you',      tint: 'var(--odd-shop-accent)',         tagline: __( 'Feed it files' ),           gated: 'canInstall' },
 		{ id: 'settings',  label: __( 'Settings' ),   icon: '⚙', glyph: 'g-settings',  group: 'you',      tint: 'var(--odd-shop-accent-2)',       tagline: __( 'Tune the strange' ) },
 		{ id: 'about',     label: __( 'About' ),      icon: '👁', glyph: 'g-about',     group: 'you',      tint: 'var(--odd-shop-tint-wallpaper)', tagline: __( 'Lore & blinking' ) },
 	];
@@ -337,15 +336,13 @@
 			cfg:           clone( window.odd || {} ),
 			posting:       false,
 			// Preview state: when non-null, the user has clicked a
-			// scene, icon-set, or cursor-set card and the shell is showing the
-			// live result without having committed yet. Confirming
-			// persists via REST; cancelling reverts to `original`.
+			// scene, icon-set, or cursor-set card. Scenes/cursors can
+			// preview live; icon sets are applied through Desktop Mode's
+			// native server-side icon data and need a reload to render.
 			//
 			//   { kind: 'wallpaper' | 'iconSet' | 'cursorSet',
 			//     slug:         'aurora',
-			//     originalSlug: 'flux',
-			//     iconSnapshot: [ { img, src } ]   // iconSet only
-			//     reloadOnCommit: bool              // iconSet only
+			//     originalSlug: 'flux'
 			//   }
 			preview:       null,
 			// Live global search query. Cleared on department switch
@@ -837,7 +834,6 @@
 		installShopKeyboard( body, sidebar, buttons, renderSection );
 		installCardMotion( body );
 		installResponsiveState( body );
-		installShopRailOverflow( body, sidebar );
 
 		// Post-reload landing: if the previous navigation just
 		// installed a bundle, switch to its department and flash
@@ -1491,7 +1487,11 @@
 				case 'invalid_entry':       return __( 'Bundle\u2019s entry path is invalid.' );
 				case 'missing_preview':     return __( 'Bundle is missing preview.webp.' );
 				case 'missing_wallpaper':   return __( 'Bundle is missing wallpaper.webp.' );
-				case 'missing_icon':        return __( 'Bundle is missing one of the SVGs it declared.' );
+				case 'missing_icon':        return __( 'Bundle is missing one of the image files it declared.' );
+				case 'invalid_icon_ext':    return __( 'Icon set images must be PNG or WebP files.' );
+				case 'invalid_icon_image':  return __( 'One of the icon set images is malformed or the wrong size.' );
+				case 'icon_too_large':      return __( 'One of the icon set images is too large.' );
+				case 'empty_icon':          return __( 'One of the icon set images is empty.' );
 				case 'missing_required_icons': return fallback ? __( fallback ) : __( 'Icon set is missing required keys.' );
 				case 'invalid_svg':         return __( 'An SVG in this bundle isn\u2019t well-formed.' );
 				case 'rest_too_many_requests': return __( 'Too many requests. Please wait a minute and try again.' );
@@ -1959,6 +1959,29 @@
 			} );
 		}
 
+		function isWorkspaceFile( file ) {
+			return !! ( file && /\.odd$/i.test( file.name || '' ) );
+		}
+
+		function isBundleFile( file ) {
+			return !! ( file && /\.wp$/i.test( file.name || '' ) );
+		}
+
+		function handleLocalInstallFile( file, statusNode ) {
+			if ( ! file ) return;
+			if ( isWorkspaceFile( file ) ) {
+				importWorkspaceFile( file, statusNode );
+				return;
+			}
+			if ( isBundleFile( file ) ) {
+				installBundle( file );
+				return;
+			}
+			playShopSound( 'error' );
+			toast( 'Choose a .wp bundle or .odd workspace file.' );
+			setWorkspaceStatus( statusNode, 'Choose a .wp bundle or .odd workspace file.', true );
+		}
+
 		function installBundle( file ) {
 			if ( ! file ) return;
 			if ( state.posting ) return;
@@ -2029,6 +2052,236 @@
 			}
 
 			showInstallTroubleshoot( res, message, code, data );
+		}
+
+		function workspaceApi() {
+			return window.__odd && window.__odd.workspace;
+		}
+
+		function setWorkspaceStatus( node, message, isError ) {
+			if ( ! node ) return;
+			node.textContent = message || '';
+			if ( message ) {
+				node.setAttribute( 'data-odd-workspace-status', isError ? 'error' : 'ok' );
+			} else {
+				node.removeAttribute( 'data-odd-workspace-status' );
+			}
+		}
+
+		function exportWorkspaceFile( statusNode ) {
+			var workspace = workspaceApi();
+			if ( ! workspace || typeof workspace.exportData !== 'function' || typeof workspace.download !== 'function' ) {
+				playShopSound( 'error' );
+				toast( 'Workspace export is not available.' );
+				setWorkspaceStatus( statusNode, 'Workspace export is not available.', true );
+				return;
+			}
+			try {
+				workspace.download( workspace.exportData( { name: 'ODD Workspace' } ) );
+				playShopSound( 'success' );
+				toast( 'Exported your .odd workspace.' );
+				setWorkspaceStatus( statusNode, 'Exported your .odd workspace.', false );
+			} catch ( err ) {
+				reportError( 'workspace.export', err );
+				playShopSound( 'error' );
+				toast( ( err && err.message ) || 'Workspace export failed.' );
+				setWorkspaceStatus( statusNode, ( err && err.message ) || 'Workspace export failed.', true );
+			}
+		}
+
+		function importWorkspaceFile( file, statusNode ) {
+			if ( state.workspaceImporting ) return;
+			var workspace = workspaceApi();
+			if ( ! workspace || typeof workspace.readFile !== 'function' ) {
+				playShopSound( 'error' );
+				toast( 'Workspace import is not available.' );
+				setWorkspaceStatus( statusNode, 'Workspace import is not available.', true );
+				return;
+			}
+			state.workspaceImporting = true;
+			setInstallPillState( true, 'Importing ' + ( file && file.name ? file.name : '.odd workspace' ) + '...' );
+			setWorkspaceStatus( statusNode, 'Reading workspace...', false );
+			workspace.readFile( file ).then( function ( payload ) {
+				return applyWorkspacePayload( payload, statusNode );
+			} ).then( function () {
+				state.workspaceImporting = false;
+				setInstallPillState( false );
+			} ).catch( function ( err ) {
+				state.workspaceImporting = false;
+				setInstallPillState( false );
+				reportError( 'workspace.import', err );
+				playShopSound( 'error' );
+				var message = ( err && err.message ) || 'Workspace import failed.';
+				toast( message );
+				setWorkspaceStatus( statusNode, message, true );
+			} );
+		}
+
+		function workspaceTypeLabel( type ) {
+			if ( type === 'scene' ) return 'wallpaper';
+			if ( type === 'icon-set' ) return 'icon set';
+			if ( type === 'cursor-set' ) return 'cursor set';
+			return type || 'item';
+		}
+
+		function isWorkspaceContentInstalled( type, slug ) {
+			var rows = [];
+			if ( type === 'scene' ) rows = state.cfg.scenes || [];
+			else if ( type === 'icon-set' ) rows = state.cfg.iconSets || state.cfg.sets || [];
+			else if ( type === 'cursor-set' ) rows = state.cfg.cursorSets || [];
+			else if ( type === 'widget' ) rows = state.cfg.installedWidgets || [];
+			else if ( type === 'app' ) rows = state.cfg.apps || [];
+			if ( ! Array.isArray( rows ) ) return false;
+			for ( var i = 0; i < rows.length; i++ ) {
+				if ( rows[ i ] && ( rows[ i ].slug === slug || rows[ i ].id === slug || rows[ i ].id === ( 'odd/' + slug ) ) ) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		function hasCatalogWorkspaceContent( type, slug ) {
+			var rows = catalogRowsFor( type );
+			for ( var i = 0; i < rows.length; i++ ) {
+				if ( rows[ i ] && rows[ i ].slug === slug ) return true;
+			}
+			return false;
+		}
+
+		function saveWorkspacePrefs( patch ) {
+			return new Promise( function ( resolve ) {
+				if ( ! patch || ! Object.keys( patch ).length ) {
+					resolve( null );
+					return;
+				}
+				savePrefs( patch, function ( data ) {
+					resolve( data || null );
+				} );
+			} );
+		}
+
+		function syncWorkspacePrefsIntoPanel( patch, data ) {
+			var source = data && typeof data === 'object' ? data : patch;
+			var prevWallpaper = state.cfg.wallpaper || state.cfg.scene || '';
+			var prevIconSet = state.cfg.iconSet || '';
+			if ( Object.prototype.hasOwnProperty.call( source, 'wallpaper' ) ) {
+				state.cfg.wallpaper = source.wallpaper || '';
+				state.cfg.scene = state.cfg.wallpaper;
+			}
+			if ( Object.prototype.hasOwnProperty.call( source, 'iconSet' ) ) {
+				state.cfg.iconSet = source.iconSet || '';
+			}
+			if ( Object.prototype.hasOwnProperty.call( source, 'cursorSet' ) ) {
+				state.cfg.cursorSet = source.cursorSet || '';
+			}
+			if ( Object.prototype.hasOwnProperty.call( source, 'cursorStylesheet' ) ) {
+				state.cfg.cursorStylesheet = source.cursorStylesheet || '';
+			}
+			[ 'favorites', 'recents', 'shuffle', 'screensaver', 'audioReactive', 'shopTaskbar', 'shopDesktopPinned', 'theme', 'chaosMode' ].forEach( function ( key ) {
+				if ( Object.prototype.hasOwnProperty.call( source, key ) ) state.cfg[ key ] = source[ key ];
+			} );
+			if ( Object.prototype.hasOwnProperty.call( source, 'appsPinned' ) ) {
+				state.cfg.userApps = state.cfg.userApps || { installed: [], pinned: [] };
+				state.cfg.userApps.pinned = Array.isArray( source.appsPinned ) ? source.appsPinned.slice() : [];
+			}
+			if ( window.odd && typeof window.odd === 'object' ) {
+				[ 'wallpaper', 'scene', 'iconSet', 'cursorSet', 'cursorStylesheet', 'shuffle', 'screensaver', 'audioReactive', 'shopTaskbar', 'shopDesktopPinned', 'theme', 'chaosMode' ].forEach( function ( key ) {
+					if ( Object.prototype.hasOwnProperty.call( state.cfg, key ) ) window.odd[ key ] = state.cfg[ key ];
+				} );
+				if ( state.cfg.userApps ) window.odd.userApps = clone( state.cfg.userApps );
+			}
+			if ( state.cfg.wallpaper && state.cfg.wallpaper !== prevWallpaper ) {
+				try {
+					if ( window.wp && window.wp.hooks && typeof window.wp.hooks.doAction === 'function' ) {
+						window.wp.hooks.doAction( 'odd.pickScene', state.cfg.wallpaper );
+					}
+				} catch ( e ) {}
+			}
+			if ( Object.prototype.hasOwnProperty.call( source, 'cursorSet' ) ) {
+				syncWindowOddCursorState( state.cfg.cursorSet, state.cfg.cursorStylesheet );
+				try {
+					if ( window.__odd && window.__odd.cursors && typeof window.__odd.cursors.apply === 'function' ) {
+						window.__odd.cursors.apply( state.cfg.cursorStylesheet, state.cfg.cursorSet );
+					}
+				} catch ( e2 ) {}
+			}
+			if ( state.cfg.iconSet !== prevIconSet ) {
+				scheduleAdminReload( {
+					delayMs: ODD_RELOAD_DELAY_MS_ICON,
+					slug: state.cfg.iconSet || 'default',
+					type: 'icon-set',
+					name: state.cfg.iconSet || 'Default icons',
+					toastMessage: 'Applying workspace icons...',
+				} );
+			}
+		}
+
+		function enableWorkspaceWidgets( payload ) {
+			var workspace = workspaceApi();
+			if ( ! workspace || typeof workspace.widgetIds !== 'function' ) return 0;
+			var ids = workspace.widgetIds( payload );
+			var enabled = 0;
+			for ( var i = 0; i < ids.length; i++ ) {
+				if ( ! isWorkspaceContentInstalled( 'widget', ids[ i ] ) ) continue;
+				toggleWidget( 'odd/' + ids[ i ], true );
+				enabled++;
+			}
+			return enabled;
+		}
+
+		function applyWorkspacePayload( payload, statusNode ) {
+			var workspace = workspaceApi();
+			if ( ! workspace ) return Promise.reject( new Error( 'Workspace import is not available.' ) );
+			var safe = workspace.validate( payload );
+			var needed = workspace.requiredContent( safe );
+			var missing = [];
+			var unavailable = [];
+			for ( var i = 0; i < needed.length; i++ ) {
+				var item = needed[ i ];
+				if ( isWorkspaceContentInstalled( item.type, item.slug ) ) continue;
+				if ( hasCatalogWorkspaceContent( item.type, item.slug ) ) {
+					missing.push( item );
+				} else {
+					unavailable.push( item );
+				}
+			}
+			if ( unavailable.length ) {
+				var first = unavailable[ 0 ];
+				return Promise.reject( new Error(
+					'Missing ' + workspaceTypeLabel( first.type ) + ' "' + first.slug + '" from the catalog.'
+				) );
+			}
+			var installed = 0;
+			var chain = Promise.resolve();
+			missing.forEach( function ( item ) {
+				chain = chain.then( function () {
+					setWorkspaceStatus( statusNode, 'Installing ' + workspaceTypeLabel( item.type ) + ' "' + item.slug + '"...', false );
+					return installCatalogSlug( item.slug ).then( function ( data ) {
+						installed++;
+						handleInstallSuccess( data );
+					} );
+				} );
+			} );
+			return chain.then( function () {
+				setWorkspaceStatus( statusNode, 'Applying workspace preferences...', false );
+				var patch = workspace.buildPrefsPatch( safe );
+				return saveWorkspacePrefs( patch ).then( function ( data ) {
+					syncWorkspacePrefsIntoPanel( patch, data );
+					var widgets = enableWorkspaceWidgets( safe );
+					renderSection( state.active, { keepQuery: true } );
+					playShopSound( 'success' );
+					var detail = [];
+					if ( installed ) detail.push( installed + ' installed' );
+					if ( widgets ) detail.push( widgets + ' widget' + ( widgets === 1 ? '' : 's' ) + ' enabled' );
+					var suffix = detail.length ? ' (' + detail.join( ', ' ) + ')' : '';
+					toast( 'Workspace imported.' + suffix );
+					setWorkspaceStatus(
+						document.querySelector( '.odd-shop__dropzone-status' ) || statusNode,
+						'Workspace imported.' + suffix,
+						false
+					);
+				} );
+			} );
 		}
 
 		/**
@@ -2200,179 +2453,8 @@
 			} );
 		}
 
-		function installShopRailOverflow( body, rail ) {
-			if ( ! body || ! rail || rail.__oddRailOverflowInstalled ) return;
-			rail.__oddRailOverflowInstalled = true;
-
-			function makeButton( direction ) {
-				var label = direction < 0 ? __( 'Scroll store sections up' ) : __( 'Scroll store sections down' );
-				var btn = el( 'button', {
-					type: 'button',
-					class: 'odd-shop__rail-scroll odd-shop__rail-scroll--' + ( direction < 0 ? 'start' : 'end' ),
-					'aria-label': label,
-				} );
-				btn.innerHTML = direction < 0
-					? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 14 6-6 6 6"/></svg>'
-					: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 10 6 6 6-6"/></svg>';
-				btn.hidden = true;
-				return btn;
-			}
-
-			var startBtn  = makeButton( -1 );
-			var endBtn    = makeButton( 1 );
-			var startFade = el( 'span', { class: 'odd-shop__rail-fade odd-shop__rail-fade--start', 'aria-hidden': 'true' } );
-			var endFade   = el( 'span', { class: 'odd-shop__rail-fade odd-shop__rail-fade--end', 'aria-hidden': 'true' } );
-			startFade.hidden = true;
-			endFade.hidden = true;
-			body.appendChild( startFade );
-			body.appendChild( endFade );
-			body.appendChild( startBtn );
-			body.appendChild( endBtn );
-
-			function reducedMotion() {
-				try {
-					return !! ( window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches );
-				} catch ( e ) {
-					return false;
-				}
-			}
-
-			function isHorizontalRail() {
-				try {
-					return window.getComputedStyle && window.getComputedStyle( rail ).flexDirection === 'row';
-				} catch ( e ) {
-					return false;
-				}
-			}
-
-			function positionRailChrome() {
-				var bodyRect;
-				var railRect;
-				try {
-					bodyRect = body.getBoundingClientRect();
-					railRect = rail.getBoundingClientRect();
-				} catch ( e ) {
-					return;
-				}
-				var railWidth = Math.max( 0, railRect.width || rail.offsetWidth || 0 );
-				var railHeight = Math.max( 0, railRect.height || rail.clientHeight || 0 );
-				if ( ! railWidth || ! railHeight ) return;
-				var buttonSize = Math.min( 34, Math.max( 28, railWidth - 18 ) );
-				var left = Math.round( ( railRect.left - bodyRect.left ) + ( railWidth - buttonSize ) / 2 );
-				var top = Math.round( railRect.top - bodyRect.top );
-				var bottom = Math.round( railRect.bottom - bodyRect.top );
-
-				startBtn.style.left = left + 'px';
-				startBtn.style.top = Math.round( top + 8 ) + 'px';
-				startBtn.style.width = buttonSize + 'px';
-				startBtn.style.height = buttonSize + 'px';
-				endBtn.style.left = left + 'px';
-				endBtn.style.top = Math.round( bottom - buttonSize - 8 ) + 'px';
-				endBtn.style.width = buttonSize + 'px';
-				endBtn.style.height = buttonSize + 'px';
-
-				[ startFade, endFade ].forEach( function ( fade ) {
-					fade.style.left = Math.round( railRect.left - bodyRect.left ) + 'px';
-					fade.style.width = Math.round( railWidth ) + 'px';
-				} );
-				startFade.style.top = top + 'px';
-				endFade.style.top = Math.round( bottom - Math.min( 54, railHeight / 3 ) ) + 'px';
-				endFade.style.height = Math.round( Math.min( 54, railHeight / 3 ) ) + 'px';
-			}
-
-			function setFadeVisible( node, visible ) {
-				node.hidden = ! visible;
-				node.classList.toggle( 'is-visible', !! visible );
-			}
-
-			function updateRailOverflow() {
-				var horizontal = isHorizontalRail();
-				if ( ! horizontal && rail.scrollLeft ) {
-					rail.scrollLeft = 0;
-				}
-				var overflow = ! horizontal && rail.scrollHeight > rail.clientHeight + 2;
-				var atStart = ! overflow || rail.scrollTop <= 2;
-				var atEnd = ! overflow || rail.scrollTop + rail.clientHeight >= rail.scrollHeight - 2;
-
-				rail.toggleAttribute( 'data-odd-rail-overflow', overflow );
-				rail.toggleAttribute( 'data-odd-rail-at-start', atStart );
-				rail.toggleAttribute( 'data-odd-rail-at-end', atEnd );
-
-				startBtn.hidden = ! overflow || atStart;
-				endBtn.hidden = ! overflow || atEnd;
-				setFadeVisible( startFade, overflow && ! atStart );
-				setFadeVisible( endFade, overflow && ! atEnd );
-				positionRailChrome();
-			}
-
-			var raf = 0;
-			function scheduleRailUpdate() {
-				if ( raf ) return;
-				var rafFn = window.requestAnimationFrame || function ( cb ) { return window.setTimeout( cb, 16 ); };
-				raf = rafFn( function () {
-					raf = 0;
-					updateRailOverflow();
-				} );
-			}
-
-			function scrollRail( direction ) {
-				var maxTop = Math.max( 0, rail.scrollHeight - rail.clientHeight );
-				var delta = Math.max( 96, Math.round( rail.clientHeight * 0.72 ) );
-				var top = Math.max( 0, Math.min( maxTop, rail.scrollTop + direction * delta ) );
-				if ( typeof rail.scrollTo === 'function' ) {
-					try {
-						rail.scrollTo( { top: top, left: 0, behavior: reducedMotion() ? 'auto' : 'smooth' } );
-					} catch ( e ) {
-						try { rail.scrollTo( 0, top ); } catch ( e2 ) { rail.scrollTop = top; }
-					}
-				} else {
-					rail.scrollTop = top;
-				}
-				scheduleRailUpdate();
-			}
-
-			startBtn.addEventListener( 'click', function () { scrollRail( -1 ); } );
-			endBtn.addEventListener( 'click', function () { scrollRail( 1 ); } );
-			rail.addEventListener( 'scroll', scheduleRailUpdate, { passive: true } );
-			window.addEventListener( 'resize', scheduleRailUpdate );
-
-			var ro = null;
-			if ( typeof ResizeObserver !== 'undefined' ) {
-				ro = new ResizeObserver( scheduleRailUpdate );
-				try {
-					ro.observe( body );
-					ro.observe( rail );
-				} catch ( e3 ) {}
-			}
-
-			var mo = null;
-			if ( typeof MutationObserver !== 'undefined' ) {
-				mo = new MutationObserver( scheduleRailUpdate );
-				try { mo.observe( rail, { childList: true, subtree: true } ); } catch ( e4 ) {}
-			}
-
-			updateRailOverflow();
-			cleanupFns.push( function () {
-				if ( raf ) {
-					try {
-						if ( window.cancelAnimationFrame ) window.cancelAnimationFrame( raf );
-					} catch ( e5 ) {}
-					try { window.clearTimeout( raf ); } catch ( e6 ) {}
-					raf = 0;
-				}
-				rail.__oddRailOverflowInstalled = false;
-				rail.removeEventListener( 'scroll', scheduleRailUpdate );
-				window.removeEventListener( 'resize', scheduleRailUpdate );
-				if ( ro ) ro.disconnect();
-				if ( mo ) mo.disconnect();
-				[ startBtn, endBtn, startFade, endFade ].forEach( function ( node ) {
-					if ( node && node.parentNode ) node.parentNode.removeChild( node );
-				} );
-			} );
-		}
-
-		// Shop-wide drag-and-drop overlay — accept a .wp dropped
-		// anywhere inside the panel, not just on the topbar pill.
+		// Shop-wide drag-and-drop overlay — accept a .wp bundle or
+		// .odd workspace dropped anywhere inside the panel.
 		function installDropAnywhere( body ) {
 			if ( ! ( window.odd || {} ).canInstall ) return;
 			if ( body.__oddDropInstalled ) return;
@@ -2391,9 +2473,9 @@
 				body.classList.remove( 'is-dropping' );
 				var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[ 0 ];
 				if ( ! f ) return;
-				if ( ! /\.wp$/i.test( f.name ) ) return;
+				if ( ! isBundleFile( f ) && ! isWorkspaceFile( f ) ) return;
 				e.preventDefault();
-				installBundle( f );
+				handleLocalInstallFile( f );
 			} );
 		}
 
@@ -2471,23 +2553,17 @@
 		 * upload path uses, so the UX (highlight, toast, soft reload
 		 * for icon sets) is identical regardless of install source.
 		 */
-		function installFromBundleCatalog( row, btn ) {
-			playShopSound( 'install' );
-			if ( btn ) {
-				btn.disabled = true;
-				btn.textContent = 'Installing…';
-			}
-			toast( 'Installing ' + ( row.name || row.slug ) + '…' );
+		function installCatalogSlug( slug ) {
 			var url = ( state.cfg.bundleInstallUrl || '' ) ||
 				( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/bundles/install-from-catalog' );
-			fetch( url, {
+			return fetch( url, {
 				method: 'POST',
 				credentials: 'same-origin',
 				headers: {
 					'Content-Type': 'application/json',
 					'X-WP-Nonce':   state.cfg.restNonce || '',
 				},
-				body: JSON.stringify( { slug: row.slug } ),
+				body: JSON.stringify( { slug: slug } ),
 			} ).then( function ( r ) {
 				return r.json().then( function ( data ) {
 					return { ok: r.ok, status: r.status, data: data };
@@ -2496,18 +2572,29 @@
 				} );
 			} ).then( function ( res ) {
 				if ( res.ok && res.data && res.data.installed ) {
-					handleInstallSuccess( res.data );
-				} else {
-					onInstallFailure( res );
-					if ( btn ) {
-						btn.disabled = false;
-						btn.textContent = 'Install';
-					}
+					return res.data;
 				}
+				throw res;
+			} );
+		}
+
+		function installFromBundleCatalog( row, btn ) {
+			playShopSound( 'install' );
+			if ( btn ) {
+				btn.disabled = true;
+				btn.textContent = 'Installing…';
+			}
+			toast( 'Installing ' + ( row.name || row.slug ) + '…' );
+			installCatalogSlug( row.slug ).then( function ( data ) {
+				handleInstallSuccess( data );
 			} ).catch( function ( err ) {
-				reportError( 'bundles.install-from-catalog', err );
-				playShopSound( 'error' );
-				toast( ( err && err.message ) || 'Network error while installing.' );
+				if ( err && err.data ) {
+					onInstallFailure( err );
+				} else {
+					reportError( 'bundles.install-from-catalog', err );
+					playShopSound( 'error' );
+					toast( ( err && err.message ) || 'Network error while installing.' );
+				}
 				if ( btn ) {
 					btn.disabled = false;
 					btn.textContent = 'Install';
@@ -2518,50 +2605,65 @@
 		/**
 		 * Dedicated "Install" department — one canonical surface
 		 * for dropping a .wp archive of any type (app, icon set,
-		 * cursor set, scene, widget) instead of sprinkling "Install from
-		 * file…" affordances across every shelf. The topbar
-		 * Install pill and the Shop-wide drop overlay still work
-		 * from anywhere; this tab just makes the action a
-		 * first-class destination with room to explain the format.
+		 * cursor set, scene, widget) or a .odd workspace preset.
+		 * The Shop-wide drop overlay still works from anywhere; this
+		 * tab just makes the action a first-class destination with
+		 * room to explain the formats.
 		 */
 		function renderInstall() {
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--install' } );
 			wrap.appendChild( sectionHeader(
-				'Install a .wp bundle',
-				'Drop a .wp archive to add an app, icon set, cursor set, scene, or widget. One little package, one install ritual, no companion plugins needed. Authors: the .wp manifest reference has the spellbook.',
+				'Install or share',
+				'Drop a .wp bundle to add new decor, or use a .odd workspace to carry your whole desktop mood to another site.',
 				{ eyebrow: 'ODD · Universal Installer' }
 			) );
 
 			// Primary drop zone. Clicking anywhere inside it fires
-			// the hidden topbar <input type="file">, which routes
-			// through installBundle() like every other entry point.
+			// the hidden local <input type="file">, which routes
+			// through the same handler as drag-and-drop.
 			var zone = el( 'div', {
 				class: 'odd-shop__dropzone',
 				'data-odd-install-zone': '1',
 				role: 'button',
 				tabindex: '0',
-				'aria-label': 'Install a .wp bundle',
+				'aria-label': 'Install a .wp bundle or .odd workspace',
 			} );
 			var zoneGlyph = el( 'div', { class: 'odd-shop__dropzone-glyph', 'aria-hidden': 'true' } );
 			zoneGlyph.textContent = '⇪';
 			var zoneTitle = el( 'div', { class: 'odd-shop__dropzone-title' } );
-			zoneTitle.textContent = 'Drop a .wp bundle here';
+			zoneTitle.textContent = 'Drop a .wp bundle or .odd workspace here';
 			var zoneSub = el( 'div', { class: 'odd-shop__dropzone-sub' } );
-			zoneSub.textContent = 'or click to summon one from your computer.';
+			zoneSub.textContent = '.wp adds new stuff. .odd brings back a whole arrangement.';
 			var zoneBtn = el( 'button', {
 				type: 'button',
 				class: 'odd-shop__dropzone-btn',
 				'data-odd-install-choose': '1',
 			} );
-			zoneBtn.textContent = 'Choose .wp file…';
+			zoneBtn.textContent = 'Choose .wp or .odd file...';
+			var zoneStatus = el( 'div', {
+				class: 'odd-shop__dropzone-status',
+				'aria-live': 'polite',
+			} );
+			var fileInput = el( 'input', {
+				type: 'file',
+				accept: '.wp,.odd',
+				class: 'odd-shop__file-input',
+				'data-odd-install-file-input': '1',
+			} );
+			fileInput.addEventListener( 'change', function () {
+				var f = fileInput.files && fileInput.files[ 0 ];
+				if ( f ) handleLocalInstallFile( f, zoneStatus );
+				fileInput.value = '';
+			} );
 			zone.appendChild( zoneGlyph );
 			zone.appendChild( zoneTitle );
 			zone.appendChild( zoneSub );
 			zone.appendChild( zoneBtn );
+			zone.appendChild( zoneStatus );
+			zone.appendChild( fileInput );
 
 			function triggerPicker() {
-				var input = document.querySelector( '[data-odd-install-input]' );
-				if ( input ) input.click();
+				fileInput.click();
 			}
 			zone.addEventListener( 'click', triggerPicker );
 			zone.addEventListener( 'keydown', function ( e ) {
@@ -2588,11 +2690,42 @@
 				zone.classList.remove( 'is-hover' );
 				var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[ 0 ];
 				if ( ! f ) return;
-				if ( ! /\.wp$/i.test( f.name ) ) return;
+				if ( ! isBundleFile( f ) && ! isWorkspaceFile( f ) ) return;
 				e.preventDefault();
-				installBundle( f );
+				handleLocalInstallFile( f, zoneStatus );
 			} );
 			wrap.appendChild( zone );
+
+			var workspaceCard = el( 'div', { class: 'odd-shop__workspace-card' } );
+			var workspaceText = el( 'div', { class: 'odd-shop__workspace-copy' } );
+			var workspaceTitle = el( 'strong' );
+			workspaceTitle.textContent = 'Share this desktop as .odd';
+			var workspaceHint = el( 'span' );
+			workspaceHint.textContent = 'Exports wallpaper, icon set, cursor set, enabled widgets, pinned apps, and preference switches as a tiny preset file.';
+			workspaceText.appendChild( workspaceTitle );
+			workspaceText.appendChild( workspaceHint );
+			var workspaceActions = el( 'div', { class: 'odd-shop__workspace-actions' } );
+			var exportBtn = el( 'button', {
+				type: 'button',
+				class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill',
+				'data-odd-export-workspace': '1',
+			} );
+			exportBtn.textContent = 'Export .odd';
+			exportBtn.addEventListener( 'click', function () {
+				exportWorkspaceFile( zoneStatus );
+			} );
+			var importBtn = el( 'button', {
+				type: 'button',
+				class: 'odd-apps-btn odd-apps-btn--pill',
+				'data-odd-import-workspace': '1',
+			} );
+			importBtn.textContent = 'Import file...';
+			importBtn.addEventListener( 'click', triggerPicker );
+			workspaceActions.appendChild( exportBtn );
+			workspaceActions.appendChild( importBtn );
+			workspaceCard.appendChild( workspaceText );
+			workspaceCard.appendChild( workspaceActions );
+			wrap.appendChild( workspaceCard );
 
 			// "What can I install?" — four cards that describe
 			// each content type. These aren't actions, they're
@@ -2619,7 +2752,7 @@
 					type: 'icon-set',
 					label: 'Icon Sets',
 					tint: '#00a693',
-					desc: 'SVG costume racks for the dock and desktop shortcuts.',
+					desc: 'PNG and WebP image feeds for native Desktop Mode icon surfaces.',
 					glyph: '<rect x="3" y="3" width="6" height="6" rx="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.4"/>',
 				},
 				{
@@ -2635,6 +2768,13 @@
 					tint: '#ff8c1a',
 					desc: 'Draggable desk pets that perch right on the desktop surface.',
 					glyph: '<path d="M4 4h9l3 3v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/><path d="M13 4v3h3"/>',
+				},
+				{
+					type: 'workspace',
+					label: 'Workspaces',
+					tint: '#ff3d9a',
+					desc: '.odd files remember a desktop setup without carrying code.',
+					glyph: '<path d="M4 4h12v12H4z"/><path d="M7 7h3v3H7zM11 7h2v2h-2zM7 11h6"/>',
 				},
 			];
 			var grid = el( 'div', { class: 'odd-shop__install-types' } );
@@ -4314,7 +4454,8 @@
 			if ( state.preview.kind === 'wallpaper' ) {
 				pickSceneLive( state.preview.originalSlug );
 			} else if ( state.preview.kind === 'iconSet' ) {
-				restoreIconSnapshot();
+				// Icon sets do not patch the live DOM. They feed
+				// Desktop Mode's native icon data on the next render.
 			} else if ( state.preview.kind === 'cursorSet' ) {
 				setActiveCursorLink( state.preview.originalSlug );
 			}
@@ -4331,8 +4472,8 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--icons' } );
 			wrap.appendChild( sectionHeader(
 				'Icon Sets',
-				'Dress the dock and desktop shortcuts in a new costume. Preview the look in place; only the "Default" reset needs a reload.',
-				{ eyebrow: 'ODD · Dock Couture' }
+				'Dress Desktop Mode icon surfaces in a new costume. Apply reloads once so the native dock, taskbar, and shortcuts update together.',
+				{ eyebrow: 'ODD · Icon Couture' }
 			) );
 
 			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets.slice() : [];
@@ -4406,7 +4547,7 @@
 				}
 				wrap.appendChild( renderEmptyDept(
 					'icon sets',
-					'Install one from the catalog below and give the dock a fresh disguise.',
+					'Install one from the catalog below and give Desktop Mode a fresh disguise.',
 					'🎛️'
 				) );
 				return wrap;
@@ -4424,7 +4565,7 @@
 			// Only honor a current selection if the user has explicitly
 			// picked something; an empty/missing iconSet pref means
 			// "fresh user", and the hero should show off a real pack
-			// rather than advertise "ship stock WP dock as-is".
+			// rather than advertise "ship stock WP icons as-is".
 			var current = state.cfg.iconSet;
 			if ( typeof current === 'string' && current !== '' ) {
 				for ( var i = 0; i < sets.length; i++ ) {
@@ -4463,7 +4604,7 @@
 			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
 			title.textContent = set.label || set.slug;
 			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = set.description || 'A themed costume pack for the WordPress desktop dock.';
+			sub.textContent = set.description || 'A themed costume pack for Desktop Mode icon surfaces.';
 			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
 
 			if ( isActive && ! state.preview ) {
@@ -4854,61 +4995,20 @@
 			if ( state.posting ) return;
 			playShopSound( 'preview' );
 
-			var isNone  = ( slug === 'none' || slug === '' );
 			var current = state.cfg.iconSet || '';
 
-			// First entry into preview mode — snapshot the current
-			// dock + desktop-shortcut icon <img>.src URLs so Cancel
-			// can revert pixel-for-pixel. Subsequent preview
-			// switches don't re-snapshot: we always revert to the
-			// on-screen state *before* the preview flow started.
 			if ( ! state.preview || state.preview.kind !== 'iconSet' ) {
 				state.preview = {
-					kind:           'iconSet',
-					slug:           slug,
-					originalSlug:   current,
-					iconSnapshot:   snapshotIconDom(),
-					reloadOnCommit: isNone,
+					kind:         'iconSet',
+					slug:         slug,
+					originalSlug: current,
 				};
 			} else {
-				state.preview.slug           = slug;
-				state.preview.reloadOnCommit = isNone;
-			}
-
-			if ( isNone ) {
-				// No live preview — we can't rebuild the pre-ODD
-				// icon URLs client-side. Keep the current icons
-				// visible and warn via the preview bar that commit
-				// requires a reload.
-				restoreIconSnapshot();
-			} else {
-				liveSwapIcons( slug );
+				state.preview.slug = slug;
 			}
 
 			redecorateIconGrid();
 			renderPreviewBar();
-		}
-
-		function snapshotIconDom() {
-			var snap = [];
-			var tiles = document.querySelectorAll( '.desktop-mode-dock__item[data-menu-slug] img' );
-			for ( var i = 0; i < tiles.length; i++ ) {
-				snap.push( { img: tiles[ i ], src: tiles[ i ].getAttribute( 'src' ) } );
-			}
-			var shortcuts = document.querySelectorAll( '.desktop-mode-icon[data-icon-id] img' );
-			for ( var j = 0; j < shortcuts.length; j++ ) {
-				snap.push( { img: shortcuts[ j ], src: shortcuts[ j ].getAttribute( 'src' ) } );
-			}
-			return snap;
-		}
-
-		function restoreIconSnapshot() {
-			if ( ! state.preview || ! Array.isArray( state.preview.iconSnapshot ) ) return;
-			var snap = state.preview.iconSnapshot;
-			for ( var i = 0; i < snap.length; i++ ) {
-				var rec = snap[ i ];
-				if ( rec && rec.img && rec.src ) rec.img.setAttribute( 'src', rec.src );
-			}
 		}
 
 		function redecorateIconGrid() {
@@ -4958,7 +5058,6 @@
 			if ( ! state.preview || state.preview.kind !== 'iconSet' || state.posting ) return;
 			state.posting = true;
 			var slug   = state.preview.slug;
-			var reload = state.preview.reloadOnCommit;
 
 			savePrefs( { iconSet: slug }, function ( data ) {
 				state.posting = false;
@@ -4967,127 +5066,21 @@
 				}
 				state.preview = null;
 				playShopSound( 'success' );
-				if ( reload ) {
-					var iconLabel = slug;
-					var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets : [];
-					for ( var ii = 0; ii < sets.length; ii++ ) {
-						if ( sets[ ii ] && sets[ ii ].slug === slug ) {
-							iconLabel = sets[ ii ].label || sets[ ii ].name || slug;
-							break;
-						}
+				var iconLabel = slug;
+				var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets : [];
+				for ( var ii = 0; ii < sets.length; ii++ ) {
+					if ( sets[ ii ] && sets[ ii ].slug === slug ) {
+						iconLabel = sets[ ii ].label || sets[ ii ].name || slug;
+						break;
 					}
-					scheduleAdminReload( {
-						delayMs: ODD_RELOAD_DELAY_MS_ICON,
-						slug:    slug,
-						type:    'icon-set',
-						name:    iconLabel,
-					} );
-					return;
 				}
-				redecorateIconGrid();
-				renderPreviewBar();
+				scheduleAdminReload( {
+					delayMs: ODD_RELOAD_DELAY_MS_ICON,
+					slug:    slug,
+					type:    'icon-set',
+					name:    iconLabel,
+				} );
 			} );
-		}
-
-		/**
-		 * Rewrite every dock tile and desktop-shortcut icon in the
-		 * current document to the selected set's icon URLs. Works
-		 * because v1.0.4 switched ODD icons over to real HTTP URLs
-		 * (`/odd/v1/icons/{set}/{key}`), which WP Desktop Mode's
-		 * `resolveIcon()` renders as `<img>` tags — so we can just
-		 * update `.src` in place instead of rebuilding DOM nodes.
-		 */
-		function liveSwapIcons( slug ) {
-			var set = null;
-			var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets : [];
-			for ( var i = 0; i < sets.length; i++ ) {
-				if ( sets[ i ] && sets[ i ].slug === slug ) { set = sets[ i ]; break; }
-			}
-			var icons = ( set && set.icons && typeof set.icons === 'object' ) ? set.icons : null;
-			var fallback = icons && icons.fallback ? icons.fallback : '';
-
-			function keyFromMenuSlug( dock ) {
-				if ( ! dock ) return '';
-				// WPDM sets data-menu-slug to the sanitized html id of
-				// the admin menu, typically "menu-posts", "menu-dashboard"…
-				var m = /^menu-(.+)$/.exec( dock );
-				if ( m && m[ 1 ] ) {
-					var k = m[ 1 ];
-					if ( k === 'comments' || k === 'appearance'
-						|| k === 'plugins'  || k === 'users'
-						|| k === 'tools'    || k === 'settings'
-						|| k === 'links'    || k === 'profile'
-						|| k === 'dashboard'|| k === 'media'
-						|| k === 'posts'    || k === 'pages' ) {
-						return k;
-					}
-				}
-				return '';
-			}
-
-			function resolve( key ) {
-				if ( icons && key && icons[ key ] ) return icons[ key ];
-				return fallback;
-			}
-
-			// Dock tiles (left rail + taskbar).
-			var tiles = document.querySelectorAll( '.desktop-mode-dock__item[data-menu-slug]' );
-			for ( var t = 0; t < tiles.length; t++ ) {
-				var tile = tiles[ t ];
-				var url = resolve( keyFromMenuSlug( tile.getAttribute( 'data-menu-slug' ) ) );
-				if ( ! url ) continue;
-				replaceTileIcon( tile, url );
-			}
-
-			// Desktop shortcut icons (buttons inside .desktop-mode-icons).
-			var shortcuts = document.querySelectorAll( '.desktop-mode-icon[data-icon-id]' );
-			for ( var s = 0; s < shortcuts.length; s++ ) {
-				var sc = shortcuts[ s ];
-				var id = sc.getAttribute( 'data-icon-id' );
-				// Skip the ODD Shop's own icon — keep the
-				// eye recognizable regardless of the active set.
-				if ( id === 'odd' ) continue;
-				var sUrl = resolve( id ) || fallback;
-				if ( ! sUrl ) continue;
-				replaceShortcutIcon( sc, sUrl );
-			}
-		}
-
-		function replaceTileIcon( tile, url ) {
-			var primary = tile.querySelector( '.desktop-mode-dock__item-primary' );
-			if ( ! primary ) return;
-			var img = primary.querySelector( '.desktop-mode-dock__item-img' );
-			if ( img ) { img.src = url; return; }
-			var span = primary.querySelector( '.desktop-mode-dock__item-svg' );
-			if ( span ) { span.style.backgroundImage = 'url("' + url + '")'; return; }
-			// First paint landed on a letter badge or dashicon —
-			// replace it with a fresh <img>.
-			var existing = primary.querySelector(
-				'.desktop-mode-dock__item-letter, .dashicons'
-			);
-			if ( existing ) existing.remove();
-			var fresh = document.createElement( 'img' );
-			fresh.className = 'desktop-mode-dock__item-img';
-			fresh.src = url;
-			fresh.alt = '';
-			fresh.setAttribute( 'aria-hidden', 'true' );
-			// Badges and other primary children (badge <span>) come
-			// after the icon, so prepend keeps DOM order sane.
-			primary.insertBefore( fresh, primary.firstChild );
-		}
-
-		function replaceShortcutIcon( sc, url ) {
-			var host = sc.querySelector( '.desktop-mode-icon__image' );
-			if ( ! host ) return;
-			host.className = 'desktop-mode-icon__image';
-			host.style.background = '';
-			var img = host.querySelector( 'img' );
-			if ( img ) { img.src = url; return; }
-			while ( host.firstChild ) host.removeChild( host.firstChild );
-			var fresh = document.createElement( 'img' );
-			fresh.src = url;
-			fresh.alt = '';
-			host.appendChild( fresh );
 		}
 
 		/* --- Widgets section ---------------------------------------
@@ -5550,7 +5543,7 @@
 
 			var kind     = state.preview.kind;
 			var slug     = state.preview.slug;
-			var reload   = state.preview.kind === 'iconSet' && state.preview.reloadOnCommit;
+			var reload   = state.preview.kind === 'iconSet';
 			var itemName = '';
 			if ( kind === 'wallpaper' ) {
 				var scenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [];
@@ -5589,7 +5582,7 @@
 			} else if ( kind === 'cursorSet' ) {
 				text.innerHTML = 'Previewing <em></em> cursors. Apply to save, Cancel to revert.';
 			} else if ( reload ) {
-				text.innerHTML = 'Applying <em></em> reloads the page to restore stock dock icons.';
+				text.innerHTML = 'Applying <em></em> reloads Desktop Mode so the native icon surfaces update together.';
 			} else {
 				text.innerHTML = 'Previewing <em></em> icons. Apply to save, Cancel to revert.';
 			}
@@ -6217,7 +6210,7 @@
 
 		// Cross-reload breadcrumb. Scene / icon-set / app installs
 		// trigger a full page reload so their registration (scene.js
-		// enqueue, server-canonical dock filter, app native-window +
+		// enqueue, server-canonical shortcut filter, app native-window +
 		// surfaces) actually takes effect. The breadcrumb survives
 		// the reload in sessionStorage so the post-reload panel
 		// navigates the user to the right department and flashes

@@ -1,46 +1,23 @@
 /**
- * ODD icon contrast pass.
+ * ODD icon layout guardrails.
  *
- * WP Desktop Mode renders ODD icon sets as transparent SVG <img> nodes.
- * That is the right transport for themed icons, but it means light line
- * art can disappear over bright wallpaper regions. These rules add a
- * small glass plate and shadow behind dock + desktop icons without
- * changing the SVG artwork itself.
+ * Icon sets still replace Desktop Mode icons through the PHP/JS plumbing.
+ * These rules only keep dense vertical rails usable and prevent icon
+ * containers from drifting or clipping.
  */
 
-body.desktop-mode-active {
-	--odd-dock-tile-size: 60px;
-	--odd-dock-icon-size: 48px;
-	--odd-dock-custom-icon-size: 56px;
-	--odd-dock-gap: 8px;
-}
-
-body.desktop-mode-active .desktop-mode-dock {
-	min-height: 82px;
-	padding: 10px 14px;
-	gap: var( --odd-dock-gap );
-	border-radius: 24px;
-}
-
 /*
- * Vertical docks (left/right): WP Desktop Mode gives the rail
- * `flex-shrink: 0` inside `desktop-mode-shell__body` while stacking
- * icons in a column. With many menu items the rail's intrinsic height
- * exceeds the shell; `body` keeps `overflow:hidden` and the icons are
- * clipped. Cap the rail to the viewport column and scroll internally.
+ * Vertical docks (left/right): Desktop Mode stacks icons in a column while
+ * the shell body hides overflow. Cap the rail to the viewport column and
+ * let it scroll internally without horizontal movement.
  */
 body.desktop-mode-active .desktop-mode-dock[ data-desktop-mode-dock-placement="left" ],
 body.desktop-mode-active .desktop-mode-dock[ data-desktop-mode-dock-placement="right" ] {
-	--odd-dock-tile-size: 43px;
-	--odd-dock-icon-size: 38px;
-	--odd-dock-custom-icon-size: 43px;
-	--odd-dock-gap: 6px;
 	min-height: 0;
 	max-height: 100%;
 	max-width: 100%;
 	align-self: stretch;
 	box-sizing: border-box;
-	padding: 6px;
 	overflow-x: hidden;
 	overflow-y: auto;
 	overscroll-behavior-x: none;
@@ -59,183 +36,25 @@ body.desktop-mode-active .desktop-mode-dock[ data-desktop-mode-dock-placement="r
 }
 
 body.desktop-mode-active .desktop-mode-dock__items,
-body.desktop-mode-active .desktop-mode-dock__list {
-	gap: var( --odd-dock-gap );
+body.desktop-mode-active .desktop-mode-dock__list,
+body.desktop-mode-active .desktop-mode-dock__item {
 	max-width: 100%;
 }
 
-body.desktop-mode-active .desktop-mode-dock__item {
-	min-width: var( --odd-dock-tile-size );
-	max-width: var( --odd-dock-tile-size );
-}
-
+body.desktop-mode-active .desktop-mode-icon,
+body.desktop-mode-active .desktop-mode-icon__image,
+body.desktop-mode-active .desktop-mode-dock__item,
 body.desktop-mode-active .desktop-mode-dock__item-primary {
-	display: grid;
-	place-items: center;
-	width: var( --odd-dock-tile-size );
-	height: var( --odd-dock-tile-size );
-	min-width: var( --odd-dock-tile-size );
-	min-height: var( --odd-dock-tile-size );
-	border-radius: 18px;
-	background: rgba( 4, 8, 18, 0.42 );
-	box-shadow:
-		inset 0 1px 0 rgba( 255, 255, 255, 0.16 ),
-		inset 0 0 0 1px rgba( 255, 255, 255, 0.10 ),
-		0 8px 20px rgba( 0, 0, 0, 0.22 );
-}
-
-body.desktop-mode-active .desktop-mode-dock__item-primary:hover,
-body.desktop-mode-active .desktop-mode-dock__item-primary:focus-visible {
-	background: rgba( 8, 14, 28, 0.68 );
-}
-
-/*
- * Strip the dock's glass tile for themed icon-set glyphs only. Icon
- * sets ship full-bleed backplates (riso paper, gingham, wood grain,
- * etc.) so the dock's dark plate would sandwich a tile on a tile. App
- * icons, on the other hand, are standalone glyphs — they WANT the
- * same dark plate that ODD / Code get, so the dock looks coherent
- * instead of apps floating bare against the wallpaper. Keep them in
- * the default plate rule above.
- */
-body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"] ),
-body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/assets/icons/"] ) {
-	background: transparent;
-	box-shadow: none;
-}
-
-body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):hover,
-body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/assets/icons/"] ):hover,
-body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"] ):focus-visible,
-body.desktop-mode-active .desktop-mode-dock__item-primary:has( img.desktop-mode-dock__item-img[src*="/assets/icons/"] ):focus-visible {
-	background: rgba( 255, 255, 255, 0.08 );
-}
-
-/*
- * Uniform rounded silhouette for icon-set tiles. Some v1.2 icon
- * sets bake in a full-bleed 64x64 backplate (riso paper, gingham,
- * wood grain); clipping the <img> to a rounded rect hides the hard
- * corners so they match the softer monoline/filament style. App
- * icons sit inside the default dark plate, so they don't need this.
- */
-body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"],
-body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img[src*="/assets/icons/"] {
-	border-radius: 14px;
-}
-
-body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img,
-body.desktop-mode-active .desktop-mode-dock__item-svg,
-body.desktop-mode-active .desktop-mode-dock__item .dashicons {
-	width: var( --odd-dock-icon-size );
-	height: var( --odd-dock-icon-size );
-	max-width: var( --odd-dock-icon-size );
-	max-height: var( --odd-dock-icon-size );
-	object-fit: contain;
-	opacity: 1;
-	filter:
-		drop-shadow( 0 1px 1px rgba( 0, 0, 0, 0.92 ) )
-		drop-shadow( 0 0 4px rgba( 0, 0, 0, 0.72 ) );
-}
-
-body.desktop-mode-active .desktop-mode-dock__item .dashicons {
-	font-size: 38px;
-	line-height: var( --odd-dock-icon-size );
-}
-
-body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img[src*="/wp-json/odd/v1/icons/"],
-body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img[src*="/assets/icons/"] {
-	width: var( --odd-dock-custom-icon-size );
-	height: var( --odd-dock-custom-icon-size );
-	max-width: var( --odd-dock-custom-icon-size );
-	max-height: var( --odd-dock-custom-icon-size );
+	box-sizing: border-box;
 }
 
 body.desktop-mode-active .desktop-mode-icon {
-	/* DM 0.8+ uses grid-template-rows: repeat(auto-fill, 96px); keep the
-	 * shortcut stack within one row so labels are not clipped into the next slot. */
-	padding: 8px 4px;
-	border-radius: 12px;
+	overflow: visible;
 }
 
-body.desktop-mode-active .desktop-mode-icon:hover,
-body.desktop-mode-active .desktop-mode-icon:focus-visible {
-	background: rgba( 4, 8, 18, 0.34 );
-	backdrop-filter: blur( 12px );
-	-webkit-backdrop-filter: blur( 12px );
-}
-
-body.desktop-mode-active .desktop-mode-icon__image {
-	/* Match DM default 48× tile; our previous 54× surface overflowed the grid row. */
-	width: 48px;
-	height: 48px;
-	border-radius: 12px;
-	background:
-		linear-gradient( 180deg, rgba( 255, 255, 255, 0.16 ), rgba( 255, 255, 255, 0.04 ) ),
-		rgba( 4, 8, 18, 0.66 );
-	border: 1px solid rgba( 255, 255, 255, 0.18 );
-	box-shadow:
-		inset 0 1px 0 rgba( 255, 255, 255, 0.20 ),
-		0 12px 24px rgba( 0, 0, 0, 0.34 );
-	backdrop-filter: blur( 12px );
-	-webkit-backdrop-filter: blur( 12px );
-}
-
-body.desktop-mode-active .desktop-mode-icon__image img {
-	max-width: 42px;
-	max-height: 42px;
-	filter:
-		drop-shadow( 0 1px 1px rgba( 0, 0, 0, 0.95 ) )
-		drop-shadow( 0 0 5px rgba( 0, 0, 0, 0.75 ) );
-}
-
-/*
- * Strip the desktop-shortcut glass plate for icon-set shortcuts
- * only. Icon-set tiles ship their own full-bleed backplate, so the
- * default plate here would sandwich a tile on a tile. App shortcuts
- * (and anything else that's a standalone glyph) keep the default
- * plate so the desktop reads as a coherent grid of tiles, not a
- * bunch of floating stickers.
- */
-body.desktop-mode-active .desktop-mode-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.desktop-mode-active .desktop-mode-icon__image:has( img[src*="/assets/icons/"] ) {
-	background: none;
-	border: none;
-	box-shadow: none;
-	backdrop-filter: none;
-	-webkit-backdrop-filter: none;
-}
-
-body.desktop-mode-active .desktop-mode-icon:hover .desktop-mode-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.desktop-mode-active .desktop-mode-icon:hover .desktop-mode-icon__image:has( img[src*="/assets/icons/"] ),
-body.desktop-mode-active .desktop-mode-icon:focus-visible .desktop-mode-icon__image:has( img[src*="/wp-json/odd/v1/icons/"] ),
-body.desktop-mode-active .desktop-mode-icon:focus-visible .desktop-mode-icon__image:has( img[src*="/assets/icons/"] ) {
-	background: rgba( 255, 255, 255, 0.10 );
-}
-
-body.desktop-mode-active .desktop-mode-icon__image img[src*="/wp-json/odd/v1/icons/"],
-body.desktop-mode-active .desktop-mode-icon__image img[src*="/assets/icons/"] {
-	max-width: 54px;
-	max-height: 54px;
-	border-radius: 14px;
-}
-
-body.desktop-mode-active .desktop-mode-icon__label {
-	padding: 2px 6px;
-	border-radius: 999px;
-	background: rgba( 4, 8, 18, 0.56 );
-	box-decoration-break: clone;
-	-webkit-box-decoration-break: clone;
-	color: #fff;
-	text-wrap: balance;
-	text-shadow:
-		0 1px 1px rgba( 0, 0, 0, 0.95 ),
-		0 0 5px rgba( 0, 0, 0, 0.82 );
-}
-
-@media (prefers-reduced-transparency: reduce) {
-	body.desktop-mode-active .desktop-mode-dock__item-primary,
-	body.desktop-mode-active .desktop-mode-icon__image,
-	body.desktop-mode-active .desktop-mode-icon__label {
-		background: #10131c;
-	}
+body.desktop-mode-active .desktop-mode-icon__image img,
+body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
 }

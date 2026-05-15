@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for the dock-item + desktop-icons filters in
+ * Tests for the native Desktop Mode icon filters in
  * odd/includes/icons/dock-filter.php.
  */
 
@@ -60,34 +60,47 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		oddout_icons_set_active_slug( $set_slug );
 
 		$item_before = array(
-			'icon' => 'original.svg',
+			'icon' => 'original.png',
 			'menu' => 'Posts',
 		);
 		$item_after  = apply_filters( 'desktop_mode_dock_item', $item_before, 'edit.php' );
 
 		$this->assertIsArray( $item_after );
 		$this->assertArrayHasKey( 'icon', $item_after );
-		$this->assertNotSame( 'original.svg', $item_after['icon'], 'Icon must be rewritten for a mapped slug.' );
+		$this->assertNotSame( 'original.png', $item_after['icon'], 'Icon must be rewritten through the native dock item filter for a mapped slug.' );
+		$this->assertStringEndsWith( '/posts.webp', $item_after['icon'] );
+	}
+
+	public function test_wp_desktop_dock_item_filter_uses_same_native_mapping() {
+		$set_slug = $this->pick_set_with_fallback();
+		oddout_icons_set_active_slug( $set_slug );
+
+		$item_after = apply_filters( 'wp_desktop_dock_item', array( 'icon' => 'original.png' ), 'edit.php' );
+
+		$this->assertIsArray( $item_after );
+		$this->assertNotSame( 'original.png', $item_after['icon'] );
+		$this->assertStringEndsWith( '/posts.webp', $item_after['icon'] );
 	}
 
 	public function test_dock_item_filter_falls_back_for_unknown_menu_slug() {
 		$set_slug = $this->pick_set_with_fallback();
 		oddout_icons_set_active_slug( $set_slug );
 
-		$item_before = array( 'icon' => 'original.svg' );
+		$item_before = array( 'icon' => 'original.png' );
 		$item_after  = apply_filters( 'desktop_mode_dock_item', $item_before, 'third-party-plugin.php' );
 
 		$this->assertIsArray( $item_after );
-		$this->assertNotSame( 'original.svg', $item_after['icon'], 'Unknown slug should still hit the set fallback.' );
+		$this->assertNotSame( 'original.png', $item_after['icon'], 'Unknown slug should still hit the set fallback through the native dock item filter.' );
+		$this->assertStringEndsWith( '/fallback.webp', $item_after['icon'] );
 	}
 
 	public function test_dock_item_filter_is_noop_when_no_set_active() {
 		oddout_icons_set_active_slug( 'none' );
 
-		$item_before = array( 'icon' => 'original.svg' );
+		$item_before = array( 'icon' => 'original.png' );
 		$item_after  = apply_filters( 'desktop_mode_dock_item', $item_before, 'edit.php' );
 
-		$this->assertSame( 'original.svg', $item_after['icon'], 'No active set = icon unchanged.' );
+		$this->assertSame( 'original.png', $item_after['icon'], 'No active set = icon unchanged.' );
 	}
 
 	public function test_desktop_icons_filter_skips_odd_control_panel() {
@@ -97,19 +110,39 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$registry_before = array(
 			'odd'   => array(
 				'id'     => 'odd',
-				'icon'   => 'odd-gear.svg',
+				'icon'   => 'odd-gear.png',
 				'window' => '',
 			),
 			'posts' => array(
 				'id'     => 'posts',
-				'icon'   => 'original-posts.svg',
+				'icon'   => 'original-posts.png',
 				'window' => 'edit.php',
 			),
 		);
 		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
 
-		$this->assertSame( 'odd-gear.svg', $registry_after['odd']['icon'], 'ODD Shop icon must be preserved.' );
-		$this->assertNotSame( 'original-posts.svg', $registry_after['posts']['icon'], 'Regular desktop icon gets re-themed.' );
+		$this->assertSame( 'odd-gear.png', $registry_after['odd']['icon'], 'ODD Shop icon must be preserved.' );
+		$this->assertNotSame( 'original-posts.png', $registry_after['posts']['icon'], 'Regular desktop icon gets re-themed.' );
+		$this->assertStringEndsWith( '/posts.webp', $registry_after['posts']['icon'] );
+	}
+
+	public function test_wp_desktop_icons_filter_uses_same_native_mapping() {
+		$set_slug = $this->pick_set_with_fallback();
+		oddout_icons_set_active_slug( $set_slug );
+
+		$registry_after = apply_filters(
+			'wp_desktop_icons',
+			array(
+				'posts' => array(
+					'id'     => 'posts',
+					'icon'   => 'original-posts.png',
+					'window' => 'edit.php',
+				),
+			)
+		);
+
+		$this->assertNotSame( 'original-posts.png', $registry_after['posts']['icon'] );
+		$this->assertStringEndsWith( '/posts.webp', $registry_after['posts']['icon'] );
 	}
 
 	public function test_desktop_icons_filter_uses_recycle_bin_icon_dm07_ids() {
@@ -120,13 +153,13 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 			'desktop-mode-recycle-bin' => array(
 				'id'     => 'desktop-mode-recycle-bin',
 				'title'  => 'Recycle Bin',
-				'icon'   => 'original-trash.svg',
+				'icon'   => 'original-trash.png',
 				'window' => 'desktop-mode-recycle-bin',
 			),
 		);
 		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
 
-		$this->assertStringContainsString( '/recycle-bin.svg', $registry_after['desktop-mode-recycle-bin']['icon'] );
+		$this->assertStringContainsString( '/recycle-bin.webp', $registry_after['desktop-mode-recycle-bin']['icon'] );
 	}
 
 	public function test_desktop_icons_filter_falls_back_when_recycle_bin_icon_is_missing() {
@@ -138,7 +171,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 					'slug'  => 'minimal',
 					'label' => 'Minimal',
 					'icons' => array(
-						'fallback' => 'https://example.test/icons/minimal/fallback.svg',
+						'fallback' => 'https://example.test/icons/minimal/fallback.webp',
 					),
 				);
 				return $sets;
@@ -152,13 +185,13 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 			'trash' => array(
 				'id'     => 'legacy-trash',
 				'title'  => 'Recycle Bin',
-				'icon'   => 'original-trash.svg',
+				'icon'   => 'original-trash.png',
 				'window' => 'desktop-mode-recycle-bin',
 			),
 		);
 		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
 
-		$this->assertSame( 'https://example.test/icons/minimal/fallback.svg', $registry_after['trash']['icon'] );
+		$this->assertSame( 'https://example.test/icons/minimal/fallback.webp', $registry_after['trash']['icon'] );
 	}
 
 	public function test_desktop_icons_filter_skips_odd_app_shortcuts() {
@@ -168,19 +201,20 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$registry_before = array(
 			'odd-app-board' => array(
 				'id'     => 'odd-app-board',
-				'icon'   => 'board-icon.svg',
+				'icon'   => 'board-icon.png',
 				'window' => 'odd-app-board',
 			),
 			'posts'         => array(
 				'id'     => 'posts',
-				'icon'   => 'original-posts.svg',
+				'icon'   => 'original-posts.png',
 				'window' => 'edit.php',
 			),
 		);
 		$registry_after  = apply_filters( 'desktop_mode_icons', $registry_before );
 
-		$this->assertSame( 'board-icon.svg', $registry_after['odd-app-board']['icon'], 'App desktop icon must stay app-specific.' );
-		$this->assertNotSame( 'original-posts.svg', $registry_after['posts']['icon'], 'Regular desktop icon still gets re-themed.' );
+		$this->assertSame( 'board-icon.png', $registry_after['odd-app-board']['icon'], 'App desktop icon must stay app-specific.' );
+		$this->assertNotSame( 'original-posts.png', $registry_after['posts']['icon'], 'Regular desktop icon still gets re-themed.' );
+		$this->assertStringEndsWith( '/posts.webp', $registry_after['posts']['icon'] );
 	}
 
 	public function test_desktop_icons_filter_handles_empty_registry() {
@@ -196,7 +230,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 				array(
 					'id'     => 'wpdc-editor',
 					'window' => 'wpdc-editor',
-					'icon'   => 'themed-code.svg',
+					'icon'   => 'themed-code.png',
 				),
 			),
 			'nativeWindows' => array(
@@ -217,7 +251,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 
 		$config_after = apply_filters( 'desktop_mode_shell_config', $config_before );
 
-		$this->assertSame( 'themed-code.svg', $config_after['nativeWindows'][0]['icon'] );
+		$this->assertSame( 'themed-code.png', $config_after['nativeWindows'][0]['icon'] );
 		$this->assertSame( 'dashicons-admin-generic', $config_after['nativeWindows'][1]['icon'] );
 	}
 
@@ -244,12 +278,12 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$this->assertStringStartsWith(
 			'http',
 			$after['icon'],
-			'Recycle bin shortcut must inherit `desktop_mode_icons` SVG URLs for the active set.'
+			'Recycle bin shortcut must inherit `desktop_mode_icons` image URLs for the active set.'
 		);
 	}
 
 	public function test_shortcut_https_icon_mirrored_into_preview_for_file_tiles() {
-		$icon = 'https://example.test/bin.svg';
+		$icon = 'https://example.test/bin.png';
 
 		$shapein = array(
 			'type'       => 'shortcut',

@@ -35,6 +35,9 @@ class Test_Icons_Registry_Cache extends WP_UnitTestCase {
 		$this->assertNotEmpty( $sets, 'registered icon sets must be non-empty' );
 		$slugs = wp_list_pluck( $sets, 'slug' );
 		$this->assertContains( 'filament', $slugs, 'fixture set must register' );
+		foreach ( $sets['filament']['icons'] as $key => $url ) {
+			$this->assertStringEndsWith( '.webp', $url, "Fixture icon {$key} must be WebP." );
+		}
 	}
 
 	public function test_reset_returns_fresh_rebuild_in_same_call() {

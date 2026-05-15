@@ -10,8 +10,9 @@
  *                                   filter, else `''` (= pass-through).
  *   - oddout_icons_set_active_slug()   save pick to user meta (oddout_icon_set).
  *
- * Sets are directories containing manifest + SVGs, so instead of one
- * big JSON we scan the directory tree.
+ * Sets are directories containing manifest + PNG/WebP images, so instead
+ * of one big JSON we scan the directory tree and pass plain image URLs to
+ * Desktop Mode's native icon surfaces.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -83,27 +84,19 @@ function oddout_registry_admin_notice_bad_manifests() {
 }
 
 /**
- * Why not data URIs any more: in v1.0.4 we stopped emitting
- * `data:image/svg+xml;utf8,...` icons because WP Desktop Mode's
- * client-side `resolveIcon()` only accepts `data:image/svg+xml;base64,`
- * for dock tiles and HTTP(S) URLs for desktop shortcuts — URL-encoded
- * data URIs (and base64 data URIs for desktop icons) silently fall
- * through to letter-badge rendering. Serving tinted icons through a
- * real REST URL (`/odd/v1/icons/<set>/<key>`) gives us a single
- * representation that works across both surfaces, benefits from HTTP
- * caching, and stays under 8 KB per request.
- */
-/**
  * Resolve a manifest-declared relative path against a set directory, refusing
  * anything that escapes it. Returns the absolute path on success, or '' if
  * the entry is missing, unreadable, contains `..` / absolute components, or
  * resolves outside the set root. Paths are also required to be flat — sets
- * ship SVGs next to the manifest, no subdirectories, no symlinks to elsewhere.
+ * ship raster files next to the manifest, no subdirectories, no symlinks to elsewhere.
  */
 function oddout_icons_resolve_set_path( $set_dir, $rel ) {
 	$rel = (string) $rel;
 	if ( '' === $rel ) {
 		return '';
+	}
+	if ( function_exists( 'oddout_content_resolve_path' ) ) {
+		return oddout_content_resolve_path( $set_dir, $rel );
 	}
 	if ( false !== strpos( $rel, "\0" ) ) {
 		return '';
@@ -115,7 +108,7 @@ function oddout_icons_resolve_set_path( $set_dir, $rel ) {
 		return '';
 	}
 	$rel = ltrim( $rel, '/' );
-	if ( '' === $rel || basename( $rel ) !== $rel ) {
+	if ( '' === $rel || ! preg_match( '#^[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)*$#', $rel ) ) {
 		return '';
 	}
 
@@ -131,29 +124,19 @@ function oddout_icons_resolve_set_path( $set_dir, $rel ) {
 	return $abs_real;
 }
 
-/**
- * Does the SVG at the given absolute path opt in to currentColor
- * tinting? Used by the registry to decide whether to route an icon
- * through the tinted-SVG REST endpoint or serve the static file
- * directly via plugins_url().
- */
-function oddout_icons_svg_uses_current_color( $abs_path ) {
-	if ( ! is_readable( $abs_path ) ) {
-		return false;
+function oddout_icons_url_for_set_path( $base_url, $rel ) {
+	if ( function_exists( 'oddout_content_url_for_relative' ) ) {
+		return oddout_content_url_for_relative( $base_url, $rel );
 	}
-	$svg = file_get_contents( $abs_path );
-	if ( false === $svg || '' === $svg ) {
-		return false;
+	$rel = (string) $rel;
+	if ( '' === (string) $base_url || '' === $rel || false !== strpos( $rel, '..' ) || false !== strpos( $rel, "\0" ) ) {
+		return '';
 	}
-	return false !== strpos( $svg, 'currentColor' );
-}
-
-/**
- * Build the public REST URL for a tinted icon. Set and key are
- * sanitized inputs; the endpoint itself still re-validates both.
- */
-function oddout_icons_tinted_svg_url( $set_slug, $key ) {
-	return oddout_https_rest_url( 'odd/v1/icons/' . $set_slug . '/' . $key );
+	$rel = ltrim( $rel, '/' );
+	if ( '' === $rel || ! preg_match( '#^[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)*$#', $rel ) ) {
+		return '';
+	}
+	return trailingslashit( (string) $base_url ) . implode( '/', array_map( 'rawurlencode', explode( '/', $rel ) ) );
 }
 
 /**
@@ -270,13 +253,8 @@ function oddout_icons_get_sets( $reset = false ) {
 				if ( '' === $abs || ! is_readable( $abs ) ) {
 					continue;
 				}
-				$basename  = basename( $abs );
-				$clean_key = sanitize_key( (string) $key );
-				if ( oddout_icons_svg_uses_current_color( $abs ) ) {
-					$icons[ $clean_key ] = oddout_icons_tinted_svg_url( $slug, $clean_key );
-				} else {
-					$icons[ $clean_key ] = $base_url . '/' . rawurlencode( $basename );
-				}
+				$clean_key           = sanitize_key( (string) $key );
+				$icons[ $clean_key ] = oddout_icons_url_for_set_path( $base_url, $rel );
 			}
 		}
 
@@ -284,19 +262,7 @@ function oddout_icons_get_sets( $reset = false ) {
 		if ( ! empty( $data['preview'] ) ) {
 			$preview_abs = oddout_icons_resolve_set_path( $base_dir, $data['preview'] );
 			if ( '' !== $preview_abs && is_readable( $preview_abs ) ) {
-				$preview_basename = basename( $preview_abs );
-				if ( oddout_icons_svg_uses_current_color( $preview_abs ) ) {
-					$preview_key = '__preview__';
-					foreach ( (array) $data['icons'] as $k => $rel ) {
-						if ( basename( (string) $rel ) === $preview_basename ) {
-							$preview_key = sanitize_key( (string) $k );
-							break;
-						}
-					}
-					$preview = oddout_icons_tinted_svg_url( $slug, $preview_key );
-				} else {
-					$preview = $base_url . '/' . rawurlencode( $preview_basename );
-				}
+				$preview = oddout_icons_url_for_set_path( $base_url, $data['preview'] );
 			}
 		}
 
@@ -381,112 +347,4 @@ function oddout_icons_set_active_slug( $slug, $user_id = 0 ) {
 		return false;
 	}
 	return (bool) update_user_meta( $user_id, 'oddout_icon_set', $slug );
-}
-
-/**
- * Public REST route that serves a single tinted SVG from a set.
- *
- *   GET /wp-json/odd/v1/icons/{set}/{key}
- *
- * This endpoint is intentionally public: dock and desktop-shortcut
- * icons are painted via `<img src>` which cannot send a nonce, and
- * icon SVGs are branding-level content already on disk under
- * `odd/assets/icons/<set>/`. The only things we vary by request are
- * which key the caller asked for and the set's accent color
- * substituted for `currentColor`.
- *
- * Inputs are route-validated by regex (`[a-z0-9-]+`) and then
- * re-checked against the scanned registry so unknown sets/keys 404.
- * The SVG is always served from the realpath inside the set
- * directory (see oddout_icons_resolve_set_path()), no arbitrary file
- * traversal is possible.
- */
-add_action(
-	'rest_api_init',
-	function () {
-		register_rest_route(
-			'odd/v1',
-			'/icons/(?P<set>[a-z0-9-]+)/(?P<key>[a-z0-9-_]+)',
-			array(
-				'methods'             => 'GET',
-				'callback'            => 'oddout_icons_rest_serve_tinted',
-				'permission_callback' => '__return_true',
-				'args'                => array(
-					'set' => array( 'type' => 'string' ),
-					'key' => array( 'type' => 'string' ),
-				),
-			)
-		);
-	}
-);
-
-function oddout_icons_rest_serve_tinted( WP_REST_Request $request ) {
-	$set_slug = sanitize_key( (string) $request->get_param( 'set' ) );
-	$key      = sanitize_key( (string) $request->get_param( 'key' ) );
-
-	if ( '' === $set_slug || '' === $key ) {
-		return new WP_Error( 'oddout_icon_invalid', __( 'Unknown icon.', 'odd-outlandish-desktop-decorator' ), array( 'status' => 404 ) );
-	}
-
-	// Built-ins live under odd/assets/icons/; user-installed sets
-	// live under uploads/odd/icon-sets/. The registry already
-	// merges both when building URLs, so the tinted-SVG endpoint
-	// has to look up both too.
-	$root = ODDOUT_DIR . 'assets/icons/' . $set_slug;
-	if ( ! is_dir( $root ) && defined( 'ODDOUT_ICONSETS_DIR' ) ) {
-		$installed_root = ODDOUT_ICONSETS_DIR . $set_slug;
-		if ( is_dir( $installed_root ) ) {
-			$root = $installed_root;
-		}
-	}
-	if ( ! is_dir( $root ) ) {
-		return new WP_Error( 'oddout_icon_invalid', __( 'Unknown icon set.', 'odd-outlandish-desktop-decorator' ), array( 'status' => 404 ) );
-	}
-	$manifest_path = $root . '/manifest.json';
-	if ( ! is_readable( $manifest_path ) ) {
-		return new WP_Error( 'oddout_icon_invalid', __( 'Unknown icon set.', 'odd-outlandish-desktop-decorator' ), array( 'status' => 404 ) );
-	}
-	$raw  = file_get_contents( $manifest_path );
-	$data = is_string( $raw ) ? json_decode( $raw, true ) : null;
-	if ( ! is_array( $data ) || empty( $data['icons'] ) || ! is_array( $data['icons'] ) ) {
-		return new WP_Error( 'oddout_icon_invalid', __( 'Unknown icon set.', 'odd-outlandish-desktop-decorator' ), array( 'status' => 404 ) );
-	}
-
-	$rel = null;
-	foreach ( $data['icons'] as $k => $v ) {
-		if ( sanitize_key( (string) $k ) === $key ) {
-			$rel = (string) $v;
-			break;
-		}
-	}
-	if ( null === $rel ) {
-		return new WP_Error( 'oddout_icon_invalid', __( 'Unknown icon.', 'odd-outlandish-desktop-decorator' ), array( 'status' => 404 ) );
-	}
-
-	$abs = oddout_icons_resolve_set_path( $root, $rel );
-	if ( '' === $abs || ! is_readable( $abs ) ) {
-		return new WP_Error( 'oddout_icon_invalid', __( 'Unknown icon.', 'odd-outlandish-desktop-decorator' ), array( 'status' => 404 ) );
-	}
-
-	$svg = file_get_contents( $abs );
-	if ( false === $svg || '' === $svg ) {
-		return new WP_Error( 'oddout_icon_invalid', __( 'Unknown icon.', 'odd-outlandish-desktop-decorator' ), array( 'status' => 404 ) );
-	}
-
-	$accent = isset( $data['accent'] ) ? (string) $data['accent'] : '';
-	$accent = trim( $accent );
-	if ( preg_match( '/^#[0-9A-Fa-f]{3,8}$/', $accent ) ) {
-		$svg = str_replace( 'currentColor', $accent, $svg );
-	}
-
-	while ( ob_get_level() > 0 ) {
-		@ob_end_clean();
-	}
-
-	nocache_headers();
-	header( 'Content-Type: image/svg+xml' );
-	header( 'Cache-Control: public, max-age=3600, immutable' );
-	header( 'X-Content-Type-Options: nosniff' );
-	oddout_emit_raw_response( $svg );
-	exit;
 }

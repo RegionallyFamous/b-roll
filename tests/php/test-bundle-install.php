@@ -43,7 +43,7 @@ class Test_Bundle_Install extends ODDOUT_REST_Test_Case {
 	/**
 	 * @return string Path to a minimal valid icon-set .wp archive.
 	 */
-	protected function make_iconset_zip( $slug = 'test-set' ) {
+	protected function make_iconset_zip( $slug = 'test-set', array $overrides = array() ) {
 		$keys  = array(
 			'dashboard',
 			'posts',
@@ -57,13 +57,21 @@ class Test_Bundle_Install extends ODDOUT_REST_Test_Case {
 			'settings',
 			'profile',
 			'links',
+			'recycle-bin',
 			'fallback',
 		);
+		$png   = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAw0lEQVR42u3awRXCIBBFUZhjmdqJWWkn2meswUCAwH0FwJ/HrDg/JQAAAKxJrnnY/bnvrYJ/3zkPI6Dl4LVF5KsOXktEzDB8SZ6YYfiSXDHL8EfzRVqcmOn1j+S0AbO9/r95bQABBKzN7ewLPq/yMx6bDSCAAAIIIIAAAggggAACCCCAAALSdT5EzvzMsAEEEEBAMwG1OjlpsMaIDejRzBqpL2QDevXzRmmLRc+S4ghVuejd1OzdE9QUTYt3hQEAAJblByY0PzQWCSylAAAAAElFTkSuQmCC' );
 		$icons = array();
 		$files = array();
 		foreach ( $keys as $k ) {
-			$icons[ $k ]                     = 'icons/' . $k . '.svg';
-			$files[ 'icons/' . $k . '.svg' ] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" fill="currentColor"/></svg>';
+			$rel           = isset( $overrides['icons'][ $k ] ) ? (string) $overrides['icons'][ $k ] : 'icons/' . $k . '.png';
+			$icons[ $k ]   = $rel;
+			$files[ $rel ] = $png;
+		}
+		if ( ! empty( $overrides['files'] ) && is_array( $overrides['files'] ) ) {
+			foreach ( $overrides['files'] as $name => $body ) {
+				$files[ $name ] = $body;
+			}
 		}
 		return $this->build_bundle_zip(
 			array(
@@ -117,6 +125,13 @@ class Test_Bundle_Install extends ODDOUT_REST_Test_Case {
 		$sets  = oddout_icons_get_sets( true );
 		$slugs = wp_list_pluck( $sets, 'slug' );
 		$this->assertContains( 'test-set', $slugs, 'installed icon set must surface in the icon registry' );
+		$set = $sets['test-set'];
+		foreach ( $set['icons'] as $key => $url ) {
+			$this->assertMatchesRegularExpression( '/\.(png|webp)$/', $url, "Icon {$key} must resolve to a raster asset." );
+			$this->assertStringNotContainsString( '.svg', $url, "Icon {$key} must not resolve to SVG." );
+		}
+		$this->assertStringContainsString( '/icons/dashboard.png', $set['icons']['dashboard'] );
+		$this->assertStringContainsString( '/icons/fallback.png', $set['icons']['fallback'] );
 
 		$uninstall = oddout_bundle_uninstall( 'test-set' );
 		$this->assertTrue( true === $uninstall || is_array( $uninstall ), is_wp_error( $uninstall ) ? $uninstall->get_error_message() : 'uninstall failed' );
@@ -177,6 +192,81 @@ class Test_Bundle_Install extends ODDOUT_REST_Test_Case {
 		@unlink( $zip );
 		$this->assertWPError( $res );
 		$this->assertSame( 'invalid_extension', $res->get_error_code() );
+	}
+
+	public function test_iconset_rejects_svg_icons() {
+		$keys  = array(
+			'dashboard',
+			'posts',
+			'pages',
+			'media',
+			'comments',
+			'appearance',
+			'plugins',
+			'users',
+			'tools',
+			'settings',
+			'profile',
+			'links',
+			'recycle-bin',
+			'fallback',
+		);
+		$icons = array();
+		foreach ( $keys as $key ) {
+			$icons[ $key ] = 'icons/' . $key . '.svg';
+		}
+
+		$zip = $this->build_bundle_zip(
+			array(
+				'type'    => 'icon-set',
+				'slug'    => 'svg-icons',
+				'name'    => 'SVG Icons',
+				'label'   => 'SVG Icons',
+				'version' => '1.0.0',
+				'accent'  => '#ff00aa',
+				'icons'   => $icons,
+			),
+			array(
+				'icons/dashboard.svg' => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64"/></svg>',
+			)
+		);
+		$res = oddout_bundle_install( $zip, 'svg-icons.wp' );
+		@unlink( $zip );
+
+		$this->assertWPError( $res );
+		$this->assertSame( 'invalid_icon_ext', $res->get_error_code() );
+	}
+
+	public function test_iconset_rejects_malformed_raster_icons() {
+		$zip = $this->make_iconset_zip(
+			'bad-raster',
+			array(
+				'files' => array(
+					'icons/dashboard.png' => 'not a png',
+				),
+			)
+		);
+		$res = oddout_bundle_install( $zip, 'bad-raster.wp' );
+		@unlink( $zip );
+
+		$this->assertWPError( $res );
+		$this->assertSame( 'invalid_icon_image', $res->get_error_code() );
+	}
+
+	public function test_iconset_rejects_oversized_raster_icons() {
+		$zip = $this->make_iconset_zip(
+			'oversized-raster',
+			array(
+				'files' => array(
+					'icons/dashboard.png' => str_repeat( 'x', 768 * 1024 + 1 ),
+				),
+			)
+		);
+		$res = oddout_bundle_install( $zip, 'oversized-raster.wp' );
+		@unlink( $zip );
+
+		$this->assertWPError( $res );
+		$this->assertSame( 'icon_too_large', $res->get_error_code() );
 	}
 
 	public function test_path_traversal_entries_are_rejected_before_extract() {

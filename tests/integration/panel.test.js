@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const PANEL_JS = resolve( __dirname, '../../odd/src/panel/index.js' );
+const WORKSPACE_JS = resolve( __dirname, '../../odd/src/shared/workspace.js' );
 
 function seedConfig() {
 	window.odd = {
@@ -120,6 +121,12 @@ function loadPanel() {
 	fn.call( globalThis );
 }
 
+function loadWorkspace() {
+	const src = readFileSync( WORKSPACE_JS, 'utf8' );
+	const fn = new Function( `${ src }\n//# sourceURL=shared/workspace.js` );
+	fn.call( globalThis );
+}
+
 function mountPanel( options = {} ) {
 	const width = typeof options.width === 'number' ? options.width : 900;
 	const host = document.createElement( 'div' );
@@ -166,6 +173,7 @@ describe( 'ODD Shop', () => {
 		} ) );
 		globalThis.fetch = fetchMock;
 
+		loadWorkspace();
 		loadPanel();
 	} );
 
@@ -206,84 +214,68 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'replaces the desktop rail scrollbar with soft overflow controls', async () => {
+	it( 'keeps the Shop rail native, vertical, and keyboard navigable', () => {
 		const { host, cleanup } = mountPanel();
 		const rail = host.querySelector( '.odd-shop__rail' );
-		const startBtn = host.querySelector( '.odd-shop__rail-scroll--start' );
-		const endBtn = host.querySelector( '.odd-shop__rail-scroll--end' );
-		const startFade = host.querySelector( '.odd-shop__rail-fade--start' );
-		const endFade = host.querySelector( '.odd-shop__rail-fade--end' );
+		const items = Array.from( host.querySelectorAll( '.odd-shop__rail-item' ) );
 
 		expect( rail ).toBeTruthy();
-		expect( startBtn ).toBeTruthy();
-		expect( endBtn ).toBeTruthy();
-		expect( startFade.getAttribute( 'aria-hidden' ) ).toBe( 'true' );
-		expect( endFade.getAttribute( 'aria-hidden' ) ).toBe( 'true' );
+		expect( rail.getAttribute( 'role' ) ).toBe( 'navigation' );
+		expect( rail.getAttribute( 'aria-label' ) ).toBe( 'Store sections' );
+		expect( host.querySelector( '.odd-shop__rail-scroll' ) ).toBeNull();
+		expect( host.querySelector( '.odd-shop__rail-fade' ) ).toBeNull();
+		expect( items.length ).toBeGreaterThan( 2 );
 
-		host.getBoundingClientRect = () => ( {
-			width: 900,
-			height: 600,
-			top: 0,
-			left: 0,
-			right: 900,
-			bottom: 600,
-			x: 0,
-			y: 0,
-			toJSON: () => {},
-		} );
-		rail.getBoundingClientRect = () => ( {
-			width: 220,
-			height: 260,
-			top: 82,
-			left: 0,
-			right: 220,
-			bottom: 342,
-			x: 0,
-			y: 82,
-			toJSON: () => {},
-		} );
+		items[ 0 ].focus();
+		items[ 0 ].dispatchEvent( new KeyboardEvent( 'keydown', { key: 'ArrowDown', bubbles: true, cancelable: true } ) );
+		expect( document.activeElement ).toBe( items[ 1 ] );
 
-		let scrollTop = 0;
-		let scrollLeft = 37;
-		Object.defineProperty( rail, 'clientHeight', { configurable: true, get: () => 260 } );
-		Object.defineProperty( rail, 'scrollHeight', { configurable: true, get: () => 760 } );
-		Object.defineProperty( rail, 'scrollTop', {
-			configurable: true,
-			get: () => scrollTop,
-			set: ( value ) => { scrollTop = value; },
-		} );
-		Object.defineProperty( rail, 'scrollLeft', {
-			configurable: true,
-			get: () => scrollLeft,
-			set: ( value ) => { scrollLeft = value; },
-		} );
-		rail.scrollTo = vi.fn( ( arg, y ) => {
-			scrollTop = typeof arg === 'object' ? arg.top : y;
-			scrollLeft = typeof arg === 'object' && typeof arg.left === 'number' ? arg.left : scrollLeft;
-			rail.dispatchEvent( new Event( 'scroll' ) );
-		} );
+		items[ 1 ].dispatchEvent( new KeyboardEvent( 'keydown', { key: 'ArrowUp', bubbles: true, cancelable: true } ) );
+		expect( document.activeElement ).toBe( items[ 0 ] );
 
-		rail.dispatchEvent( new Event( 'scroll' ) );
-		await new Promise( ( resolveTick ) => setTimeout( resolveTick, 25 ) );
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
 
-		expect( rail.hasAttribute( 'data-odd-rail-overflow' ) ).toBe( true );
-		expect( rail.hasAttribute( 'data-odd-rail-at-start' ) ).toBe( true );
-		expect( rail.hasAttribute( 'data-odd-rail-at-end' ) ).toBe( false );
-		expect( startBtn.hidden ).toBe( true );
-		expect( endBtn.hidden ).toBe( false );
-		expect( startFade.hidden ).toBe( true );
-		expect( endFade.classList.contains( 'is-visible' ) ).toBe( true );
-		expect( scrollLeft ).toBe( 0 );
+	it( 'selects icon sets without patching live Desktop Mode DOM', () => {
+		document.body.innerHTML = [
+			'<div class="desktop-mode-dock__item" data-menu-slug="menu-posts">',
+			'  <button class="desktop-mode-dock__item-primary">',
+			'    <img class="desktop-mode-dock__item-img" src="dock-native.png" alt="">',
+			'  </button>',
+			'</div>',
+			'<button class="desktop-mode-icon" data-icon-id="posts">',
+			'  <span class="desktop-mode-icon__image"><img src="posts-native.png" alt=""></span>',
+			'</button>',
+			'<button class="desktop-mode-icon" data-icon-id="odd">',
+			'  <span class="desktop-mode-icon__image"><img src="odd-native.png" alt=""></span>',
+			'</button>',
+		].join( '' );
+		window.odd.sets = [
+			{
+				slug: 'filament',
+				label: 'Filament',
+				franchise: 'ODD Defaults',
+				accent: '#ff7a3c',
+				icons: {
+					posts: 'https://example.test/icons/posts.webp',
+					fallback: 'https://example.test/icons/fallback.webp',
+				},
+			},
+		];
+		window.odd.iconSets = window.odd.sets;
 
-		endBtn.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
-		expect( rail.scrollTo ).toHaveBeenCalledWith( expect.objectContaining( { top: expect.any( Number ), left: 0 } ) );
-		expect( scrollTop ).toBeGreaterThan( 0 );
-		expect( scrollLeft ).toBe( 0 );
+		const { host, cleanup } = mountPanel();
+		host.querySelector( '[data-section="icons"]' ).click();
 
-		rail.dispatchEvent( new Event( 'scroll' ) );
-		await new Promise( ( resolveTick ) => setTimeout( resolveTick, 25 ) );
-		expect( startBtn.hidden ).toBe( false );
-		expect( startFade.classList.contains( 'is-visible' ) ).toBe( true );
+		const card = host.querySelector( '[data-odd-shop-card][data-set-slug="filament"]' );
+		expect( card ).toBeTruthy();
+		const preview = card.closest( '.odd-shop__card-wrap' ).querySelector( '.odd-shop__card-btn' );
+		preview.click();
+
+		expect( document.querySelector( '.desktop-mode-dock__item-img' ).getAttribute( 'src' ) ).toBe( 'dock-native.png' );
+		expect( document.querySelector( '.desktop-mode-icon[data-icon-id="posts"] img' ).getAttribute( 'src' ) ).toBe( 'posts-native.png' );
+		expect( document.querySelector( '.desktop-mode-icon[data-icon-id="odd"] img' ).getAttribute( 'src' ) ).toBe( 'odd-native.png' );
+		expect( host.querySelector( '[data-testid="odd-preview-commit"]' ).textContent ).toBe( 'Apply & reload' );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
@@ -602,6 +594,81 @@ describe( 'ODD Shop', () => {
 		// Guard against it sneaking back in via a casual edit.
 		expect( host.querySelector( '[data-odd-install-pill]' ) ).toBeFalsy();
 		expect( host.querySelector( '[data-odd-install-input]' ) ).toBeFalsy();
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'offers .odd workspace import/export from the Install tab', () => {
+		const { host, cleanup } = mountPanel();
+		const createObjectURL = vi.fn( () => 'blob:odd-workspace' );
+		const revokeObjectURL = vi.fn();
+		const clickSpy = vi.spyOn( HTMLAnchorElement.prototype, 'click' ).mockImplementation( () => {} );
+		Object.defineProperty( window.URL, 'createObjectURL', { configurable: true, value: createObjectURL } );
+		Object.defineProperty( window.URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL } );
+
+		host.querySelector( '[data-section="install"]' ).click();
+
+		expect( host.querySelector( '.odd-shop__dropzone-title' ).textContent ).toContain( '.odd workspace' );
+		expect( host.querySelector( '[data-odd-install-file-input]' ).getAttribute( 'accept' ) ).toBe( '.wp,.odd' );
+		host.querySelector( '[data-odd-export-workspace]' ).click();
+
+		expect( createObjectURL ).toHaveBeenCalled();
+		expect( clickSpy ).toHaveBeenCalled();
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'imports a .odd workspace and enables saved widgets', async () => {
+		const widgetCalls = installWidgetLayer();
+		window.odd.iconSets = [
+			{ slug: 'filament', label: 'Filament', franchise: 'ODD Defaults', accent: '#ff7a3c', icons: { dashboard: '', fallback: '' } },
+		];
+		const { host, cleanup } = mountPanel();
+		fetchMock.mockResolvedValueOnce( {
+			ok: true,
+			json: () => Promise.resolve( {
+				wallpaper: 'aurora',
+				iconSet: 'filament',
+				shuffle: { enabled: true, minutes: 30 },
+			} ),
+		} );
+
+		host.querySelector( '[data-section="install"]' ).click();
+		const input = host.querySelector( '[data-odd-install-file-input]' );
+		const payload = {
+			format: 'com.regionallyfamous.odd.workspace',
+			schema: 1,
+			name: 'Shared Mood',
+			prefs: {
+				wallpaper: 'aurora',
+				iconSet: 'filament',
+				shuffle: { enabled: true, minutes: 30 },
+			},
+			desktop: {
+				widgets: { enabled: [ 'odd/sticky' ] },
+			},
+			content: [
+				{ type: 'scene', slug: 'aurora' },
+				{ type: 'icon-set', slug: 'filament' },
+				{ type: 'widget', slug: 'sticky' },
+			],
+		};
+		const file = new File( [ JSON.stringify( payload ) ], 'shared-mood.odd', { type: 'application/json' } );
+		Object.defineProperty( input, 'files', { configurable: true, value: [ file ] } );
+		input.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+
+		await vi.waitFor( () => {
+			expect( fetchMock ).toHaveBeenCalledWith(
+				'/wp-json/odd/v1/prefs',
+				expect.objectContaining( {
+					method: 'POST',
+					body: expect.stringContaining( '"wallpaper":"aurora"' ),
+				} )
+			);
+		} );
+		await vi.waitFor( () => expect( widgetCalls.add ).toContain( 'odd/sticky' ) );
+		expect( window.odd.wallpaper ).toBe( 'aurora' );
+		expect( host.querySelector( '.odd-shop__dropzone-status' ).textContent ).toContain( 'Workspace imported' );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

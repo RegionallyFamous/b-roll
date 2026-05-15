@@ -28,7 +28,7 @@
  *         "description":  "Short paragraph",
  *         "franchise":    "Category",
  *         "tags":         ["optional"],
- *         "icon_url":     "https://.../icons/<name>.svg",
+ *         "icon_url":     "https://.../icons/<name>.webp",
  *         "card_url":     "https://.../cards/<name>.webp",
  *         "download_url": "https://.../bundles/<name>.wp",
  *         "sha256":       "<64 hex chars>",

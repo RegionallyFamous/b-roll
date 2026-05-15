@@ -386,3 +386,17 @@ function oddout_content_resolve_path( $base_dir, $rel ) {
 	}
 	return $abs_real;
 }
+
+/**
+ * Append a validated manifest-relative path to a base URL without
+ * collapsing nested directories into `%2F`.
+ */
+function oddout_content_url_for_relative( $base_url, $rel ) {
+	$base_url = (string) $base_url;
+	$rel      = oddout_content_sanitize_relative_path( $rel );
+	if ( '' === $base_url || '' === $rel ) {
+		return '';
+	}
+	$segments = array_map( 'rawurlencode', explode( '/', $rel ) );
+	return trailingslashit( $base_url ) . implode( '/', $segments );
+}

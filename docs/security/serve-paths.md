@@ -10,7 +10,7 @@ The universal `.wp` installer populates five per-type subtrees under
 | Subtree                          | Source              | Contents                       |
 |----------------------------------|---------------------|--------------------------------|
 | `wp-content/uploads/odd/apps/<slug>/`    | pre-public app loader | HTML/JS/CSS bundle + manifest |
-| `wp-content/uploads/odd/icon-sets/<slug>/` | 1.0 baseline      | SVG icons + `manifest.json`    |
+| `wp-content/uploads/odd/icon-sets/<slug>/` | 1.0 baseline      | PNG/WebP icons + `manifest.json` |
 | `wp-content/uploads/odd/cursor-sets/<slug>/` | 1.0 baseline    | SVG cursors + `manifest.json`  |
 | `wp-content/uploads/odd/scenes/<slug>/`  | 1.0 baseline        | JS scene + preview + wallpaper |
 | `wp-content/uploads/odd/widgets/<slug>/` | 1.0 baseline        | JS/CSS widget + `manifest.json`|
@@ -68,16 +68,16 @@ to a per-request user input.
 [`odd/includes/content/iconsets.php`](../../odd/includes/content/iconsets.php),
 [`odd/includes/content/cursor-sets.php`](../../odd/includes/content/cursor-sets.php),
 [`odd/includes/icons/registry.php`](../../odd/includes/icons/registry.php),
-`GET /odd/v1/icons/{set}/{key}` (tinted SVG), and the cursor CSS endpoint.
+and the cursor CSS endpoint.
 
-- [x] **Static URL = `oddout_storage_url( 'icon-sets' ) . '<slug>/<file>'`.**
-      No PHP handler; the web server serves SVGs directly. The universal
-      archive validator rejects server-executable files and path traversal
-      before extraction.
-- [x] **Tinted-SVG REST route.** Slug + key are `sanitize_key`'d;
-      lookups hit a whitelisted icon-set registry; no user path is
-      joined into a filesystem path.
-- [x] **Passive SVG validation.** Installed icon and cursor SVGs are
+- [x] **Icon static URL = `oddout_storage_url( 'icon-sets' ) . '<slug>/<file>'`.**
+      No PHP handler; the web server serves PNG/WebP icon files directly.
+      The universal archive validator rejects server-executable files and
+      path traversal before extraction.
+- [x] **Raster image validation.** Installed icon images are parsed with
+      server image metadata, must match their PNG/WebP extension, must be
+      square, and must stay within the icon-set size limits.
+- [x] **Passive cursor SVG validation.** Installed cursor SVGs are
       parsed and rejected if they contain scriptable elements,
       `foreignObject`, embedded images, event handlers, external
       references, or scriptable URL values.
@@ -124,7 +124,7 @@ subtree with a bespoke serve endpoint, and that endpoint is scoped to
 
 ## Follow-ups
 
-- [x] Unit-test passive SVG validation against deliberately hostile SVG
+- [x] Cursor-set install validation rejects deliberately hostile SVG
       payloads.
 - [x] Document that apps are trusted first-party code after install; the
       iframe sandbox and CSP are defense in depth, not hostile-code

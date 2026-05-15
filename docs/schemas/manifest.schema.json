@@ -71,11 +71,11 @@
 		},
 		"icons": {
 			"type": "object",
-			"description": "Icon-set manifests only. Required minimum keys cover the stable dock slots; first-party ODD catalog sets also ship optional profile, links, and recycle-bin keys.",
+			"description": "Icon-set manifests only. All 14 semantic Desktop Mode icon keys map to relative PNG/WebP image paths.",
 			"patternProperties": {
 				"^[a-z0-9_-]+$": {
 					"type": "string",
-					"pattern": "^[^\\0]+\\.svg$"
+					"pattern": "^[^\\0]+\\.(png|webp)$"
 				}
 			},
 			"additionalProperties": false

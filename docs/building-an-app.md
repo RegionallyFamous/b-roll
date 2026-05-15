@@ -596,8 +596,8 @@ window.__odd.debug.apps();
 ODD validates every archive on upload. An archive is rejected if any
 of the following fail:
 
-- File extension is `.wp` (the legacy `.odd` extension was retired in
-  v1.5.0 — existing installs keep working; new uploads must be `.wp`).
+- File extension is `.wp`. The `.odd` extension is reserved for
+  shareable workspace presets, not installable app bundles.
 - File is a valid ZIP.
 - Archive contains no more than **2,000 files**.
 - Total uncompressed size is under **25 MB**.

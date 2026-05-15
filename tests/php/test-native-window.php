@@ -11,7 +11,7 @@
  *     `session.windows[]` replayed at boot (shell variants differ).
  *  2. Preserving Desktop Mode persisted state values (fullscreen/maximized).
  *  3. `desktop_mode_file_serialize` (registered in dock-filter.php): themed
- *     shortcut snapshots + HTTPS preview URLs for Desktop Mode ≥0.9 placements.
+ *     desktop shortcut snapshots + HTTPS preview URLs for Desktop Mode ≥0.9 placements.
  */
 
 class Test_Native_Window extends WP_UnitTestCase {

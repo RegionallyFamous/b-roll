@@ -132,6 +132,13 @@ add_action(
 			true
 		);
 		wp_enqueue_script(
+			'odd-workspace',
+			ODDOUT_URL . '/src/shared/workspace.js',
+			array_merge( $foundation_deps, array( 'odd-api' ) ),
+			$asset_version( 'src/shared/workspace.js' ),
+			true
+		);
+		wp_enqueue_script(
 			'odd-cursors',
 			ODDOUT_URL . '/src/cursors/index.js',
 			$foundation_deps,
@@ -148,7 +155,7 @@ add_action(
 		wp_enqueue_script(
 			'odd-panel',
 			ODDOUT_URL . '/src/panel/index.js',
-			array_merge( $foundation_deps, array( 'odd-api', 'odd-cursors', 'wp-i18n' ) ),
+			array_merge( $foundation_deps, array( 'odd-api', 'odd-workspace', 'odd-cursors', 'wp-i18n' ) ),
 			$asset_version( 'src/panel/index.js' ),
 			true
 		);

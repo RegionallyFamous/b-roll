@@ -70,19 +70,18 @@ button.odd-dock-rail-mount__tile {
 	border-radius: 12px;
 	cursor: pointer;
 	background: transparent;
-	transition: transform 120ms ease, background 140ms ease, box-shadow 160ms ease;
+	color: inherit;
+	transition: background 140ms ease, outline-color 140ms ease;
 	position: relative;
 }
 
 button.odd-dock-rail-mount__tile:focus-visible {
-	outline: 2px solid var(--desktop-mode-accent, #5856d6);
+	outline: 2px solid currentColor;
 	outline-offset: 2px;
 }
 
 button.odd-dock-rail-mount__tile:hover {
-	background: rgba(106, 92, 255, 0.12);
-	transform: translateY(-1px);
-	box-shadow: 0 12px 24px -16px rgba(106, 92, 255, 0.45);
+	background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 button.odd-dock-rail-mount__tile img {
@@ -90,7 +89,6 @@ button.odd-dock-rail-mount__tile img {
 	width: 24px;
 	height: 24px;
 	object-fit: contain;
-	border-radius: 4px;
 }
 
 button.odd-dock-rail-mount__tile span.dashicons {

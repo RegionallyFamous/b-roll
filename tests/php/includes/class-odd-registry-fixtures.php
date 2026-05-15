@@ -51,7 +51,7 @@ class ODDOUT_Registry_Fixtures {
 	 * `oddout_icon_set_registry` filter. The filter runs after the disk
 	 * scan, so we can inject a descriptor that skips the usual
 	 * file-existence checks — `icons` values are treated as opaque
-	 * URLs by the dock-item + desktop-icons filters.
+	 * URLs by the native Desktop Mode icon filters.
 	 *
 	 * @param string $slug Set slug. Defaults to `filament` so legacy
 	 *                     tests that hard-coded the old bundled set
@@ -68,13 +68,22 @@ class ODDOUT_Registry_Fixtures {
 					'franchise'   => 'Fixtures',
 					'accent'      => '#888888',
 					'description' => 'Test fixture',
-					'preview'     => 'https://example.test/icons/' . rawurlencode( $slug ) . '/preview.svg',
+					'preview'     => 'https://example.test/icons/' . rawurlencode( $slug ) . '/preview.webp',
 					'icons'       => array(
-						'dashboard'   => 'https://example.test/icons/' . rawurlencode( $slug ) . '/dashboard.svg',
-						'posts'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/posts.svg',
-						'pages'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/pages.svg',
-						'recycle-bin' => 'https://example.test/icons/' . rawurlencode( $slug ) . '/recycle-bin.svg',
-						'fallback'    => 'https://example.test/icons/' . rawurlencode( $slug ) . '/fallback.svg',
+						'dashboard'   => 'https://example.test/icons/' . rawurlencode( $slug ) . '/dashboard.webp',
+						'posts'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/posts.webp',
+						'pages'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/pages.webp',
+						'media'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/media.webp',
+						'comments'    => 'https://example.test/icons/' . rawurlencode( $slug ) . '/comments.webp',
+						'appearance'  => 'https://example.test/icons/' . rawurlencode( $slug ) . '/appearance.webp',
+						'plugins'     => 'https://example.test/icons/' . rawurlencode( $slug ) . '/plugins.webp',
+						'users'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/users.webp',
+						'tools'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/tools.webp',
+						'settings'    => 'https://example.test/icons/' . rawurlencode( $slug ) . '/settings.webp',
+						'profile'     => 'https://example.test/icons/' . rawurlencode( $slug ) . '/profile.webp',
+						'links'       => 'https://example.test/icons/' . rawurlencode( $slug ) . '/links.webp',
+						'recycle-bin' => 'https://example.test/icons/' . rawurlencode( $slug ) . '/recycle-bin.webp',
+						'fallback'    => 'https://example.test/icons/' . rawurlencode( $slug ) . '/fallback.webp',
 					),
 					'source'      => 'fixture',
 				);

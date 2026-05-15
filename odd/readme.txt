@@ -22,7 +22,7 @@ Open the ODD Shop, pick what feels right, and make the workspace yours.
 With ODD you can:
 
 * Add living wallpapers that make your desktop feel alive.
-* Dress up your desktop and dock icons with themed icon sets.
+* Dress up your Desktop Mode dock, taskbar, and desktop icons with themed raster icon sets.
 * Swap in custom cursors that match the mood.
 * Drop tiny widgets onto the desktop, like notes, toys, embeds, and little desk companions.
 * Install small desktop apps that open in their own windows.
@@ -49,6 +49,7 @@ Your tools are still there. Your admin still works. It just feels more alive whi
 = It works with WP Desktop Mode =
 
 ODD is made for WP Desktop Mode, the plugin that turns wp-admin into a desktop-style workspace.
+It works with Desktop Mode's own windows, dock, taskbar, desktop icons, and widget layer instead of replacing the desktop shell.
 
 == Installation ==
 
@@ -70,7 +71,7 @@ Yes. ODD is made for WP Desktop Mode. Desktop Mode creates the desktop workspace
 
 = What can I customize? =
 
-You can customize wallpapers, desktop icons, dock icons, cursors, widgets, and small desktop apps.
+You can customize wallpapers, Desktop Mode icons, cursors, widgets, and small desktop apps.
 
 = Is this just for developers? =
 

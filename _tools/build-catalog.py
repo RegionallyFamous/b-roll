@@ -7,7 +7,7 @@ Walks `_tools/catalog-sources/` and emits:
         registry.json           one catalog manifest for everything
         registry.schema.json    JSON schema for validators
         bundles/*.wp            one .wp archive per bundle
-        icons/<slug>.svg        64x64 Discover tile per bundle
+        icons/<slug>.*          Discover tile per bundle
 
 The plugin fetches `registry.json` over HTTPS and installs
 listed bundles through `oddout_bundle_install()`. Every content change
@@ -27,7 +27,7 @@ Bundle types:
     scene       source: catalog-sources/scenes/<slug>/{scene.js,
                 meta.json, wallpaper.webp, preview.webp}
     icon-set    source: catalog-sources/icon-sets/<slug>/ (manifest
-                + SVGs)
+                + PNG/WebP raster icons)
     cursor-set  source: catalog-sources/cursor-sets/<slug>/ (manifest
                 + SVG cursors)
     widget      source: catalog-sources/widgets/<slug>/{widget.js,
@@ -48,6 +48,8 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
+from PIL import Image, ImageDraw, ImageFilter
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 SOURCES = HERE / "catalog-sources"
@@ -65,25 +67,10 @@ FIRST_PARTY_ICON_KEYS = {
     "profile", "links", "recycle-bin", "fallback",
 }
 
-# The catalog icon SVGs must all carry this exact squircle path (see
-# `_tools/icon-style-guide.md` and `_tools/icon-sets/_base.svg.tmpl`).
-# The validator matches on a normalized whitespace-collapsed version
-# so authors can wrap the path onto multiple lines without failing.
-ICON_SQUIRCLE_PATH = (
-    "M 350.06 0 L 673.94 0 C 774.74 0 825.13 0 879.39 17.15 "
-    "L 879.39 17.15 C 938.62 38.71 985.29 85.38 1006.85 144.61 "
-    "C 1024 198.87 1024 249.26 1024 350.06 L 1024 673.94 "
-    "C 1024 774.74 1024 825.13 1006.85 879.39 L 1006.85 879.39 "
-    "C 985.29 938.62 938.62 985.29 879.39 1006.85 "
-    "C 825.13 1024 774.74 1024 673.94 1024 L 350.06 1024 "
-    "C 249.26 1024 198.87 1024 144.61 1006.85 L 144.61 1006.85 "
-    "C 85.38 985.29 38.71 938.62 17.15 879.39 "
-    "C 0 825.13 0 774.74 0 673.94 L 0 350.06 "
-    "C 0 249.26 0 198.87 17.15 144.61 L 17.15 144.61 "
-    "C 38.71 85.38 85.38 38.71 144.61 17.15 "
-    "C 198.87 0 249.26 0 350.06 0 Z"
-)
-ICON_SIZE_BUDGET = 10240  # bytes per SVG
+ICON_IMAGE_SIZE_BUDGET = 768 * 1024
+ICON_IMAGE_MIN_DIM = 64
+ICON_IMAGE_MAX_DIM = 2048
+ICON_IMAGE_EXTENSIONS = {"png": "PNG", "webp": "WEBP"}
 ASSET_REL_PATH = re.compile(r"^[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)*$")
 BUNDLE_FORBIDDEN_EXTENSIONS = {
     "php", "phtml", "phar", "php3", "php4", "php5", "php7",
@@ -91,7 +78,6 @@ BUNDLE_FORBIDDEN_EXTENSIONS = {
 }
 
 _ICON_CTRL = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
-_ICON_WS = re.compile(r"\s+")
 _SVG_ALLOWED_ELEMENTS = {
     "svg",
     "g",
@@ -236,40 +222,46 @@ def _validate_basic_svg(label: str, data: bytes) -> ET.Element:
     return root
 
 
-def _validate_icon_svg(slug: str, rel: str, data: bytes) -> None:
-    """Fail-loud check applied to every icon-set SVG before zipping.
+def _validate_icon_image(slug: str, rel: str, data: bytes) -> None:
+    """Fail-loud check applied to every square raster icon-set asset."""
+    _validate_icon_raster(slug, rel, data, square=True)
 
-    Enforces the standalone desktop glyph contract spec'd in
-    `_tools/icon-style-guide.md`:
-    - viewBox="0 0 1024 1024"
-    - contains the canonical squircle clipPath verbatim
-    - root <g> (or descendant) carries clip-path="url(#sq)"
-    - ≤ 10 KB uncompressed
-    - no forbidden tags (<image>, <script>, <foreignObject>)
-    - no control bytes outside \t \n \r
-    """
+
+def _validate_icon_preview(slug: str, rel: str, data: bytes) -> None:
+    """Fail-loud check applied to optional raster icon-set preview art."""
+    _validate_icon_raster(slug, rel, data, square=False)
+
+
+def _validate_icon_raster(slug: str, rel: str, data: bytes, *, square: bool) -> None:
     label = f"icon-set {slug}: {rel}"
-
-    if len(data) > ICON_SIZE_BUDGET:
+    ext = Path(rel).suffix.lower().lstrip(".")
+    expected = ICON_IMAGE_EXTENSIONS.get(ext)
+    if expected is None:
+        raise SystemExit(f"{label}: icon assets must be .png or .webp")
+    if len(data) > ICON_IMAGE_SIZE_BUDGET:
         raise SystemExit(
-            f"{label}: {len(data)} bytes exceeds {ICON_SIZE_BUDGET} budget"
+            f"{label}: {len(data)} bytes exceeds {ICON_IMAGE_SIZE_BUDGET} budget"
         )
-    text = data.decode("utf-8", errors="replace")
-    if 'clip-path="url(#sq)"' not in text:
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            img.verify()
+        with Image.open(io.BytesIO(data)) as img:
+            fmt = img.format
+            width, height = img.size
+    except Exception as exc:
+        raise SystemExit(f"{label}: invalid image data: {exc}") from exc
+    if fmt != expected:
+        raise SystemExit(f"{label}: extension .{ext} does not match {fmt}")
+    if square and width != height:
+        raise SystemExit(f"{label}: icon must be square, got {width}x{height}")
+    if (
+        width < ICON_IMAGE_MIN_DIM
+        or height < ICON_IMAGE_MIN_DIM
+        or width > ICON_IMAGE_MAX_DIM
+        or height > ICON_IMAGE_MAX_DIM
+    ):
         raise SystemExit(
-            f"{label}: missing clip-path=\"url(#sq)\" wrapper"
-        )
-    normalized = _ICON_WS.sub(" ", text)
-    if ICON_SQUIRCLE_PATH not in normalized:
-        raise SystemExit(
-            f"{label}: missing canonical iOS squircle <clipPath id=\"sq\">"
-        )
-
-    root = _validate_basic_svg(label, data)
-    viewbox = (root.attrib.get("viewBox") or "").strip()
-    if viewbox != "0 0 1024 1024":
-        raise SystemExit(
-            f"{label}: viewBox must be \"0 0 1024 1024\", got {viewbox!r}"
+            f"{label}: image dimensions must be {ICON_IMAGE_MIN_DIM}-{ICON_IMAGE_MAX_DIM}px, got {width}x{height}px"
         )
 
 
@@ -315,14 +307,9 @@ def publish_card(src_dir: Path, type_prefix: str, slug: str) -> str:
 # ---------------------------------------------------------------- #
 # Discover tile icons.
 #
-# Every catalog row needs an SVG tile. For scenes we derive one from
-# the fallbackColor + slug label (no external dependencies). For
-# icon-sets we compose a full-bleed preview from the set's own SVGs on
-# a shared dark stage. The individual icon backgrounds are stripped in
-# that preview so sets compare by glyph treatment instead of by a stack
-# of mismatched coloured plates. Widgets can ship a preview.svg beside
-# the manifest; older widgets fall back to the generated tile below.
-# For apps we copy the .wp bundle's icon.svg alongside.
+# Every catalog row needs a tile. Scenes use their real preview art,
+# icon-sets compose a WebP tile from raster set icons, widgets can ship
+# a preview.svg beside the manifest, and apps copy their bundle icon.
 # ---------------------------------------------------------------- #
 
 
@@ -462,16 +449,8 @@ def widget_tile(slug: str, label: str) -> str:
     )
 
 
-def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[str, str]) -> str:
-    """Compose a full-bleed catalog preview for an icon set.
-
-    The individual set SVGs are transparent standalone glyphs. The Shop
-    reads better when every set shares the same dark stage and the
-    preview compares only the glyph language.
-    """
-
-    ET.register_namespace("", "http://www.w3.org/2000/svg")
-
+def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[str, str]) -> bytes:
+    """Compose a WebP catalog preview from raster icon-set artwork."""
     def safe_hex(value: str) -> str:
         value = (value or "#888888").strip()
         if re.fullmatch(r"#[0-9a-fA-F]{3}", value):
@@ -480,7 +459,7 @@ def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[
             return value
         return "#888888"
 
-    def mix(c1: str, c2: str, amt: float) -> str:
+    def mix(c1: str, c2: str, amt: float) -> tuple[int, int, int]:
         a = safe_hex(c1).lstrip("#")
         b = safe_hex(c2).lstrip("#")
         out = []
@@ -488,71 +467,50 @@ def iconset_tile(slug: str, label: str, accent: str, src_dir: Path, icons: dict[
             av = int(a[i:i + 2], 16)
             bv = int(b[i:i + 2], 16)
             out.append(round(av * (1 - amt) + bv * amt))
-        return "#" + "".join(f"{v:02x}" for v in out)
+        return tuple(out)
 
     accent = safe_hex(accent)
-    glow = mix(accent, "#ffffff", 0.18)
-    uid = re.sub(r"[^a-z0-9]+", "", slug.lower())
+    accent_rgb = tuple(int(accent.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
+    glow_rgb = mix(accent, "#ffffff", 0.28)
 
-    def strip_preview_background(root: ET.Element) -> None:
-        for group in root.iter():
-            if group.attrib.get("clip-path") != "url(#sq)":
-                continue
-            for child in list(group):
-                tag = child.tag.rsplit("}", 1)[-1]
-                if tag != "rect":
-                    continue
-                if child.attrib.get("width") == "1024" and child.attrib.get("height") == "1024":
-                    group.remove(child)
+    img = Image.new("RGBA", (1024, 1024), (8, 5, 17, 255))
+    glow = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(glow)
+    draw.ellipse((-140, -180, 720, 700), fill=(*glow_rgb, 58))
+    draw.ellipse((300, 300, 1220, 1180), fill=(*accent_rgb, 32))
+    glow = glow.filter(ImageFilter.GaussianBlur(70))
+    img.alpha_composite(glow)
 
     placements = [
-        ("dashboard", -92, -92, 560, -5),
-        ("posts", 556, -92, 560, 4),
-        ("pages", -92, 556, 560, 4),
-        ("media", 556, 556, 560, -5),
+        ("dashboard", 62, 62, 388, -4),
+        ("posts", 574, 62, 388, 4),
+        ("pages", 62, 574, 388, 4),
+        ("media", 574, 574, 388, -4),
     ]
-    snippets: list[str] = []
     for key, x, y, size, rot in placements:
         rel = icons.get(key) or icons.get("dashboard") or next(iter(icons.values()))
-        svg_path = src_dir / rel
-        root = ET.fromstring(svg_path.read_bytes())
-        strip_preview_background(root)
-        root.set("x", str(x))
-        root.set("y", str(y))
-        root.set("width", str(size))
-        root.set("height", str(size))
-        root.set("aria-hidden", "true")
-        root.attrib.pop("role", None)
-        root.attrib.pop("aria-label", None)
-        cx = x + size / 2
-        cy = y + size / 2
-        snippets.append(
-            f'<g transform="rotate({rot} {cx:g} {cy:g})">'
-            + ET.tostring(root, encoding="unicode", short_empty_elements=True)
-            + "</g>"
-        )
+        with Image.open(src_dir / rel) as icon:
+            icon = icon.convert("RGBA")
+            icon.thumbnail((size, size), Image.Resampling.LANCZOS)
+            layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+            ox = (size - icon.width) // 2
+            oy = (size - icon.height) // 2
+            layer.alpha_composite(icon, (ox, oy))
+            if rot:
+                layer = layer.rotate(rot, resample=Image.Resampling.BICUBIC, expand=True)
+            shadow = Image.new("RGBA", layer.size, (0, 0, 0, 0))
+            shadow.alpha_composite(layer)
+            alpha = shadow.getchannel("A").filter(ImageFilter.GaussianBlur(18))
+            shadow = Image.new("RGBA", layer.size, (0, 0, 0, 118))
+            shadow.putalpha(alpha)
+            px = x - (layer.width - size) // 2
+            py = y - (layer.height - size) // 2
+            img.alpha_composite(shadow, (px, py + 22))
+            img.alpha_composite(layer, (px, py))
 
-    return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" '
-        f'width="1024" height="1024" role="img" aria-label="{label} icon set preview">'
-        "<defs>"
-        f'<radialGradient id="glow{uid}" cx=".28" cy=".18" r=".72">'
-        f'<stop offset="0" stop-color="{glow}" stop-opacity=".32"/>'
-        f'<stop offset=".58" stop-color="{accent}" stop-opacity=".08"/>'
-        f'<stop offset="1" stop-color="{accent}" stop-opacity="0"/>'
-        "</radialGradient>"
-        f'<filter id="lift{uid}" x="-30%" y="-30%" width="160%" height="160%">'
-        '<feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#000" flood-opacity=".52"/>'
-        '<feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#fff" flood-opacity=".13"/>'
-        "</filter>"
-        "</defs>"
-        '<rect width="1024" height="1024" fill="#080511"/>'
-        f'<rect width="1024" height="1024" fill="url(#glow{uid})"/>'
-        f'<g filter="url(#lift{uid})">'
-        + "".join(snippets)
-        + "</g>"
-        + "</svg>\n"
-    )
+    out = io.BytesIO()
+    img.convert("RGB").save(out, "WEBP", quality=88, method=6)
+    return out.getvalue()
 
 
 # ---------------------------------------------------------------- #
@@ -643,26 +601,29 @@ def build_iconset(slug: str, src_dir: Path) -> dict:
         "description": meta.get("description", ""),
         "franchise": meta.get("franchise", "Community"),
         "accent": meta.get("accent", "#888"),
-        "preview": meta.get("preview", "dashboard.svg"),
+        "preview": meta.get("preview", "dashboard.webp"),
         "icons": meta["icons"],
     }
     files["manifest.json"] = json.dumps(manifest, indent=2).encode() + b"\n"
-    for rel in sorted(set(meta["icons"].values())):
-        svg_path = src_dir / rel
-        if not svg_path.is_file():
+    asset_rels = set(meta["icons"].values())
+    if manifest["preview"]:
+        asset_rels.add(manifest["preview"])
+    for rel in sorted(asset_rels):
+        asset_path = src_dir / rel
+        if not asset_path.is_file():
             raise SystemExit(f"icon-set {slug}: missing {rel}")
-        data = svg_path.read_bytes()
-        _validate_icon_svg(slug, rel, data)
+        data = asset_path.read_bytes()
+        if rel == manifest["preview"]:
+            _validate_icon_preview(slug, rel, data)
+        else:
+            _validate_icon_image(slug, rel, data)
         files[rel] = data
 
     bundle = OUT_BUNDLES / f"iconset-{slug}.wp"
     write_zip(bundle, files)
 
-    # Use a dedicated full-bleed preview as the Discover tile. Reusing
-    # the set's transparent dashboard.svg would disappear on large Shop
-    # catalog cards and would not show the set language as clearly.
-    icon_name = f"iconset-{slug}.svg"
-    (OUT_ICONS / icon_name).write_text(
+    icon_name = f"iconset-{slug}.webp"
+    (OUT_ICONS / icon_name).write_bytes(
         iconset_tile(slug, meta["label"], meta.get("accent", "#888"), src_dir, meta["icons"])
     )
 

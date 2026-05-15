@@ -542,8 +542,8 @@ function oddout_starter_install_now( array $prior_slugs = array() ) {
  * Two layers get seeded:
  *
  *   1. ODD's *inner* prefs — `oddout_wallpaper` (which scene renders
- *      inside ODD's card), `oddout_icon_set` (which dock re-skin is
- *      active), and `oddout_cursor_set` (which cursor theme is
+ *      inside ODD's card), `oddout_icon_set` (which Desktop Mode icon set
+ *      is active), and `oddout_cursor_set` (which cursor theme is
  *      active). These are pure user meta.
  *
  *   2. WP Desktop Mode's *outer* wallpaper selection — the host
@@ -606,12 +606,30 @@ function oddout_starter_apply_prefs( array $starter ) {
 }
 
 function oddout_starter_host_settings_meta_key() {
-	return defined( 'DESKTOP_MODE_OS_SETTINGS_META_KEY' ) ? DESKTOP_MODE_OS_SETTINGS_META_KEY : 'desktop_mode_os_settings';
+	if ( defined( 'DESKTOP_MODE_OS_SETTINGS_META_KEY' ) ) {
+		return DESKTOP_MODE_OS_SETTINGS_META_KEY;
+	}
+	if ( defined( 'WPDM_OS_SETTINGS_META_KEY' ) ) {
+		return WPDM_OS_SETTINGS_META_KEY;
+	}
+	return 'desktop_mode_os_settings';
+}
+
+function oddout_starter_host_default_settings() {
+	if ( function_exists( 'desktop_mode_default_os_settings' ) ) {
+		$defaults = desktop_mode_default_os_settings();
+		return is_array( $defaults ) ? $defaults : null;
+	}
+	if ( function_exists( 'wpdm_default_os_settings' ) ) {
+		$defaults = wpdm_default_os_settings();
+		return is_array( $defaults ) ? $defaults : null;
+	}
+	return null;
 }
 
 function oddout_starter_host_default_wallpaper() {
-	if ( function_exists( 'desktop_mode_default_os_settings' ) ) {
-		$defaults = desktop_mode_default_os_settings();
+	$defaults = oddout_starter_host_default_settings();
+	if ( is_array( $defaults ) ) {
 		return isset( $defaults['wallpaper'] ) ? sanitize_key( (string) $defaults['wallpaper'] ) : 'dark';
 	}
 	return 'dark';
@@ -625,6 +643,9 @@ function oddout_starter_get_host_settings_for_user( $user_id ) {
 	if ( function_exists( 'desktop_mode_get_os_settings' ) ) {
 		return desktop_mode_get_os_settings( $user_id );
 	}
+	if ( function_exists( 'wpdm_get_os_settings' ) ) {
+		return wpdm_get_os_settings( $user_id );
+	}
 	$settings = get_user_meta( $user_id, oddout_starter_host_settings_meta_key(), true );
 	return is_array( $settings ) ? $settings : null;
 }
@@ -637,8 +658,48 @@ function oddout_starter_save_host_settings_for_user( $user_id, array $settings )
 	if ( function_exists( 'desktop_mode_save_os_settings' ) ) {
 		return (bool) desktop_mode_save_os_settings( $user_id, $settings );
 	}
+	if ( function_exists( 'wpdm_save_os_settings' ) ) {
+		return (bool) wpdm_save_os_settings( $user_id, $settings );
+	}
 	return (bool) update_user_meta( $user_id, oddout_starter_host_settings_meta_key(), $settings );
 }
+
+function oddout_starter_host_os_settings_available() {
+	$desktop_mode_api = function_exists( 'desktop_mode_get_os_settings' )
+		&& function_exists( 'desktop_mode_save_os_settings' )
+		&& function_exists( 'desktop_mode_default_os_settings' );
+	$wpdm_api         = function_exists( 'wpdm_get_os_settings' )
+		&& function_exists( 'wpdm_save_os_settings' )
+		&& function_exists( 'wpdm_default_os_settings' );
+	return $desktop_mode_api || $wpdm_api;
+}
+
+function oddout_starter_host_wallpaper_registration_available() {
+	return function_exists( 'desktop_mode_register_wallpaper' ) || function_exists( 'wp_register_desktop_wallpaper' );
+}
+
+function oddout_starter_host_dock_is_large( array $settings ) {
+	return isset( $settings['dockSize'] ) && 'large' === (string) $settings['dockSize'];
+}
+
+function oddout_starter_with_odd_wallpaper_and_large_dock( array $settings ) {
+	$settings['wallpaper'] = 'odd';
+	$settings['dockSize']  = 'large';
+	return $settings;
+}
+
+function oddout_desktop_mode_large_dock_when_odd_active( $config ) {
+	if ( ! is_array( $config ) || empty( $config['osSettings'] ) || ! is_array( $config['osSettings'] ) ) {
+		return $config;
+	}
+	$wallpaper = isset( $config['osSettings']['wallpaper'] ) ? (string) $config['osSettings']['wallpaper'] : '';
+	if ( 'odd' === $wallpaper ) {
+		$config['osSettings']['dockSize'] = 'large';
+	}
+	return $config;
+}
+add_filter( 'desktop_mode_shell_config', 'oddout_desktop_mode_large_dock_when_odd_active', 20 );
+add_filter( 'wp_desktop_shell_config', 'oddout_desktop_mode_large_dock_when_odd_active', 20 );
 
 /**
  * Point WP Desktop Mode's outer wallpaper selection at `"odd"` for a
@@ -646,13 +707,10 @@ function oddout_starter_save_host_settings_for_user( $user_id, array $settings )
  * already.
  *
  * Desktop Mode stores its settings as a single JSON-ish array in user
- * meta `desktop_mode_os_settings` (key exposed as
- * `DESKTOP_MODE_OS_SETTINGS_META_KEY`). Its sanitizer rebuilds the
- * entire shape on write, so we can't just merge — we read the current
- * full shape through `desktop_mode_get_os_settings()`, flip
- * `wallpaper`, and hand the complete array back to
- * `desktop_mode_save_os_settings()`. That preserves accent / dockSize
- * / AI settings / etc.
+ * meta. Its sanitizer rebuilds the entire shape on write, so we can't
+ * just merge — we read the current full shape through Desktop Mode's OS
+ * settings helper, flip `wallpaper`, set `dockSize` to `large`, and hand
+ * the complete array back. That preserves accent / AI settings / etc.
  *
  * Returns true when a write occurred, false otherwise (already seeded,
  * user picked something else, or host plugin not loaded yet).
@@ -665,7 +723,7 @@ function oddout_starter_seed_host_wallpaper( $user_id ) {
 	if ( $user_id <= 0 ) {
 		return false;
 	}
-	if ( ! function_exists( 'oddout_desktop_mode_supports' ) || ! oddout_desktop_mode_supports( 'os_settings' ) || ! oddout_desktop_mode_supports( 'wallpaper' ) ) {
+	if ( ! oddout_starter_host_os_settings_available() || ! oddout_starter_host_wallpaper_registration_available() ) {
 		return false;
 	}
 
@@ -677,9 +735,13 @@ function oddout_starter_seed_host_wallpaper( $user_id ) {
 	$current_wallpaper = isset( $current['wallpaper'] ) ? (string) $current['wallpaper'] : '';
 	$default_wallpaper = oddout_starter_host_default_wallpaper();
 
-	// Already on ODD — nothing to do.
 	if ( 'odd' === $current_wallpaper ) {
-		return false;
+		if ( oddout_starter_host_dock_is_large( $current ) ) {
+			return false;
+		}
+		$next             = $current;
+		$next['dockSize'] = 'large';
+		return oddout_starter_save_host_settings_for_user( $user_id, $next );
 	}
 	// User (or another plugin) picked something other than the host
 	// default. Respect that choice; don't silently switch them.
@@ -687,10 +749,10 @@ function oddout_starter_seed_host_wallpaper( $user_id ) {
 		return false;
 	}
 
-	$next              = $current;
-	$next['wallpaper'] = 'odd';
-
-	return oddout_starter_save_host_settings_for_user( $user_id, $next );
+	return oddout_starter_save_host_settings_for_user(
+		$user_id,
+		oddout_starter_with_odd_wallpaper_and_large_dock( $current )
+	);
 }
 
 /**
@@ -709,29 +771,27 @@ function oddout_wallpaper_ensure_host_engine_selected( $user_id ) {
 	if ( $user_id <= 0 ) {
 		return false;
 	}
-	if ( ! function_exists( 'oddout_desktop_mode_supports' )
-		|| ! oddout_desktop_mode_supports( 'os_settings' )
-		|| ! oddout_desktop_mode_supports( 'wallpaper' ) ) {
+	if ( ! oddout_starter_host_os_settings_available() || ! oddout_starter_host_wallpaper_registration_available() ) {
 		return false;
 	}
 
 	$current = oddout_starter_get_host_settings_for_user( $user_id );
-	if ( ! is_array( $current ) && function_exists( 'desktop_mode_default_os_settings' ) ) {
-		$defaults = desktop_mode_default_os_settings();
-		$current  = is_array( $defaults ) ? $defaults : null;
+	if ( ! is_array( $current ) ) {
+		$current = oddout_starter_host_default_settings();
 	}
 	if ( ! is_array( $current ) ) {
 		return false;
 	}
 
-	if ( ( isset( $current['wallpaper'] ) ? (string) $current['wallpaper'] : '' ) === 'odd' ) {
+	$current_wallpaper = isset( $current['wallpaper'] ) ? (string) $current['wallpaper'] : '';
+	if ( 'odd' === $current_wallpaper && oddout_starter_host_dock_is_large( $current ) ) {
 		return false;
 	}
 
-	$next              = $current;
-	$next['wallpaper'] = 'odd';
-
-	return oddout_starter_save_host_settings_for_user( $user_id, $next );
+	return oddout_starter_save_host_settings_for_user(
+		$user_id,
+		oddout_starter_with_odd_wallpaper_and_large_dock( $current )
+	);
 }
 
 function oddout_starter_get_state_for_rest() {

@@ -5,6 +5,10 @@ Every ODD bundle — app, icon set, cursor set, scene, or widget — ships a
 carries a shared header (identity, versioning, type) and a per-type
 body (entry points, icons, preview assets).
 
+`.wp` is the installable content archive format. `.odd` is a separate
+workspace-preset format for sharing a desktop arrangement; it does not
+contain a manifest or executable bundle files.
+
 > **JSON Schema.** A machine-readable schema lives at
 > [`docs/schemas/manifest.schema.json`][schema]. Add
 > `"$schema": "https://raw.githubusercontent.com/RegionallyFamous/odd/main/docs/schemas/manifest.schema.json"`
@@ -104,22 +108,22 @@ Covered in full by [Building an Icon Set](building-an-icon-set.md).
     "version":   "1.0.0",
     "franchise": "Aurora",
     "accent":    "#7cc0ff",
-    "preview":   "preview.svg",
+    "preview":   "preview.webp",
     "icons": {
-        "dashboard":  "icons/dashboard.svg",
-        "posts":      "icons/posts.svg",
-        "pages":      "icons/pages.svg",
-        "media":      "icons/media.svg",
-        "comments":   "icons/comments.svg",
-        "appearance": "icons/appearance.svg",
-        "plugins":    "icons/plugins.svg",
-        "users":      "icons/users.svg",
-        "tools":      "icons/tools.svg",
-        "settings":   "icons/settings.svg",
-        "profile":    "icons/profile.svg",
-        "links":      "icons/links.svg",
-        "recycle-bin": "icons/recycle-bin.svg",
-        "fallback":   "icons/fallback.svg"
+        "dashboard":  "icons/dashboard.webp",
+        "posts":      "icons/posts.webp",
+        "pages":      "icons/pages.webp",
+        "media":      "icons/media.webp",
+        "comments":   "icons/comments.webp",
+        "appearance": "icons/appearance.webp",
+        "plugins":    "icons/plugins.webp",
+        "users":      "icons/users.webp",
+        "tools":      "icons/tools.webp",
+        "settings":   "icons/settings.webp",
+        "profile":    "icons/profile.webp",
+        "links":      "icons/links.webp",
+        "recycle-bin": "icons/recycle-bin.webp",
+        "fallback":   "icons/fallback.webp"
     }
 }
 ```
@@ -127,15 +131,17 @@ Covered in full by [Building an Icon Set](building-an-icon-set.md).
 | Field       | Required | Notes                                                                    |
 |-------------|----------|--------------------------------------------------------------------------|
 | `franchise` | no       | Soft historical label. The Shop now derives the shelf category from the slug — `franchise` is kept for third-party tooling that may still read it. |
-| `accent`    | yes      | `#hex`. Paints the tile, quilt gradient, and hover states.               |
-| `preview`   | no       | Relative path to a hero SVG/PNG/WebP. Falls back to `icons.dashboard`.   |
-| `icons`     | yes      | Map of the required minimum keys, plus optional enhanced ODD keys such as `profile`, `links`, and `recycle-bin`, to relative SVG paths. |
+| `accent`    | yes      | `#hex`. Paints the Shop tile, quilt gradient, and catalog metadata.      |
+| `preview`   | no       | Relative path to a hero PNG/WebP. Falls back to `icons.dashboard`.       |
+| `icons`     | yes      | Map of all 14 semantic icon keys to relative PNG/WebP paths. |
 
-Every SVG is validated on install as passive SVG: no `<script>`,
-`foreignObject`, embedded images, event attributes, external
-`xlink:href`/`href`, scriptable URL values, or control bytes outside
-`\t\n\r`. SVGs must be well-formed and use allowed drawing elements and
-attributes.
+Icon sets are native Desktop Mode raster image URL feeds. ODD validates
+each declared icon as a PNG or WebP image, stores the set under
+`wp-content/uploads/odd/icon-sets/<slug>/`, and passes the resulting
+image URLs to Desktop Mode's own dock, taskbar, desktop, and file-layer
+icon payloads. ODD does not recolor these images or render a replacement rail.
+Each icon image must be square, 64-2048 px, 768 KB or smaller, and match
+its declared extension.
 
 ### Type: `cursor-set`
 
@@ -164,10 +170,11 @@ Covered in full by [Building a Cursor Set](building-a-cursor-set.md).
 | `preview` | no       | Relative path to an SVG preview tile.                                      |
 | `cursors` | yes      | Map of supported cursor kinds to `{ file, hotspot: [x, y] }`. `default` is required. |
 
-Cursor SVGs use the same passive-SVG validation as icon SVGs. They apply
-to Desktop Mode, ODD app frames, and classic wp-admin chrome for the
-current user; editor iframes and the public front end keep native
-cursors.
+Cursor SVGs use passive-SVG validation: no `<script>`, `foreignObject`,
+embedded images, event attributes, external `xlink:href`/`href`,
+scriptable URL values, or control bytes outside `\t\n\r`. They apply to
+Desktop Mode, ODD app frames, and classic wp-admin chrome for the current
+user; editor iframes and the public front end keep native cursors.
 
 ### Type: `scene`
 
@@ -287,7 +294,7 @@ response and as friendly copy in the Shop topbar pill.
 | Type       | Extra checks                                                                                   |
 |------------|------------------------------------------------------------------------------------------------|
 | `app`      | `entry` matches the entry regex + file exists in the archive.                                  |
-| `icon-set` | `icons` present, all required minimum keys mapped, optional enhanced keys allowed, each path is a real SVG, each SVG passes passive-SVG validation. |
+| `icon-set` | `icons` present, all 14 semantic keys mapped, each path is a real PNG/WebP image, each image is square, 64-2048 px, and at most 768 KB. |
 | `cursor-set` | `cursors` present, `default` mapped, each path is a real SVG, each SVG passes passive-SVG validation, hotspots are integer pairs. |
 | `scene`    | `entry`, `preview`, `wallpaper` all present in the archive; `fallbackColor` is a `#hex`.       |
 | `widget`   | `entry` matches the entry regex + file exists in the archive.                                  |

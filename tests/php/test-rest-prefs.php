@@ -53,6 +53,13 @@ class Test_REST_Prefs extends ODDOUT_REST_Test_Case {
 		$this->assertIsArray( $data['scenes'] );
 		$this->assertNotEmpty( $data['scenes'], 'Scenes catalog must not be empty.' );
 		$this->assertIsArray( $data['sets'] );
+		$this->assertNotEmpty( $data['sets'], 'Icon set catalog must not be empty.' );
+		$sets_by_slug = array_column( $data['sets'], null, 'slug' );
+		$this->assertArrayHasKey( 'filament', $sets_by_slug );
+		$this->assertStringEndsWith( '/preview.webp', $sets_by_slug['filament']['preview'] );
+		foreach ( $sets_by_slug['filament']['icons'] as $key => $url ) {
+			$this->assertStringEndsWith( '.webp', $url, "Serialized icon set asset {$key} must be WebP." );
+		}
 		$this->assertIsArray( $data['shuffle'] );
 		$this->assertArrayHasKey( 'enabled', $data['shuffle'] );
 		$this->assertArrayHasKey( 'minutes', $data['shuffle'] );

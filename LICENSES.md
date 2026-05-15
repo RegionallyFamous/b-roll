@@ -67,32 +67,14 @@ then retouched to remove any accidental text / logo drift. Released
 
 ## Icon sets — `_tools/catalog-sources/icon-sets/<slug>/`
 
-18 sets × 13 SVGs each. Seventeen sets are authored from a shared
-symbol catalog at `_tools/regen-icon-set.py`; the `oddlings` default
-set is hand-authored via `_tools/gen-oddling-desktop.py`. All
-hand-authored paths and programmatic primitives, no traced stock
-artwork. Released **CC0-1.0**.
+First-party icon sets are original ODD artwork with no traced stock
+artwork. The catalog records finished bundle assets, so record
+provenance per bundle when new icon sets are added. Released
+**CC0-1.0**.
 
-| Set                 | Files                                     |
-|---------------------|-------------------------------------------|
-| arcade-tokens       | 13 SVGs + manifest.json                   |
-| arctic              | 13 SVGs + manifest.json                   |
-| blueprint           | 13 SVGs + manifest.json                   |
-| botanical-plate     | 13 SVGs + manifest.json                   |
-| brutalist-stencil   | 13 SVGs + manifest.json                   |
-| circuit-bend        | 13 SVGs + manifest.json                   |
-| claymation          | 13 SVGs + manifest.json                   |
-| cross-stitch        | 13 SVGs + manifest.json                   |
-| eyeball-avenue      | 13 SVGs + manifest.json                   |
-| filament            | 13 SVGs + manifest.json                   |
-| fold                | 13 SVGs + manifest.json                   |
-| hologram            | 13 SVGs + manifest.json                   |
-| lemonade-stand      | 13 SVGs + manifest.json                   |
-| monoline            | 13 SVGs + manifest.json                   |
-| oddlings            | 13 SVGs + manifest.json (hand-authored)   |
-| risograph           | 13 SVGs + manifest.json                   |
-| stadium             | 13 SVGs + manifest.json                   |
-| tiki                | 13 SVGs + manifest.json                   |
+| Set                 | Files                                     | Provenance          |
+|---------------------|-------------------------------------------|---------------------|
+| oddlings            | icon assets + manifest.json               | Original ODD artwork |
 
 ## Widgets — `_tools/catalog-sources/widgets/<slug>/`
 
@@ -143,8 +125,8 @@ Any time a new wallpaper, preview, icon set, widget, or app lands in
 `_tools/catalog-sources/`:
 
 1. Add a row to the relevant section above.
-2. Record the provenance (GPT Image 2 / hand-authored / generated from
-   `_tools/...`).
+2. Record the provenance (GPT Image 2 / hand-authored / other original
+   process).
 3. If the provenance is anything other than the two categories above,
    STOP and open a discussion — the project is GPL-compatible-only by
    policy.

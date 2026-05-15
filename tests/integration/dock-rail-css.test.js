@@ -12,9 +12,6 @@ describe( 'Desktop Mode dock rail CSS contract', () => {
 		const css = readFileSync( CONTRAST_CSS, 'utf8' );
 
 		expect( css ).toContain( 'body.desktop-mode-active .desktop-mode-dock[ data-desktop-mode-dock-placement="right" ] {' );
-		expect( css ).toContain( '--odd-dock-tile-size: 43px;' );
-		expect( css ).toContain( '--odd-dock-icon-size: 38px;' );
-		expect( css ).toContain( 'padding: 6px;' );
 		expect( css ).toContain( 'overflow-x: hidden;' );
 		expect( css ).toContain( 'overflow-y: auto;' );
 		expect( css ).toContain( 'overscroll-behavior-x: none;' );
@@ -23,8 +20,12 @@ describe( 'Desktop Mode dock rail CSS contract', () => {
 		expect( css ).toContain( 'scrollbar-width: none;' );
 		expect( css ).toContain( 'scrollbar-gutter: auto;' );
 		expect( css ).toContain( 'body.desktop-mode-active .desktop-mode-dock[ data-desktop-mode-dock-placement="right" ]::-webkit-scrollbar {' );
-		expect( css ).toContain( 'max-width: var( --odd-dock-tile-size );' );
 		expect( css ).not.toContain( 'scrollbar-gutter: stable;' );
+		expect( css ).not.toContain( '--odd-dock-tile-size' );
+		expect( css ).not.toContain( 'drop-shadow' );
+		expect( css ).not.toContain( ':has(' );
+		expect( css ).not.toContain( 'backdrop-filter' );
+		expect( css ).not.toContain( 'background: rgba( 4, 8, 18' );
 	} );
 
 	it( 'prevents the custom ODD dock rail mount from creating horizontal drift', () => {
@@ -35,5 +36,8 @@ describe( 'Desktop Mode dock rail CSS contract', () => {
 		expect( css ).toContain( 'touch-action: pan-y;' );
 		expect( css ).toContain( '.desktop-mode-dock.desktop-mode-shell__dock--orientation-left .odd-dock-rail-mount__menu,' );
 		expect( css ).toContain( 'align-items: center;' );
+		expect( css ).not.toContain( 'transform: translateY' );
+		expect( css ).not.toContain( 'box-shadow' );
+		expect( css ).not.toContain( 'rgba(106, 92, 255' );
 	} );
 } );

@@ -39,8 +39,8 @@ odd/                                the plugin — JS/PHP/CSS only, no bundled c
 │   │   ├── registry.php            filter-driven oddout_wallpaper_scenes()
 │   │   └── prefs.php               per-user pref getters (oddout_wallpaper_*)
 │   ├── icons/
-│   │   ├── registry.php            installed-icon-set manifest reader + tint pipeline
-│   │   └── dock-filter.php         desktop_mode_dock_item + desktop_mode_icons @ priority 20
+│   │   ├── registry.php            installed-icon-set manifest reader + raster URL registry
+│   │   └── dock-filter.php         Desktop Mode dock/icon filters @ priority 20
 │   └── apps/
 │       ├── bootstrap.php           feature flag + require_once list
 │       ├── storage.php             oddout_apps_index + oddout_app_{slug} + .htaccess
@@ -63,7 +63,7 @@ _tools/                             author-side content, never shipped to users
 ├── catalog-sources/                source of truth for every bundle
 │   ├── starter-pack.json           { scenes:[…], iconSets:[…], cursorSets:[…], widgets:[…], apps:[…] }
 │   ├── scenes/<slug>/              scene.js + meta.json + preview.webp + wallpaper.webp
-│   ├── icon-sets/<slug>/           manifest.json + SVGs
+│   ├── icon-sets/<slug>/           manifest.json + PNG/WebP icons
 │   ├── cursor-sets/<slug>/         manifest.json + SVG cursors + preview.svg
 │   ├── widgets/<slug>/             widget.js + widget.css? + manifest.json + preview.svg?
 │   └── apps/<slug>/                prebuilt bundle.wp + icon.svg + meta.json
@@ -76,7 +76,7 @@ site/                               GitHub Pages deploy target
 │   ├── registry.json               remote catalog manifest (consumed by oddout_catalog_load())
 │   ├── registry.schema.json
 │   ├── bundles/<type>-<slug>.wp    deterministic ZIP archives
-│   └── icons/<slug>.svg            tile-sized catalog preview icons
+│   └── icons/<slug>.*              tile-sized catalog preview icons
 └── playground/                     WordPress Playground embed + blueprint
 
 ci/smoke/
@@ -218,38 +218,43 @@ parallel with the REST POST. The wallpaper engine subscribes under the
 
 ## Icon swaps (server-canonical)
 
-Icon-set changes trigger a 180 ms fade + `window.location.reload()`
-after the POST succeeds. Re-render happens server-side through two
-filters in `includes/icons/dock-filter.php`:
+Icon-set changes save via the normal preferences endpoint and schedule a
+short reload so Desktop Mode can rebuild its native icon payloads. Re-render
+happens server-side through filters in `includes/icons/dock-filter.php`:
 
-- `desktop_mode_dock_item` (priority 20, 2-arg): per-tile swap keyed by
+- `desktop_mode_dock_item` / `wp_desktop_dock_item` (priority 20, 2-arg):
+  swaps dock/taskbar item `icon` values keyed by
   `oddout_icons_slug_to_key( $menu_slug )`, e.g. `edit.php` → `posts`.
-  Falls back to the set's `fallback` icon when a set ships no specific
-  match.
-- `desktop_mode_icons` (priority 20): re-skins desktop shortcuts by the
-  same key logic, but skips the ODD Shop icon itself so it stays
-  recognizable regardless of the active set.
+- `desktop_mode_icons` / `wp_desktop_icons` (priority 20): re-skins desktop
+  shortcuts by the same key logic, but skips ODD-owned launchers so apps
+  keep their own art.
+- `desktop_mode_shell_config` / `wp_desktop_shell_config` (priority 18):
+  aligns matching native-window taskbar icons with their themed desktop
+  shortcut icon when Desktop Mode exposes both shapes.
 
-Why server-canonical: the v0.1.4 lesson from the legacy `b-roll-icons`
-plugin was that `data-menu-slug` on dock DOM is the sanitized CSS ID
-(`menu-posts`), not the raw menu slug (`edit.php`) — client-side DOM
-surgery was unreliable. Don't regress.
+No CSS backplates or live DOM rewriting are involved; ODD only feeds
+Desktop Mode the icon values it already asks plugins to provide. For
+ODD icon sets, those values are normal PNG/WebP image URLs from the
+active set, not inline image markup or recolored data URIs. Desktop Mode stays
+responsible for placing, sizing, and rendering the dock, taskbar, desktop,
+recycle bin, and file-layer shortcut surfaces.
 
-## Icon accent pipeline
+## Icon raster feed
 
-Every icon set declares an `accent` hex in its manifest. For sets whose
-SVGs opt in by using `stroke="currentColor"` / `fill="currentColor"`:
+Every icon set declares an `icons` map whose values are relative PNG/WebP
+paths. The installed-set registry resolves those paths against either the
+plugin assets tree or `uploads/odd/icon-sets/<slug>/`, then returns a
+single public URL per logical key:
 
-1. `oddout_icons_tint_svg_data_uri()` in `includes/icons/registry.php`
-   reads the SVG, substitutes `currentColor` with the manifest hex,
-   returns a `data:image/svg+xml;utf8,…` URI.
-2. `oddout_icons_get_sets()` returns tinted data URIs in the `icons` map
-   instead of plain URLs.
-3. Dock + desktop-icon filters and the panel thumb grid all consume
-   the same field — one manifest edit retints the entire set.
+1. `oddout_icons_get_sets()` scans icon-set manifests and converts each
+   valid relative path into an upload/plugin asset URL.
+2. Dock, taskbar, desktop-icon, recycle-bin, and file-layer filters
+   all consume that same URL map.
+3. The Shop uses the same registry for thumbnails, so the image shown in
+   the panel is the image Desktop Mode receives after apply/reload.
 
-Sets that hardcode hex in their SVGs return plain URLs and are
-unaffected. Mixed-style sets "just work".
+The manifest `accent` remains Shop/catalog metadata. It does not recolor
+icon images at runtime; the raster file owns its pixels.
 
 ## Scene module API
 
@@ -377,7 +382,7 @@ wp-content/
     │   ├── <slug>/                  extracted bundle — manifest.json + assets
     │   └── .tmp-<slug>-<rand>/      transient staging dir (removed after extract)
     ├── scenes/<slug>/               scene.js + preview.webp + wallpaper.webp + manifest.json
-    ├── icon-sets/<slug>/            manifest.json + SVG icons
+    ├── icon-sets/<slug>/            manifest.json + PNG/WebP icons
     ├── cursor-sets/<slug>/          manifest.json + SVG cursors
     └── widgets/<slug>/              widget.js + widget.css + manifest.json
 ```
@@ -480,7 +485,7 @@ build is enforced by `ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog`.
 ## Migration from b-roll / b-roll-icons
 
 ODD replaced two earlier plugins, `b-roll` (wallpapers) and
-`b-roll-icons` (dock icons). An activation-time migration in
+`b-roll-icons` (desktop icon sets). An activation-time migration in
 `includes/migrate.php` copies every `b_roll_*` / `b_roll_icons_set`
 user_meta key into the matching `oddout_*` key non-destructively, and
 rewrites each user's `desktop_mode_os_settings.wallpaper` from

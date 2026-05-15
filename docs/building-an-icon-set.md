@@ -2,11 +2,16 @@
 
 > One of four ODD author guides. Siblings: [Building an App](building-an-app.md), [Building a Scene](building-a-scene.md), [Building a Widget](building-a-widget.md).
 
-An icon set re-skins the WP Desktop dock and the desktop shortcuts
-with a themed pack of SVGs. Drop a `.wp` on the ODD Shop and ODD
-scans the manifest, scrubs every SVG, copies the set into
+An icon set is a native Desktop Mode raster image URL feed: a themed
+set of PNG/WebP files for dock items, taskbar items, desktop shortcuts,
+recycle bin, and file shortcut previews. Drop a `.wp` on the ODD Shop
+and ODD validates the manifest, verifies each image, copies the set into
 `wp-content/uploads/odd/icon-sets/`, and makes it selectable from the Icon
-Sets department — no WordPress plugin, no custom PHP.
+Sets department - no WordPress plugin, no custom PHP.
+
+ODD does not replace Desktop Mode's rail, taskbar, desktop, or file-layer
+renderers. It saves the user's selected set and then gives Desktop Mode
+the image URLs Desktop Mode already asks plugins to provide.
 
 Icon sets ship **no JavaScript**, so they install without a consent
 prompt.
@@ -18,28 +23,32 @@ prompt.
 ```
 my-icons.wp
 ├── manifest.json
-├── preview.svg            ← optional — 480×270 hero shown on the Shop card
+├── preview.webp           ← optional - 480x270 hero shown on the Shop card
 └── icons/
-    ├── dashboard.svg
-    ├── posts.svg
-    ├── pages.svg
-    ├── media.svg
-    ├── comments.svg
-    ├── appearance.svg
-    ├── plugins.svg
-    ├── users.svg
-    ├── tools.svg
-    ├── settings.svg
-    ├── profile.svg            ← optional enhanced ODD key
-    ├── links.svg              ← optional enhanced ODD key
-    ├── recycle-bin.svg        ← optional enhanced ODD key
-    └── fallback.svg
+    ├── dashboard.webp
+    ├── posts.webp
+    ├── pages.webp
+    ├── media.webp
+    ├── comments.webp
+    ├── appearance.webp
+    ├── plugins.webp
+    ├── users.webp
+    ├── tools.webp
+    ├── settings.webp
+    ├── profile.webp
+    ├── links.webp
+    ├── recycle-bin.webp
+    └── fallback.webp
 ```
 
 Paths inside `icons/` can be anything — the manifest maps the
-required minimum keys to paths of your choosing. First-party ODD sets
-also ship the enhanced keys `profile`, `links`, and `recycle-bin`;
-third-party sets can omit those and ODD will fall back gracefully.
+required semantic keys to paths of your choosing. ODD requires all
+14 keys so Desktop Mode's dock, desktop, taskbar, file shortcut, and
+Recycle Bin surfaces can all resolve through one complete native feed.
+
+Icon files must be PNG or WebP images. Use PNG when you need crisp
+transparency; use WebP when the art is painted, textured, or otherwise
+benefits from better compression.
 
 ## Manifest
 
@@ -53,22 +62,22 @@ third-party sets can omit those and ODD will fall back gracefully.
     "franchise":   "My Icons",
     "accent":      "#ff7a3c",
     "description": "Warm hand-drawn icons with a coffee-stained palette.",
-    "preview":     "preview.svg",
+    "preview":     "preview.webp",
     "icons": {
-        "dashboard":  "icons/dashboard.svg",
-        "posts":      "icons/posts.svg",
-        "pages":      "icons/pages.svg",
-        "media":      "icons/media.svg",
-        "comments":   "icons/comments.svg",
-        "appearance": "icons/appearance.svg",
-        "plugins":    "icons/plugins.svg",
-        "users":      "icons/users.svg",
-        "tools":      "icons/tools.svg",
-        "settings":   "icons/settings.svg",
-        "profile":    "icons/profile.svg",
-        "links":      "icons/links.svg",
-        "recycle-bin": "icons/recycle-bin.svg",
-        "fallback":   "icons/fallback.svg"
+        "dashboard":  "icons/dashboard.webp",
+        "posts":      "icons/posts.webp",
+        "pages":      "icons/pages.webp",
+        "media":      "icons/media.webp",
+        "comments":   "icons/comments.webp",
+        "appearance": "icons/appearance.webp",
+        "plugins":    "icons/plugins.webp",
+        "users":      "icons/users.webp",
+        "tools":      "icons/tools.webp",
+        "settings":   "icons/settings.webp",
+        "profile":    "icons/profile.webp",
+        "links":      "icons/links.webp",
+        "recycle-bin": "icons/recycle-bin.webp",
+        "fallback":   "icons/fallback.webp"
     }
 }
 ```
@@ -81,14 +90,14 @@ third-party sets can omit those and ODD will fall back gracefully.
 | `label`       | no       | Falls back to `name`.                                                      |
 | `version`     | yes      | Semver-ish string.                                                         |
 | `franchise`   | no       | Soft historical label. Shelves are categorized by slug — the field is retained for third-party tooling that may still read it. |
-| `accent`      | yes      | `#hex` used for Shop accents, catalog previews, and hover states.|
+| `accent`      | yes      | `#hex` used for Shop accents and catalog previews.|
 | `description` | no       | Longer copy shown on the detail sheet.                                     |
-| `preview`     | no       | Relative path to an SVG/PNG/WebP hero (falls back to the `dashboard` icon).|
-| `icons`       | yes      | Map of required minimum keys, plus optional enhanced ODD keys, to relative SVG paths. |
+| `preview`     | no       | Relative path to a PNG/WebP hero (falls back to the `dashboard` icon).|
+| `icons`       | yes      | Map of all 14 semantic keys to relative PNG/WebP paths. |
 
 ### Why these keys?
 
-The dock + desktop-shortcut filters map every WordPress menu slug to
+The native Desktop Mode icon filters map every WordPress menu slug to
 stable logical keys via `oddout_icons_slug_to_key()`:
 
 | Key           | Required | Maps to                                   |
@@ -104,71 +113,55 @@ stable logical keys via `oddout_icons_slug_to_key()`:
 | `tools`       | yes      | Tools, Import / Export, Code editor       |
 | `settings`    | yes      | Settings, Options                         |
 | `fallback`    | yes      | Anything unmapped                         |
-| `profile`     | no       | Your own profile tile                     |
-| `links`       | no       | Legacy Links, any URL-browsing tool       |
-| `recycle-bin` | no       | WP Desktop Mode Recycle Bin (`desktop-mode-recycle-bin`) |
+| `profile`     | yes      | Your own profile tile                     |
+| `links`       | yes      | Legacy Links, any URL-browsing tool       |
+| `recycle-bin` | yes      | WP Desktop Mode Recycle Bin (`desktop-mode-recycle-bin`) |
 
 If the active set can't provide one of the logical keys, ODD reaches
 for the set's own `fallback`, then for whatever WP Desktop Mode served
 before icon swapping kicked in. There is no plugin-bundled "Default"
 set any more; ODD 1.0 installs visual content from the catalog.
 
-## SVG rules
+## Image rules
 
-Every SVG is scrubbed at install time. An SVG is rejected if any of
-the following fail:
+Every icon image is validated at install time. An image is rejected if
+any of the following fail:
 
-- Parses as well-formed XML.
-- Contains a `viewBox` attribute (or explicit `width` + `height`).
-- No `<script>` elements anywhere in the tree.
-- No `on*` event handler attributes (`onclick`, `onload`, …).
-- No external `xlink:href` / `href` values that escape the archive.
-- No control bytes outside `\t`, `\n`, `\r` (byte < `0x20`).
-- File size ≤ 64 KB (well above what any reasonable icon needs).
+- Extension is `.png` or `.webp`.
+- File bytes parse as the same image type declared by the extension.
+- Image is square.
+- Dimensions are between 64x64 and 2048x2048 px.
+- File size is 768 KB or smaller.
+- Path stays inside the archive and does not contain path traversal.
 
-### Color conventions
-
-**Tintable sets** (recommended) paint in `currentColor`, so the dock's
-active / hover / disabled states pick up cleanly. ODD's tinted-SVG
-endpoint serves any icon in a tint by URL when a consumer asks for one;
-`currentColor` lets that work without search-and-replace:
-
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-     stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-    <path d="M4 6h16M4 12h10M4 18h16"/>
-</svg>
-```
-
-**Fixed-color sets** paint explicit fills / strokes. That's fine, but
-you lose the hover + active tint hooks and icons render identically in
-every state. Use fixed color when the palette is the point (enamel pins,
-pixel art) and use `currentColor` everywhere else.
+ODD stores the image paths and turns them into normal upload URLs. Desktop
+Mode consumes those URLs directly; there is no CSS icon backplate, live DOM
+rewrite, or ODD-owned renderer in between.
 
 ### Size + density
 
-- Canvas: `viewBox="0 0 24 24"` is the ODD default; 20 or 28 work too.
-- Aim for ~1–2 KB per icon after minification. Heavy clipPaths /
-  filters can slow the dock paint on low-tier devices.
-- Keep stroke widths consistent across the set — the dock lays them
-  out at the same px size and mismatched weights read as sloppiness.
+- Author source art at 512x512 or 1024x1024, then export the smallest
+  PNG/WebP that still looks sharp at Desktop Mode sizes.
+- Preserve transparency around standalone glyphs unless the icon's tile
+  shape is part of the artwork.
+- Keep silhouette weight, lighting, and perspective consistent across the
+  set. Desktop Mode lays every icon into the same native surfaces, so
+  mismatched density is easy to spot.
+- Avoid baking in UI chrome from the host desktop. The icon file should be
+  the icon, not a replacement dock/taskbar tile.
 
-First-party catalog sets currently use a larger standalone-glyph source
-canvas (`viewBox="0 0 1024 1024"`) with the continuous squircle clipPath
-baked in for catalog compatibility. The visible art is transparent, not
-a tile or backplate. Third-party sets do **not** have to copy that
-treatment, but if you want the same direction see
-[`_tools/icon-style-guide.md`](../_tools/icon-style-guide.md) and keep
-every SVG below the 64 KB install limit.
+First-party catalog sets use raster exports from a larger source canvas.
+Third-party sets do not have to copy that treatment, but all files in the
+manifest `icons` map must be PNG or WebP.
 
-## preview.svg (optional)
+## preview.webp (optional)
 
 If present, the Shop card uses it for the hero thumbnail — otherwise
 the `dashboard` icon stands in. A preview image usually works best as:
 
-- SVG or WebP, 480×270 (16:9).
+- PNG or WebP, 480x270 (16:9).
 - A composition of 6–9 icons from the set, not the whole alphabet.
-- On a soft accent-tinted background that matches `manifest.accent`.
+- On a soft accent-colored background that matches `manifest.accent`.
 
 ## Ship it
 
@@ -176,7 +169,7 @@ the `dashboard` icon stands in. A preview image usually works best as:
 
     ```bash
     cd my-icons/
-    zip -r ../my-icons.wp manifest.json preview.svg icons/
+    zip -r ../my-icons.wp manifest.json preview.webp icons/
     ```
 
 2. Open the ODD Shop → **Upload** (or drop the `.wp` anywhere on the
@@ -186,9 +179,9 @@ the `dashboard` icon stands in. A preview image usually works best as:
    publishes it to `https://odd.regionallyfamous.com/catalog/v1/`
    where every ODD install can install it from Discover.
 3. The Shop jumps to Icon Sets and flashes your new set's tile.
-   Click **Preview** on the tile — the dock swaps in place. Click
-   **Keep** to commit; ODD does a 180 ms fade and reloads so the
-   server-side dock filter renders with your set applied.
+   Click **Preview** on the tile, then **Apply & reload** to commit.
+   ODD saves the preference and lets Desktop Mode rebuild every native
+   icon surface from its own server-side payload.
 
 ## Debugging
 
@@ -208,9 +201,10 @@ the `dashboard` icon stands in. A preview image usually works best as:
     find "$(wp eval '$u = wp_upload_dir( null, false ); echo $u[\"basedir\"];')/odd/icon-sets/my-icons/" -type f
     ```
 
-- If the tinted-SVG endpoint 404s on one of your icons, double-check
+- If an icon falls back to Desktop Mode's original art, double-check
   that the path in `manifest.icons` matches the actual file name
-  (case-sensitive on Linux) and that the SVG is well-formed.
+  (case-sensitive on Linux), that the file is PNG/WebP, and that the
+  logical key matches the surface you expected.
 
 ## See also
 

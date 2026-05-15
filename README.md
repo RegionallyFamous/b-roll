@@ -29,7 +29,7 @@
 
 ---
 
-[WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a polished, updateable shop for visual themes and small tools.
+[WP Desktop Mode](https://github.com/WordPress/desktop-mode) makes WordPress feel like a desktop. ODD gives that desktop a polished, updateable shop for visual themes and small tools. ODD works with Desktop Mode's native surfaces instead of replacing the desktop shell.
 
 The hosted [Playground blueprint](https://odd.regionallyfamous.com/playground/blueprint.json?oddbp=wporg-latest) installs the newest approved **[WP Desktop Mode](https://wordpress.org/plugins/desktop-mode/)** and **[ODD](https://wordpress.org/plugins/odd-outlandish-desktop-decorator/)** releases from the WordPress.org Plugin Directory (`resource: "wordpress.org/plugins"`). Raw GitHub copy: [`blueprint.json`](https://raw.githubusercontent.com/RegionallyFamous/odd/main/blueprint.json) (add `?oddbp=wporg-latest` if Playground still loads a cached older file). **Production installs:** use [WordPress.org](https://wordpress.org/plugins/odd-outlandish-desktop-decorator/) or **`odd.zip`** on [Releases](https://github.com/RegionallyFamous/odd/releases/latest). **Bleeding edge:** use [`/go/dev`](https://odd.regionallyfamous.com/go/dev/) or [`site/playground/blueprint-dev.json`](https://odd.regionallyfamous.com/playground/blueprint-dev.json) (ODD `main` + pinned Desktop Mode 0.8.5; not tied to ODD releases).
 
@@ -40,7 +40,7 @@ The hosted [Playground blueprint](https://odd.regionallyfamous.com/playground/bl
 | Surface | What It Adds |
 | --- | --- |
 | **Wallpapers** | Generative PixiJS scenes over painted backdrops, with live preview and shuffle. |
-| **Icon Sets** | Full dock and desktop shortcut re-skins, including first-party recycle bin coverage. |
+| **Icon Sets** | Native Desktop Mode raster image URL feeds for the dock, taskbar, desktop shortcuts, and recycle bin. |
 | **Cursor Sets** | Pointer themes that reach Desktop Mode windows, chrome, widgets, and same-origin app frames. |
 | **Widgets** | Small desktop tiles like notes, prompts, and embeds, installed from catalog bundles. |
 | **Apps** | Sandboxed HTML/CSS/JS tools that open in native Desktop Mode windows with optional launchers. |
@@ -80,13 +80,16 @@ First load takes ~20–30 seconds while Playground boots the site and installs t
 
 Anyone can ship a scene, icon set, cursor set, widget, or app as a single `.wp` file. ODD validates the archive, checks catalog downloads against SHA256, and keeps app files behind authenticated serve paths. First-party content lives under `_tools/catalog-sources/` and publishes to the remote catalog through GitHub Pages; plugin releases are only for runtime/API changes.
 
+Users can also export a lightweight `.odd` workspace from the Shop's Install tab. A `.odd` file is a JSON preset for wallpaper, icons, cursors, widgets, apps, and preferences; it never contains executable bundle code.
+
 | Guide | Use It For |
 | --- | --- |
 | [Building an App](docs/building-an-app.md) | Package a sandboxed mini-app with optional desktop/taskbar launchers. |
 | [Building a Scene](docs/building-a-scene.md) | Create a PixiJS wallpaper scene with preview and wallpaper art. |
-| [Building an Icon Set](docs/building-an-icon-set.md) | Ship a themed SVG pack for Desktop Mode chrome. |
+| [Building an Icon Set](docs/building-an-icon-set.md) | Ship a themed PNG/WebP icon feed for Desktop Mode chrome. |
 | [Building a Cursor Set](docs/building-a-cursor-set.md) | Add custom pointer roles and cursor assets. |
 | [Building a Widget](docs/building-a-widget.md) | Register a small draggable desktop widget. |
+| [Shareable `.odd` Workspaces](docs/shareable-workspaces.md) | Export/import a whole desktop mood as a safe preset. |
 | [`.wp` Manifest Reference](docs/wp-manifest.md) | Validate bundle metadata and file contracts. |
 
 ## Project Map

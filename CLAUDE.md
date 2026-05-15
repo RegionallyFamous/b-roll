@@ -8,7 +8,7 @@
 ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). **As of the 1.0 baseline the plugin runtime stays lightweight** — visual content is pulled on demand from a remote catalog. The plugin owns five surfaces:
 
 1. **A canvas wallpaper engine** — a single `registerWallpaper('odd', …)` that hosts generative PixiJS scenes painted on top of 1920×1080 WebP backdrops. Scenes install as `.wp` bundles.
-2. **Icon sets** — themed SVG packs that re-skin the WP Desktop Mode dock and desktop-shortcut icons via the `desktop_mode_dock_item` + `desktop_mode_icons` filters. Install as `.wp` bundles.
+2. **Icon sets** — themed icon packs that re-skin the WP Desktop Mode dock and desktop-shortcut icons via the `desktop_mode_dock_item` + `desktop_mode_icons` filters. Install as `.wp` bundles.
 3. **Desktop widgets** — tiles like Sticky Note, Magic 8-Ball, and Spotify Embed that live on the desktop surface. Install as `.wp` bundles.
 4. **Cursor sets** — themed SVG cursor packs that can theme Desktop Mode and classic wp-admin. Install as `.wp` bundles.
 5. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that open in their own native window. Each app can surface as a desktop icon, a Desktop Mode taskbar icon, both, or neither — per-user preference in the ODD Shop. Install as `.wp` bundles.
@@ -40,7 +40,7 @@ odd/
 │ │ ├── registry.php filter-driven oddout_wallpaper_scenes()
 │ │ └── prefs.php oddout_wallpaper_* user-meta helpers
 │ └── icons/
-│ ├── registry.php scans wp-content/odd-icon-sets/*/manifest.json
+│ ├── registry.php scans uploads/odd/icon-sets/*/manifest.json
 │ └── dock-filter.php desktop_mode_dock_item + desktop_mode_icons @ priority 20
 ├── src/
 │ ├── shared/
@@ -60,7 +60,7 @@ odd/
 _tools/
 ├── catalog-sources/ source of truth for every bundle
 │ ├── scenes/{slug}/ scene.js + meta.json + preview.webp + wallpaper.webp
-│ ├── icon-sets/{slug}/ manifest.json + SVGs
+│ ├── icon-sets/{slug}/ manifest.json + icon assets
 │ ├── widgets/{slug}/ widget.js + widget.css + manifest.json
 │ ├── apps/{slug}/ bundle.wp (pre-built) or manifest.json + assets
 │ └── starter-pack.json slugs to auto-install on activation
@@ -72,7 +72,7 @@ site/
     ├── registry.json
     ├── registry.schema.json
     ├── bundles/{type}-{slug}.wp
-    └── icons/{slug}.svg
+    └── icons/{slug}.webp
 
 ci/smoke/
 └── odd-smoke-fixture.php MU-plugin: pre_http_request → local fixture
@@ -207,11 +207,12 @@ All new scenes / icon sets / widgets / apps land in `_tools/catalog-sources/` an
 
 ### A new icon set
 
+Icon-set authoring now treats each set as a finished catalog bundle:
+
 1. Create `_tools/catalog-sources/icon-sets/<slug>/`.
 2. Add `manifest.json` with `{ slug, label, franchise, accent (#hex), description?, preview?, icons: { dashboard, posts, pages, media, comments, appearance, plugins, users, tools, settings, profile, links, fallback } }`.
-3. Add SVGs named in `manifest.icons`, dropped next to the manifest.
-4. Each SVG must parse as well-formed XML, have a `viewBox` or `width+height`, and contain no control bytes outside `\t\n\r`.
-5. `odd/bin/validate-catalog` checks all of this.
+3. Add the final icon asset files named in `manifest.icons`, dropped next to the manifest.
+4. `odd/bin/validate-catalog` checks the bundle before publish.
 
 ### Including in the starter pack
 
@@ -271,7 +272,7 @@ All other script/style/REST calls compute their cache-busting version from `ODDO
 
 ## Gotchas
 
-- **SVG control bytes.** The icon-set validator scans for bytes `< 0x20` outside `\t\n\r`; an em-dash with a stray `\x14` once broke XML parsing in a prior release.
+- **Icon assets.** New icon sets land as finished bundle files; avoid adding generated source files for icon-set authoring.
 - **Client-side icon live-swap is a rabbit hole.** `data-menu-slug` on dock DOM is the *sanitized CSS ID* (e.g. `menu-posts`), not the raw menu slug (`edit.php`). The fix is going server-canonical via `desktop_mode_dock_item` + a reload; don't regress.
 - **Catalog determinism.** `_tools/build-catalog.py` must produce byte-identical output on repeat runs. `ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog` enforces this in CI. Non-determinism usually comes from mtimes in zip entries or unsorted iteration.
 - **GitHub release asset uploads** sometimes 409 "Error creating policy" right after release creation. The release workflow retries once after a 3 s pause.

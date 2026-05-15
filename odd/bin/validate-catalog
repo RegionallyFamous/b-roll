@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import io
 import re
 import subprocess
 import sys
@@ -39,6 +40,8 @@ import zipfile
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+
+from PIL import Image
 
 
 HERE = Path(__file__).resolve().parent
@@ -57,6 +60,8 @@ FIRST_PARTY_ICON_KEYS = {
     "appearance", "plugins", "users", "tools", "settings",
     "profile", "links", "recycle-bin", "fallback",
 }
+ICON_IMAGE_MAX_BYTES = 768 * 1024
+ICON_IMAGE_EXTENSIONS = {"png": "PNG", "webp": "WEBP"}
 
 
 def sha256_file(path: Path) -> str:
@@ -76,6 +81,32 @@ def resolve_to_disk(url: str) -> Path | None:
     if parsed.scheme in ("", "file"):
         return Path(url)
     return None
+
+
+def validate_icon_image(slug: str, rel: str, data: bytes, problems: list[str]) -> None:
+    ext = Path(rel).suffix.lower().lstrip(".")
+    expected = ICON_IMAGE_EXTENSIONS.get(ext)
+    if expected is None:
+        problems.append(f"icon-set {slug}: icon {rel!r} must be .png or .webp")
+        return
+    if len(data) > ICON_IMAGE_MAX_BYTES:
+        problems.append(f"icon-set {slug}: icon {rel!r} exceeds 768 KiB")
+        return
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            img.verify()
+        with Image.open(io.BytesIO(data)) as img:
+            fmt = img.format
+            width, height = img.size
+    except Exception as exc:  # noqa: BLE001 - validation should report and continue.
+        problems.append(f"icon-set {slug}: icon {rel!r} is not a valid image ({exc})")
+        return
+    if fmt != expected:
+        problems.append(f"icon-set {slug}: icon {rel!r} extension does not match {fmt}")
+    if width != height:
+        problems.append(f"icon-set {slug}: icon {rel!r} must be square, got {width}x{height}")
+    if width < 64 or height < 64 or width > 2048 or height > 2048:
+        problems.append(f"icon-set {slug}: icon {rel!r} dimensions out of range: {width}x{height}")
 
 
 def check_schema(data: Any, problems: list[str]) -> None:
@@ -201,6 +232,20 @@ def check_bundle_row(
                         problems.append(
                             f"bundle[{idx}] ({slug}): first-party icon set missing icons {missing_icons}"
                         )
+                    for key, rel in icons.items():
+                        if not isinstance(rel, str):
+                            problems.append(
+                                f"bundle[{idx}] ({slug}): icon {key!r} path must be a string"
+                            )
+                            continue
+                        try:
+                            data = zf.read(rel)
+                        except KeyError:
+                            problems.append(
+                                f"bundle[{idx}] ({slug}): icon {rel!r} missing from archive"
+                            )
+                            continue
+                        validate_icon_image(slug, rel, data, problems)
             if btype == "app":
                 if not row.get("icon_url"):
                     problems.append(f"bundle[{idx}] ({slug}): app row missing icon_url")

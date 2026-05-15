@@ -81,6 +81,32 @@ class Test_Starter_State extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 	}
 
+	public function test_shell_config_uses_large_dock_when_odd_wallpaper_is_active() {
+		$config = array(
+			'osSettings' => array(
+				'wallpaper' => 'odd',
+				'dockSize'  => 'default',
+			),
+		);
+
+		$after = apply_filters( 'wp_desktop_shell_config', $config );
+
+		$this->assertSame( 'large', $after['osSettings']['dockSize'] );
+	}
+
+	public function test_shell_config_leaves_dock_size_alone_for_other_wallpapers() {
+		$config = array(
+			'osSettings' => array(
+				'wallpaper' => 'dark',
+				'dockSize'  => 'compact',
+			),
+		);
+
+		$after = apply_filters( 'wp_desktop_shell_config', $config );
+
+		$this->assertSame( 'compact', $after['osSettings']['dockSize'] );
+	}
+
 	public function test_merge_slug_results_marks_new_done_entries() {
 		$state = oddout_starter_get_state();
 		$state = oddout_starter_merge_slug_results(

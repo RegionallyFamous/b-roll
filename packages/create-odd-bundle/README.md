@@ -15,6 +15,8 @@ npx create-odd-bundle app my-new-app
 
 The scaffold produces a directory ready to zip and upload through ODD Shop → Install → Upload. Slug validation matches the server-side installer (`^[a-z0-9-]+$`, 1–64 chars) so if the scaffold runs, the bundle you just generated is already a valid one.
 
+Icon-set scaffolds include 14 raster `.webp` placeholder files and a manifest that points at those raster assets. Replace them with your own `.png` or `.webp` icons before shipping.
+
 ## Non-interactive use
 
 Pass both `type` and `slug` on the command line and pipe `/dev/null` for stdin:

@@ -193,7 +193,9 @@ function oddout_bundle_entry_url_for( array $manifest ) {
 	if ( '' === $base ) {
 		return null;
 	}
-	return $base . rawurlencode( $entry );
+	return function_exists( 'oddout_content_url_for_relative' )
+		? oddout_content_url_for_relative( $base, $entry )
+		: $base . rawurlencode( $entry );
 }
 
 /**
@@ -233,8 +235,8 @@ function oddout_bundle_panel_row_for( array $manifest ) {
 				'tags'          => isset( $manifest['tags'] ) && is_array( $manifest['tags'] ) ? array_values( $manifest['tags'] ) : array(),
 				'fallbackColor' => isset( $manifest['fallbackColor'] ) ? (string) $manifest['fallbackColor'] : '#111',
 				'installed'     => true,
-				'previewUrl'    => '' === $base ? '' : $base . rawurlencode( $preview_name ),
-				'wallpaperUrl'  => '' === $base ? '' : $base . rawurlencode( $wallpaper_name ),
+				'previewUrl'    => '' === $base ? '' : oddout_content_url_for_relative( $base, $preview_name ),
+				'wallpaperUrl'  => '' === $base ? '' : oddout_content_url_for_relative( $base, $wallpaper_name ),
 			);
 
 		case 'icon-set':
@@ -245,7 +247,7 @@ function oddout_bundle_panel_row_for( array $manifest ) {
 				if ( ! is_string( $file ) || '' === $file ) {
 					continue;
 				}
-				$icons_map[ (string) $key ] = '' === $base ? '' : $base . rawurlencode( $file );
+				$icons_map[ (string) $key ] = '' === $base ? '' : oddout_content_url_for_relative( $base, $file );
 			}
 			$preview = isset( $manifest['preview'] ) ? (string) $manifest['preview'] : '';
 			return array(
@@ -254,7 +256,7 @@ function oddout_bundle_panel_row_for( array $manifest ) {
 				'franchise'   => isset( $manifest['franchise'] ) ? (string) $manifest['franchise'] : 'Community',
 				'accent'      => isset( $manifest['accent'] ) ? (string) $manifest['accent'] : '',
 				'description' => isset( $manifest['description'] ) ? (string) $manifest['description'] : '',
-				'preview'     => ( '' === $preview || '' === $base ) ? '' : $base . rawurlencode( $preview ),
+				'preview'     => ( '' === $preview || '' === $base ) ? '' : oddout_content_url_for_relative( $base, $preview ),
 				'icons'       => $icons_map,
 				'installed'   => true,
 			);
@@ -268,7 +270,7 @@ function oddout_bundle_panel_row_for( array $manifest ) {
 					continue;
 				}
 				$cursors_map[ (string) $kind ] = array(
-					'url'     => '' === $base ? '' : $base . rawurlencode( (string) $def['file'] ),
+					'url'     => '' === $base ? '' : oddout_content_url_for_relative( $base, (string) $def['file'] ),
 					'hotspot' => isset( $def['hotspot'] ) && is_array( $def['hotspot'] ) ? array_values( $def['hotspot'] ) : array( 0, 0 ),
 				);
 			}
@@ -279,7 +281,7 @@ function oddout_bundle_panel_row_for( array $manifest ) {
 				'franchise'   => isset( $manifest['franchise'] ) ? (string) $manifest['franchise'] : 'Community',
 				'accent'      => isset( $manifest['accent'] ) ? (string) $manifest['accent'] : '',
 				'description' => isset( $manifest['description'] ) ? (string) $manifest['description'] : '',
-				'preview'     => ( '' === $preview || '' === $base ) ? '' : $base . rawurlencode( $preview ),
+				'preview'     => ( '' === $preview || '' === $base ) ? '' : oddout_content_url_for_relative( $base, $preview ),
 				'cursors'     => $cursors_map,
 				'installed'   => true,
 			);

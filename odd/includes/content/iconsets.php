@@ -3,18 +3,13 @@
  * ODD — icon-set bundle installer.
  *
  * Installs `.wp` bundles that declare `"type": "icon-set"`. The
- * manifest format matches the one used by ODD's built-in sets under
- * `odd/assets/icons/` — `slug`, `label`, `accent`, `preview`, and an
- * `icons` map — so authors can copy one of the built-ins and rename.
+ * manifest format is `slug`, `label`, `accent`, `preview`, and an
+ * `icons` map of native Desktop Mode keys to PNG/WebP files.
  *
  * Installed sets live at `uploads/odd/icon-sets/<slug>/` and are
  * merged into {@see oddout_icons_get_sets()} by the registry, so every
- * consumer (panel, dock filter, tinted-SVG endpoint) sees them
- * identically to the plugin-bundled sets.
- *
- * SVG validation rejects scriptable or externally-loaded content so
- * installing a third-party set can't inject JavaScript into admin pages
- * that render the icon.
+ * consumer (panel and Desktop Mode icon filters) sees them as static
+ * authenticated image URLs.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -61,9 +56,9 @@ function oddout_iconset_bundle_has( $slug ) {
 }
 
 /**
- * Required icon keys. Mirrors the keys the dock filter looks up in
+ * Required icon keys. Mirrors the keys the native Desktop Mode icon filters look up in
  * {@see oddout_icons_slug_to_key()} — leaving any of these out means the
- * set can't fully re-skin the WP Desktop dock.
+ * set can't fully re-skin the WP Desktop shortcuts.
  */
 function oddout_iconsets_required_keys() {
 	return array(
@@ -77,8 +72,59 @@ function oddout_iconsets_required_keys() {
 		'users',
 		'tools',
 		'settings',
+		'profile',
+		'links',
+		'recycle-bin',
 		'fallback',
 	);
+}
+
+function oddout_iconsets_allowed_extensions() {
+	return array( 'png', 'webp' );
+}
+
+function oddout_iconset_image_validate( $bytes, $rel ) {
+	return oddout_iconset_raster_validate( $bytes, $rel, true );
+}
+
+function oddout_iconset_preview_validate( $bytes, $rel ) {
+	return oddout_iconset_raster_validate( $bytes, $rel, false );
+}
+
+function oddout_iconset_raster_validate( $bytes, $rel, $must_be_square ) {
+	$rel = (string) $rel;
+	$ext = strtolower( pathinfo( $rel, PATHINFO_EXTENSION ) );
+	if ( ! in_array( $ext, oddout_iconsets_allowed_extensions(), true ) ) {
+		return new WP_Error(
+			'invalid_icon_ext',
+			sprintf( /* translators: %s icon filename */ __( 'Icon "%s" must be a PNG or WebP image.', 'odd-outlandish-desktop-decorator' ), $rel )
+		);
+	}
+	$bytes = (string) $bytes;
+	if ( '' === $bytes ) {
+		return new WP_Error( 'empty_icon', __( 'Icon image is empty.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	if ( strlen( $bytes ) > 786432 ) {
+		return new WP_Error( 'icon_too_large', __( 'Icon image exceeds the 768 KB size limit.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	if ( ! function_exists( 'getimagesizefromstring' ) ) {
+		return new WP_Error( 'image_parser_unavailable', __( 'Server cannot safely validate icon images.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	$info = @getimagesizefromstring( $bytes ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+	if ( ! is_array( $info ) || empty( $info[0] ) || empty( $info[1] ) || empty( $info[2] ) ) {
+		return new WP_Error( 'invalid_icon_image', __( 'Icon image is not a valid PNG or WebP file.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	$expected = 'png' === $ext ? IMAGETYPE_PNG : ( defined( 'IMAGETYPE_WEBP' ) ? IMAGETYPE_WEBP : 18 );
+	if ( (int) $info[2] !== (int) $expected ) {
+		return new WP_Error( 'invalid_icon_image', __( 'Icon image extension does not match its image data.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	if ( $must_be_square && (int) $info[0] !== (int) $info[1] ) {
+		return new WP_Error( 'invalid_icon_image', __( 'Icon image must be square.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	if ( (int) $info[0] < 64 || (int) $info[1] < 64 || (int) $info[0] > 2048 || (int) $info[1] > 2048 ) {
+		return new WP_Error( 'invalid_icon_image', __( 'Icon image dimensions must be between 64px and 2048px.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	return true;
 }
 
 /**
@@ -114,26 +160,24 @@ function oddout_iconset_bundle_validate( $tmp_path, $filename, ZipArchive $zip, 
 			);
 		}
 
-		// Only SVGs are allowed — the registry and tinting logic both
-		// assume SVG content.
 		$ext = strtolower( pathinfo( $clean_rel, PATHINFO_EXTENSION ) );
-		if ( 'svg' !== $ext ) {
+		if ( ! in_array( $ext, oddout_iconsets_allowed_extensions(), true ) ) {
 			return new WP_Error(
 				'invalid_icon_ext',
-				sprintf( /* translators: %s icon filename */ __( 'Icon "%s" must be an SVG.', 'odd-outlandish-desktop-decorator' ), $clean_rel )
+				sprintf( /* translators: %s icon filename */ __( 'Icon "%s" must be a PNG or WebP image.', 'odd-outlandish-desktop-decorator' ), $clean_rel )
 			);
 		}
 
-		$svg = $zip->getFromName( $clean_rel );
-		if ( false === $svg ) {
+		$image = $zip->getFromName( $clean_rel );
+		if ( false === $image ) {
 			return new WP_Error(
 				'missing_icon',
 				sprintf( /* translators: %s icon filename */ __( 'Icon file "%s" was declared in the manifest but not found in the bundle.', 'odd-outlandish-desktop-decorator' ), $clean_rel )
 			);
 		}
-		$scrubbed = oddout_iconset_svg_scrub( $svg );
-		if ( is_wp_error( $scrubbed ) ) {
-			return $scrubbed;
+		$valid_image = oddout_iconset_image_validate( $image, $clean_rel );
+		if ( is_wp_error( $valid_image ) ) {
+			return $valid_image;
 		}
 
 		$icons[ $clean_key ] = $clean_rel;
@@ -154,8 +198,13 @@ function oddout_iconset_bundle_validate( $tmp_path, $filename, ZipArchive $zip, 
 	$preview = '';
 	if ( ! empty( $manifest['preview'] ) ) {
 		$preview_rel = oddout_content_sanitize_relative_path( (string) $manifest['preview'] );
-		if ( '' === $preview_rel || false === $zip->getFromName( $preview_rel ) ) {
+		$preview_raw = '' === $preview_rel ? false : $zip->getFromName( $preview_rel );
+		if ( '' === $preview_rel || false === $preview_raw ) {
 			return new WP_Error( 'invalid_preview', __( 'Preview file is not present in the bundle.', 'odd-outlandish-desktop-decorator' ) );
+		}
+		$preview_valid = oddout_iconset_preview_validate( $preview_raw, $preview_rel );
+		if ( is_wp_error( $preview_valid ) ) {
+			return $preview_valid;
 		}
 		$preview = $preview_rel;
 	}
@@ -183,9 +232,9 @@ function oddout_iconset_bundle_validate( $tmp_path, $filename, ZipArchive $zip, 
 /**
  * Install a validated icon-set bundle. Extracts into
  * uploads/odd/icon-sets/<slug>/, writes the canonical
- * manifest.json (scrubbed + normalised), updates the installed-sets
+ * manifest.json (normalised), updates the installed-sets
  * index, and busts the icon-registry transient so the panel and
- * dock filter pick up the new set immediately.
+ * Desktop Mode icon filters pick up the new set immediately.
  */
 function oddout_iconset_bundle_install( $tmp_path, array $manifest ) {
 	oddout_iconsets_ensure_storage();
@@ -197,31 +246,6 @@ function oddout_iconset_bundle_install( $tmp_path, array $manifest ) {
 	}
 
 	$dir = oddout_iconsets_dir_for( $slug );
-
-	// Post-extract: rewrite every SVG with its scrubbed form so the
-	// bytes on disk match what validation accepted. This is a belt-
-	// and-braces safeguard for the rare case where a malformed SVG
-	// passed the cheap string filters on the validator pass but
-	// would render with inert `on*` attributes if shipped as-is.
-	foreach ( $manifest['icons'] as $rel ) {
-		$abs = oddout_iconsets_resolve_path( $dir, $rel );
-		if ( '' === $abs ) {
-			continue;
-		}
-		$raw = file_get_contents( $abs ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		if ( false === $raw ) {
-			continue;
-		}
-		$clean = oddout_iconset_svg_scrub( $raw );
-		if ( is_wp_error( $clean ) ) {
-			oddout_content_rrmdir( $dir );
-			return $clean;
-		}
-		if ( ! oddout_write_file( $abs, $clean ) ) {
-			oddout_content_rrmdir( $dir );
-			return new WP_Error( 'write_failed', __( 'Could not write scrubbed icon file.', 'odd-outlandish-desktop-decorator' ) );
-		}
-	}
 
 	// Persist the canonical manifest so the registry scan reads it
 	// identically to the built-ins. Keep the authored manifest.json
@@ -269,192 +293,6 @@ function oddout_iconset_bundle_uninstall( $slug ) {
 
 	oddout_iconsets_bust_registry_cache();
 	return true;
-}
-
-/**
- * Validate and normalize an SVG payload. Returns the cleaned string, or
- * a WP_Error if the input isn't a well-formed, passive SVG.
- *
- * Rejected surfaces:
- *   - Script-capable/foreign content (`script`, `foreignObject`, `image`, etc.).
- *   - Any `on*=` event attribute (onload, onclick, etc.).
- *   - `xlink:href`/`href` whose value isn't a fragment (`#…`).
- *   - Attributes outside the passive drawing allowlist.
- *   - Control bytes outside `\t\n\r` — same byte filter the catalog
- *     validators use.
- *
- * Tinting scenes still work: `currentColor` is a literal string and
- * our scrubber leaves it intact.
- */
-function oddout_iconset_svg_scrub( $svg ) {
-	$svg = (string) $svg;
-	if ( '' === $svg ) {
-		return new WP_Error( 'empty_svg', __( 'SVG file is empty.', 'odd-outlandish-desktop-decorator' ) );
-	}
-	// Control-byte reject. Matches the validator used by odd/bin/validate-icon-sets.
-	if ( preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $svg ) ) {
-		return new WP_Error( 'invalid_svg', __( 'SVG contains control bytes and cannot be installed.', 'odd-outlandish-desktop-decorator' ) );
-	}
-	// Require it to actually be an SVG.
-	if ( false === stripos( $svg, '<svg' ) ) {
-		return new WP_Error( 'invalid_svg', __( 'File is not an SVG.', 'odd-outlandish-desktop-decorator' ) );
-	}
-
-	if ( ! class_exists( 'DOMDocument' ) ) {
-		return new WP_Error( 'svg_parser_unavailable', __( 'Server cannot safely validate SVG files.', 'odd-outlandish-desktop-decorator' ) );
-	}
-
-	$doc = new DOMDocument();
-	$old = libxml_use_internal_errors( true );
-	$ok  = $doc->loadXML( $svg, LIBXML_NONET );
-	libxml_clear_errors();
-	libxml_use_internal_errors( $old );
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMDocument API property.
-	$document_element = $doc->documentElement;
-	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMElement API property.
-	if ( ! $ok || ! $document_element || 'svg' !== strtolower( $document_element->localName ) ) {
-		return new WP_Error( 'invalid_svg', __( 'File is not a well-formed SVG.', 'odd-outlandish-desktop-decorator' ) );
-	}
-
-	$allowed_elements = array_flip(
-		array(
-			'svg',
-			'g',
-			'defs',
-			'title',
-			'desc',
-			'path',
-			'rect',
-			'circle',
-			'ellipse',
-			'line',
-			'polyline',
-			'polygon',
-			'text',
-			'tspan',
-			'use',
-			'clipPath',
-			'mask',
-			'linearGradient',
-			'radialGradient',
-			'stop',
-			'filter',
-			'feBlend',
-			'feColorMatrix',
-			'feComposite',
-			'feDropShadow',
-			'feFlood',
-			'feGaussianBlur',
-			'feMerge',
-			'feMergeNode',
-			'feMorphology',
-			'feOffset',
-		)
-	);
-	$allowed_attrs    = array_flip(
-		array(
-			'xmlns',
-			'viewBox',
-			'width',
-			'height',
-			'role',
-			'aria-label',
-			'id',
-			'class',
-			'x',
-			'y',
-			'x1',
-			'y1',
-			'x2',
-			'y2',
-			'cx',
-			'cy',
-			'r',
-			'rx',
-			'ry',
-			'd',
-			'points',
-			'fill',
-			'fill-opacity',
-			'fill-rule',
-			'stroke',
-			'stroke-width',
-			'stroke-linecap',
-			'stroke-linejoin',
-			'stroke-miterlimit',
-			'stroke-opacity',
-			'stroke-dasharray',
-			'stroke-dashoffset',
-			'opacity',
-			'transform',
-			'clip-path',
-			'clip-rule',
-			'mask',
-			'filter',
-			'offset',
-			'stop-color',
-			'stop-opacity',
-			'gradientUnits',
-			'gradientTransform',
-			'font-family',
-			'font-size',
-			'font-weight',
-			'letter-spacing',
-			'text-anchor',
-			'dominant-baseline',
-			'textLength',
-			'lengthAdjust',
-			'dx',
-			'dy',
-			'stdDeviation',
-			'flood-color',
-			'flood-opacity',
-			'in',
-			'in2',
-			'mode',
-			'operator',
-			'values',
-			'result',
-			'color-interpolation-filters',
-			'href',
-			'xlink:href',
-			'xmlns:xlink',
-		)
-	);
-
-	$nodes = $doc->getElementsByTagName( '*' );
-	foreach ( $nodes as $node ) {
-		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMElement API property.
-		$tag = $node->localName;
-		if ( ! isset( $allowed_elements[ $tag ] ) ) {
-			return new WP_Error( 'disallowed_svg_element', sprintf( /* translators: %s SVG element */ __( 'SVG contains disallowed element: %s', 'odd-outlandish-desktop-decorator' ), $tag ) );
-		}
-		if ( ! $node->hasAttributes() ) {
-			continue;
-		}
-		foreach ( iterator_to_array( $node->attributes ) as $attr ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMAttr API property.
-			$name  = '' !== $attr->prefix ? $attr->prefix . ':' . $attr->localName : $attr->localName;
-			$value = trim( (string) $attr->value );
-			if ( 0 === stripos( $name, 'on' ) ) {
-				return new WP_Error( 'disallowed_svg_attribute', __( 'SVG event handler attributes are not allowed.', 'odd-outlandish-desktop-decorator' ) );
-			}
-			if ( ! isset( $allowed_attrs[ $name ] ) && 0 !== strpos( $name, 'data-' ) ) {
-				return new WP_Error( 'disallowed_svg_attribute', sprintf( /* translators: %s SVG attribute */ __( 'SVG contains disallowed attribute: %s', 'odd-outlandish-desktop-decorator' ), $name ) );
-			}
-			if ( in_array( $name, array( 'href', 'xlink:href' ), true ) && '' !== $value && '#' !== $value[0] ) {
-				return new WP_Error( 'disallowed_svg_reference', __( 'SVG external references are not allowed.', 'odd-outlandish-desktop-decorator' ) );
-			}
-			if ( false !== stripos( $value, 'url(' ) && ! preg_match( '/url\(\s*#[^)]+\)/i', $value ) ) {
-				return new WP_Error( 'disallowed_svg_reference', __( 'SVG external url() references are not allowed.', 'odd-outlandish-desktop-decorator' ) );
-			}
-			if ( preg_match( '/(?:javascript|data|vbscript)\s*:/i', $value ) ) {
-				return new WP_Error( 'disallowed_svg_reference', __( 'SVG scriptable URL values are not allowed.', 'odd-outlandish-desktop-decorator' ) );
-			}
-		}
-	}
-
-	return $svg;
 }
 
 function oddout_iconsets_resolve_path( $base_dir, $rel ) {

@@ -85,6 +85,65 @@ function oddout_cursorset_bundle_has( $slug ) {
 	return isset( $index[ $slug ] );
 }
 
+function oddout_cursorset_svg_scrub( $svg ) {
+	$svg = (string) $svg;
+	if ( '' === $svg ) {
+		return new WP_Error( 'empty_svg', __( 'SVG file is empty.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	if ( preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $svg ) ) {
+		return new WP_Error( 'invalid_svg', __( 'SVG contains control bytes and cannot be installed.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	if ( false === stripos( $svg, '<svg' ) ) {
+		return new WP_Error( 'invalid_svg', __( 'File is not an SVG.', 'odd-outlandish-desktop-decorator' ) );
+	}
+	if ( ! class_exists( 'DOMDocument' ) ) {
+		return new WP_Error( 'svg_parser_unavailable', __( 'Server cannot safely validate SVG files.', 'odd-outlandish-desktop-decorator' ) );
+	}
+
+	$doc = new DOMDocument();
+	$old = libxml_use_internal_errors( true );
+	$ok  = $doc->loadXML( $svg, LIBXML_NONET );
+	libxml_clear_errors();
+	libxml_use_internal_errors( $old );
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMDocument API property.
+	$document_element = $doc->documentElement;
+	// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMElement API property.
+	if ( ! $ok || ! $document_element || 'svg' !== strtolower( $document_element->localName ) ) {
+		return new WP_Error( 'invalid_svg', __( 'File is not a well-formed SVG.', 'odd-outlandish-desktop-decorator' ) );
+	}
+
+	$blocked_elements = array_flip( array( 'script', 'foreignObject', 'iframe', 'object', 'embed', 'audio', 'video', 'canvas', 'image' ) );
+	foreach ( $doc->getElementsByTagName( '*' ) as $node ) {
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMElement API property.
+		$tag = $node->localName;
+		if ( isset( $blocked_elements[ $tag ] ) ) {
+			return new WP_Error( 'disallowed_svg_element', sprintf( /* translators: %s SVG element */ __( 'SVG contains disallowed element: %s', 'odd-outlandish-desktop-decorator' ), $tag ) );
+		}
+		if ( ! $node->hasAttributes() ) {
+			continue;
+		}
+		foreach ( iterator_to_array( $node->attributes ) as $attr ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOMAttr API property.
+			$name  = '' !== $attr->prefix ? $attr->prefix . ':' . $attr->localName : $attr->localName;
+			$value = trim( (string) $attr->value );
+			if ( 0 === stripos( $name, 'on' ) ) {
+				return new WP_Error( 'disallowed_svg_attribute', __( 'SVG event handler attributes are not allowed.', 'odd-outlandish-desktop-decorator' ) );
+			}
+			if ( in_array( $name, array( 'href', 'xlink:href' ), true ) && '' !== $value && '#' !== $value[0] ) {
+				return new WP_Error( 'disallowed_svg_reference', __( 'SVG external references are not allowed.', 'odd-outlandish-desktop-decorator' ) );
+			}
+			if ( false !== stripos( $value, 'url(' ) && ! preg_match( '/url\(\s*#[^)]+\)/i', $value ) ) {
+				return new WP_Error( 'disallowed_svg_reference', __( 'SVG external url() references are not allowed.', 'odd-outlandish-desktop-decorator' ) );
+			}
+			if ( preg_match( '/(?:javascript|data|vbscript)\s*:/i', $value ) ) {
+				return new WP_Error( 'disallowed_svg_reference', __( 'SVG scriptable URL values are not allowed.', 'odd-outlandish-desktop-decorator' ) );
+			}
+		}
+	}
+
+	return $svg;
+}
+
 function oddout_cursorset_bundle_validate( $tmp_path, $filename, ZipArchive $zip, array $manifest ) {
 	$header = oddout_content_validate_header( $manifest );
 	if ( is_wp_error( $header ) ) {
@@ -113,7 +172,7 @@ function oddout_cursorset_bundle_validate( $tmp_path, $filename, ZipArchive $zip
 		if ( false === $svg ) {
 			return new WP_Error( 'missing_cursor', __( 'A cursor file declared in manifest.json was not found in the bundle.', 'odd-outlandish-desktop-decorator' ) );
 		}
-		$scrubbed = function_exists( 'oddout_iconset_svg_scrub' ) ? oddout_iconset_svg_scrub( $svg ) : $svg;
+		$scrubbed = oddout_cursorset_svg_scrub( $svg );
 		if ( is_wp_error( $scrubbed ) ) {
 			return $scrubbed;
 		}
@@ -183,7 +242,7 @@ function oddout_cursorset_bundle_install( $tmp_path, array $manifest ) {
 		if ( false === $raw ) {
 			continue;
 		}
-		$clean = function_exists( 'oddout_iconset_svg_scrub' ) ? oddout_iconset_svg_scrub( $raw ) : $raw;
+		$clean = oddout_cursorset_svg_scrub( $raw );
 		if ( is_wp_error( $clean ) ) {
 			oddout_content_rrmdir( $dir );
 			return $clean;
