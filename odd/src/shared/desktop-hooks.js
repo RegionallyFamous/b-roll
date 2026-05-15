@@ -1044,6 +1044,30 @@
 		} );
 	}
 
+	function setupArrangeActions() {
+		addAction( 'desktop-mode.arrange.custom-action', function ( payload ) {
+			var id = payload && payload.id ? String( payload.id ) : '';
+			var api = window.__odd && window.__odd.api;
+			if ( ! api ) {
+				record( 'warning', 'desktop-mode.arrange.custom-action', { id: id, ready: false } );
+				return;
+			}
+			var handled = true;
+			if ( id === 'oddout-shuffle-wallpaper' && typeof api.shuffle === 'function' ) {
+				api.shuffle();
+			} else if ( id === 'oddout-tidy-widgets' && typeof api.tidyWidgets === 'function' ) {
+				api.tidyWidgets();
+			} else if ( id === 'oddout-open-shop' && typeof api.openPanel === 'function' ) {
+				api.openPanel();
+			} else if ( id === 'oddout-reset-decorations' && typeof api.resetDecorations === 'function' ) {
+				api.resetDecorations();
+			} else {
+				handled = false;
+			}
+			record( handled ? 'info' : 'warning', 'desktop-mode.arrange.custom-action', { id: id, handled: handled } );
+		} );
+	}
+
 	function renderSettingsTab( body ) {
 		if ( ! body ) return;
 		var d = diagnostics();
@@ -1167,6 +1191,7 @@
 	setupLayoutDiagnostics();
 	setupActivityDiagnostics();
 	setupSettingsTab();
+	setupArrangeActions();
 	setupTitlebarButton();
 	setupDevtoolsDiagnostics();
 	setupBroadSurfaceDiagnostics();

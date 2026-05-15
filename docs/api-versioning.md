@@ -6,10 +6,12 @@ the plugin you just installed — plugin releases and API releases
 evolve on their own SemVer tracks so a bug-fix plugin release never
 silently changes what third-party extensions can rely on.
 
-Today: **`2.2.0`** — current for the ODD 1.0.0 baseline. The 2.1 line
+Today: **`2.3.0`** — current for the ODD 1.0.0 baseline. The 2.1 line
 added the `/odd/v1/bundles/*` REST surface and the `/odd/v1/starter`
 pair. The 2.2 line adds Desktop Mode v0.6 helpers for OS settings,
-window attention, dock badges, and diagnostics snapshots.
+window attention, dock badges, and diagnostics snapshots. The 2.3 line
+adds Desktop Mode-native helpers for cursor sets, installed widgets,
+ODD apps, shuffle/audio wallpaper prefs, and decoration reset.
 
 ## What counts as the API surface
 
@@ -19,8 +21,11 @@ bundle or companion plugin might touch:
 ### JavaScript
 
 - `window.__odd.api` methods: `scenes`, `sceneBySlug`, `currentScene`,
-  `iconSets`, `iconSetBySlug`, `currentIconSet`, `savePrefs`,
-  `setScene`, `setIconSet`, `shuffle`, `toast`, `onSceneChange`,
+  `iconSets`, `iconSetBySlug`, `currentIconSet`, `cursorSets`,
+  `cursorSetBySlug`, `currentCursorSet`, `installedWidgets`, `apps`,
+  `appBySlug`, `savePrefs`, `setScene`, `setIconSet`, `setCursorSet`,
+  `setShuffle`, `setAudioReactive`, `shuffle`, `mountWidget`,
+  `tidyWidgets`, `openApp`, `resetDecorations`, `toast`, `onSceneChange`,
   `onIconSetChange`, `openPanel`, `openOsSettings`, `showAttention`,
   `setBadge`, `diagnosticsSnapshot`, and the `HOOK_SCENE` / `HOOK_ICONSET`
   / `TOAST_TONE` constants.
@@ -80,6 +85,7 @@ if ( major !== 2 ) {
 // Feature-detect endpoints added in minor bumps.
 var hasBundles = minor >= 1;   // /odd/v1/bundles/* landed in API 2.1.0
 var hasDesktopHelpers = minor >= 2;
+var hasNativeOddActions = minor >= 3;
 // safe to call anything listed for the 2.x surface
 ```
 

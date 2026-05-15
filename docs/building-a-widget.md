@@ -36,9 +36,14 @@ my-widget.wp
     "version":     "1.0.0",
     "description": "25/5 focus timer that lives on the desktop.",
     "entry":       "widget.js",
-    "icon":        "icon.svg",
+    "icon":        "dashicons-clock",
     "preview":     "preview.webp",
-    "defaultSize": { "width": 220, "height": 180 }
+    "movable":     true,
+    "resizable":   true,
+    "minWidth":    220,
+    "minHeight":   160,
+    "defaultWidth": 260,
+    "defaultHeight": 200
 }
 ```
 
@@ -51,15 +56,19 @@ my-widget.wp
 | `version`     | yes      | Semver-ish string; drives cache-busting on the enqueued JS.           |
 | `description` | no       | Longer copy on the detail sheet + accessibility description.          |
 | `entry`       | yes      | Relative path to the JS (`^[a-zA-Z0-9._/-]+$`, no `..`).              |
-| `icon`        | no       | SVG/PNG/WebP shown on the Shop tile. Falls back to a generic glyph.   |
+| `icon`        | no       | Dashicon class for Desktop Mode's native widget picker. Falls back to a generic glyph. |
 | `preview`     | no       | Hero WebP shown on the detail sheet.                                  |
-| `defaultSize` | no       | `{ width, height }` in CSS px for the widget's first paint.           |
+| `movable`     | no       | Whether Desktop Mode can drag the widget out of the widget column. Defaults to `true`. |
+| `resizable`   | no       | Whether Desktop Mode can resize the widget. Defaults to `true`.       |
+| `minWidth` / `minHeight` | no | Minimum native widget dimensions in CSS px.                      |
+| `defaultWidth` / `defaultHeight` | no | First-mount native widget dimensions in CSS px.              |
 
 ## widget.js — the runtime contract
 
-ODD enqueues your entry JS on every admin page with `desktop-mode` and
-`odd-api` as dependencies, so `wp.desktop.registerWidget` and
-`window.__odd.api` are guaranteed to exist by the time your file runs.
+ODD registers installed widgets with Desktop Mode's native widget
+registry and enqueues your entry JS with `desktop-mode` and `odd-api`
+as dependencies, so `wp.desktop.registerWidget` and `window.__odd.api`
+are guaranteed to exist by the time your file runs.
 Self-register and do nothing else at load time:
 
 ```js
@@ -121,9 +130,12 @@ Self-register and do nothing else at load time:
 |----------------|----------|----------------------------------------------------------------------|
 | `id`           | yes      | `namespace/slug` form; namespace is your author or widget slug.      |
 | `label`        | yes      | Display name in the dock + Shop.                                     |
-| `defaultSize`  | no       | `{ width, height }` used on first mount.                             |
+| `description`  | no       | Short picker description.                                            |
+| `icon`         | no       | Dashicon class shown by Desktop Mode.                                |
+| `movable` / `resizable` | no | Match your manifest unless you have a runtime reason to differ. |
+| `minWidth` / `minHeight` | no | Minimum dimensions in CSS px.                                |
+| `defaultWidth` / `defaultHeight` | no | First-mount dimensions in CSS px.                        |
 | `mount`        | yes      | `mount( container, ctx )` → optional `unmount` function.             |
-| `icon`         | no       | SVG string or URL. The Shop already renders `manifest.icon`.         |
 
 ### The `ctx` helper bag
 

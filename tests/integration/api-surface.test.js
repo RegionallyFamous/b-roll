@@ -24,7 +24,11 @@ const SHARED_DIR = resolve( __dirname, '../../odd/src/shared' );
 const EXPECTED_METHODS = [
 	'scenes', 'sceneBySlug', 'currentScene',
 	'iconSets', 'iconSetBySlug', 'currentIconSet',
-	'savePrefs', 'setScene', 'setIconSet', 'shuffle',
+	'cursorSets', 'cursorSetBySlug', 'currentCursorSet',
+	'installedWidgets', 'apps', 'appBySlug',
+	'savePrefs', 'setScene', 'setIconSet', 'setCursorSet',
+	'setShuffle', 'setAudioReactive', 'shuffle', 'mountWidget',
+	'tidyWidgets', 'openApp', 'resetDecorations',
 	'toast', 'openOsSettings', 'showAttention', 'setBadge',
 	'diagnosticsSnapshot', 'onSceneChange', 'onIconSetChange', 'openPanel',
 ];

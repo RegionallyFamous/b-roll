@@ -18,10 +18,18 @@
  *   api.currentScene()    — active scene slug
  *   api.iconSets()        — live icon-set list
  *   api.currentIconSet()  — active slug or '' for default
+ *   api.cursorSets()      — live cursor-set list
+ *   api.currentCursorSet() — active cursor slug or '' for default
  *   api.savePrefs(p, cb)  — POST /odd/v1/prefs, merges response
  *   api.setScene(slug)    — save + broadcast 'odd.pickScene' + toast
  *   api.setIconSet(slug)  — save + soft reload so dock rebuilds
+ *   api.setCursorSet(slug) — save + live cursor refresh
+ *   api.setShuffle(prefs) — save shuffle prefs
+ *   api.setAudioReactive(on) — save audio-reactive pref
  *   api.shuffle()         — setScene() with a random non-current slug
+ *   api.installedWidgets() — installed ODD widget summaries
+ *   api.mountWidget(id)   — mount an installed widget through Desktop Mode
+ *   api.openApp(slug)     — open an installed ODD app window
  *   api.toast(msg, o?)    — wp.desktop.showToast({ … }) if available
  *   api.openOsSettings()  — open Desktop Mode OS Settings
  *   api.showAttention(id) — request attention/highlight for a window
@@ -100,6 +108,35 @@
 			if ( typeof v === 'string' ) return v;
 		}
 		return cfg().iconSet || '';
+	}
+	function cursorSets() {
+		var s = cfg().cursorSets;
+		return Array.isArray( s ) ? s : [];
+	}
+	function cursorSetBySlug( slug ) {
+		var list = cursorSets();
+		for ( var i = 0; i < list.length; i++ ) {
+			if ( list[ i ] && list[ i ].slug === slug ) return list[ i ];
+		}
+		return null;
+	}
+	function currentCursorSet() {
+		return cfg().cursorSet || '';
+	}
+	function installedWidgets() {
+		var widgets = cfg().installedWidgets;
+		return Array.isArray( widgets ) ? widgets : [];
+	}
+	function apps() {
+		var list = cfg().apps;
+		return Array.isArray( list ) ? list : [];
+	}
+	function appBySlug( slug ) {
+		var list = apps();
+		for ( var i = 0; i < list.length; i++ ) {
+			if ( list[ i ] && list[ i ].slug === slug ) return list[ i ];
+		}
+		return null;
 	}
 
 	function doAction( hook, payload ) {
@@ -249,6 +286,18 @@
 						if ( typeof data.iconSet === 'string' ) {
 							c.iconSet = data.iconSet;
 						}
+						if ( typeof data.cursorSet === 'string' ) {
+							c.cursorSet = data.cursorSet;
+						}
+						if ( typeof data.cursorStylesheet === 'string' ) {
+							c.cursorStylesheet = data.cursorStylesheet;
+						}
+						if ( data.shuffle && typeof data.shuffle === 'object' ) {
+							c.shuffle = data.shuffle;
+						}
+						if ( typeof data.audioReactive === 'boolean' ) {
+							c.audioReactive = data.audioReactive;
+						}
 					}
 					// Desktop Mode only lazy-loads Pixi and runs ODD's canvas mount when
 					// the host wallpaper id is `odd`. Without this, users who stayed on the
@@ -313,6 +362,56 @@
 		return true;
 	}
 
+	function setCursorSet( slug, opts ) {
+		var valid = slug === 'none' || cursorSetBySlug( slug );
+		if ( ! valid ) return false;
+		var prev = currentCursorSet() || 'none';
+		if ( slug === prev ) return false;
+
+		savePrefs( { cursorSet: slug }, function ( data ) {
+			var c = cfg();
+			var next = data && typeof data.cursorSet === 'string' ? data.cursorSet : ( slug === 'none' ? '' : slug );
+			var href = data && typeof data.cursorStylesheet === 'string' ? data.cursorStylesheet : '';
+			c.cursorSet = next;
+			c.cursorStylesheet = href;
+			doAction( 'odd.cursorSet', next || 'none', href );
+			emitBus( 'odd.cursor-set-changed', { from: prev, to: next || 'none' } );
+			if ( ! ( opts && opts.quiet ) ) {
+				var set = next ? cursorSetBySlug( next ) : null;
+				toast( next ? 'Cursor set: ' + ( set && set.label ? set.label : next ) : 'Cursor set reset.', { duration: 1800 } );
+			}
+		} );
+		return true;
+	}
+
+	function setShuffle( prefs, opts ) {
+		var current = cfg().shuffle && typeof cfg().shuffle === 'object' ? cfg().shuffle : {};
+		var next = {
+			enabled: !! ( prefs && prefs.enabled ),
+			minutes: Math.max( 1, Math.min( 240, parseInt( prefs && prefs.minutes, 10 ) || parseInt( current.minutes, 10 ) || 15 ) ),
+		};
+		cfg().shuffle = next;
+		savePrefs( { shuffle: next }, function ( data ) {
+			if ( data && data.shuffle ) cfg().shuffle = data.shuffle;
+		} );
+		if ( ! ( opts && opts.quiet ) ) {
+			toast( next.enabled ? 'Wallpaper shuffle is on.' : 'Wallpaper shuffle is off.', { duration: 1800 } );
+		}
+		return true;
+	}
+
+	function setAudioReactive( enabled, opts ) {
+		var on = !! enabled;
+		cfg().audioReactive = on;
+		savePrefs( { audioReactive: on }, function ( data ) {
+			if ( data && typeof data.audioReactive === 'boolean' ) cfg().audioReactive = data.audioReactive;
+		} );
+		if ( ! ( opts && opts.quiet ) ) {
+			toast( on ? 'Audio-reactive wallpaper is on.' : 'Audio-reactive wallpaper is off.', { duration: 1800 } );
+		}
+		return true;
+	}
+
 	function shuffle() {
 		var list = scenes();
 		if ( ! list.length ) return false;
@@ -322,6 +421,95 @@
 		var pick = pool[ Math.floor( Math.random() * pool.length ) ];
 		emitBus( 'odd.shuffle-tick', { slug: pick.slug } );
 		return setScene( pick.slug );
+	}
+
+	function mountWidget( id, opts ) {
+		var d = window.wp && window.wp.desktop;
+		if ( ! d || ! id ) return false;
+		return !! safeCall( function () {
+			var layer = d.widgetLayer;
+			var ok = false;
+			if ( layer && typeof layer.ensureMounted === 'function' ) {
+				ok = !! layer.ensureMounted( id );
+				if ( ok && typeof layer.mountIfEnabled === 'function' ) {
+					layer.mountIfEnabled( id );
+				}
+			} else if ( layer && typeof layer.add === 'function' ) {
+				layer.add( id );
+				ok = true;
+			}
+			if ( ok && ! ( opts && opts.quiet ) ) {
+				toast( 'Added widget to the desktop.', { duration: 1800 } );
+			}
+			return ok;
+		}, 'api.mountWidget' );
+	}
+
+	function tidyWidgets( opts ) {
+		var count = 0;
+		if ( document && document.querySelectorAll ) {
+			var redock = document.querySelectorAll( '.desktop-mode-widgets__card[data-widget-id^="odd/"].desktop-mode-widgets__card--floating .desktop-mode-widgets__card-redock' );
+			for ( var i = 0; i < redock.length; i++ ) {
+				try {
+					redock[ i ].click();
+					count++;
+				} catch ( e ) {}
+			}
+		}
+		installedWidgets().forEach( function ( widget ) {
+			if ( widget && widget.id && mountWidget( widget.id, { quiet: true } ) ) count++;
+		} );
+		if ( ! ( opts && opts.quiet ) ) {
+			toast( count ? 'ODD widgets are gathered up.' : 'No installed ODD widgets to gather yet.', { duration: 2200 } );
+		}
+		return count > 0;
+	}
+
+	function openApp( slug ) {
+		var d = window.wp && window.wp.desktop;
+		if ( ! d || typeof d.openWindow !== 'function' ) return false;
+		var clean = norm( slug );
+		if ( ! clean || ! appBySlug( clean ) ) return false;
+		return !! safeCall( function () {
+			d.openWindow( 'odd-app-' + clean );
+			return true;
+		}, 'api.openApp' );
+	}
+
+	function resetDecorations() {
+		var prevIcon = currentIconSet() || '';
+		var prevCursor = currentCursorSet() || '';
+		if ( ! prevIcon && ! prevCursor ) {
+			toast( 'ODD decorations are already reset.', { duration: 2200 } );
+			return false;
+		}
+
+		if ( store && prevIcon ) {
+			store.set( { user: { iconSet: '' } }, { source: 'api.resetDecorations' } );
+		}
+
+		savePrefs( { iconSet: 'none', cursorSet: 'none' }, function ( data ) {
+			var c = cfg();
+			var nextIcon = data && typeof data.iconSet === 'string' ? data.iconSet : '';
+			var nextCursor = data && typeof data.cursorSet === 'string' ? data.cursorSet : '';
+			var href = data && typeof data.cursorStylesheet === 'string' ? data.cursorStylesheet : '';
+			c.iconSet = nextIcon;
+			c.cursorSet = nextCursor;
+			c.cursorStylesheet = href;
+			if ( prevIcon ) {
+				doAction( HOOK_ICONSET, 'none' );
+				emitBus( 'odd.icon-set-changed', { from: prevIcon, to: 'none' } );
+			}
+			if ( prevCursor ) {
+				doAction( 'odd.cursorSet', 'none', '' );
+				emitBus( 'odd.cursor-set-changed', { from: prevCursor, to: 'none' } );
+			}
+			toast( 'ODD icon and cursor decorations reset.', { duration: 2200 } );
+			if ( prevIcon ) {
+				try { window.location.reload(); } catch ( e ) {}
+			}
+		} );
+		return true;
 	}
 
 	function onSceneChange( cb ) {
@@ -373,7 +561,7 @@
 	// bump this when the surface described in the docstring above
 	// changes in a way extensions can observe. See
 	// docs/api-versioning.md for the contract.
-	var API_VERSION = '2.2.0';
+	var API_VERSION = '2.3.0';
 
 	window.__odd.api = {
 		version:         API_VERSION,
@@ -387,10 +575,23 @@
 		iconSets:        iconSets,
 		iconSetBySlug:   iconSetBySlug,
 		currentIconSet:  currentIconSet,
+		cursorSets:      cursorSets,
+		cursorSetBySlug: cursorSetBySlug,
+		currentCursorSet: currentCursorSet,
+		installedWidgets: installedWidgets,
+		apps:            apps,
+		appBySlug:       appBySlug,
 		savePrefs:       savePrefs,
 		setScene:        setScene,
 		setIconSet:      setIconSet,
+		setCursorSet:    setCursorSet,
+		setShuffle:      setShuffle,
+		setAudioReactive: setAudioReactive,
 		shuffle:         shuffle,
+		mountWidget:     mountWidget,
+		tidyWidgets:     tidyWidgets,
+		openApp:         openApp,
+		resetDecorations: resetDecorations,
 		toast:           toast,
 		openOsSettings:  openOsSettings,
 		showAttention:   showAttention,

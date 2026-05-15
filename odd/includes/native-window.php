@@ -144,6 +144,38 @@ add_filter(
 	}
 );
 
+add_filter(
+	'desktop_mode_arrange_menu_items',
+	function ( $items ) {
+		$items   = is_array( $items ) ? $items : array();
+		$items[] = array(
+			'id'          => 'oddout-shuffle-wallpaper',
+			'title'       => __( 'Shuffle ODD wallpaper', 'odd-outlandish-desktop-decorator' ),
+			'description' => __( 'Pick another installed ODD scene.', 'odd-outlandish-desktop-decorator' ),
+			'position'    => 20,
+		);
+		$items[] = array(
+			'id'          => 'oddout-tidy-widgets',
+			'title'       => __( 'Gather ODD widgets', 'odd-outlandish-desktop-decorator' ),
+			'description' => __( 'Redock floating ODD widgets and add installed ODD widgets to the desktop.', 'odd-outlandish-desktop-decorator' ),
+			'position'    => 21,
+		);
+		$items[] = array(
+			'id'          => 'oddout-open-shop',
+			'title'       => __( 'Open ODD Shop', 'odd-outlandish-desktop-decorator' ),
+			'description' => __( 'Open the ODD workspace.', 'odd-outlandish-desktop-decorator' ),
+			'position'    => 22,
+		);
+		$items[] = array(
+			'id'          => 'oddout-reset-decorations',
+			'title'       => __( 'Reset ODD decorations', 'odd-outlandish-desktop-decorator' ),
+			'description' => __( 'Reset active ODD icon and cursor decorations.', 'odd-outlandish-desktop-decorator' ),
+			'position'    => 23,
+		);
+		return $items;
+	}
+);
+
 /**
  * Panel template — the shell clones this into the native window body
  * when the JS render callback hasn't finished hydrating yet, and keeps

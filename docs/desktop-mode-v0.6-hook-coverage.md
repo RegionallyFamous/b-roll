@@ -32,7 +32,7 @@ Playground pins 0.8.5 so these surfaces are exercised by default, while
 | Shell lifecycle: `desktop_mode_mode_init`, `desktop_mode_shell_before`, `desktop_mode_shell_after`, `desktop_mode_mode_enabled` | diagnostics-only | ODD depends on the rendered shell but does not need to alter shell boot. |
 | Shell config: `desktop_mode_shell_config` | supported | Used for cursor stylesheet and native ODD config. |
 | Portal redirects: `desktop_mode_portal_auto_enable`, `desktop_mode_admin_redirect_to_portal` | not applicable | ODD does not own admin routing. |
-| Window/icon/widget/wallpaper registration and `*_registered` actions | supported | ODD registers the Shop, app windows, desktop icons, and the wallpaper host. |
+| Window/icon/widget/wallpaper registration and `*_registered` actions | supported | ODD registers the Shop, app windows, desktop icons, installed widget metadata, and the wallpaper host. |
 | Command script registration: `desktop_mode_register_command_script()` | supported | ODD registers the command script for live plugin activation/deactivation. |
 | Settings tab registration: `desktop_mode_register_settings_tab_script()`, `desktop_mode_register_settings_tab()` | supported | ODD adds a Desktop Mode settings tab. |
 | Title-bar button script registration: `desktop_mode_register_titlebar_button_script()` | supported | ODD registers a diagnostics title-bar button script. |
@@ -41,7 +41,7 @@ Playground pins 0.8.5 so these surfaces are exercised by default, while
 | Appearance filters: `desktop_mode_accent_colors`, `desktop_mode_toast_types`, `desktop_mode_default_wallpaper`, `desktop_mode_wallpapers`, `desktop_mode_icons`, `desktop_mode_window_tabs` | supported | ODD contributes accents, toast tone, wallpapers, icon sets, and native surfaces. |
 | Desktop files: `desktop_mode_register_file_type()`, `desktop_mode_register_file_opener()`, `desktop_mode_resolve_file()` | diagnostics-only | ODD detects the 0.8.5 file layer and extends cursor coverage across file/folder tiles, but does not register its own file type yet. |
 | Shared folders: `desktop_mode_files_sharing_enabled_for()`, visible-folder helpers | diagnostics-only | ODD records capability presence only; shared-folder product behavior stays host-owned. |
-| Host widgets / heartbeat widget helpers | diagnostics-only | ODD ships installable widgets through its catalog and records Desktop Mode's host widget/heartbeat capability when present. |
+| Host widgets / heartbeat widget helpers | supported | ODD ships installable widgets through its catalog and registers installed widgets with Desktop Mode's native widget registry when available. Heartbeat remains diagnostics-only. |
 | AI provider/tool hooks | diagnostics-only | ODD can expose catalog/shop actions only when Desktop Mode's experimental AI APIs are present. |
 | Debug helpers: `desktop_mode_debug_publish()`, `desktop_mode_debug_session_for_request()` | diagnostics-only | ODD publishes local diagnostics into debug sessions when available. |
 | Recycle Bin hooks | supported | ODD adds a cross-link hint (`Open ODD Shop`) in the recycle bin + My WordPress templates; click handling lives in `odd-desktop-hooks`. |
@@ -61,16 +61,16 @@ Playground pins 0.8.5 so these surfaces are exercised by default, while
 | Iframe hooks: `desktop-mode.iframe.ready`, `error`, `network-completed` | supported | ODD app failures and network errors flow into diagnostics. |
 | Widget hooks: `desktop-mode.widget.mounting`, `mounted`, `unmounting`, `mount-failed`, `added`, `removed` | supported | ODD records installed widget lifecycle and surfaces mount failures. |
 | File/folder hooks: `desktop-mode.file.*`, `desktop-mode.folder.*`, shared-folder changes | diagnostics-only | ODD records 0.8.5 file/folder activity and marks payload elements as cursor roots so custom cursors work on host-owned file surfaces. |
-| Wallpaper hooks: `desktop-mode.wallpapers`, `desktop-mode.wallpaper.mounting`, `mounted`, `unmounting`, `mount-failed`, `visibility`, `surfaces` | supported | ODD uses visibility and records lifecycle/surface data for scene reliability. |
+| Wallpaper hooks: `desktop-mode.wallpapers`, `desktop-mode.wallpaper.mounting`, `mounted`, `unmounting`, `mount-failed`, `visibility`, `surfaces` | supported | ODD uses visibility, records lifecycle/surface data, and exposes a Desktop Mode wallpaper editor for scene/shuffle/audio controls. |
 | Dock hooks: `desktop-mode.dock.before-render`, `tile-class`, `tile-element`, `tile-tooltip`, `tile-rendered`, `after-render`, `item-appended`, `item-removed` | supported | ODD decorates ODD tiles and records dock rendering behavior. |
 | Dock APIs: `openOsSettings()`, `listSystemTiles()`, `getSystemTile()`, `getMenuItems()`, `renderIcon()`, `isDockElement()` | supported | ODD uses these where available for settings, diagnostics, and launcher integration. |
-| Command APIs and hooks: `registerCommand()`, `desktop-mode.command.before-run`, `after-run`, `error`, `desktop-mode.open-command.items` | supported | ODD registers commands, contributes `/open` items, and records command lifecycle. |
+| Command APIs and hooks: `registerCommand()`, `registerPalette()`, `desktop-mode.command.before-run`, `after-run`, `error`, `desktop-mode.open-command.items` | supported | ODD registers commands, contributes `/open` items, registers an ODD palette, and records command lifecycle. |
 | Settings tabs: `registerSettingsTab()`, `listSettingsTabs()` | supported | ODD renders an OS Settings tab with health and diagnostics actions. |
 | Activity channels: toast, attention, badge, open-requested, presence-changed, presence-snapshot-applied | diagnostics-only | ODD records activity and uses toast/attention/badge helpers when relevant. |
 | Toast API: `wp.desktop.showToast()` and `desktop-mode.shell.toast` | supported | ODD uses the host toast API from its shared client API. |
 | Broadcast, subscribe, shared store, heartbeat, presence | diagnostics-only | ODD records these surfaces but does not introduce cross-window state yet. |
-| Arrange menu | diagnostics-only | ODD records arrange-menu availability/activity in diagnostics; Desktop Mode owns the actual layout operation. |
-| Palette APIs | diagnostics-only | ODD documents palette presence; commands remain the product surface. |
+| Arrange menu | supported | ODD contributes custom Arrange actions for shuffle, widget gathering, Shop opening, and decoration reset while leaving host window layout operations to Desktop Mode. |
+| Palette APIs | supported | ODD registers a searchable ODD palette for wallpapers, icon sets, cursor sets, widgets, apps, and settings. |
 | DevTools APIs | diagnostics-only | ODD observes app-window requests when available for local bug reports. |
 | Debug bus | diagnostics-only | ODD can publish copied diagnostics into a Desktop Mode debug session. |
 | Window chrome controls/slots/themes | supported | ODD registers a window **theme** (`odd/shop-chrome`); title-bar integration remains as before. |

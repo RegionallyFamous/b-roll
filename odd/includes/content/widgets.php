@@ -127,17 +127,26 @@ function oddout_widget_bundle_validate( $tmp_path, $filename, ZipArchive $zip, a
 	}
 
 	return array(
-		'slug'        => $header['slug'],
-		'name'        => $header['name'],
-		'label'       => isset( $manifest['label'] ) ? sanitize_text_field( (string) $manifest['label'] ) : $header['name'],
-		'version'     => $header['version'],
-		'type'        => 'widget',
-		'author'      => $header['author'],
-		'description' => isset( $manifest['description'] ) ? sanitize_text_field( (string) $manifest['description'] ) : $header['description'],
-		'franchise'   => isset( $manifest['franchise'] ) ? sanitize_text_field( (string) $manifest['franchise'] ) : 'Community',
-		'entry'       => $entry,
-		'preview'     => $preview,
-		'css'         => $css_paths,
+		'slug'          => $header['slug'],
+		'name'          => $header['name'],
+		'label'         => isset( $manifest['label'] ) ? sanitize_text_field( (string) $manifest['label'] ) : $header['name'],
+		'version'       => $header['version'],
+		'type'          => 'widget',
+		'author'        => $header['author'],
+		'description'   => isset( $manifest['description'] ) ? sanitize_text_field( (string) $manifest['description'] ) : $header['description'],
+		'franchise'     => isset( $manifest['franchise'] ) ? sanitize_text_field( (string) $manifest['franchise'] ) : 'Community',
+		'entry'         => $entry,
+		'preview'       => $preview,
+		'css'           => $css_paths,
+		'icon'          => isset( $manifest['icon'] ) && is_string( $manifest['icon'] ) && 0 === strpos( $manifest['icon'], 'dashicons-' )
+			? sanitize_html_class( $manifest['icon'] )
+			: 'dashicons-screenoptions',
+		'movable'       => array_key_exists( 'movable', $manifest ) ? (bool) $manifest['movable'] : true,
+		'resizable'     => array_key_exists( 'resizable', $manifest ) ? (bool) $manifest['resizable'] : true,
+		'minWidth'      => isset( $manifest['minWidth'] ) ? max( 120, min( 720, (int) $manifest['minWidth'] ) ) : 180,
+		'minHeight'     => isset( $manifest['minHeight'] ) ? max( 80, min( 720, (int) $manifest['minHeight'] ) ) : 120,
+		'defaultWidth'  => isset( $manifest['defaultWidth'] ) ? max( 120, min( 960, (int) $manifest['defaultWidth'] ) ) : 280,
+		'defaultHeight' => isset( $manifest['defaultHeight'] ) ? max( 80, min( 960, (int) $manifest['defaultHeight'] ) ) : 180,
 	);
 }
 
@@ -160,15 +169,23 @@ function oddout_widget_bundle_install( $tmp_path, array $manifest ) {
 	$index          = oddout_widgets_index_load();
 	$css_for_index  = isset( $manifest['css'] ) && is_array( $manifest['css'] ) ? $manifest['css'] : array();
 	$index[ $slug ] = array(
-		'slug'      => $slug,
-		'name'      => $manifest['name'],
-		'label'     => $manifest['label'],
-		'version'   => $manifest['version'],
-		'franchise' => $manifest['franchise'],
-		'entry'     => $manifest['entry'],
-		'preview'   => $manifest['preview'],
-		'css'       => $css_for_index,
-		'installed' => time(),
+		'slug'          => $slug,
+		'name'          => $manifest['name'],
+		'label'         => $manifest['label'],
+		'version'       => $manifest['version'],
+		'franchise'     => $manifest['franchise'],
+		'description'   => isset( $manifest['description'] ) ? $manifest['description'] : '',
+		'icon'          => isset( $manifest['icon'] ) ? $manifest['icon'] : 'dashicons-screenoptions',
+		'entry'         => $manifest['entry'],
+		'preview'       => $manifest['preview'],
+		'css'           => $css_for_index,
+		'movable'       => isset( $manifest['movable'] ) ? (bool) $manifest['movable'] : true,
+		'resizable'     => isset( $manifest['resizable'] ) ? (bool) $manifest['resizable'] : true,
+		'minWidth'      => isset( $manifest['minWidth'] ) ? (int) $manifest['minWidth'] : 180,
+		'minHeight'     => isset( $manifest['minHeight'] ) ? (int) $manifest['minHeight'] : 120,
+		'defaultWidth'  => isset( $manifest['defaultWidth'] ) ? (int) $manifest['defaultWidth'] : 280,
+		'defaultHeight' => isset( $manifest['defaultHeight'] ) ? (int) $manifest['defaultHeight'] : 180,
+		'installed'     => time(),
 	);
 	oddout_widgets_index_save( $index );
 
@@ -251,6 +268,110 @@ function oddout_widget_stylesheet_paths_for( $slug, array $row ) {
 	return $out;
 }
 
+function oddout_widget_script_handle( $slug ) {
+	$slug = sanitize_key( (string) $slug );
+	return '' === $slug ? '' : 'odd-widget-' . $slug;
+}
+
+function oddout_widget_row_int( array $row, $key, $fallback, $min, $max ) {
+	$value = isset( $row[ $key ] ) ? (int) $row[ $key ] : (int) $fallback;
+	return max( (int) $min, min( (int) $max, $value ) );
+}
+
+function oddout_widget_register_script_handle( $slug, array $row ) {
+	static $bridged_handles = array();
+
+	$slug = sanitize_key( (string) $slug );
+	if ( '' === $slug ) {
+		return '';
+	}
+	$entry = isset( $row['entry'] ) ? oddout_content_sanitize_relative_path( (string) $row['entry'] ) : 'widget.js';
+	if ( '' === $entry ) {
+		$entry = 'widget.js';
+	}
+	$handle = oddout_widget_script_handle( $slug );
+	$ver    = isset( $row['version'] ) ? (string) $row['version'] : ODDOUT_VERSION;
+	wp_register_script(
+		$handle,
+		oddout_widgets_url_for( $slug ) . rawurlencode( $entry ),
+		array( 'desktop-mode', 'odd-api' ),
+		$ver,
+		true
+	);
+	if ( empty( $bridged_handles[ $handle ] ) ) {
+		wp_add_inline_script( $handle, oddout_widgets_bridge_script(), 'before' );
+		$bridged_handles[ $handle ] = true;
+	}
+	return $handle;
+}
+
+function oddout_widget_desktop_mode_args( $slug, array $row ) {
+	$handle = oddout_widget_register_script_handle( $slug, $row );
+	if ( '' === $handle ) {
+		return array();
+	}
+	$label = isset( $row['label'] ) ? sanitize_text_field( (string) $row['label'] ) : sanitize_key( (string) $slug );
+	$desc  = isset( $row['description'] ) ? sanitize_text_field( (string) $row['description'] ) : '';
+	if ( '' === $desc && isset( $row['name'] ) ) {
+		$desc = sanitize_text_field( (string) $row['name'] );
+	}
+	$icon = isset( $row['icon'] ) && is_string( $row['icon'] ) && 0 === strpos( $row['icon'], 'dashicons-' )
+		? sanitize_html_class( $row['icon'] )
+		: 'dashicons-screenoptions';
+	return array(
+		'label'          => $label,
+		'description'    => $desc,
+		'icon'           => $icon,
+		'script'         => $handle,
+		'movable'        => array_key_exists( 'movable', $row ) ? (bool) $row['movable'] : true,
+		'resizable'      => array_key_exists( 'resizable', $row ) ? (bool) $row['resizable'] : true,
+		'min_width'      => oddout_widget_row_int( $row, 'minWidth', 180, 120, 720 ),
+		'min_height'     => oddout_widget_row_int( $row, 'minHeight', 120, 80, 720 ),
+		'default_width'  => oddout_widget_row_int( $row, 'defaultWidth', 280, 120, 960 ),
+		'default_height' => oddout_widget_row_int( $row, 'defaultHeight', 180, 80, 960 ),
+	);
+}
+
+function oddout_widgets_bridge_script() {
+	return <<<'JS'
+(function(){
+	if (!window.wp || !window.wp.desktop || window.wp.desktop.__oddWidgetBridge) return;
+	var desktop = window.wp.desktop;
+	var original = desktop.registerWidget;
+	if (typeof original !== 'function') return;
+	window.desktopModeWidgets = window.desktopModeWidgets || {};
+	desktop.__oddWidgetBridge = true;
+	desktop.registerWidget = function(def){
+		if (def && typeof def.id === 'string' && def.id.indexOf('odd/') === 0 && typeof def.mount === 'function') {
+			window.desktopModeWidgets[def.id] = def.mount;
+		}
+		return original.apply(this, arguments);
+	};
+})();
+JS;
+}
+
+add_action(
+	'init',
+	function () {
+		if ( ! function_exists( 'oddout_desktop_mode_supports' ) || ! oddout_desktop_mode_supports( 'host_widgets' ) || ! function_exists( 'desktop_mode_register_widget' ) ) {
+			return;
+		}
+		$index = oddout_widgets_index_load();
+		foreach ( $index as $slug => $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$args = oddout_widget_desktop_mode_args( $slug, $row );
+			if ( empty( $args ) ) {
+				continue;
+			}
+			desktop_mode_register_widget( 'odd/' . sanitize_key( (string) $slug ), $args );
+		}
+	},
+	20
+);
+
 /**
  * Enqueue installed widget JS on admin_enqueue_scripts. Each file
  * calls wp.desktop.registerWidget() at load time, so the widget
@@ -266,6 +387,9 @@ add_action(
 		if ( empty( $index ) ) {
 			return;
 		}
+		if ( wp_script_is( 'odd-api', 'registered' ) || wp_script_is( 'odd-api', 'enqueued' ) ) {
+			wp_add_inline_script( 'odd-api', oddout_widgets_bridge_script(), 'after' );
+		}
 		foreach ( $index as $slug => $row ) {
 			$ver = isset( $row['version'] ) ? $row['version'] : ODDOUT_VERSION;
 			foreach ( oddout_widget_stylesheet_paths_for( $slug, $row ) as $idx => $css_rel ) {
@@ -279,15 +403,10 @@ add_action(
 					'all'
 				);
 			}
-			$entry = isset( $row['entry'] ) ? (string) $row['entry'] : 'widget.js';
-			$url   = oddout_widgets_url_for( $slug ) . rawurlencode( $entry );
-			wp_enqueue_script(
-				'odd-widget-' . $slug,
-				$url,
-				array( 'desktop-mode', 'odd-api' ),
-				$ver,
-				true
-			);
+			$handle = oddout_widget_register_script_handle( $slug, $row );
+			if ( '' !== $handle ) {
+				wp_enqueue_script( $handle );
+			}
 		}
 	},
 	20

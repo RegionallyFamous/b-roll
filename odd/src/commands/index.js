@@ -165,6 +165,236 @@
 		return 'ODD Shop is unavailable — WP Desktop Mode may not be ready yet.';
 	}
 
+	var palette = {
+		el: null,
+		input: null,
+		list: null,
+		open: false,
+		actions: [],
+		filtered: [],
+		active: 0,
+		unregister: null,
+	};
+
+	function esc( s ) {
+		return String( s || '' )
+			.replace( /&/g, '&amp;' )
+			.replace( /</g, '&lt;' )
+			.replace( />/g, '&gt;' )
+			.replace( /"/g, '&quot;' );
+	}
+
+	function installPaletteStyle() {
+		if ( document.getElementById( 'odd-command-palette-style' ) ) return;
+		var style = document.createElement( 'style' );
+		style.id = 'odd-command-palette-style';
+		style.textContent = [
+			'.odd-command-palette{position:fixed;inset:0;z-index:100000;display:grid;place-items:start center;padding:clamp(18px,10vh,92px) 18px;background:rgba(8,4,18,.52);backdrop-filter:blur(10px);}',
+			'.odd-command-palette[hidden]{display:none;}',
+			'.odd-command-palette__panel{width:min(760px,calc(100vw - 32px));max-height:min(76vh,720px);overflow:hidden;border:1px solid rgba(255,255,255,.18);border-radius:18px;background:linear-gradient(180deg,rgba(23,18,37,.98),rgba(8,9,20,.98));box-shadow:0 24px 80px rgba(0,0,0,.48);color:#f8fafc;}',
+			'.odd-command-palette__head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.1);}',
+			'.odd-command-palette__mark{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#f472d0,#6ee7f9);color:#0b1020;font-weight:800;}',
+			'.odd-command-palette__input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:inherit;font:600 18px/1.35 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}',
+			'.odd-command-palette__input::placeholder{color:rgba(248,250,252,.55);}',
+			'.odd-command-palette__hint{font-size:12px;color:rgba(248,250,252,.62);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:4px 8px;}',
+			'.odd-command-palette__list{max-height:calc(min(76vh,720px) - 64px);overflow:auto;padding:8px;}',
+			'.odd-command-palette__item{width:100%;display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:12px;text-align:left;padding:10px 12px;border:0;border-radius:12px;background:transparent;color:inherit;cursor:pointer;}',
+			'.odd-command-palette__item:hover,.odd-command-palette__item.is-active{background:rgba(255,255,255,.1);}',
+			'.odd-command-palette__icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.08);font:normal 18px/1 dashicons;}',
+			'.odd-command-palette__title{font-weight:700;font-size:14px;}',
+			'.odd-command-palette__desc{margin-top:2px;color:rgba(248,250,252,.62);font-size:12px;}',
+			'.odd-command-palette__kind{color:rgba(248,250,252,.52);font-size:11px;text-transform:uppercase;letter-spacing:.08em;}',
+			'.odd-command-palette__empty{padding:26px 18px;color:rgba(248,250,252,.66);}',
+			'@media (max-width:560px){.odd-command-palette{place-items:start stretch;padding:10px}.odd-command-palette__panel{width:auto;border-radius:14px}.odd-command-palette__hint{display:none}.odd-command-palette__item{grid-template-columns:32px 1fr}.odd-command-palette__kind{display:none}}',
+		].join( '\n' );
+		document.head.appendChild( style );
+	}
+
+	function action( kind, icon, title, description, run ) {
+		return {
+			kind: kind,
+			icon: icon || 'dashicons-star-filled',
+			title: title,
+			description: description || '',
+			run: run,
+		};
+	}
+
+	function collectPaletteActions() {
+		var a = api();
+		if ( ! a ) return [];
+		var out = [
+			action( 'Shop', 'dashicons-cart', 'Open ODD Shop', 'Browse wallpapers, icons, cursors, widgets, and apps.', function () { a.openPanel(); } ),
+			action( 'Wallpaper', 'dashicons-controls-forward', 'Shuffle ODD wallpaper', 'Jump to another installed scene.', function () { a.shuffle(); } ),
+		];
+
+		if ( typeof a.scenes === 'function' ) {
+			a.scenes().forEach( function ( scene ) {
+				if ( ! scene || ! scene.slug ) return;
+				out.push( action(
+					'Wallpaper',
+					'dashicons-art',
+					'Use ' + ( scene.label || scene.slug ),
+					scene.franchise || 'ODD scene',
+					function () { a.setScene( scene.slug ); }
+				) );
+			} );
+		}
+
+		if ( typeof a.iconSets === 'function' ) {
+			out.push( action( 'Icons', 'dashicons-no-alt', 'Use default icons', 'Return Desktop Mode icons to their original set.', function () { a.setIconSet( 'none' ); } ) );
+			a.iconSets().forEach( function ( set ) {
+				if ( ! set || ! set.slug ) return;
+				out.push( action( 'Icons', 'dashicons-grid-view', 'Use ' + ( set.label || set.slug ), set.franchise || 'Icon set', function () { a.setIconSet( set.slug ); } ) );
+			} );
+		}
+
+		if ( typeof a.cursorSets === 'function' ) {
+			out.push( action( 'Cursors', 'dashicons-marker', 'Use default cursors', 'Return to browser and Desktop Mode cursors.', function () { a.setCursorSet( 'none' ); } ) );
+			a.cursorSets().forEach( function ( set ) {
+				if ( ! set || ! set.slug ) return;
+				out.push( action( 'Cursors', 'dashicons-marker', 'Use ' + ( set.label || set.slug ), set.franchise || 'Cursor set', function () { a.setCursorSet( set.slug ); } ) );
+			} );
+		}
+
+		if ( typeof a.installedWidgets === 'function' ) {
+			a.installedWidgets().forEach( function ( widget ) {
+				if ( ! widget || ! widget.id ) return;
+				out.push( action( 'Widgets', 'dashicons-screenoptions', 'Add ' + ( widget.label || widget.slug || widget.id ), widget.franchise || widget.description || 'Desktop widget', function () { a.mountWidget( widget.id ); } ) );
+			} );
+		}
+
+		if ( typeof a.apps === 'function' ) {
+			a.apps().forEach( function ( app ) {
+				if ( ! app || ! app.slug ) return;
+				out.push( action( 'Apps', 'dashicons-admin-plugins', 'Open ' + ( app.name || app.label || app.slug ), app.description || 'Installed ODD app', function () { a.openApp( app.slug ); } ) );
+			} );
+		}
+
+		out.push( action( 'Desktop', 'dashicons-admin-settings', 'Open ODD settings', 'Jump to Desktop Mode settings.', function () { a.openOsSettings(); } ) );
+		out.push( action( 'Desktop', 'dashicons-image-rotate', 'Reset ODD decorations', 'Reset active icon and cursor decorations.', function () { a.resetDecorations(); } ) );
+		return out;
+	}
+
+	function filterPaletteActions() {
+		var query = palette.input ? norm( palette.input.value ) : '';
+		var parts = query ? query.split( /\s+/ ).filter( Boolean ) : [];
+		palette.filtered = palette.actions.filter( function ( item ) {
+			if ( ! parts.length ) return true;
+			var hay = norm( [ item.kind, item.title, item.description ].join( ' ' ) );
+			return parts.every( function ( p ) { return hay.indexOf( p ) !== -1; } );
+		} ).slice( 0, 40 );
+		if ( palette.active >= palette.filtered.length ) palette.active = 0;
+	}
+
+	function renderPaletteList() {
+		if ( ! palette.list ) return;
+		filterPaletteActions();
+		if ( ! palette.filtered.length ) {
+			palette.list.innerHTML = '<div class="odd-command-palette__empty">No ODD actions match that search.</div>';
+			return;
+		}
+		palette.list.innerHTML = palette.filtered.map( function ( item, i ) {
+			return '<button type="button" class="odd-command-palette__item' + ( i === palette.active ? ' is-active' : '' ) + '" data-odd-palette-index="' + i + '">'
+				+ '<span class="odd-command-palette__icon dashicons ' + esc( item.icon ) + '" aria-hidden="true"></span>'
+				+ '<span><span class="odd-command-palette__title">' + esc( item.title ) + '</span><span class="odd-command-palette__desc">' + esc( item.description ) + '</span></span>'
+				+ '<span class="odd-command-palette__kind">' + esc( item.kind ) + '</span>'
+				+ '</button>';
+		} ).join( '' );
+	}
+
+	function runPaletteAction( index ) {
+		var item = palette.filtered[ index ];
+		if ( ! item || typeof item.run !== 'function' ) return;
+		try { item.run(); } catch ( e ) {
+			if ( window.console ) { try { window.console.error( '[ODD palette]', e ); } catch ( _ ) {} }
+		}
+		closePalette();
+	}
+
+	function ensurePalette() {
+		if ( palette.el ) return palette.el;
+		installPaletteStyle();
+		var el = document.createElement( 'div' );
+		el.className = 'odd-command-palette';
+		el.hidden = true;
+		el.innerHTML = [
+			'<div class="odd-command-palette__panel" role="dialog" aria-modal="true" aria-label="ODD palette">',
+			'<div class="odd-command-palette__head">',
+			'<span class="odd-command-palette__mark" aria-hidden="true">O</span>',
+			'<input class="odd-command-palette__input" type="search" autocomplete="off" spellcheck="false" placeholder="Search ODD" aria-label="Search ODD actions">',
+			'<span class="odd-command-palette__hint">Esc</span>',
+			'</div>',
+			'<div class="odd-command-palette__list" role="listbox"></div>',
+			'</div>',
+		].join( '' );
+		palette.el = el;
+		palette.input = el.querySelector( '.odd-command-palette__input' );
+		palette.list = el.querySelector( '.odd-command-palette__list' );
+		palette.input.addEventListener( 'input', renderPaletteList );
+		palette.input.addEventListener( 'keydown', function ( ev ) {
+			if ( ev.key === 'Escape' ) {
+				ev.preventDefault();
+				closePalette();
+			} else if ( ev.key === 'ArrowDown' ) {
+				ev.preventDefault();
+				palette.active = palette.filtered.length ? ( palette.active + 1 ) % palette.filtered.length : 0;
+				renderPaletteList();
+			} else if ( ev.key === 'ArrowUp' ) {
+				ev.preventDefault();
+				palette.active = palette.filtered.length ? ( palette.active - 1 + palette.filtered.length ) % palette.filtered.length : 0;
+				renderPaletteList();
+			} else if ( ev.key === 'Enter' ) {
+				ev.preventDefault();
+				runPaletteAction( palette.active );
+			}
+		} );
+		palette.list.addEventListener( 'click', function ( ev ) {
+			var btn = ev.target && ev.target.closest ? ev.target.closest( '[data-odd-palette-index]' ) : null;
+			if ( ! btn ) return;
+			runPaletteAction( parseInt( btn.getAttribute( 'data-odd-palette-index' ), 10 ) || 0 );
+		} );
+		el.addEventListener( 'click', function ( ev ) {
+			if ( ev.target === el ) closePalette();
+		} );
+		document.body.appendChild( el );
+		return el;
+	}
+
+	function openPalette() {
+		var el = ensurePalette();
+		palette.actions = collectPaletteActions();
+		palette.active = 0;
+		palette.open = true;
+		el.hidden = false;
+		if ( palette.input ) {
+			palette.input.value = '';
+			renderPaletteList();
+			window.setTimeout( function () {
+				try { palette.input.focus(); } catch ( e ) {}
+			}, 0 );
+		}
+	}
+
+	function closePalette() {
+		if ( ! palette.el ) return;
+		palette.open = false;
+		palette.el.hidden = true;
+	}
+
+	function registerOddPalette() {
+		var d = window.wp && window.wp.desktop;
+		if ( ! d || typeof d.registerPalette !== 'function' ) return;
+		if ( palette.unregister ) return;
+		palette.unregister = d.registerPalette( {
+			id: 'odd',
+			label: 'ODD',
+			open: openPalette,
+			close: closePalette,
+			isOpen: function () { return !! palette.open; },
+		} );
+	}
+
 	ready( function () {
 		if ( ! window.wp || ! window.wp.desktop || typeof window.wp.desktop.registerCommand !== 'function' ) return;
 
@@ -207,5 +437,7 @@
 			owner:       'odd-commands',
 			run:         safeRun( run_panel, 'command.odd-panel' ),
 		} );
+
+		registerOddPalette();
 	} );
 } )();

@@ -292,6 +292,35 @@ describe( 'Desktop Mode hook bridge', () => {
 		expect( log ).toContain( '"arrangeMenu":true' );
 	} );
 
+	it( 'handles ODD custom Arrange menu actions', () => {
+		const shuffle = vi.fn();
+		const tidyWidgets = vi.fn();
+		const openPanel = vi.fn();
+		const resetDecorations = vi.fn();
+		window.wp.desktop = { ready: ( cb ) => cb() };
+		loadDesktopHooks();
+		window.__odd.api = {
+			shuffle,
+			tidyWidgets,
+			openPanel,
+			resetDecorations,
+		};
+
+		window.wp.hooks.doAction( 'desktop-mode.arrange.custom-action', { id: 'oddout-shuffle-wallpaper' } );
+		window.wp.hooks.doAction( 'desktop-mode.arrange.custom-action', { id: 'oddout-tidy-widgets' } );
+		window.wp.hooks.doAction( 'desktop-mode.arrange.custom-action', { id: 'oddout-open-shop' } );
+		window.wp.hooks.doAction( 'desktop-mode.arrange.custom-action', { id: 'oddout-reset-decorations' } );
+
+		expect( shuffle ).toHaveBeenCalledTimes( 1 );
+		expect( tidyWidgets ).toHaveBeenCalledTimes( 1 );
+		expect( openPanel ).toHaveBeenCalledTimes( 1 );
+		expect( resetDecorations ).toHaveBeenCalledTimes( 1 );
+
+		const log = window.__odd.diagnostics.recent().map( ( row ) => row.message ).join( '\n' );
+		expect( log ).toContain( 'desktop-mode.arrange.custom-action' );
+		expect( log ).toContain( '"handled":true' );
+	} );
+
 	it( 'maps current WP Desktop Mode desktop area and icon surfaces', () => {
 		window.wp.desktop = { ready: ( cb ) => cb() };
 		const shell = document.createElement( 'div' );

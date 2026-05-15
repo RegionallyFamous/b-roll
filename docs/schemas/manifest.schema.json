@@ -57,6 +57,10 @@
 			"type": "string",
 			"description": "Relative path to a preview image (.webp recommended). Required for scenes."
 		},
+		"icon": {
+			"type": "string",
+			"description": "Icon path for Shop cards, or a dashicons-* class for native Desktop Mode widget picker metadata."
+		},
 		"wallpaper": {
 			"type": "string",
 			"description": "Relative path to the 1920×1080 backdrop .webp. Required for scenes."
@@ -113,6 +117,34 @@
 			"type": "array",
 			"description": "Widget manifests only. Relative paths to CSS files enqueued alongside the widget entry script.",
 			"items": { "type": "string" }
+		},
+		"movable": {
+			"type": "boolean",
+			"description": "Widget manifests only. Whether Desktop Mode can drag the widget out of the widget column."
+		},
+		"resizable": {
+			"type": "boolean",
+			"description": "Widget manifests only. Whether Desktop Mode can resize the widget card."
+		},
+		"minWidth": {
+			"type": "integer",
+			"minimum": 1,
+			"description": "Widget manifests only. Minimum native widget width."
+		},
+		"minHeight": {
+			"type": "integer",
+			"minimum": 1,
+			"description": "Widget manifests only. Minimum native widget height."
+		},
+		"defaultWidth": {
+			"type": "integer",
+			"minimum": 1,
+			"description": "Widget manifests only. First-mount native widget width."
+		},
+		"defaultHeight": {
+			"type": "integer",
+			"minimum": 1,
+			"description": "Widget manifests only. First-mount native widget height."
 		},
 		"window": {
 			"type": "object",

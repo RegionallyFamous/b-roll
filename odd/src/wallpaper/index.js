@@ -1292,6 +1292,118 @@
 		return teardown;
 	}
 
+	function renderWallpaperEditor( mount, ctx ) {
+		if ( ! mount || ! document ) return function () {};
+		var api = window.__odd && window.__odd.api;
+		var config = window.odd || {};
+		var scenesList = api && typeof api.scenes === 'function' ? api.scenes() : ( Array.isArray( config.scenes ) ? config.scenes : [] );
+		var current = api && typeof api.currentScene === 'function' ? api.currentScene() : ( config.wallpaper || config.scene || '' );
+		var shuffle = config.shuffle && typeof config.shuffle === 'object' ? config.shuffle : { enabled: false, minutes: 15 };
+		var disposed = false;
+
+		mount.classList.add( 'odd-wallpaper-editor' );
+		mount.innerHTML = [
+			'<div class="odd-wallpaper-editor__grid">',
+			'<label class="odd-wallpaper-editor__field"><span>Scene</span><select data-odd-wallpaper-scene></select></label>',
+			'<label class="odd-wallpaper-editor__field odd-wallpaper-editor__inline"><input type="checkbox" data-odd-wallpaper-shuffle> <span>Shuffle scenes</span></label>',
+			'<label class="odd-wallpaper-editor__field"><span>Every</span><input type="number" min="1" max="240" step="1" data-odd-wallpaper-minutes></label>',
+			'<label class="odd-wallpaper-editor__field odd-wallpaper-editor__inline"><input type="checkbox" data-odd-wallpaper-audio> <span>Audio reactive</span></label>',
+			'</div>',
+			'<div class="odd-wallpaper-editor__actions">',
+			'<button type="button" class="button button-secondary" data-odd-wallpaper-shuffle-now>Shuffle now</button>',
+			'<button type="button" class="button button-secondary" data-odd-wallpaper-open-shop>Open ODD Shop</button>',
+			'</div>',
+		].join( '' );
+
+		var style = document.getElementById( 'odd-wallpaper-editor-style' );
+		if ( ! style ) {
+			style = document.createElement( 'style' );
+			style.id = 'odd-wallpaper-editor-style';
+			style.textContent = [
+				'.odd-wallpaper-editor{display:block;padding:10px 0 2px;}',
+				'.odd-wallpaper-editor__grid{display:grid;grid-template-columns:minmax(180px,1fr) minmax(130px,.55fr);gap:10px;align-items:end;}',
+				'.odd-wallpaper-editor__field{display:grid;gap:6px;font-size:12px;color:inherit;}',
+				'.odd-wallpaper-editor__field>span{font-weight:700;}',
+				'.odd-wallpaper-editor__field select,.odd-wallpaper-editor__field input[type="number"]{width:100%;min-height:34px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:inherit;padding:4px 8px;}',
+				'.odd-wallpaper-editor__inline{display:flex;gap:8px;align-items:center;min-height:34px;}',
+				'.odd-wallpaper-editor__inline input{margin:0;}',
+				'.odd-wallpaper-editor__actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}',
+				'@media (max-width:560px){.odd-wallpaper-editor__grid{grid-template-columns:1fr;}}',
+			].join( '\n' );
+			document.head.appendChild( style );
+		}
+
+		var select = mount.querySelector( '[data-odd-wallpaper-scene]' );
+		var shuffleToggle = mount.querySelector( '[data-odd-wallpaper-shuffle]' );
+		var minutes = mount.querySelector( '[data-odd-wallpaper-minutes]' );
+		var audio = mount.querySelector( '[data-odd-wallpaper-audio]' );
+		var shuffleNow = mount.querySelector( '[data-odd-wallpaper-shuffle-now]' );
+		var openShop = mount.querySelector( '[data-odd-wallpaper-open-shop]' );
+
+		function htmlEsc( value ) {
+			return String( value || '' )
+				.replace( /&/g, '&amp;' )
+				.replace( /</g, '&lt;' )
+				.replace( />/g, '&gt;' )
+				.replace( /"/g, '&quot;' );
+		}
+
+		if ( select ) {
+			select.innerHTML = scenesList.map( function ( scene ) {
+				if ( ! scene || ! scene.slug ) return '';
+				return '<option value="' + htmlEsc( scene.slug ) + '">' + htmlEsc( scene.label || scene.slug ) + '</option>';
+			} ).join( '' );
+			select.value = current;
+		}
+		if ( shuffleToggle ) shuffleToggle.checked = !! shuffle.enabled;
+		if ( minutes ) minutes.value = String( parseInt( shuffle.minutes, 10 ) || 15 );
+		if ( audio ) audio.checked = !! config.audioReactive;
+
+		function setShuffle() {
+			if ( ! api || typeof api.setShuffle !== 'function' ) return;
+			api.setShuffle( {
+				enabled: !! ( shuffleToggle && shuffleToggle.checked ),
+				minutes: parseInt( minutes && minutes.value, 10 ) || 15,
+			}, { quiet: true } );
+		}
+
+		function onScene() {
+			if ( ! api || typeof api.setScene !== 'function' || ! select ) return;
+			api.setScene( select.value );
+		}
+		function onShuffleChange() { setShuffle(); }
+		function onAudio() {
+			if ( api && typeof api.setAudioReactive === 'function' ) {
+				api.setAudioReactive( !! ( audio && audio.checked ), { quiet: true } );
+			}
+		}
+		function onShuffleNow() {
+			if ( api && typeof api.shuffle === 'function' ) api.shuffle();
+		}
+		function onOpenShop() {
+			if ( api && typeof api.openPanel === 'function' ) api.openPanel();
+		}
+
+		if ( select ) select.addEventListener( 'change', onScene );
+		if ( shuffleToggle ) shuffleToggle.addEventListener( 'change', onShuffleChange );
+		if ( minutes ) minutes.addEventListener( 'change', onShuffleChange );
+		if ( audio ) audio.addEventListener( 'change', onAudio );
+		if ( shuffleNow ) shuffleNow.addEventListener( 'click', onShuffleNow );
+		if ( openShop ) openShop.addEventListener( 'click', onOpenShop );
+
+		return function () {
+			if ( disposed ) return;
+			disposed = true;
+			if ( select ) select.removeEventListener( 'change', onScene );
+			if ( shuffleToggle ) shuffleToggle.removeEventListener( 'change', onShuffleChange );
+			if ( minutes ) minutes.removeEventListener( 'change', onShuffleChange );
+			if ( audio ) audio.removeEventListener( 'change', onAudio );
+			if ( shuffleNow ) shuffleNow.removeEventListener( 'click', onShuffleNow );
+			if ( openShop ) openShop.removeEventListener( 'click', onOpenShop );
+			try { mount.replaceChildren(); } catch ( e ) { mount.innerHTML = ''; }
+		};
+	}
+
 	// ============================================================ //
 	// Registration — one wallpaper card.
 	// ============================================================ //
@@ -1311,6 +1423,7 @@
 				preview: previewBg( defaultScene() ),
 				needs:   [ 'pixijs' ],
 				mount:   mountODD,
+				renderEditor: renderWallpaperEditor,
 			} );
 		} catch ( e ) {
 			if ( window.console ) window.console.warn( 'ODD: registerWallpaper failed', e );

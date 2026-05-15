@@ -145,6 +145,60 @@ describe( 'ODD wallpaper lifecycle', () => {
 		teardown();
 	} );
 
+	it( 'exposes a Desktop Mode wallpaper settings editor for ODD controls', () => {
+		const { wallpaperDef } = loadWallpaper( {
+			scene: 'second',
+			wallpaper: 'second',
+			shuffle: { enabled: true, minutes: 30 },
+			audioReactive: true,
+		} );
+		const setScene = vi.fn();
+		const setShuffle = vi.fn();
+		const setAudioReactive = vi.fn();
+		const shuffle = vi.fn();
+		const openPanel = vi.fn();
+		window.__odd.api = {
+			scenes: () => window.odd.scenes,
+			currentScene: () => 'second',
+			setScene,
+			setShuffle,
+			setAudioReactive,
+			shuffle,
+			openPanel,
+		};
+		const slot = document.createElement( 'div' );
+		document.body.appendChild( slot );
+
+		const cleanup = wallpaperDef.renderEditor( slot, { id: 'odd' } );
+
+		const select = slot.querySelector( '[data-odd-wallpaper-scene]' );
+		const shuffleToggle = slot.querySelector( '[data-odd-wallpaper-shuffle]' );
+		const minutes = slot.querySelector( '[data-odd-wallpaper-minutes]' );
+		const audio = slot.querySelector( '[data-odd-wallpaper-audio]' );
+		expect( typeof cleanup ).toBe( 'function' );
+		expect( select.value ).toBe( 'second' );
+		expect( shuffleToggle.checked ).toBe( true );
+		expect( minutes.value ).toBe( '30' );
+		expect( audio.checked ).toBe( true );
+
+		select.value = 'first';
+		select.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		shuffleToggle.checked = false;
+		shuffleToggle.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		audio.checked = false;
+		audio.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		slot.querySelector( '[data-odd-wallpaper-shuffle-now]' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		slot.querySelector( '[data-odd-wallpaper-open-shop]' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+
+		expect( setScene ).toHaveBeenCalledWith( 'first' );
+		expect( setShuffle ).toHaveBeenCalledWith( { enabled: false, minutes: 30 }, { quiet: true } );
+		expect( setAudioReactive ).toHaveBeenCalledWith( false, { quiet: true } );
+		expect( shuffle ).toHaveBeenCalledTimes( 1 );
+		expect( openPanel ).toHaveBeenCalledTimes( 1 );
+		cleanup();
+		expect( slot.children.length ).toBe( 0 );
+	} );
+
 	it( 'destroys a late Pixi app when teardown runs before async init resolves', async () => {
 		const initDeferred = deferred();
 		const pixi = installPixiStub( { initDeferred } );

@@ -70,6 +70,16 @@ class Test_Native_Window extends WP_UnitTestCase {
 		$this->assertSame( $row, apply_filters( 'desktop_mode_file_serialize', $row, null ) );
 	}
 
+	public function test_arrange_menu_includes_odd_actions() {
+		$items = apply_filters( 'desktop_mode_arrange_menu_items', array() );
+		$ids   = wp_list_pluck( $items, 'id' );
+
+		$this->assertContains( 'oddout-shuffle-wallpaper', $ids );
+		$this->assertContains( 'oddout-tidy-widgets', $ids );
+		$this->assertContains( 'oddout-open-shop', $ids );
+		$this->assertContains( 'oddout-reset-decorations', $ids );
+	}
+
 	public function test_native_window_entry_gets_camelcase_and_snakecase_mins() {
 		$config = apply_filters(
 			'desktop_mode_shell_config',
