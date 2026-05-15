@@ -1,6 +1,6 @@
-# WordPress.org plugin directory submission
+# WordPress.org plugin directory publishing
 
-This doc records the steps and the current state of ODD's submission to https://wordpress.org/plugins/.
+This doc records the current WordPress.org status for ODD and the manual publishing workflow for https://wordpress.org/plugins/odd-outlandish-desktop-decorator/.
 
 ## Status
 
@@ -15,7 +15,7 @@ This doc records the steps and the current state of ODD's submission to https://
 - [x] Remote catalog is a single HTTPS JSON fetch to a static GitHub Pages URL, configurable via `ODDOUT_CATALOG_URL` for enterprise mirrors ([ADR 0005](adr/0005-remote-catalog-empty-plugin.md))
 - [x] Submitted to the plugin directory for review (manual step, done via https://wordpress.org/plugins/developers/add/)
 - [x] Accepted on WordPress.org: https://wordpress.org/plugins/odd-outlandish-desktop-decorator/
-- [ ] SVN trunk seeded once the submission is approved (manual, see below)
+- [ ] SVN trunk seeded for the 1.0.0 public baseline (manual, see below)
 - [ ] Screenshots captured and uploaded to `assets/` in SVN (5 screenshots listed in readme.txt)
 
 ## Screenshot checklist
@@ -38,7 +38,23 @@ All screenshots are captured in the live demo (`https://playground.wordpress.net
 
 ## SVN workflow
 
-Once the plugin submission is approved:
+Use the local `wporg-plugin-release` Codex skill for day-to-day publishing. It stages `trunk/` and `tags/<version>/` from the validated release zip so nobody has to hand-copy files into SVN:
+
+```sh
+python3 /Users/nick/.codex/skills/wporg-plugin-release/scripts/publish_wporg.py \
+  --repo-root /Users/nick/.codex/worktrees/dcf7/odd \
+  --plugin-dir odd \
+  --slug odd-outlandish-desktop-decorator \
+  --svn-url https://plugins.svn.wordpress.org/odd-outlandish-desktop-decorator \
+  --version 1.0.0 \
+  --svn-dir /Users/nick/wporg-svn/odd-outlandish-desktop-decorator \
+  --zip dist/odd.zip \
+  --skip-build
+```
+
+After reviewing `svn status`, publish by rerunning with `--commit` and `--username nickhamze`. Do not paste the SVN password into chat; authenticate through the local SVN prompt or the local SVN credential cache.
+
+The manual equivalent, kept here as a reference:
 
 ```sh
 # Check out the SVN repo the directory publishes.
@@ -75,7 +91,7 @@ svn add --force .
 svn ci -m "Release 1.0.0"
 ```
 
-Automating this would require a WP.org-specific workflow and secrets; we keep it manual until the plugin has enough release velocity to justify the setup.
+We intentionally do not use a GitHub Action for SVN publishing. The release should be staged and reviewed locally with Codex, then committed to WordPress.org SVN only when explicitly requested.
 
 ## Plugin review feedback
 
@@ -88,5 +104,5 @@ Common feedback from the WP.org plugin review team + how ODD answers it:
 
 ## After approval
 
-- Ship each subsequent release by copying `trunk/` → `tags/<version>/` and committing, then tag a GitHub release to keep both publishing channels in sync.
+- Ship each subsequent release by staging the validated zip into SVN `trunk/`, copying `trunk/` -> `tags/<version>/`, and committing. Keep the GitHub release/tag and WordPress.org SVN tag aligned.
 - Keep the changelog in `odd/readme.txt` short — point at `CHANGELOG.md` on GitHub for the long-form history.

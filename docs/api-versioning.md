@@ -50,12 +50,12 @@ bundle or companion plugin might touch:
 
 ## Versioning rules (SemVer, applied to the API)
 
-- **Patch bump** (`1.0.0` → `1.0.1`): bug fix, documentation fix, or
+- **Patch bump** (`x.y.z` -> `x.y.(z+1)`): bug fix, documentation fix, or
   internal refactor that is invisible to third parties.
-- **Minor bump** (`1.0.0` → `1.1.0`): we add new methods, new events,
+- **Minor bump** (`x.y.z` -> `x.(y+1).0`): we add new methods, new events,
   new hooks, or new manifest fields without removing or changing the
   behaviour of anything that already existed.
-- **Major bump** (`1.0.0` → `2.0.0`): we remove, rename, or change the
+- **Major bump** (`x.y.z` -> `(x+1).0.0`): we remove, rename, or change the
   shape/behaviour of anything in the surface above. Major bumps come
   with an upgrade note in the changelog and a migration path in the
   release notes.

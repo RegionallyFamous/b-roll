@@ -63,9 +63,9 @@ kept off by default.
 
 ## Plugin SemVer rules
 
-- **Patch** (`1.0.0` → `1.0.1`): bug fixes, internal refactors, docs. No runtime behavior changes that downstream can observe.
-- **Minor** (`1.0.0` → `1.1.0`): new panel features, new plugin-level features, new `window.__odd.api` methods (also bumps `api.version` minor). **Not** triggered by new scenes / icon sets / cursor sets / widgets / apps — those land in the remote catalog without a plugin release.
-- **Major** (`1.0.0` → `2.0.0`): removes or renames anything downstream can observe — REST endpoint shape, `window.__odd.api` method, content-on-disk layout, catalog `registry.json` schema. Usually accompanied by a major bump in `api.version`.
+- **Patch** (`x.y.z` -> `x.y.(z+1)`): bug fixes, internal refactors, docs. No runtime behavior changes that downstream can observe.
+- **Minor** (`x.y.z` -> `x.(y+1).0`): new panel features, new plugin-level features, new `window.__odd.api` methods (also bumps `api.version` minor). **Not** triggered by new scenes / icon sets / cursor sets / widgets / apps — those land in the remote catalog without a plugin release.
+- **Major** (`x.y.z` -> `(x+1).0.0`): removes or renames anything downstream can observe — REST endpoint shape, `window.__odd.api` method, content-on-disk layout, catalog `registry.json` schema. Usually accompanied by a major bump in `api.version`.
 
 Prereleases follow `1.10.0-rc.1`, `1.10.0-rc.2`, etc. They're tagged and attached to a GitHub release marked **pre-release** but `latest=false`.
 
@@ -74,16 +74,17 @@ Prereleases follow `1.10.0-rc.1`, `1.10.0-rc.2`, etc. They're tagged and attache
 Automated in `odd/bin/bump-version`:
 
 ```sh
-odd/bin/bump-version 1.0.1
+next_version=<next-version>
+odd/bin/bump-version "$next_version"
 # edits odd/odd.php header + ODDOUT_VERSION constant
-odd/bin/check-version --expect 1.0.1
+odd/bin/check-version --expect "$next_version"
 odd/bin/check-plugin-metadata
 # updates CHANGELOG.md scaffold
 git diff
 # review, then:
-git commit -m "release: 1.0.1"
-git tag v1.0.1
-git push origin main v1.0.1
+git commit -m "release: $next_version"
+git tag "v$next_version"
+git push origin main "v$next_version"
 ```
 
 The `.github/workflows/release-odd.yml` workflow fires on the tag: runs the reusable CI quality gates, checks plugin metadata, builds + validates the remote catalog (`python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog`), validates the Playground blueprint, regenerates `odd/languages/odd-outlandish-desktop-decorator.pot`, runs `odd/bin/build-zip`, validates zip contents, runs Plugin Check, runs install-smoke, and `gh release create --latest=true` with a post-upload HTTP probe.

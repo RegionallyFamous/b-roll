@@ -17,7 +17,7 @@
 Run locally before tagging:
 
 ```sh
-	odd/bin/check-version --expect <version>
+odd/bin/check-version --expect <version>
 odd/bin/check-plugin-metadata
 python3 _tools/build-catalog.py
 ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog
@@ -155,12 +155,12 @@ git push origin <old-tag>
 gh release create <old-tag> --generate-notes
 ```
 
-For a bad 1.0.0 release, prefer a quick `v1.0.1` hotfix:
+For a bad public release, prefer a quick patch hotfix:
 
-1. Branch from `v1.0.0`.
+1. Branch from the current release tag.
 2. Apply the fix and regression test.
 3. Run the validation suite.
-4. Commit, tag `v1.0.1`, push, and verify the latest download URL.
+4. Commit, tag the next patch version, push, and verify the latest download URL.
 
 ## Wiki Sync
 
