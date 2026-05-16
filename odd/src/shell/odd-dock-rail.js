@@ -30,139 +30,6 @@
 		return sp;
 	}
 
-	function activeIconSet() {
-		var cfg = window.oddout || {};
-		var slug = typeof cfg.iconSet === 'string' ? cfg.iconSet : '';
-		var sets = Array.isArray( cfg.iconSets ) ? cfg.iconSets : [];
-		if ( ! slug || ! sets.length ) {
-			return null;
-		}
-		for ( var i = 0; i < sets.length; i++ ) {
-			if ( sets[ i ] && sets[ i ].slug === slug ) {
-				return sets[ i ];
-			}
-		}
-		return null;
-	}
-
-	function activeIconSetIcons() {
-		var set = activeIconSet();
-		return set && set.icons ? set.icons : {};
-	}
-
-	function currentIconSetSlug() {
-		var cfg = window.oddout || {};
-		return typeof cfg.iconSet === 'string' ? cfg.iconSet : '';
-	}
-
-	function currentIconSetRecipe() {
-		var set = activeIconSet();
-		var layer = set && set.funLayer && typeof set.funLayer === 'object' ? set.funLayer : null;
-		var recipe = layer && typeof layer.recipe === 'string' ? layer.recipe : '';
-		return recipe.toLowerCase().replace( /[^a-z0-9-]/g, '' );
-	}
-
-	function decorateIconSetImage( img ) {
-		var slug = currentIconSetSlug();
-		var recipe = currentIconSetRecipe();
-		if ( slug ) {
-			img.setAttribute( 'data-odd-icon-set', slug );
-		} else {
-			img.removeAttribute( 'data-odd-icon-set' );
-		}
-		if ( recipe ) {
-			img.setAttribute( 'data-odd-fun-layer', recipe );
-		} else {
-			img.removeAttribute( 'data-odd-fun-layer' );
-		}
-	}
-
-	function firstIconMatchForKeys( keys ) {
-		var icons = activeIconSetIcons();
-		for ( var i = 0; i < keys.length; i++ ) {
-			if ( icons[ keys[ i ] ] ) {
-				return { key: keys[ i ], url: icons[ keys[ i ] ] };
-			}
-		}
-		return null;
-	}
-
-	function firstIconUrlForKeys( keys ) {
-		var match = firstIconMatchForKeys( keys );
-		return match ? match.url : '';
-	}
-
-	function iconKeysForItem( icon, item ) {
-		var keys = [];
-		var title = '';
-		var id = '';
-		try {
-			title = String( ( item && ( item.title || item.label ) ) || '' ).toLowerCase();
-			id = String( ( item && item.id ) || '' ).toLowerCase();
-		} catch ( _ ) {}
-
-		if (
-			id === 'desktop-mode-os-settings' ||
-			id === 'wp-desktop-os-settings' ||
-			title.indexOf( 'os settings' ) !== -1
-		) {
-			keys.push( 'os-settings', 'settings' );
-		}
-		if (
-			id === 'desktop-mode-pwa-install' ||
-			title.indexOf( 'install my wordpress' ) !== -1 ||
-			title.indexOf( ' as an app' ) !== -1
-		) {
-			keys.push( 'import', 'tools' );
-		}
-		if (
-			id === 'desktop-mode-bug-report' ||
-			title.indexOf( 'report a bug' ) !== -1 ||
-			title.indexOf( 'bug report' ) !== -1
-		) {
-			keys.push( 'plugins' );
-		}
-		if (
-			id === 'desktop-mode-exit' ||
-			title.indexOf( 'classic' ) !== -1 ||
-			title.indexOf( 'exit desktop' ) !== -1 ||
-			title.indexOf( 'exit' ) !== -1 ||
-			title.indexOf( 'logout' ) !== -1 ||
-			title.indexOf( 'log out' ) !== -1
-		) {
-			keys.push( 'classic-admin', 'fallback' );
-		}
-		if ( title.indexOf( 'import' ) !== -1 || title.indexOf( 'download' ) !== -1 ) {
-			keys.push( 'import', 'tools' );
-		}
-
-		switch ( icon ) {
-			case 'dashicons-desktop':
-			case 'dashicons-admin-site':
-			case 'dashicons-welcome-view-site':
-				keys.push( 'os-settings', 'settings' );
-				break;
-			case 'dashicons-download':
-			case 'dashicons-upload':
-			case 'dashicons-migrate':
-				keys.push( 'import', 'tools' );
-				break;
-			case 'dashicons-buddicons-replies':
-			case 'dashicons-admin-plugins':
-				keys.push( 'plugins' );
-				break;
-			case 'dashicons-exit':
-			case 'dashicons-exit-alt':
-			case 'dashicons-arrow-left-alt':
-			case 'dashicons-arrow-left-alt2':
-				keys.push( 'classic-admin', 'fallback' );
-				break;
-			default:
-				break;
-		}
-		return keys;
-	}
-
 	/** True when `src` belongs on `<img>` (absolute URL, proto-relative, site-relative SVG, data URI). */
 	function isIconImgSrc( u ) {
 		if ( typeof u !== 'string' || '' === u ) {
@@ -183,7 +50,7 @@
 		return false;
 	}
 
-	function imageMarkup( src, klass, decorate ) {
+	function imageMarkup( src, klass ) {
 		var img = document.createElement( 'img' );
 		if ( klass ) {
 			img.className = klass;
@@ -192,19 +59,12 @@
 		img.decoding = 'async';
 		img.src = src;
 		img.alt = '';
-		if ( decorate ) {
-			decorateIconSetImage( img );
-		}
 		return img;
 	}
 
-	function thumbForItem( icon, item ) {
+	function thumbForItem( icon ) {
 		icon = typeof icon === 'string' ? icon : '';
-		var themed = firstIconUrlForKeys( iconKeysForItem( icon, item ) );
-		if ( themed ) {
-			return imageMarkup( themed, '', true );
-		}
-		if ( icon.slice( 0, 12 ) === 'dashicons-' ) {
+		if ( icon.slice( 0, 10 ) === 'dashicons-' ) {
 			return dashIconMarkup( icon );
 		}
 		if ( isIconImgSrc( icon ) ) {
@@ -212,228 +72,6 @@
 		}
 		var fallback = dashIconMarkup( 'dashicons-admin-plugins' );
 		return fallback;
-	}
-
-	function syncSystemTileItem( item ) {
-		if ( ! item || typeof item !== 'object' ) {
-			return false;
-		}
-		var match = firstIconMatchForKeys( iconKeysForItem( item.icon, item ) );
-		if ( ! match ) {
-			return false;
-		}
-		try {
-			item.icon = match.url;
-			item.oddIconSet = currentIconSetSlug();
-			item.oddIconKey = match.key;
-		} catch ( _ ) {}
-		return true;
-	}
-
-	function syncSystemTileRegistry() {
-		var d = window.wp && window.wp.desktop;
-		if ( ! d || typeof d.listSystemTiles !== 'function' ) {
-			return;
-		}
-		var list = [];
-		try {
-			list = d.listSystemTiles() || [];
-		} catch ( _ ) {
-			list = [];
-		}
-		list.forEach( function ( item ) {
-			if ( ! item || ! item.id ) {
-				return;
-			}
-			var target = item;
-			try {
-				if ( typeof d.getSystemTile === 'function' ) {
-					target = d.getSystemTile( item.id ) || item;
-				}
-			} catch ( _ ) {}
-			if ( target ) {
-				syncSystemTileItem( target );
-			}
-			if ( target !== item ) {
-				syncSystemTileItem( item );
-			}
-		} );
-	}
-
-	var systemTileObserver = null;
-	var SYSTEM_TILE_SELECTOR = [
-		'.desktop-mode-dock__item--system',
-		'.wp-desktop-dock__item--system',
-		'[data-system-id]',
-		'[data-desktop-mode-system-id]',
-		'[data-wp-desktop-system-id]',
-	].join( ',' );
-
-	function systemTileIdForElement( tile ) {
-		if ( ! tile || ! tile.getAttribute ) {
-			return '';
-		}
-		return tile.getAttribute( 'data-system-id' ) ||
-			tile.getAttribute( 'data-desktop-mode-system-id' ) ||
-			tile.getAttribute( 'data-wp-desktop-system-id' ) ||
-			tile.id ||
-			'';
-	}
-
-	function primaryButtonForTile( tile ) {
-		if ( ! tile || ! tile.querySelector ) {
-			return null;
-		}
-		if (
-			tile.matches &&
-			(
-				tile.matches( '.desktop-mode-dock__item-primary' ) ||
-				tile.matches( '.wp-desktop-dock__item-primary' )
-			)
-		) {
-			return tile;
-		}
-		return tile.querySelector( '.desktop-mode-dock__item-primary, .wp-desktop-dock__item-primary, button, [role="button"]' );
-	}
-
-	function dashiconClassForTile( button ) {
-		var span = button && button.querySelector ? button.querySelector( '.dashicons' ) : null;
-		if ( ! span || ! span.classList ) {
-			return '';
-		}
-		for ( var i = 0; i < span.classList.length; i++ ) {
-			if ( span.classList[ i ] && span.classList[ i ].indexOf( 'dashicons-' ) === 0 ) {
-				return span.classList[ i ];
-			}
-		}
-		return '';
-	}
-
-	function systemItemForTile( id ) {
-		var d = window.wp && window.wp.desktop;
-		if ( ! d || ! id || typeof d.getSystemTile !== 'function' ) {
-			return null;
-		}
-		try {
-			return d.getSystemTile( id );
-		} catch ( _ ) {}
-		return null;
-	}
-
-	function skinHostSystemTile( tile ) {
-		if ( ! tile || ! tile.matches || ! tile.matches( SYSTEM_TILE_SELECTOR ) ) {
-			return false;
-		}
-
-		var button = primaryButtonForTile( tile );
-		if ( ! button ) {
-			return false;
-		}
-
-		var id = systemTileIdForElement( tile );
-		var item = systemItemForTile( id ) || {};
-		var label = button.getAttribute( 'aria-label' ) ||
-			tile.getAttribute( 'aria-label' ) ||
-			button.getAttribute( 'title' ) ||
-			tile.getAttribute( 'title' ) ||
-			item.title ||
-			item.label ||
-			'';
-		var icon = dashiconClassForTile( button ) || ( typeof item.icon === 'string' ? item.icon : '' );
-		var match = firstIconMatchForKeys( iconKeysForItem( icon, {
-			id:    id || item.id || '',
-			title: label,
-			label: label,
-		} ) );
-
-		if ( ! match ) {
-			return false;
-		}
-
-		if ( button.classList ) {
-			button.classList.add( 'odd-system-icon-skinned' );
-		}
-
-		var existingImg = button.querySelector( 'img[data-odd-skinned-system-icon], img.desktop-mode-dock__item-img, img.wp-desktop-dock__item-img' );
-		var imgClass = button.classList && button.classList.contains( 'wp-desktop-dock__item-primary' )
-			? 'wp-desktop-dock__item-img'
-			: 'desktop-mode-dock__item-img';
-		var img = existingImg || imageMarkup( match.url, imgClass, true );
-		img.className = imgClass;
-		img.src = match.url;
-		img.alt = '';
-		img.loading = 'lazy';
-		img.decoding = 'async';
-		img.setAttribute( 'data-odd-skinned-system-icon', match.key );
-		decorateIconSetImage( img );
-
-		if ( ! existingImg ) {
-			var target = button.querySelector( '.dashicons' );
-			if ( target && typeof target.replaceWith === 'function' ) {
-				target.replaceWith( img );
-			} else if ( target && target.parentNode ) {
-				target.parentNode.insertBefore( img, target );
-				target.parentNode.removeChild( target );
-			} else {
-				button.insertBefore( img, button.firstChild );
-			}
-		}
-
-		return true;
-	}
-
-	function skinHostSystemTiles( root ) {
-		var scope = root && ( root.nodeType === 1 || root.nodeType === 9 || root.nodeType === 11 ) ? root : document;
-		var tiles = [];
-		if ( scope.matches && scope.matches( SYSTEM_TILE_SELECTOR ) ) {
-			tiles.push( scope );
-		}
-		if ( scope.querySelectorAll ) {
-			tiles = tiles.concat( Array.prototype.slice.call( scope.querySelectorAll( SYSTEM_TILE_SELECTOR ) ) );
-		}
-		tiles.forEach( skinHostSystemTile );
-	}
-
-	function syncAndSkinSystemTiles() {
-		syncSystemTileRegistry();
-		skinHostSystemTiles( document );
-	}
-
-	function observeSystemTiles() {
-		if ( systemTileObserver || typeof MutationObserver === 'undefined' ) {
-			return;
-		}
-		var root = document.body || document.documentElement;
-		if ( ! root ) {
-			return;
-		}
-		systemTileObserver = new MutationObserver( function ( mutations ) {
-			mutations.forEach( function ( mutation ) {
-				Array.prototype.forEach.call( mutation.addedNodes || [], function ( node ) {
-					skinHostSystemTiles( node );
-				} );
-			} );
-		} );
-		systemTileObserver.observe( root, { childList: true, subtree: true } );
-	}
-
-	var systemTileHooksBound = false;
-	function bindSystemTileHooks() {
-		if ( systemTileHooksBound ) {
-			return;
-		}
-		systemTileHooksBound = true;
-		var hooks = window.wp && window.wp.hooks;
-		if ( ! hooks || typeof hooks.addAction !== 'function' ) {
-			return;
-		}
-		var d = window.wp && window.wp.desktop;
-		var name = d && d.HOOKS && d.HOOKS.DOCK_ITEM_APPENDED
-			? d.HOOKS.DOCK_ITEM_APPENDED
-			: 'desktop-mode.dock.item-appended';
-		try {
-			hooks.addAction( name, OWNER + '/sync-system-icons', syncAndSkinSystemTiles );
-		} catch ( _ ) {}
 	}
 
 	function dockKeyUrl( item ) {
@@ -681,9 +319,6 @@
 
 	function boot() {
 		registerRenderer();
-		bindSystemTileHooks();
-		syncAndSkinSystemTiles();
-		observeSystemTiles();
 	}
 
 	if ( window.wp && window.wp.desktop && typeof window.wp.desktop.ready === 'function' ) {

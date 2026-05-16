@@ -50,16 +50,12 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$this->assertSame( 'media', oddout_icons_slug_to_key( 'upload.php' ) );
 		$this->assertSame( 'settings', oddout_icons_slug_to_key( 'options-general.php' ) );
 		$this->assertSame( 'recycle-bin', oddout_icons_slug_to_key( 'desktop-mode-recycle-bin' ) );
-		$this->assertSame( 'os-settings', oddout_icons_slug_to_key( 'desktop-mode-os-settings' ) );
-		$this->assertSame( 'import', oddout_icons_slug_to_key( 'desktop-mode-pwa-install' ) );
-		$this->assertSame( 'plugins', oddout_icons_slug_to_key( 'desktop-mode-bug-report' ) );
-		$this->assertSame( 'classic-admin', oddout_icons_slug_to_key( 'desktop-mode-exit' ) );
 		$this->assertSame( 'posts', oddout_icons_slug_to_key( 'edit.php?post_type=book' ), 'CPT edit screen routes to posts key.' );
 		$this->assertSame( '', oddout_icons_slug_to_key( 'something-else' ) );
 		$this->assertSame( '', oddout_icons_slug_to_key( '' ) );
 	}
 
-	public function test_dock_item_filter_rewrites_icon_for_known_menu_slug() {
+	public function test_dock_item_filter_leaves_rail_icons_on_desktop_mode_defaults() {
 		$set_slug = $this->pick_set_with_fallback();
 		oddout_icons_set_active_slug( $set_slug );
 
@@ -71,11 +67,10 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 
 		$this->assertIsArray( $item_after );
 		$this->assertArrayHasKey( 'icon', $item_after );
-		$this->assertNotSame( 'original.png', $item_after['icon'], 'Icon must be rewritten through the native dock item filter for a mapped slug.' );
-		$this->assertStringEndsWith( '/posts.webp', $item_after['icon'] );
+		$this->assertSame( 'original.png', $item_after['icon'], 'Icon sets should not rewrite rail/dock icons.' );
 	}
 
-	public function test_dock_item_filter_falls_back_for_unknown_menu_slug() {
+	public function test_dock_item_filter_does_not_fallback_for_unknown_menu_slug() {
 		$set_slug = $this->pick_set_with_fallback();
 		oddout_icons_set_active_slug( $set_slug );
 
@@ -83,8 +78,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$item_after  = apply_filters( 'desktop_mode_dock_item', $item_before, 'third-party-plugin.php' );
 
 		$this->assertIsArray( $item_after );
-		$this->assertNotSame( 'original.png', $item_after['icon'], 'Unknown slug should still hit the set fallback through the native dock item filter.' );
-		$this->assertStringEndsWith( '/fallback.webp', $item_after['icon'] );
+		$this->assertSame( 'original.png', $item_after['icon'], 'Unknown dock items stay on Desktop Mode defaults too.' );
 	}
 
 	public function test_dock_item_filter_is_noop_when_no_set_active() {
@@ -198,7 +192,7 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 		$this->assertSame( array(), apply_filters( 'desktop_mode_icons', array() ) );
 	}
 
-	public function test_code_editor_taskbar_icon_matches_themed_desktop_icon() {
+	public function test_code_editor_taskbar_icon_stays_on_desktop_mode_default() {
 		$config_before = array(
 			'desktopIcons'  => array(
 				array(
@@ -225,11 +219,11 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 
 		$config_after = apply_filters( 'desktop_mode_shell_config', $config_before );
 
-		$this->assertSame( 'themed-code.png', $config_after['nativeWindows'][0]['icon'] );
+		$this->assertSame( 'dashicons-editor-code', $config_after['nativeWindows'][0]['icon'] );
 		$this->assertSame( 'dashicons-admin-generic', $config_after['nativeWindows'][1]['icon'] );
 	}
 
-	public function test_shell_config_rewrites_system_and_native_window_icons() {
+	public function test_shell_config_leaves_system_and_native_window_icons_on_defaults() {
 		$set_slug = $this->pick_set_with_fallback();
 		oddout_icons_set_active_slug( $set_slug );
 
@@ -280,12 +274,12 @@ class Test_Icons_Dock_Filter extends WP_UnitTestCase {
 
 		$config_after = apply_filters( 'desktop_mode_shell_config', $config_before );
 
-		$this->assertStringEndsWith( '/os-settings.webp', $config_after['systemTiles'][0]['icon'] );
-		$this->assertStringEndsWith( '/import.webp', $config_after['systemTiles'][1]['icon'] );
-		$this->assertStringEndsWith( '/plugins.webp', $config_after['systemTiles'][2]['icon'] );
-		$this->assertStringEndsWith( '/classic-admin.webp', $config_after['systemTiles'][3]['icon'] );
-		$this->assertStringEndsWith( '/posts.webp', $config_after['nativeWindows'][0]['icon'] );
-		$this->assertStringEndsWith( '/plugins.webp', $config_after['nativeWindows'][1]['icon'] );
+		$this->assertSame( 'dashicons-desktop', $config_after['systemTiles'][0]['icon'] );
+		$this->assertSame( 'dashicons-download', $config_after['systemTiles'][1]['icon'] );
+		$this->assertSame( 'dashicons-buddicons-replies', $config_after['systemTiles'][2]['icon'] );
+		$this->assertSame( 'dashicons-exit', $config_after['systemTiles'][3]['icon'] );
+		$this->assertSame( 'dashicons-admin-post', $config_after['nativeWindows'][0]['icon'] );
+		$this->assertSame( 'dashicons-admin-plugins', $config_after['nativeWindows'][1]['icon'] );
 		$this->assertSame( 'odd-eye.svg', $config_after['nativeWindows'][2]['icon'] );
 	}
 

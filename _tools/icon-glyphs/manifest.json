@@ -17,10 +17,7 @@
     "profile",
     "links",
     "recycle-bin",
-    "fallback",
-    "os-settings",
-    "import",
-    "classic-admin"
+    "fallback"
   ],
   "contract": "default-dashicon-raster-source",
   "glyphs": {
@@ -93,21 +90,6 @@
       "mask": "base/fallback.png",
       "dashicon": "dashicons-admin-generic",
       "codepoint": "f111"
-    },
-    "os-settings": {
-      "mask": "base/os-settings.png",
-      "dashicon": "dashicons-desktop",
-      "codepoint": "f472"
-    },
-    "import": {
-      "mask": "base/import.png",
-      "dashicon": "dashicons-download",
-      "codepoint": "f316"
-    },
-    "classic-admin": {
-      "mask": "base/classic-admin.png",
-      "dashicon": "dashicons-arrow-left-alt",
-      "codepoint": "f340"
     }
   }
 }

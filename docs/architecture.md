@@ -220,25 +220,22 @@ parallel with the REST POST. The wallpaper engine subscribes under the
 ## Icon swaps (server-canonical)
 
 Icon-set changes save via the normal preferences endpoint and schedule a
-short reload so Desktop Mode can rebuild its native icon payloads. Re-render
-happens server-side through filters in `includes/icons/dock-filter.php`:
+short reload so Desktop Mode can rebuild its native desktop shortcut payloads.
+Re-render happens server-side through filters in `includes/icons/dock-filter.php`:
 
-- `desktop_mode_dock_item` (priority 20, 2-arg):
-  swaps dock/taskbar item `icon` values keyed by
-  `oddout_icons_slug_to_key( $menu_slug )`, e.g. `edit.php` → `posts`.
-- `desktop_mode_icons` (priority 20): re-skins desktop
-  shortcuts by the same key logic, but skips ODD-owned launchers so apps
+- `desktop_mode_icons` (priority 20): re-skins desktop shortcuts by
+  `oddout_icons_slug_to_key()` logic, but skips ODD-owned launchers so apps
   keep their own art.
-- `desktop_mode_shell_config` (priority 18):
-  aligns matching native-window taskbar icons with their themed desktop
-  shortcut icon when Desktop Mode exposes both shapes.
+- `desktop_mode_file_serialize` mirrors themed HTTPS shortcut icons into
+  file-layer previews so desktop file tiles match the desktop-icon registry.
 
 No CSS backplates or live DOM rewriting are involved; ODD only feeds
-Desktop Mode the icon values it already asks plugins to provide. For
-ODD icon sets, those values are normal PNG/WebP image URLs from the
+Desktop Mode the desktop shortcut icon values it already asks plugins to
+provide. Rail, dock, taskbar, and system action icons stay on Desktop Mode
+defaults. For ODD icon sets, themed values are normal PNG/WebP image URLs from the
 active set, not inline image markup or recolored data URIs. Desktop Mode stays
-responsible for placing, sizing, and rendering the dock, taskbar, desktop,
-recycle bin, and file-layer shortcut surfaces.
+responsible for placing, sizing, and rendering the desktop, Recycle Bin, and
+file-layer shortcut surfaces.
 
 ## Icon raster feed
 

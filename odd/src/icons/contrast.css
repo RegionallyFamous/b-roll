@@ -1,9 +1,8 @@
 /**
  * ODD icon layout guardrails.
  *
- * Icon sets still replace Desktop Mode icons through the PHP/JS plumbing.
- * These rules only keep dense vertical rails usable and prevent icon
- * containers from drifting or clipping.
+ * Icon sets replace desktop shortcut icons only. These rules keep dense
+ * vertical rails usable while leaving rail icon artwork to Desktop Mode.
  */
 
 /*
@@ -52,21 +51,8 @@ body.desktop-mode-active .desktop-mode-icon {
 	overflow: visible;
 }
 
-body.desktop-mode-active .desktop-mode-icon__image img,
-body.desktop-mode-active .desktop-mode-dock__item img.desktop-mode-dock__item-img {
+body.desktop-mode-active .desktop-mode-icon__image img {
 	max-width: 100%;
 	max-height: 100%;
 	object-fit: contain;
-}
-
-body.desktop-mode-active .desktop-mode-dock__item-primary > img.desktop-mode-dock__item-img[src*="/odd/icon-sets/"],
-body.desktop-mode-active .desktop-mode-dock__item-primary > img.desktop-mode-dock__item-img[data-odd-skinned-system-icon],
-body.desktop-mode-active .wp-desktop-dock__item-primary > img.wp-desktop-dock__item-img[src*="/odd/icon-sets/"],
-body.desktop-mode-active .wp-desktop-dock__item-primary > img.wp-desktop-dock__item-img[data-odd-skinned-system-icon] {
-	width: calc(100% - 8px);
-	height: calc(100% - 8px);
-	max-width: 100%;
-	max-height: 100%;
-	object-fit: contain;
-	opacity: 1;
 }

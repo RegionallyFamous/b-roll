@@ -17,10 +17,9 @@ function seedOdd() {
 	window.oddout = window.odd = {
 		iconSet:  'filament',
 		iconSets: [
-			{
-				slug:  'filament',
-				funLayer: { recipe: 'filament-wire', accent: '#50f2ff', secondary: '#ff6bd6', spark: '#ffb000' },
-				icons: {
+				{
+					slug:  'filament',
+					icons: {
 					'os-settings':   'https://example.test/icons/os-settings.webp',
 					import:          'https://example.test/icons/import.webp',
 					plugins:         'https://example.test/icons/plugins.webp',
@@ -39,13 +38,13 @@ function systemTile( id, label, icon ) {
 	return tile;
 }
 
-describe( 'ODD dock rail system icon skinning', () => {
+describe( 'ODD dock rail default icon contract', () => {
 	beforeEach( () => {
 		document.body.innerHTML = '';
 		seedOdd();
 	} );
 
-	it( 'themes Desktop Mode system tile data and skins host dock DOM', () => {
+	it( 'leaves Desktop Mode system tile data and host dock DOM on default icons', () => {
 		const tiles = [
 			{ id: 'desktop-mode-os-settings', title: 'OS Settings', icon: 'dashicons-desktop' },
 			{ id: 'desktop-mode-pwa-install', title: 'Install My WordPress Website as an app', icon: 'dashicons-download' },
@@ -71,51 +70,26 @@ describe( 'ODD dock rail system icon skinning', () => {
 		execRail();
 
 		expect( tiles.map( ( tile ) => tile.icon ) ).toEqual( [
-			'https://example.test/icons/os-settings.webp',
-			'https://example.test/icons/import.webp',
-			'https://example.test/icons/plugins.webp',
-			'https://example.test/icons/classic-admin.webp',
+			'dashicons-desktop',
+			'dashicons-download',
+			'dashicons-buddicons-replies',
+			'dashicons-exit',
 		] );
 
-		const skinned = Array.from( document.querySelectorAll( '.desktop-mode-dock__item--system img.desktop-mode-dock__item-img' ) );
-		expect( skinned ).toHaveLength( 4 );
-		expect( skinned.map( ( img ) => img.getAttribute( 'src' ) ) ).toEqual( [
-			'https://example.test/icons/os-settings.webp',
-			'https://example.test/icons/import.webp',
-			'https://example.test/icons/plugins.webp',
-			'https://example.test/icons/classic-admin.webp',
-		] );
-		expect( skinned.map( ( img ) => img.getAttribute( 'data-odd-skinned-system-icon' ) ) ).toEqual( [
-			'os-settings',
-			'import',
-			'plugins',
-			'classic-admin',
-		] );
-		expect( skinned.map( ( img ) => img.getAttribute( 'data-odd-icon-set' ) ) ).toEqual( [
-			'filament',
-			'filament',
-			'filament',
-			'filament',
-		] );
-		expect( skinned.map( ( img ) => img.getAttribute( 'data-odd-fun-layer' ) ) ).toEqual( [
-			'filament-wire',
-			'filament-wire',
-			'filament-wire',
-			'filament-wire',
-		] );
-		expect( Array.from( document.querySelectorAll( '.desktop-mode-dock__item-primary.odd-system-icon-skinned' ) ) ).toHaveLength( 4 );
-		expect( document.querySelectorAll( '.desktop-mode-dock__item--system .dashicons' ) ).toHaveLength( 0 );
+		expect( document.querySelectorAll( '.desktop-mode-dock__item--system img.desktop-mode-dock__item-img' ) ).toHaveLength( 0 );
+		expect( Array.from( document.querySelectorAll( '.desktop-mode-dock__item-primary.odd-system-icon-skinned' ) ) ).toHaveLength( 0 );
+		expect( document.querySelectorAll( '.desktop-mode-dock__item--system .dashicons' ) ).toHaveLength( 4 );
 
 		tiles[ 0 ].icon = 'dashicons-desktop';
 		window.wp.hooks.doAction( 'desktop-mode.dock.item-appended', {
 			id:        'desktop-mode-os-settings',
 			placement: 'dock',
 		} );
-		expect( tiles[ 0 ].icon ).toBe( 'https://example.test/icons/os-settings.webp' );
-		expect( document.querySelector( '[data-system-id="desktop-mode-os-settings"] img' ).getAttribute( 'src' ) ).toBe( 'https://example.test/icons/os-settings.webp' );
+		expect( tiles[ 0 ].icon ).toBe( 'dashicons-desktop' );
+		expect( document.querySelector( '[data-system-id="desktop-mode-os-settings"] img' ) ).toBeNull();
 	} );
 
-	it( 'uses the bug glyph for bug-report tiles in the custom ODD compact rail', () => {
+	it( 'uses the host bug glyph for bug-report tiles in the custom ODD compact rail', () => {
 		window.wp = {
 			i18n:  { __: ( text ) => text },
 			hooks: { addAction: vi.fn() },
@@ -140,11 +114,9 @@ describe( 'ODD dock rail system icon skinning', () => {
 			icon:  'dashicons-buddicons-replies',
 		} );
 
-		const img = container.querySelector( '.odd-dock-rail-mount__tile--system img' );
-		expect( img ).toBeTruthy();
-		expect( img.src ).toBe( 'https://example.test/icons/plugins.webp' );
-		expect( img.getAttribute( 'data-odd-icon-set' ) ).toBe( 'filament' );
-		expect( img.getAttribute( 'data-odd-fun-layer' ) ).toBe( 'filament-wire' );
+		const glyph = container.querySelector( '.odd-dock-rail-mount__tile--system .dashicons-buddicons-replies' );
+		expect( glyph ).toBeTruthy();
+		expect( container.querySelector( '.odd-dock-rail-mount__tile--system img' ) ).toBeNull();
 	} );
 
 	it( 'forwards right-clicks on ODD compact rail launchers to the ODD dock menu bridge', () => {

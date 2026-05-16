@@ -20,9 +20,9 @@ describe( 'Desktop Mode dock rail CSS contract', () => {
 		expect( css ).toContain( 'scrollbar-width: none;' );
 		expect( css ).toContain( 'scrollbar-gutter: auto;' );
 		expect( css ).toContain( 'body.desktop-mode-active .desktop-mode-dock[ data-desktop-mode-dock-placement="right" ]::-webkit-scrollbar {' );
-		expect( css ).toContain( 'body.desktop-mode-active .desktop-mode-dock__item-primary > img.desktop-mode-dock__item-img[data-odd-skinned-system-icon],' );
-		expect( css ).toContain( 'width: calc(100% - 8px);' );
-		expect( css ).toContain( 'height: calc(100% - 8px);' );
+		expect( css ).toContain( 'body.desktop-mode-active .desktop-mode-icon__image img {' );
+		expect( css ).not.toContain( 'data-odd-skinned-system-icon' );
+		expect( css ).not.toContain( '[src*="/odd/icon-sets/"]' );
 		expect( css ).not.toContain( 'scrollbar-gutter: stable;' );
 		expect( css ).not.toContain( '--odd-dock-tile-size' );
 		expect( css ).not.toContain( 'drop-shadow' );

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Compose first-party ODD icon sets from canonical raster glyph masks.
+"""Compose the first-party ODD default icon set from Dashicons.
 
-ODD icon sets now share the exact same semantic raster glyph files and vary
-through their manifest.funLayer runtime/card treatment. The default set is
-rendered from Dashicons; every other first-party set copies those default
-rasters byte-for-byte. This tool keeps that authoring contract explicit:
+ODD icon sets are ordinary raster assets passed to Desktop Mode by URL. This
+tool keeps the default set reproducible from Dashicons; themed non-default
+sets are source-owned raster files and are not rewritten here:
 
     python3 _tools/compose-icon-set.py --extract-base
     python3 _tools/compose-icon-set.py --all
@@ -17,7 +16,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
@@ -48,9 +46,6 @@ ICON_KEYS = (
     "links",
     "recycle-bin",
     "fallback",
-    "os-settings",
-    "import",
-    "classic-admin",
 )
 
 DEFAULT_DASHICONS = {
@@ -68,9 +63,6 @@ DEFAULT_DASHICONS = {
     "links": "dashicons-admin-links",
     "recycle-bin": "dashicons-trash",
     "fallback": "dashicons-admin-generic",
-    "os-settings": "dashicons-desktop",
-    "import": "dashicons-download",
-    "classic-admin": "dashicons-arrow-left-alt",
 }
 
 DEFAULT_CODEPOINTS = {
@@ -88,32 +80,7 @@ DEFAULT_CODEPOINTS = {
     "links": "f103",
     "recycle-bin": "f182",
     "fallback": "f111",
-    "os-settings": "f472",
-    "import": "f316",
-    "classic-admin": "f340",
 }
-
-RECIPE_DEFAULTS = {
-    "chroma-halo": ("#38e8ff", "#ff44b5", "#9556ff"),
-    "coin-spark": ("#f4c45f", "#8a4a1b", "#fff36a"),
-    "frost-rim": ("#9eeaff", "#d7f7ff", "#6aaefc"),
-    "blueprint-grid": ("#4da3ff", "#cfe6ff", "#7df7ff"),
-    "leaf-vein": ("#88b957", "#d5ef8c", "#fff0a6"),
-    "stencil-spray": ("#ff5f4f", "#f0e4d2", "#24212a"),
-    "circuit-trace": ("#2fb37a", "#8dffcf", "#ffe66b"),
-    "clay-smudge": ("#ffb84d", "#ff7c6d", "#ffe9a6"),
-    "stitch-cross": ("#e87ca7", "#ffe1ef", "#8ee7ff"),
-    "blink-ring": ("#b35cff", "#f36bff", "#7df7ff"),
-    "filament-wire": ("#ffb000", "#ff6bd6", "#50f2ff"),
-    "paper-fold": ("#7c5cff", "#c7b8ff", "#fff0a8"),
-    "hologram-scan": ("#9fd0ff", "#8efff1", "#f0a7ff"),
-    "citrus-pop": ("#ffd64b", "#b6ff66", "#ff8b4c"),
-    "line-loop": ("#00c2ff", "#dff8ff", "#a66bff"),
-    "misprint-dot": ("#ff4fa8", "#2ed3ff", "#ffdf57"),
-    "pennant-stripe": ("#d73a3a", "#2e7eea", "#fff06a"),
-    "carved-spark": ("#c47a3c", "#ffcf70", "#49e2a4"),
-}
-
 
 def rgb(value: str) -> tuple[int, int, int]:
     value = clean_hex(value, "#ffffff").lstrip("#")
@@ -144,24 +111,14 @@ def load_manifest(slug: str) -> dict:
     return json.loads(path.read_text())
 
 
-def icon_paths(manifest: dict) -> dict[str, str]:
+def icon_paths(manifest: dict, required_keys: tuple[str, ...]) -> dict[str, str]:
     icons = manifest.get("icons")
     if not isinstance(icons, dict):
         raise SystemExit(f"icon-set {manifest.get('slug', '?')}: missing icons map")
-    missing = [key for key in ICON_KEYS if key not in icons]
+    missing = [key for key in required_keys if key not in icons]
     if missing:
         raise SystemExit(f"icon-set {manifest.get('slug', '?')}: missing icons {missing}")
-    return {key: icons[key] for key in ICON_KEYS}
-
-
-def fun_layer(manifest: dict) -> tuple[str, str, str, str]:
-    raw = manifest.get("funLayer") if isinstance(manifest.get("funLayer"), dict) else {}
-    recipe = str(raw.get("recipe") or "chroma-halo")
-    defaults = RECIPE_DEFAULTS.get(recipe, RECIPE_DEFAULTS["chroma-halo"])
-    accent = clean_hex(raw.get("accent") or manifest.get("accent") or defaults[0], defaults[0])
-    secondary = clean_hex(raw.get("secondary") or defaults[1], defaults[1])
-    spark = clean_hex(raw.get("spark") or defaults[2], defaults[2])
-    return recipe, accent, secondary, spark
+    return {key: icons[key] for key in required_keys}
 
 
 def load_mask(key: str) -> Image.Image:
@@ -210,108 +167,12 @@ def render_dashicon_mask(
     return mask.filter(ImageFilter.GaussianBlur(0.18))
 
 
-def draw_recipe(draw: ImageDraw.ImageDraw, recipe: str, accent, secondary, spark) -> None:
-    if recipe == "blueprint-grid":
-        for pos in range(24, SIZE, 42):
-            draw.line((pos, 0, pos, SIZE), fill=(*accent, 82), width=2)
-            draw.line((0, pos, SIZE, pos), fill=(*secondary, 58), width=2)
-    elif recipe == "stitch-cross":
-        for x in range(30, SIZE, 56):
-            for y in range(30, SIZE, 56):
-                draw.line((x - 9, y - 9, x + 9, y + 9), fill=(*accent, 118), width=4)
-                draw.line((x + 9, y - 9, x - 9, y + 9), fill=(*secondary, 96), width=4)
-    elif recipe == "circuit-trace":
-        for y in range(46, SIZE, 78):
-            draw.line((18, y, 172, y, 172, y + 34, 376, y + 34, 376, y + 10, 502, y + 10), fill=(*accent, 120), width=5)
-            draw.ellipse((368, y + 26, 388, y + 46), fill=(*spark, 150))
-    elif recipe == "coin-spark":
-        for r in range(74, 330, 48):
-            draw.ellipse((256 - r, 256 - r, 256 + r, 256 + r), outline=(*accent, 84), width=4)
-        for i in range(18):
-            ang = math.tau * i / 18
-            x = 256 + math.cos(ang) * 214
-            y = 256 + math.sin(ang) * 214
-            draw.polygon([(x, y - 8), (x + 6, y), (x, y + 8), (x - 6, y)], fill=(*spark, 160))
-    elif recipe == "frost-rim":
-        for i in range(-SIZE, SIZE * 2, 44):
-            draw.line((i, 0, i - 110, SIZE), fill=(*secondary, 96), width=3)
-            draw.line((SIZE - i, 0, SIZE + 110 - i, SIZE), fill=(*accent, 74), width=2)
-    elif recipe == "leaf-vein":
-        for x in range(42, SIZE, 74):
-            draw.arc((x - 36, 52, x + 88, 448), 112, 244, fill=(*accent, 106), width=4)
-            draw.line((x + 18, 92, x + 58, 206), fill=(*secondary, 84), width=3)
-    elif recipe == "stencil-spray":
-        for i in range(180):
-            x = (i * 97) % SIZE
-            y = (i * 211) % SIZE
-            r = 1 + (i % 4)
-            draw.ellipse((x - r, y - r, x + r, y + r), fill=(*(accent if i % 2 else secondary), 88))
-    elif recipe == "clay-smudge":
-        draw.ellipse((-60, 44, 260, 318), fill=(*accent, 90))
-        draw.ellipse((224, 136, 600, 488), fill=(*secondary, 96))
-        draw.ellipse((108, -80, 440, 150), fill=(*spark, 60))
-    elif recipe == "blink-ring":
-        for box, color in (((46, 130, 466, 382), accent), ((122, 70, 390, 442), secondary), ((180, 180, 332, 332), spark)):
-            draw.ellipse(box, outline=(*color, 128), width=8)
-    elif recipe == "filament-wire":
-        points = [(x, 256 + math.sin(x / 30) * 74) for x in range(-20, 540, 12)]
-        draw.line(points, fill=(*accent, 145), width=5, joint="curve")
-        for x, y in points[::6]:
-            draw.ellipse((x - 7, y - 7, x + 7, y + 7), fill=(*spark, 180))
-    elif recipe == "paper-fold":
-        draw.polygon([(0, SIZE), (224, 0), (326, 0), (98, SIZE)], fill=(*accent, 86))
-        draw.polygon([(277, 0), (SIZE, 0), (SIZE, 326)], fill=(*secondary, 96))
-        draw.line((224, 0, 98, SIZE), fill=(*spark, 128), width=5)
-    elif recipe == "hologram-scan":
-        for y in range(16, SIZE, 21):
-            draw.line((0, y, SIZE, y), fill=(*accent, 100), width=2)
-        for x in range(-SIZE, SIZE, 86):
-            draw.line((x, SIZE, x + SIZE, 0), fill=(*secondary, 72), width=3)
-    elif recipe == "citrus-pop":
-        for i in range(18):
-            ang = math.tau * i / 18
-            p1 = (256 + math.cos(ang - 0.05) * 45, 256 + math.sin(ang - 0.05) * 45)
-            p2 = (256 + math.cos(ang) * 280, 256 + math.sin(ang) * 280)
-            p3 = (256 + math.cos(ang + 0.05) * 45, 256 + math.sin(ang + 0.05) * 45)
-            draw.polygon([p1, p2, p3], fill=(*(accent if i % 2 else secondary), 78))
-    elif recipe == "line-loop":
-        for r in range(58, 340, 46):
-            draw.ellipse((256 - r, 256 - r, 256 + r, 256 + r), outline=(*(accent if r % 92 else secondary), 112), width=5)
-    elif recipe == "misprint-dot":
-        for x in range(18, SIZE, 42):
-            for y in range(18, SIZE, 42):
-                draw.ellipse((x - 5, y - 5, x + 5, y + 5), fill=(*accent, 105))
-                draw.ellipse((x + 4, y - 1, x + 10, y + 5), fill=(*secondary, 82))
-    elif recipe == "pennant-stripe":
-        for x in range(-SIZE, SIZE, 54):
-            draw.polygon([(x, SIZE), (x + 28, SIZE), (x + 540, 0), (x + 512, 0)], fill=(*accent, 94))
-        draw.polygon([(80, 70), (405, 124), (80, 178)], fill=(*spark, 112))
-    elif recipe == "carved-spark":
-        for i in range(12):
-            x = 44 + i * 38
-            draw.polygon([(x, 78), (x + 16, 119), (x - 22, 119)], fill=(*accent, 96))
-            draw.polygon([(SIZE - x, 434), (495 - x, 393), (534 - x, 393)], fill=(*secondary, 88))
-    else:
-        draw.ellipse((-80, 118, 226, 426), fill=(*accent, 80))
-        draw.ellipse((285, 20, 585, 310), fill=(*secondary, 74))
-        draw.line((75, 430, 442, 80), fill=(*spark, 74), width=6)
-
-
-def material(recipe: str, accent_hex: str, secondary_hex: str, spark_hex: str) -> Image.Image:
-    accent = rgb(accent_hex)
-    secondary = rgb(secondary_hex)
-    spark = rgb(spark_hex)
+def material() -> Image.Image:
     img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    if recipe == "chroma-halo":
-        for y in range(SIZE):
-            t = y / (SIZE - 1)
-            draw.line((0, y, SIZE, y), fill=(*mix((255, 255, 255), (226, 243, 255), t), 255))
-    else:
-        for y in range(SIZE):
-            t = y / (SIZE - 1)
-            draw.line((0, y, SIZE, y), fill=(*mix(secondary, accent, t), 255))
-        draw_recipe(draw, recipe, accent, secondary, spark)
+    for y in range(SIZE):
+        t = y / (SIZE - 1)
+        draw.line((0, y, SIZE, y), fill=(*mix((255, 255, 255), (226, 243, 255), t), 255))
     return img.filter(ImageFilter.GaussianBlur(0.25))
 
 
@@ -430,34 +291,28 @@ def extract_base(source_slug: str) -> None:
 
 def render_set(slug: str) -> None:
     manifest = load_manifest(slug)
-    paths = icon_paths(manifest)
-    recipe, accent, secondary, spark = fun_layer(manifest)
+    paths = icon_paths(manifest, ICON_KEYS)
     src_dir = ICON_SETS / slug
     if slug != "odd-default-icons":
-        default_manifest = load_manifest("odd-default-icons")
-        default_paths = icon_paths(default_manifest)
-        default_dir = ICON_SETS / "odd-default-icons"
         for key, rel in paths.items():
-            src = default_dir / default_paths[key]
-            out = src_dir / rel
-            if not src.is_file():
-                raise SystemExit(f"default icon source missing for {key}: {src}")
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_bytes(src.read_bytes())
-        print(f"copied default rasters into {slug}", flush=True)
+            if not isinstance(rel, str) or not rel.endswith((".webp", ".png")):
+                raise SystemExit(f"icon-set {slug}: {key} path must be PNG or WebP")
+            if not (src_dir / rel).is_file():
+                raise SystemExit(f"icon-set {slug}: missing source raster {rel}")
+        print(f"kept source rasters for {slug}", flush=True)
         return
-    base_material = material(recipe, accent, secondary, spark)
+    accent = clean_hex(manifest.get("accent"), "#38e8ff")
+    secondary = "#ff44b5"
+    spark = "#9556ff"
+    base_material = material()
     source_map_path = src_dir / "source-glyph-map.json"
     source_map = json.loads(source_map_path.read_text()) if source_map_path.is_file() else {}
     codepoints = source_map.get("codepoints") if isinstance(source_map.get("codepoints"), dict) else DEFAULT_CODEPOINTS
     for key, rel in paths.items():
         if not isinstance(rel, str) or not rel.endswith((".webp", ".png")):
             raise SystemExit(f"icon-set {slug}: {key} path must be PNG or WebP")
-        if slug == "odd-default-icons" and recipe == "chroma-halo":
-            mask = render_dashicon_mask(key, codepoints, target=DASHICON_DEFAULT_TARGET)
-            icon = compose_default_icon(mask, base_material, accent, secondary, spark)
-        else:
-            icon = compose_icon(load_mask(key), base_material, accent, secondary, spark)
+        mask = render_dashicon_mask(key, codepoints, target=DASHICON_DEFAULT_TARGET)
+        icon = compose_default_icon(mask, base_material, accent, secondary, spark)
         out = src_dir / rel
         out.parent.mkdir(parents=True, exist_ok=True)
         if out.suffix.lower() == ".png":

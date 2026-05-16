@@ -2,13 +2,12 @@
 /**
  * ODD icons — native Desktop Mode icon feeds.
  *
- * Icon sets theme Desktop Mode surfaces through Desktop Mode's own
- * server-side data filters. ODD swaps the icon values that Desktop Mode
- * asks plugins to provide; the rail script fills the same raster values
- * into host-rendered system tiles that are emitted as Dashicons only.
+ * Icon sets theme Desktop Mode desktop shortcuts through Desktop Mode's
+ * own server-side data filters. ODD leaves the rail, dock, taskbar, and
+ * Desktop Mode system tiles on the host's default icons.
  *
- * Why slug-based: dock items ship keyed by their admin menu file and
- * sets declare icons under those same keys in `manifest.json#icons`,
+ * Why slug-based: desktop shortcut entries ship keyed by their admin menu
+ * file and sets declare icons under those same keys in `manifest.json#icons`,
  * so the mapping is a single hash lookup with no per-set PHP.
  */
 
@@ -22,58 +21,32 @@ defined( 'ABSPATH' ) || exit;
 function oddout_icons_slug_to_key( $slug ) {
 	$slug = (string) $slug;
 	$map  = array(
-		'index.php'                   => 'dashboard',
-		'edit.php'                    => 'posts',
-		'edit.php?post_type=page'     => 'pages',
-		'upload.php'                  => 'media',
-		'edit-comments.php'           => 'comments',
-		'themes.php'                  => 'appearance',
-		'plugins.php'                 => 'plugins',
-		'users.php'                   => 'users',
-		'tools.php'                   => 'tools',
-		'options-general.php'         => 'settings',
-		'profile.php'                 => 'profile',
-		'link-manager.php'            => 'links',
-		'desktop-mode-recycle-bin'    => 'recycle-bin',
-		'dashboard'                   => 'dashboard',
-		'posts'                       => 'posts',
-		'pages'                       => 'pages',
-		'media'                       => 'media',
-		'comments'                    => 'comments',
-		'appearance'                  => 'appearance',
-		'plugins'                     => 'plugins',
-		'users'                       => 'users',
-		'tools'                       => 'tools',
-		'settings'                    => 'settings',
-		'profile'                     => 'profile',
-		'links'                       => 'links',
-		'recycle-bin'                 => 'recycle-bin',
-		'desktop-mode-os-settings'    => 'os-settings',
-		'wp-desktop-os-settings'      => 'os-settings',
-		'os-settings'                 => 'os-settings',
-		'desktop-mode-pwa-install'    => 'import',
-		'desktop-mode-import'         => 'import',
-		'desktop-mode-download'       => 'import',
-		'import'                      => 'import',
-		'download'                    => 'import',
-		'desktop-mode-bug-report'     => 'plugins',
-		'bug-report'                  => 'plugins',
-		'report-bug'                  => 'plugins',
-		'desktop-mode-exit'           => 'classic-admin',
-		'classic-admin'               => 'classic-admin',
-		'exit-desktop-mode'           => 'classic-admin',
-		'wp-desktop-classic'          => 'classic-admin',
-		'dashicons-desktop'           => 'os-settings',
-		'dashicons-admin-site'        => 'os-settings',
-		'dashicons-download'          => 'import',
-		'dashicons-upload'            => 'import',
-		'dashicons-migrate'           => 'import',
-		'dashicons-buddicons-replies' => 'plugins',
-		'dashicons-admin-plugins'     => 'plugins',
-		'dashicons-exit'              => 'classic-admin',
-		'dashicons-exit-alt'          => 'classic-admin',
-		'dashicons-arrow-left-alt'    => 'classic-admin',
-		'dashicons-arrow-left-alt2'   => 'classic-admin',
+		'index.php'                => 'dashboard',
+		'edit.php'                 => 'posts',
+		'edit.php?post_type=page'  => 'pages',
+		'upload.php'               => 'media',
+		'edit-comments.php'        => 'comments',
+		'themes.php'               => 'appearance',
+		'plugins.php'              => 'plugins',
+		'users.php'                => 'users',
+		'tools.php'                => 'tools',
+		'options-general.php'      => 'settings',
+		'profile.php'              => 'profile',
+		'link-manager.php'         => 'links',
+		'desktop-mode-recycle-bin' => 'recycle-bin',
+		'dashboard'                => 'dashboard',
+		'posts'                    => 'posts',
+		'pages'                    => 'pages',
+		'media'                    => 'media',
+		'comments'                 => 'comments',
+		'appearance'               => 'appearance',
+		'plugins'                  => 'plugins',
+		'users'                    => 'users',
+		'tools'                    => 'tools',
+		'settings'                 => 'settings',
+		'profile'                  => 'profile',
+		'links'                    => 'links',
+		'recycle-bin'              => 'recycle-bin',
 	);
 	if ( isset( $map[ $slug ] ) ) {
 		return $map[ $slug ];
@@ -82,37 +55,6 @@ function oddout_icons_slug_to_key( $slug ) {
 	// the set ships an override for the CPT explicitly.
 	if ( 0 === strpos( $slug, 'edit.php?post_type=' ) ) {
 		return 'posts';
-	}
-	return '';
-}
-
-function oddout_icons_title_to_key( $title ) {
-	$title = strtolower( (string) $title );
-	if ( '' === $title ) {
-		return '';
-	}
-	if ( false !== strpos( $title, 'os settings' ) ) {
-		return 'os-settings';
-	}
-	$install_wp = 'install my word' . 'press';
-	if (
-		false !== strpos( $title, $install_wp )
-		|| false !== strpos( $title, ' as an app' )
-		|| false !== strpos( $title, 'download' )
-		|| false !== strpos( $title, 'import' )
-	) {
-		return 'import';
-	}
-	if ( false !== strpos( $title, 'report a bug' ) || false !== strpos( $title, 'bug report' ) ) {
-		return 'plugins';
-	}
-	if (
-		false !== strpos( $title, 'exit desktop' )
-		|| false !== strpos( $title, 'classic' )
-		|| false !== strpos( $title, 'logout' )
-		|| false !== strpos( $title, 'log out' )
-	) {
-		return 'classic-admin';
 	}
 	return '';
 }
@@ -126,11 +68,6 @@ function oddout_icons_entry_to_key( $entry_id, $window = '', $title = '', $icon 
 	}
 
 	$key = oddout_icons_entry_recycle_key( $entry_id, $window, $title );
-	if ( '' !== $key ) {
-		return $key;
-	}
-
-	$key = oddout_icons_title_to_key( $title );
 	if ( '' !== $key ) {
 		return $key;
 	}
@@ -187,23 +124,6 @@ function oddout_icons_icon_url_for_key( array $set, $key ) {
 	return '';
 }
 
-function oddout_icons_filter_dock_item( $item, $menu_slug ) {
-	if ( ! is_array( $item ) ) {
-		return $item;
-	}
-	$set = oddout_icons_active_set_for_native_surfaces();
-	if ( ! $set ) {
-		return $item;
-	}
-
-	$url = oddout_icons_icon_url_for_key( $set, oddout_icons_slug_to_key( (string) $menu_slug ) );
-	if ( '' !== $url ) {
-		$item['icon'] = $url;
-	}
-	return $item;
-}
-add_filter( 'desktop_mode_dock_item', 'oddout_icons_filter_dock_item', 20, 2 );
-
 function oddout_icons_filter_desktop_icons_registry( $registry ) {
 	if ( ! is_array( $registry ) || empty( $registry ) ) {
 		return $registry;
@@ -245,97 +165,6 @@ function oddout_icons_filter_desktop_icons_registry( $registry ) {
 	return $registry;
 }
 add_filter( 'desktop_mode_icons', 'oddout_icons_filter_desktop_icons_registry', 20 );
-
-function oddout_icons_filter_shell_config_icon_payloads( $config ) {
-	if ( ! is_array( $config ) ) {
-		return $config;
-	}
-	$set = oddout_icons_active_set_for_native_surfaces();
-	if ( ! $set ) {
-		return $config;
-	}
-
-	$groups = array(
-		'nativeWindows' => 'id',
-		'systemTiles'   => 'id',
-		'dockItems'     => 'id',
-		'taskbarItems'  => 'id',
-	);
-	foreach ( $groups as $group => $id_field ) {
-		if ( empty( $config[ $group ] ) || ! is_array( $config[ $group ] ) ) {
-			continue;
-		}
-		foreach ( $config[ $group ] as $i => $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-			$entry_id = isset( $entry[ $id_field ] ) ? (string) $entry[ $id_field ] : '';
-			if ( 'odd' === $entry_id || 0 === strpos( $entry_id, 'odd-app-' ) ) {
-				continue;
-			}
-			$window = isset( $entry['window'] ) ? (string) $entry['window'] : '';
-			if ( 0 === strpos( $window, 'odd-app-' ) ) {
-				continue;
-			}
-			$key = oddout_icons_entry_to_key(
-				$entry_id,
-				$window,
-				isset( $entry['title'] ) ? (string) $entry['title'] : '',
-				isset( $entry['icon'] ) ? (string) $entry['icon'] : ''
-			);
-			if ( '' === $key ) {
-				continue;
-			}
-			$url = oddout_icons_icon_url_for_key( $set, $key );
-			if ( '' !== $url ) {
-				$config[ $group ][ $i ]['icon'] = $url;
-			}
-		}
-	}
-
-	return $config;
-}
-add_filter( 'desktop_mode_shell_config', 'oddout_icons_filter_shell_config_icon_payloads', 17 );
-
-function oddout_icons_align_native_window_icons_with_shortcuts( $config ) {
-	if ( ! is_array( $config ) ) {
-		return $config;
-	}
-	if ( empty( $config['nativeWindows'] ) || ! is_array( $config['nativeWindows'] ) ) {
-		return $config;
-	}
-	if ( empty( $config['desktopIcons'] ) || ! is_array( $config['desktopIcons'] ) ) {
-		return $config;
-	}
-
-	$by_id = array();
-	foreach ( $config['desktopIcons'] as $entry ) {
-		if ( ! is_array( $entry ) ) {
-			continue;
-		}
-		$id = isset( $entry['id'] ) ? (string) $entry['id'] : '';
-		if ( '' === $id || ! isset( $entry['icon'] ) || '' === (string) $entry['icon'] ) {
-			continue;
-		}
-		$by_id[ $id ] = (string) $entry['icon'];
-	}
-	if ( empty( $by_id ) ) {
-		return $config;
-	}
-
-	foreach ( $config['nativeWindows'] as $i => $win ) {
-		if ( ! is_array( $win ) ) {
-			continue;
-		}
-		$wid = isset( $win['id'] ) ? (string) $win['id'] : '';
-		if ( '' === $wid || ! isset( $by_id[ $wid ] ) ) {
-			continue;
-		}
-		$config['nativeWindows'][ $i ]['icon'] = $by_id[ $wid ];
-	}
-	return $config;
-}
-add_filter( 'desktop_mode_shell_config', 'oddout_icons_align_native_window_icons_with_shortcuts', 18 );
 
 /**
  * Re-run {@see desktop_mode_icons} against a single static-registry entry so

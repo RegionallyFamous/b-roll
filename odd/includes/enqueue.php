@@ -30,8 +30,6 @@
  *                     that need storage, prefs, diagnostics, and teardown.
  *   - `odd-cursors`   installs/updates the active cursor stylesheet
  *                     link in the current shell/admin document.
- *   - `odd-icon-effects` CSS-only hover/focus treatment for raster
- *                     icon-set images; keeps the source glyph intact.
  *   - `odd`           wallpaper engine boot (Pixi + scene registrar).
  *                     Registers the `odd` wallpaper with WP Desktop Mode.
  *   - `odd-shop-flow` Pure card-state/trust helpers used by the Shop.
@@ -288,13 +286,6 @@ add_action(
 				desktop_mode_register_dock_rail_renderer_script( 'odd-dock-rail' );
 			}
 		}
-		wp_enqueue_style(
-			'odd-icon-effects',
-			ODDOUT_URL . '/src/icons/effects.css',
-			array( 'desktop-mode', 'odd-icon-contrast' ),
-			$asset_version( 'src/icons/effects.css' )
-		);
-
 		// ---- Apps ---- //
 		//
 		// Single JS handle `odd-apps` hosts the sandboxed iframe for
@@ -358,7 +349,6 @@ add_action(
 				'label'       => $set['label'],
 				'category'    => $set['category'],
 				'accent'      => $set['accent'],
-				'funLayer'    => isset( $set['funLayer'] ) && is_array( $set['funLayer'] ) ? $set['funLayer'] : array(),
 				'description' => $set['description'],
 				'preview'     => $set['preview'],
 				'icons'       => $set['icons'],

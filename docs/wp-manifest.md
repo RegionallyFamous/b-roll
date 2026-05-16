@@ -132,22 +132,17 @@ Covered in full by [Building an Icon Set](building-an-icon-set.md).
 |-------------|----------|--------------------------------------------------------------------------|
 | `category` | no       | Optional grouping label for Shop shelves and catalog tooling. |
 | `accent`    | yes      | `#hex`. Paints the Shop tile, quilt gradient, and catalog metadata.      |
-| `funLayer`  | no       | Icon-set presentation/effect tokens: `recipe`, `accent`, `secondary`, and `spark`. First-party sets use this to vary Shop cards and runtime effects while preserving the exact shared default raster glyph files. |
 | `preview`   | no       | Relative path to a hero PNG/WebP. Falls back to `icons.dashboard`.       |
-| `icons`     | yes      | Map of all 17 semantic icon keys to relative PNG/WebP paths. |
+| `icons`     | yes      | Map of all 14 desktop shortcut icon keys to relative PNG/WebP paths. |
 
 Icon sets are native Desktop Mode raster image URL feeds. ODD validates
 each declared icon as a PNG or WebP image, stores the set under
 `wp-content/uploads/odd/icon-sets/<slug>/`, and passes the resulting
-image URLs to Desktop Mode's own dock, taskbar, desktop, and file-layer
-icon payloads. ODD does not recolor these images or render a replacement rail.
+image URLs to Desktop Mode's own desktop and file-layer image payloads for
+desktop shortcuts and file shortcut previews. ODD leaves the rail, dock,
+taskbar, and Desktop Mode system actions on host-default icons.
 Each icon image must be square, 64-2048 px, 768 KB or smaller, and match
 its declared extension.
-
-For first-party catalog sources, `funLayer` is also the presentation recipe for
-`_tools/compose-icon-set.py`. The tool renders the default Dashicon-based
-rasters, copies those exact files into every other first-party set, and leaves
-the `funLayer` tokens to differentiate cards and runtime effects.
 
 ### Type: `cursor-set`
 

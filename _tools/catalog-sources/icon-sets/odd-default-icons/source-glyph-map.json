@@ -15,10 +15,7 @@
     "profile": "dashicons-businessman",
     "links": "dashicons-admin-links",
     "recycle-bin": "dashicons-trash",
-    "fallback": "dashicons-admin-generic",
-    "os-settings": "dashicons-desktop",
-    "import": "dashicons-download",
-    "classic-admin": "dashicons-arrow-left-alt"
+    "fallback": "dashicons-admin-generic"
   },
   "codepoints": {
     "dashboard": "f226",
@@ -34,9 +31,6 @@
     "profile": "f338",
     "links": "f103",
     "recycle-bin": "f182",
-    "fallback": "f111",
-    "os-settings": "f472",
-    "import": "f316",
-    "classic-admin": "f340"
+    "fallback": "f111"
   }
 }

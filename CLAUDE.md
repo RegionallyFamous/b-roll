@@ -8,7 +8,7 @@
 ODD (**Outlandish Desktop Decorator**) is a WordPress plugin that layers on top of [WP Desktop Mode](https://github.com/WordPress/desktop-mode). **As of the 1.0 baseline the plugin runtime stays lightweight** — visual content is pulled on demand from a remote catalog. The plugin owns five surfaces:
 
 1. **A canvas wallpaper engine** — a single `registerWallpaper('odd', …)` that hosts generative PixiJS scenes painted on top of 1920×1080 WebP backdrops. Scenes install as `.wp` bundles.
-2. **Icon sets** — themed icon packs that re-skin the WP Desktop Mode dock and desktop-shortcut icons via the `desktop_mode_dock_item` + `desktop_mode_icons` filters. Install as `.wp` bundles.
+2. **Icon sets** — themed icon packs that re-skin WP Desktop Mode desktop-shortcut icons via the `desktop_mode_icons` filter. Rail, dock, taskbar, and system action icons stay on Desktop Mode defaults. Install as `.wp` bundles.
 3. **Desktop widgets** — tiles like Sticky Note, Magic 8-Ball, and Spotify Embed that live on the desktop surface. Install as `.wp` bundles.
 4. **Cursor sets** — themed SVG cursor packs that can theme Desktop Mode and classic wp-admin. Install as `.wp` bundles.
 5. **Apps** — self-contained sandboxed HTML/CSS/JS bundles that open in their own native window. Each app can surface as a desktop icon, a Desktop Mode taskbar icon, both, or neither — per-user preference in the ODD Shop. Install as `.wp` bundles.
@@ -41,7 +41,7 @@ odd/
 │ │ └── prefs.php oddout_wallpaper_* user-meta helpers
 │ └── icons/
 │ ├── registry.php scans uploads/odd/icon-sets/*/manifest.json
-│ └── dock-filter.php desktop_mode_dock_item + desktop_mode_icons @ priority 20
+│ └── dock-filter.php desktop_mode_icons @ priority 20
 ├── src/
 │ ├── shared/
 │ │ └── api.js window.__odd.api — setScene / setIconSet / shuffle / openPanel / toast
@@ -137,12 +137,11 @@ The wallpaper runtime also exposes `window.__odd.mountSceneInto(container, slug,
 
 ### Icons swap → soft reload
 
-Icon-set changes trigger a 180 ms fade + `window.location.reload()` after the POST succeeds. Re-render happens server-side through the two filters in `includes/icons/dock-filter.php`:
+Icon-set changes trigger a 180 ms fade + `window.location.reload()` after the POST succeeds. Re-render happens server-side through `includes/icons/dock-filter.php`:
 
-- `desktop_mode_dock_item` priority 20, two-arg: per-tile swap keyed by `oddout_icons_slug_to_key( $menu_slug )` (e.g. `edit.php` → `posts`). Falls back to the set's `fallback` icon when a set ships no specific match.
 - `desktop_mode_icons` priority 20: re-skins desktop shortcuts by the same key logic, but **skips** the ODD Shop icon itself so it stays recognizable regardless of the active set.
 
-Server-side mapping is canonical; client-side live-swap via JS DOM surgery proved unreliable in earlier iterations and shouldn't be revisited.
+Server-side mapping is canonical; client-side live-swap via JS DOM surgery proved unreliable in earlier iterations and shouldn't be revisited. Do not reintroduce icon-set skinning for rail, dock, taskbar, or system action icons.
 
 ## Scene file contract
 
@@ -273,7 +272,7 @@ All other script/style/REST calls compute their cache-busting version from `ODDO
 ## Gotchas
 
 - **Icon assets.** New icon sets land as finished bundle files; avoid adding generated source files for icon-set authoring.
-- **Client-side icon live-swap is a rabbit hole.** `data-menu-slug` on dock DOM is the *sanitized CSS ID* (e.g. `menu-posts`), not the raw menu slug (`edit.php`). The fix is going server-canonical via `desktop_mode_dock_item` + a reload; don't regress.
+- **Client-side icon live-swap is a rabbit hole.** Icon sets are desktop-shortcut-only. Do not patch live dock/rail DOM or reintroduce dock/taskbar icon filters.
 - **Catalog determinism.** `_tools/build-catalog.py` must produce byte-identical output on repeat runs. `ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog` enforces this in CI. Non-determinism usually comes from mtimes in zip entries or unsorted iteration.
 - **GitHub release asset uploads** sometimes 409 "Error creating policy" right after release creation. The release workflow retries once after a 3 s pause.
 - **Playground + CORS.** `raw.githubusercontent.com` and `github.com/*/releases/download/…` both serve with `access-control-allow-origin: *`. Other hosts usually don't — check with `curl -H "Origin: https://playground.wordpress.net" -I <url>` before pointing a blueprint at a new URL. `odd.regionallyfamous.com/catalog/v1/` (GitHub Pages) does serve `*`, which is why the remote catalog works from Playground.

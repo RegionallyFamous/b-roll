@@ -244,13 +244,7 @@ function oddout_icons_get_sets( $reset = false ) {
 		$base_dir = $entry['base_dir'];
 		$base_url = $entry['base_url'];
 
-		$accent    = isset( $data['accent'] ) ? (string) $data['accent'] : '#3858e9';
-		$fun_layer = array();
-		if ( isset( $data['funLayer'] ) && is_array( $data['funLayer'] ) ) {
-			$fun_layer = function_exists( 'oddout_iconset_clean_fun_layer' )
-				? oddout_iconset_clean_fun_layer( $data['funLayer'], $accent )
-				: $data['funLayer'];
-		}
+		$accent = isset( $data['accent'] ) ? (string) $data['accent'] : '#3858e9';
 
 		$icons = array();
 		if ( isset( $data['icons'] ) && is_array( $data['icons'] ) ) {
@@ -277,7 +271,6 @@ function oddout_icons_get_sets( $reset = false ) {
 			'label'       => isset( $data['label'] ) ? (string) $data['label'] : $slug,
 			'category'    => isset( $data['category'] ) ? (string) $data['category'] : '',
 			'accent'      => $accent,
-			'funLayer'    => $fun_layer,
 			'description' => isset( $data['description'] ) ? (string) $data['description'] : '',
 			'preview'     => $preview,
 			'icons'       => $icons,

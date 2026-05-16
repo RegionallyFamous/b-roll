@@ -82,9 +82,6 @@ class ODDOUT_Registry_Fixtures {
 						'links'         => 'https://example.test/icons/' . rawurlencode( $slug ) . '/links.webp',
 						'recycle-bin'   => 'https://example.test/icons/' . rawurlencode( $slug ) . '/recycle-bin.webp',
 						'fallback'      => 'https://example.test/icons/' . rawurlencode( $slug ) . '/fallback.webp',
-						'os-settings'   => 'https://example.test/icons/' . rawurlencode( $slug ) . '/os-settings.webp',
-						'import'        => 'https://example.test/icons/' . rawurlencode( $slug ) . '/import.webp',
-						'classic-admin' => 'https://example.test/icons/' . rawurlencode( $slug ) . '/classic-admin.webp',
 					),
 					'source'      => 'fixture',
 				);

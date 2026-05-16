@@ -3,15 +3,16 @@
 > One of four ODD author guides. Siblings: [Building an App](building-an-app.md), [Building a Scene](building-a-scene.md), [Building a Widget](building-a-widget.md).
 
 An icon set is a native Desktop Mode raster image URL feed: a themed
-set of PNG/WebP files for dock items, taskbar items, desktop shortcuts,
-recycle bin, and file shortcut previews. Drop a `.wp` on the ODD Shop
+set of PNG/WebP files for desktop shortcuts, the desktop Recycle Bin,
+and file shortcut previews. Drop a `.wp` on the ODD Shop
 and ODD validates the manifest, verifies each image, copies the set into
 `wp-content/uploads/odd/icon-sets/`, and makes it selectable from the Icon
 Sets department - no WordPress plugin, no custom PHP.
 
-ODD does not replace Desktop Mode's rail, taskbar, desktop, or file-layer
-renderers. It saves the user's selected set and then gives Desktop Mode
-the image URLs Desktop Mode already asks plugins to provide.
+ODD does not replace Desktop Mode's rail, dock, taskbar, or renderer
+implementations. It saves the user's selected set and gives Desktop Mode
+themed image URLs only for desktop shortcut surfaces. The rail, dock,
+taskbar, and Desktop Mode system actions stay on host-default icons.
 
 Icon sets ship **no JavaScript**, so they install without a consent
 prompt.
@@ -38,20 +39,14 @@ my-icons.wp
     ├── profile.webp
     ├── links.webp
     ├── recycle-bin.webp
-    ├── fallback.webp
-    ├── os-settings.webp
-    ├── import.webp
-    └── classic-admin.webp
+    └── fallback.webp
 ```
 
 Paths inside `icons/` can be anything — the manifest maps the
 required semantic keys to paths of your choosing. ODD requires all
-17 keys so Desktop Mode's dock, desktop, taskbar, file shortcut,
-Recycle Bin, and compact rail action surfaces can all resolve through
-one complete native feed. The compact rail/system actions map OS
-Settings to `os-settings`, PWA install/import to `import`, Report a bug
-to the bug-like `plugins` glyph, and Exit Desktop Mode to
-`classic-admin`; `plugins` is also a core WordPress menu key.
+14 keys used by Desktop Mode desktop shortcuts, file shortcut previews,
+and the desktop Recycle Bin. Compact rail/system action icons are not
+part of ODD icon sets.
 
 Icon files must be PNG or WebP images. Use PNG when you need crisp
 transparency; use WebP when the art is painted, textured, or otherwise
@@ -68,12 +63,6 @@ benefits from better compression.
     "version":     "1.0.0",
     "category":   "My Icons",
     "accent":      "#ff7a3c",
-    "funLayer": {
-        "recipe": "paper-fold",
-        "accent": "#ff7a3c",
-        "secondary": "#ffd9a8",
-        "spark": "#38e8ff"
-    },
     "description": "Warm hand-drawn icons with a coffee-stained palette.",
     "preview":     "preview.webp",
     "icons": {
@@ -90,10 +79,7 @@ benefits from better compression.
         "profile":    "icons/profile.webp",
         "links":      "icons/links.webp",
         "recycle-bin": "icons/recycle-bin.webp",
-        "fallback":   "icons/fallback.webp",
-        "os-settings": "icons/os-settings.webp",
-        "import":     "icons/import.webp",
-        "classic-admin": "icons/classic-admin.webp"
+        "fallback":   "icons/fallback.webp"
     }
 }
 ```
@@ -107,10 +93,9 @@ benefits from better compression.
 | `version`     | yes      | Semver-ish string.                                                         |
 | `category`   | no       | Optional grouping label for Shop shelves and catalog tooling. |
 | `accent`      | yes      | `#hex` used for Shop accents and catalog previews.|
-| `funLayer`    | no       | Shop-card personality layer: `recipe`, `accent`, `secondary`, and `spark`. First-party sets must each use a distinct recipe. |
 | `description` | no       | Longer copy shown on the detail sheet.                                     |
 | `preview`     | no       | Relative path to a PNG/WebP hero (falls back to the `dashboard` icon).|
-| `icons`       | yes      | Map of all 17 required semantic keys to relative PNG/WebP paths. |
+| `icons`       | yes      | Map of all 14 required desktop shortcut keys to relative PNG/WebP paths. |
 
 ### Why these keys?
 
@@ -125,7 +110,7 @@ stable logical keys via `oddout_icons_slug_to_key()`:
 | `media`       | yes      | Media, Uploads                            |
 | `comments`    | yes      | Comments, `edit-comments.php`             |
 | `appearance`  | yes      | Themes, Customize, Widgets, Menus         |
-| `plugins`     | yes      | Plugins, `plugins.php`; Report a bug system tile |
+| `plugins`     | yes      | Plugins, `plugins.php`                    |
 | `users`       | yes      | Users, Profile (when listing other users) |
 | `tools`       | yes      | Tools, Import / Export, Code editor       |
 | `settings`    | yes      | Settings, Options                         |
@@ -133,9 +118,6 @@ stable logical keys via `oddout_icons_slug_to_key()`:
 | `profile`     | yes      | Your own profile tile                     |
 | `links`       | yes      | WordPress Links menu, any URL-browsing tool |
 | `recycle-bin` | yes      | WP Desktop Mode Recycle Bin (`desktop-mode-recycle-bin`) |
-| `os-settings` | yes      | Desktop Mode OS Settings system tile      |
-| `import`      | yes      | Import/PWA install/download-style rail action |
-| `classic-admin` | yes    | Exit/classic-admin rail action            |
 
 If the active set can't provide one of the logical keys, ODD reaches
 for the set's own `fallback`, then for whatever WP Desktop Mode served
@@ -174,45 +156,37 @@ rewrite, or ODD-owned renderer in between.
   visible glyph should span roughly 80-90% of the square canvas on its longest
   axis without clipping shadows or glow.
 - Avoid baking in UI chrome from the host desktop. The icon file should be
-  the icon, not a replacement dock/taskbar tile.
+  the desktop shortcut icon, not a replacement dock/taskbar/rail tile.
 
-First-party catalog sets use the same shipped raster glyph files as
-`odd-default-icons`. The set identity comes from `manifest.funLayer`, generated
-card art, catalog preview art, and runtime effects rather than from different
-icon silhouettes:
+First-party catalog sets are source-owned raster icon packs. Each pack should
+ship its own finished icon files; pack identity belongs in the raster art
+itself, not in an extra runtime effect layer:
 
-- `odd-default-icons` stores the canonical 17 transparent WebP glyphs.
-- Every other first-party set copies those glyphs byte-for-byte.
-- `manifest.funLayer` stores the set's effect recipe and color tokens.
-- `_tools/compose-icon-set.py --all` refreshes the default set and then copies
-  those exact rasters into the other first-party sets.
+- `odd-default-icons` stores the normal Dashicon-based baseline.
+- Every other first-party set may have distinct raster art for the same
+  desktop shortcut keys.
+- `_tools/compose-icon-set.py --all` refreshes the default set and validates
+  that non-default source rasters exist without overwriting them.
 
 `odd-default-icons` is special: its masks are rendered from the Dashicons font
 and `source-glyph-map.json` before ODD glow/rim effects are applied. Do not
 scale up an already rendered default WebP to fix size; if that WebP was cropped
 or padded incorrectly, scaling only makes the damage larger.
 
-This keeps Dashboard, Posts, Pages, Media, and every other semantic key in the
-same recognizable raster art across sets. The weirdness belongs in the
-fun layer, glow, motion, hover/focus behavior, and Shop card presentation, not
-in a new glyph body for each set. The public `.wp` bundle still contains plain
-static PNG/WebP files only; the fun layer metadata tells ODD how to present
-that shared glyph base.
+This keeps Dashboard, Posts, Pages, Media, and every other semantic key
+recognizable while still letting each pack have its own material, silhouette
+language, and color system. The public `.wp` bundle contains plain static
+PNG/WebP files only.
 
 Third-party sets do not have to use ODD's compositor, but they should follow
 the same principle: preserve clear Desktop Mode / WordPress metaphors and vary
 material, color, and atmosphere around them.
 
-## Shop card layer
+## Shop Card Art
 
-The icon files stay unboxed and untouched at runtime, but the Shop card can
-carry more personality around them. First-party icon sets declare a `funLayer`
-so the card renderer and catalog card generator can add a unique surface
-effect without changing the actual glyph masks.
-
-- Keep `recipe` unique across first-party sets so the shelf does not become a
-  row of palette swaps. Since the raster glyphs are intentionally identical,
-  the fun layer must do the expressive work.
+The icon files stay unboxed and untouched at runtime. Shop cards should preview
+the actual raster language directly, usually as a 2x2 quartet of dashboard,
+posts, pages, and media icons on the shared dark ODD card surface.
 - Use `accent`, `secondary`, and `spark` to echo the set's material, not to
   repaint the icons.
 - Regenerate first-party source cards with:
@@ -252,26 +226,29 @@ the `dashboard` icon stands in. A preview image usually works best as:
 
 ## First-party rebuild workflow
 
-Use Image Gen for style exploration, material studies, and preview/card art,
-but keep the final catalog icons on the shared glyph-mask pipeline:
+Use Image Gen for style exploration and complete source-owned raster packs.
+The default set is generated from Desktop Mode / Dashicons masks; every other
+first-party set should ship its own final PNG/WebP files rather than borrowing
+default glyph exports or runtime effects.
 
 ```bash
-python3 _tools/compose-icon-set.py --extract-base --all
+python3 _tools/compose-icon-set.py --all
 python3 _tools/gen-shop-card-art.py icon-sets
 python3 _tools/build-catalog.py
 ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog
 ```
 
-To rebuild one set while designing:
+To validate one source-owned set while designing:
 
 ```bash
-python3 _tools/compose-icon-set.py --set monoline
+python3 _tools/compose-icon-set.py --set <slug>
 python3 _tools/gen-shop-card-art.py icon-sets
 ```
 
-If a glyph itself needs to change, update `odd-default-icons`, refresh
-`_tools/icon-glyphs/manifest.json` with `--extract-base`, and rebuild every
-first-party set so the semantic silhouettes stay aligned.
+If a default glyph itself needs to change, update `odd-default-icons`, refresh
+`_tools/icon-glyphs/manifest.json` with `--extract-base`, and rebuild the
+default set. Non-default packs should keep their own source contact sheets and
+final raster exports.
 
 ## Debugging
 

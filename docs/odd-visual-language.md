@@ -34,7 +34,7 @@ Rail icons live in `odd/assets/shop/glyphs.svg` as 24px line-art symbols (`g-wal
 Every catalog item gets a generated `card.webp` in its source folder. The catalog builder publishes these as `site/catalog/v1/cards/<type>-<slug>.webp` and exposes `card_url` in `registry.json`.
 
 - **Scenes:** show the world as a destination poster without text. Keep the wallpaper subject recognizable, but frame it as a miniature desktop environment.
-- **Icon sets:** show the default raster glyph language large enough to read, staged on the same dark ODD surface. First-party sets intentionally share the exact same glyph files; each set gets its identity from a distinct, energetic `funLayer` recipe around the icons so the shelf reads as different effects, not different icon redraws or simple colorways.
+- **Icon sets:** show each pack's actual raster glyph language large enough to read, staged on the same dark ODD surface. First-party sets should feel related through sizing, padding, and card framing, but their identity should come from the finished raster icons themselves.
 - **Cursor sets:** show the native cursor with a living aura, motion wake, role-state sparks, and eye-dot personality. Do not imply the pack replaces the system cursor image.
 - **Widgets:** show the widget as a tactile desktop object with one exaggerated feature.
 - **Apps:** show the app's job as an object-based metaphor, not a screenshot.

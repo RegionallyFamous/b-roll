@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -108,44 +109,8 @@ describe( 'v1 source guardrails', () => {
 		expect( release ).toContain( 'ODD_VALIDATE_REQUIRE_CATALOG_SIGNATURE' );
 	} );
 
-	it( 'keeps every first-party icon set on a unique Shop fun layer', () => {
+	it( 'keeps icon-set manifests raster-only with no runtime fun layer contract', () => {
 		const dir = resolve( ROOT, '_tools/catalog-sources/icon-sets' );
-		const rows = readdirSync( dir, { withFileTypes: true } )
-			.filter( ( entry ) => entry.isDirectory() )
-			.map( ( entry ) => {
-				const manifest = JSON.parse( readFileSync( join( dir, entry.name, 'manifest.json' ), 'utf8' ) );
-				return {
-					slug: entry.name,
-					recipe: manifest.funLayer && manifest.funLayer.recipe,
-				};
-			} );
-		const missing = rows.filter( ( row ) => ! row.recipe ).map( ( row ) => row.slug );
-		const recipes = rows.map( ( row ) => row.recipe );
-
-		expect( missing ).toEqual( [] );
-		expect( new Set( recipes ).size ).toBe( rows.length );
-	} );
-
-	it( 'keeps catalog validation guarding visible icon footprint', () => {
-		const builder = readRel( '_tools/build-catalog.py' );
-		const validator = readRel( 'odd/bin/validate-catalog' );
-
-		for ( const source of [ builder, validator ] ) {
-			expect( source ).toContain( 'ICON_VISIBLE_MIN_FILL' );
-			expect( source ).toContain( 'visible glyph fill' );
-			expect( source ).toContain( 'normalize transparent padding' );
-		}
-	} );
-
-	it( 'keeps first-party icon sets on the shared default raster pipeline', () => {
-		const glyphDir = resolve( ROOT, '_tools/icon-glyphs/base' );
-		const glyphManifest = JSON.parse( readRel( '_tools/icon-glyphs/manifest.json' ) );
-		const sourceMap = JSON.parse( readRel( '_tools/catalog-sources/icon-sets/odd-default-icons/source-glyph-map.json' ) );
-		const compose = readRel( '_tools/compose-icon-set.py' );
-		const catalog = readRel( '_tools/build-catalog.py' );
-		const iconDoc = readRel( 'docs/building-an-icon-set.md' );
-		const iconSetDir = resolve( ROOT, '_tools/catalog-sources/icon-sets' );
-		const defaultManifest = JSON.parse( readRel( '_tools/catalog-sources/icon-sets/odd-default-icons/manifest.json' ) );
 		const expectedKeys = [
 			'dashboard',
 			'posts',
@@ -161,9 +126,58 @@ describe( 'v1 source guardrails', () => {
 			'links',
 			'recycle-bin',
 			'fallback',
-			'os-settings',
-			'import',
-			'classic-admin',
+		];
+		for ( const entry of readdirSync( dir, { withFileTypes: true } ) ) {
+			if ( ! entry.isDirectory() ) continue;
+			const manifest = JSON.parse( readFileSync( join( dir, entry.name, 'manifest.json' ), 'utf8' ) );
+			expect( manifest.funLayer, entry.name ).toBeUndefined();
+			expect( Object.keys( manifest.icons || {} ), entry.name ).toEqual( expectedKeys );
+		}
+
+		for ( const path of [
+			'docs/schemas/manifest.schema.json',
+			'_tools/build-catalog.py',
+			'odd/src/panel/index.js',
+			'odd/includes/enqueue.php',
+		] ) {
+			expect( readRel( path ), path ).not.toContain( 'funLayer' );
+		}
+	} );
+
+	it( 'keeps catalog validation guarding visible icon footprint', () => {
+		const builder = readRel( '_tools/build-catalog.py' );
+		const validator = readRel( 'odd/bin/validate-catalog' );
+
+		for ( const source of [ builder, validator ] ) {
+			expect( source ).toContain( 'ICON_VISIBLE_MIN_FILL' );
+			expect( source ).toContain( 'visible glyph fill' );
+			expect( source ).toContain( 'normalize transparent padding' );
+		}
+	} );
+
+	it( 'keeps the default icon compositor without forcing shared rasters across packs', () => {
+		const glyphDir = resolve( ROOT, '_tools/icon-glyphs/base' );
+		const glyphManifest = JSON.parse( readRel( '_tools/icon-glyphs/manifest.json' ) );
+		const sourceMap = JSON.parse( readRel( '_tools/catalog-sources/icon-sets/odd-default-icons/source-glyph-map.json' ) );
+		const compose = readRel( '_tools/compose-icon-set.py' );
+		const catalog = readRel( '_tools/build-catalog.py' );
+		const iconDoc = readRel( 'docs/building-an-icon-set.md' );
+		const iconSetDir = resolve( ROOT, '_tools/catalog-sources/icon-sets' );
+		const expectedKeys = [
+			'dashboard',
+			'posts',
+			'pages',
+			'media',
+			'comments',
+			'appearance',
+			'plugins',
+			'users',
+			'tools',
+			'settings',
+			'profile',
+			'links',
+			'recycle-bin',
+			'fallback',
 		];
 
 		expect( glyphManifest.contract ).toBe( 'default-dashicon-raster-source' );
@@ -175,25 +189,45 @@ describe( 'v1 source guardrails', () => {
 			expect( existsSync( resolve( glyphDir, `${ key }.png` ) ) ).toBe( true );
 			expect( compose ).toContain( `"${ key }"` );
 		}
-		expect( compose ).toContain( 'def compose_icon(' );
 		expect( compose ).toContain( 'DASHICONS_FONT' );
 		expect( compose ).toContain( 'def render_dashicon_mask(' );
 		expect( compose ).toContain( 'def compose_default_icon(' );
 		expect( compose ).toContain( 'def render_set(' );
-		expect( compose ).toContain( 'copied default rasters into' );
-		expect( compose ).toContain( 'manifest.funLayer' );
+		expect( compose ).toContain( 'kept source rasters for' );
+		expect( compose ).not.toContain( 'copied default rasters into' );
+		expect( compose ).not.toContain( 'funLayer' );
 		expect( catalog ).toContain( 'def _validate_icon_asset_rel(' );
 		expect( catalog ).toContain( 'source-only icon asset path' );
 		expect( iconDoc ).toContain( '_tools/compose-icon-set.py --all' );
-		expect( iconDoc ).toContain( 'copies those glyphs byte-for-byte' );
+		expect( iconDoc ).toContain( 'source-owned raster icon packs' );
+
+		const defaultManifest = JSON.parse( readFileSync( join( iconSetDir, 'odd-default-icons', 'manifest.json' ), 'utf8' ) );
+		const defaultHashes = Object.fromEntries(
+			expectedKeys.map( ( key ) => [
+				key,
+				createHash( 'sha256' )
+					.update( readFileSync( join( iconSetDir, 'odd-default-icons', defaultManifest.icons[ key ] ) ) )
+					.digest( 'hex' ),
+			] )
+		);
 
 		for ( const entry of readdirSync( iconSetDir, { withFileTypes: true } ) ) {
-			if ( ! entry.isDirectory() || entry.name === 'odd-default-icons' ) continue;
+			if ( ! entry.isDirectory() ) continue;
 			const manifest = JSON.parse( readFileSync( join( iconSetDir, entry.name, 'manifest.json' ), 'utf8' ) );
+			let defaultHashMatches = 0;
 			for ( const key of expectedKeys ) {
-				const expected = readFileSync( join( iconSetDir, 'odd-default-icons', defaultManifest.icons[ key ] ) );
-				const actual = readFileSync( join( iconSetDir, entry.name, manifest.icons[ key ] ) );
-				expect( Buffer.compare( actual, expected ), `${ entry.name }/${ key } must match default raster` ).toBe( 0 );
+				expect( existsSync( join( iconSetDir, entry.name, manifest.icons[ key ] ) ), `${ entry.name }/${ key }` ).toBe( true );
+				const hash = createHash( 'sha256' )
+					.update( readFileSync( join( iconSetDir, entry.name, manifest.icons[ key ] ) ) )
+					.digest( 'hex' );
+				if ( hash === defaultHashes[ key ] ) {
+					defaultHashMatches += 1;
+				}
+			}
+			if ( entry.name !== 'odd-default-icons' ) {
+				expect( defaultHashMatches, `${ entry.name } should own raster art instead of copying default` ).toBeLessThan(
+					expectedKeys.length
+				);
 			}
 		}
 	} );
@@ -235,13 +269,20 @@ describe( 'Desktop Mode integration source contracts', () => {
 		expect( sources ).toContain( "addFilter( 'desktop-mode.window.attention'" );
 	} );
 
-	it( 'keeps rail icon integration on Desktop Mode data contracts', () => {
+	it( 'keeps icon sets out of rail and system tile artwork', () => {
 		const src = readRel( 'odd/src/shell/odd-dock-rail.js' );
+		const php = readRel( 'odd/includes/icons/dock-filter.php' );
+		const css = readRel( 'odd/src/icons/contrast.css' );
 
 		expect( src ).toContain( 'registerDockRailRenderer' );
-		expect( src ).toContain( 'listSystemTiles' );
-		expect( src ).toContain( 'skinHostSystemTiles' );
-		expect( src ).toContain( 'data-odd-skinned-system-icon' );
+		expect( src ).not.toContain( 'listSystemTiles' );
+		expect( src ).not.toContain( 'skinHostSystemTiles' );
+		expect( src ).not.toContain( 'data-odd-skinned-system-icon' );
+		expect( php ).not.toContain( 'desktop_mode_dock_item' );
+		expect( php ).not.toContain( 'taskbarItems' );
+		expect( php ).not.toContain( 'systemTiles' );
+		expect( css ).not.toContain( 'data-odd-skinned-system-icon' );
+		expect( css ).not.toContain( '[src*="/odd/icon-sets/"]' );
 		expect( src ).not.toMatch( /\breplaceChild\b/ );
 		expect( src ).not.toMatch( /setTimeout\s*\(\s*skin|scheduleSystemRailSkin/ );
 	} );

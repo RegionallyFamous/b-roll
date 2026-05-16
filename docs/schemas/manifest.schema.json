@@ -70,7 +70,7 @@
 		},
 		"icons": {
 			"type": "object",
-			"description": "Icon-set manifests only. All 17 semantic Desktop Mode and compact rail icon keys map to relative PNG/WebP image paths.",
+			"description": "Icon-set manifests only. Desktop shortcut icon keys map to relative PNG/WebP image paths.",
 			"patternProperties": {
 				"^[a-z0-9_-]+$": {
 					"type": "string",
@@ -100,23 +100,12 @@
 			},
 			"additionalProperties": false
 		},
-		"accent": {
-			"type": "string",
-			"pattern": "^#[0-9A-Fa-f]{3,8}$",
-			"description": "Icon-set accent colour surfaced in the Shop tile."
-		},
-		"funLayer": {
-			"type": "object",
-			"description": "Icon-set manifests only. First-party source/material layer tokens applied around shared canonical raster glyph masks.",
-			"properties": {
-				"recipe": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-				"accent": { "type": "string", "pattern": "^#[0-9A-Fa-f]{3,8}$" },
-				"secondary": { "type": "string", "pattern": "^#[0-9A-Fa-f]{3,8}$" },
-				"spark": { "type": "string", "pattern": "^#[0-9A-Fa-f]{3,8}$" }
+			"accent": {
+				"type": "string",
+				"pattern": "^#[0-9A-Fa-f]{3,8}$",
+				"description": "Icon-set accent colour surfaced in the Shop tile."
 			},
-			"additionalProperties": false
-		},
-		"css": {
+			"css": {
 			"type": "array",
 			"description": "Widget manifests only. Relative paths to CSS files enqueued alongside the widget entry script.",
 			"items": { "type": "string" }
@@ -210,8 +199,7 @@
 						"required": [
 							"dashboard", "posts", "pages", "media", "comments",
 							"appearance", "plugins", "users", "tools", "settings",
-							"profile", "links", "recycle-bin", "fallback",
-							"os-settings", "import", "classic-admin"
+							"profile", "links", "recycle-bin", "fallback"
 						]
 					}
 				}
