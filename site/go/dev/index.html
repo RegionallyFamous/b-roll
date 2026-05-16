@@ -10,15 +10,53 @@
 	<script>
 		( function () {
 			'use strict';
-				var blueprint = 'https://odd.regionallyfamous.com/playground/blueprint-dev.json?oddbp=dev-cdb5f1c-dm-0.8.5';
-			window.location.replace( 'https://playground.wordpress.net/?blueprint-url=' + encodeURIComponent( blueprint ) );
+			var blueprintBase = 'https://odd.regionallyfamous.com/playground/blueprint-dev.json';
+			var desktopModeVersion = '0.8.5';
+			var fallbackKey = 'dev-live-' + Date.now() + '-dm-' + desktopModeVersion;
+			var done = false;
+			function launch( key ) {
+				if ( done ) {
+					return;
+				}
+				done = true;
+				window.clearTimeout( timer );
+				var blueprint = blueprintBase + '?oddbp=' + encodeURIComponent( key );
+				window.location.replace( 'https://playground.wordpress.net/?blueprint-url=' + encodeURIComponent( blueprint ) );
+			}
+			var timer = window.setTimeout( function () {
+				launch( fallbackKey );
+			}, 2200 );
+			if ( ! window.fetch ) {
+				launch( fallbackKey );
+				return;
+			}
+			window.fetch( 'https://api.github.com/repos/RegionallyFamous/odd/commits/main', {
+				cache: 'no-store',
+				headers: { 'Accept': 'application/vnd.github+json' }
+			} )
+				.then( function ( response ) {
+					if ( ! response.ok ) {
+						throw new Error( 'commit lookup failed' );
+					}
+					return response.json();
+				} )
+				.then( function ( data ) {
+					var sha = data && typeof data.sha === 'string' && /^[0-9a-f]{40}$/i.test( data.sha )
+						? data.sha.slice( 0, 7 )
+						: '';
+					launch( sha ? 'dev-' + sha + '-dm-' + desktopModeVersion : fallbackKey );
+				} )
+				.catch( function () {
+					launch( fallbackKey );
+				} );
 		} )();
 	</script>
 	<noscript>
-			<meta http-equiv="refresh" content="0; url=https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint-dev.json%3Foddbp%3Ddev-cdb5f1c-dm-0.8.5">
+			<meta http-equiv="refresh" content="0; url=https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint-dev.json%3Foddbp%3Ddev-noscript-dm-0.8.5">
 	</noscript>
 </head>
 <body style="font-family: system-ui, sans-serif; padding: 2rem; background: #0c0f18; color: #e8ecf4;">
-		<p><a style="color: #b8a0ff;" href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint-dev.json%3Foddbp%3Ddev-cdb5f1c-dm-0.8.5">Continue to trunk Playground →</a></p>
+		<p>Finding the newest ODD commit before opening Playground…</p>
+		<p><a style="color: #b8a0ff;" href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint-dev.json%3Foddbp%3Ddev-manual-dm-0.8.5">Continue without commit lookup →</a></p>
 </body>
 </html>

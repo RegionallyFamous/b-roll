@@ -13,13 +13,50 @@
 	<script>
 		( function () {
 			'use strict';
-			var blueprint = 'https://odd.regionallyfamous.com/playground/blueprint-dev.json?oddbp=dev-cdb5f1c-dm-0.8.5';
-			var target = 'https://playground.wordpress.net/?blueprint-url=' + encodeURIComponent( blueprint );
-			window.location.replace( target );
+			var blueprintBase = 'https://odd.regionallyfamous.com/playground/blueprint-dev.json';
+			var desktopModeVersion = '0.8.5';
+			var fallbackKey = 'dev-live-' + Date.now() + '-dm-' + desktopModeVersion;
+			var done = false;
+			function launch( key ) {
+				if ( done ) {
+					return;
+				}
+				done = true;
+				window.clearTimeout( timer );
+				var blueprint = blueprintBase + '?oddbp=' + encodeURIComponent( key );
+				var target = 'https://playground.wordpress.net/?blueprint-url=' + encodeURIComponent( blueprint );
+				window.location.replace( target );
+			}
+			var timer = window.setTimeout( function () {
+				launch( fallbackKey );
+			}, 2200 );
+			if ( ! window.fetch ) {
+				launch( fallbackKey );
+				return;
+			}
+			window.fetch( 'https://api.github.com/repos/RegionallyFamous/odd/commits/main', {
+				cache: 'no-store',
+				headers: { 'Accept': 'application/vnd.github+json' }
+			} )
+				.then( function ( response ) {
+					if ( ! response.ok ) {
+						throw new Error( 'commit lookup failed' );
+					}
+					return response.json();
+				} )
+				.then( function ( data ) {
+					var sha = data && typeof data.sha === 'string' && /^[0-9a-f]{40}$/i.test( data.sha )
+						? data.sha.slice( 0, 7 )
+						: '';
+					launch( sha ? 'dev-' + sha + '-dm-' + desktopModeVersion : fallbackKey );
+				} )
+				.catch( function () {
+					launch( fallbackKey );
+				} );
 		} )();
 	</script>
 	<noscript>
-			<meta http-equiv="refresh" content="0; url=https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint-dev.json%3Foddbp%3Ddev-cdb5f1c-dm-0.8.5">
+			<meta http-equiv="refresh" content="0; url=https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint-dev.json%3Foddbp%3Ddev-noscript-dm-0.8.5">
 	</noscript>
 </head>
 <body>
@@ -27,9 +64,9 @@
 		<div>
 			<div class="kicker">Dev / trunk</div>
 			<h1>Opening ODD <code>main</code> with pinned WP Desktop Mode 0.8.5.</h1>
-			<p class="lede">Ephemeral — may break. If you are not redirected automatically, use the button below.</p>
+			<p class="lede">Ephemeral — may break. The launcher checks the newest <code>main</code> commit before opening Playground.</p>
 			<div class="actions">
-				<a class="button primary" href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint-dev.json%3Foddbp%3Ddev-cdb5f1c-dm-0.8.5">Open Playground</a>
+				<a class="button primary" href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint-dev.json%3Foddbp%3Ddev-manual-dm-0.8.5">Open Playground</a>
 				<a class="button" href="/playground/">Stable demo</a>
 				<a class="button" href="/">Back to ODD</a>
 			</div>
