@@ -387,4 +387,21 @@ class Test_Bundle_Install extends ODDOUT_REST_Test_Case {
 		$this->assertWPError( $res );
 		$this->assertSame( 'catalog_slug_mismatch', $res->get_error_code() );
 	}
+
+	public function test_catalog_download_manifest_version_must_match_catalog_row() {
+		$zip = $this->make_scene_zip( 'versioned-scene' );
+		$res = oddout_catalog_download_matches_entry(
+			$zip,
+			'versioned-scene.wp',
+			array(
+				'slug'    => 'versioned-scene',
+				'type'    => 'scene',
+				'version' => '2.0.0',
+			)
+		);
+		@unlink( $zip );
+
+		$this->assertWPError( $res );
+		$this->assertSame( 'catalog_version_mismatch', $res->get_error_code() );
+	}
 }

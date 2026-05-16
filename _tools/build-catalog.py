@@ -5,6 +5,7 @@ Walks `_tools/catalog-sources/` and emits:
 
     site/catalog/v1/
         registry.json           one catalog manifest for everything
+        registry.json.sig       detached Ed25519 signature when signing is enabled
         registry.schema.json    JSON schema for validators
         bundles/*.wp            one .wp archive per bundle
         icons/<slug>.*          Discover tile per bundle
@@ -38,9 +39,11 @@ Bundle types:
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import io
 import json
+import os
 import re
 import shutil
 import sys
@@ -57,6 +60,8 @@ OUT_ROOT = REPO / "site" / "catalog" / "v1"
 OUT_BUNDLES = OUT_ROOT / "bundles"
 OUT_ICONS = OUT_ROOT / "icons"
 OUT_CARDS = OUT_ROOT / "cards"
+REGISTRY_JSON = OUT_ROOT / "registry.json"
+REGISTRY_SIG = OUT_ROOT / "registry.json.sig"
 
 FIXED_DATE = (2025, 1, 1, 0, 0, 0)
 CATALOG_BASE = "https://odd.regionallyfamous.com/catalog/v1"
@@ -67,6 +72,10 @@ FIRST_PARTY_ICON_KEYS = {
     "profile", "links", "recycle-bin", "fallback",
     "os-settings", "import", "classic-admin",
 }
+REQUIRES_KEYS = {"odd", "desktopMode", "api"}
+SEMVER_RE = re.compile(
+    r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
+)
 
 ICON_IMAGE_SIZE_BUDGET = 768 * 1024
 ICON_IMAGE_MIN_DIM = 64
@@ -77,6 +86,59 @@ BUNDLE_FORBIDDEN_EXTENSIONS = {
     "php", "phtml", "phar", "php3", "php4", "php5", "php7",
     "phps", "cgi", "pl", "py", "rb", "sh", "bash",
 }
+
+
+def catalog_requires(meta: dict) -> dict:
+    raw = meta.get("requires") or {}
+    if not isinstance(raw, dict):
+        raise SystemExit("catalog requires must be an object")
+    out: dict[str, str] = {}
+    for key, value in raw.items():
+        if key not in REQUIRES_KEYS:
+            raise SystemExit(f"catalog requires has unsupported key {key!r}")
+        if not isinstance(value, str) or not SEMVER_RE.match(value):
+            raise SystemExit(f"catalog requires.{key} must be a semver-like string")
+        out[key] = value
+    return out
+
+
+def with_requires(row: dict, meta: dict) -> dict:
+    requires = catalog_requires(meta)
+    if requires:
+        row["requires"] = requires
+    return row
+
+
+def catalog_signing_key():
+    raw = (os.environ.get("ODD_CATALOG_SIGNING_KEY") or "").strip()
+    required = os.environ.get("ODD_CATALOG_REQUIRE_SIGNATURE") == "1"
+    if not raw:
+        if required:
+            raise SystemExit("ODD_CATALOG_SIGNING_KEY is required to sign registry.json")
+        return None
+    try:
+        key_bytes = base64.b64decode(raw, validate=True)
+    except Exception as exc:
+        raise SystemExit(f"ODD_CATALOG_SIGNING_KEY is not valid base64: {exc}") from exc
+    if len(key_bytes) == 64:
+        key_bytes = key_bytes[:32]
+    if len(key_bytes) != 32:
+        raise SystemExit(
+            "ODD_CATALOG_SIGNING_KEY must decode to a 32-byte seed or 64-byte secret key"
+        )
+    try:
+        from nacl.signing import SigningKey
+    except Exception as exc:
+        raise SystemExit("PyNaCl is required when ODD_CATALOG_SIGNING_KEY is set") from exc
+    return SigningKey(key_bytes)
+
+
+def write_registry_signature(registry_body: bytes) -> None:
+    signing_key = catalog_signing_key()
+    if signing_key is None:
+        return
+    signature = signing_key.sign(registry_body).signature
+    REGISTRY_SIG.write_text(base64.b64encode(signature).decode("ascii") + "\n")
 
 _ICON_CTRL = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 _SVG_ALLOWED_ELEMENTS = {
@@ -302,6 +364,21 @@ def publish_card(src_dir: Path, type_prefix: str, slug: str) -> str:
         return ""
     name = f"{type_prefix}-{slug}.webp"
     shutil.copy2(card, OUT_CARDS / name)
+    return f"{CATALOG_BASE}/cards/{name}"
+
+
+def scene_card_from_wallpaper(wallpaper: bytes) -> bytes:
+    """Return the exact 16:9 Shop card derivative for a scene wallpaper."""
+    with Image.open(io.BytesIO(wallpaper)) as src:
+        card = src.convert("RGB").resize((1024, 576), Image.Resampling.LANCZOS)
+    out = io.BytesIO()
+    card.save(out, "WEBP", quality=88, method=6)
+    return out.getvalue()
+
+
+def publish_scene_card(slug: str, wallpaper: bytes) -> str:
+    name = f"scene-{slug}.webp"
+    (OUT_CARDS / name).write_bytes(scene_card_from_wallpaper(wallpaper))
     return f"{CATALOG_BASE}/cards/{name}"
 
 
@@ -566,7 +643,7 @@ def build_scene(slug: str, src_dir: Path) -> dict:
     icon_webp_name = f"scene-{slug}.webp"
     (OUT_ICONS / icon_webp_name).write_bytes(preview)
 
-    return {
+    return with_requires({
         "type": "scene",
         "slug": slug,
         "name": meta["label"],
@@ -577,11 +654,11 @@ def build_scene(slug: str, src_dir: Path) -> dict:
         "tags": manifest["tags"],
         "heroSafe": manifest["heroSafe"],
         "icon_url": f"{CATALOG_BASE}/icons/{icon_webp_name}",
-        "card_url": publish_card(src_dir, "scene", slug),
+        "card_url": publish_scene_card(slug, wallpaper),
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,
-    }
+    }, meta)
 
 
 def build_iconset(slug: str, src_dir: Path) -> dict:
@@ -628,7 +705,7 @@ def build_iconset(slug: str, src_dir: Path) -> dict:
         iconset_tile(slug, meta["label"], meta.get("accent", "#888"), src_dir, meta["icons"])
     )
 
-    return {
+    return with_requires({
         "type": "icon-set",
         "slug": slug,
         "name": meta["label"],
@@ -642,7 +719,7 @@ def build_iconset(slug: str, src_dir: Path) -> dict:
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,
-    }
+    }, meta)
 
 
 CURSOR_KINDS = {
@@ -759,7 +836,7 @@ def build_cursorset(slug: str, src_dir: Path) -> dict:
     else:
         (OUT_ICONS / icon_name).write_text(widget_tile(slug, meta["label"]))
 
-    return {
+    return with_requires({
         "type": "cursor-set",
         "slug": slug,
         "name": meta["label"],
@@ -773,7 +850,7 @@ def build_cursorset(slug: str, src_dir: Path) -> dict:
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,
-    }
+    }, meta)
 
 
 def build_widget(slug: str, src_dir: Path) -> dict:
@@ -830,7 +907,7 @@ def build_widget(slug: str, src_dir: Path) -> dict:
     else:
         (OUT_ICONS / icon_name).write_text(widget_tile(slug, meta["label"]))
 
-    return {
+    return with_requires({
         "type": "widget",
         "slug": slug,
         "name": meta["label"],
@@ -843,7 +920,7 @@ def build_widget(slug: str, src_dir: Path) -> dict:
         "download_url": f"{CATALOG_BASE}/bundles/{bundle.name}",
         "sha256": sha256_file(bundle),
         "size": bundle.stat().st_size,
-    }
+    }, meta)
 
 
 def build_app(slug: str, src_dir: Path) -> dict:
@@ -869,7 +946,7 @@ def build_app(slug: str, src_dir: Path) -> dict:
     else:
         (OUT_ICONS / icon_name).write_text(widget_tile(slug, meta["name"]))
 
-    return {
+    return with_requires({
         "type": "app",
         "slug": slug,
         "name": meta["name"],
@@ -882,7 +959,7 @@ def build_app(slug: str, src_dir: Path) -> dict:
         "download_url": f"{CATALOG_BASE}/bundles/{bundle_dest.name}",
         "sha256": sha256_file(bundle_dest),
         "size": bundle_dest.stat().st_size,
-    }
+    }, meta)
 
 
 # ---------------------------------------------------------------- #
@@ -949,6 +1026,24 @@ SCHEMA = {
                     },
                     "size": {"type": "integer", "minimum": 1},
                     "accent": {"type": "string"},
+                    "requires": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "odd": {
+                                "type": "string",
+                                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+                            },
+                            "desktopMode": {
+                                "type": "string",
+                                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+                            },
+                            "api": {
+                                "type": "string",
+                                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -1023,9 +1118,9 @@ def main() -> int:
         "bundles": all_rows,
     }
 
-    (OUT_ROOT / "registry.json").write_text(
-        json.dumps(registry, indent=2) + "\n"
-    )
+    registry_body = (json.dumps(registry, indent=2) + "\n").encode("utf-8")
+    REGISTRY_JSON.write_bytes(registry_body)
+    write_registry_signature(registry_body)
     (OUT_ROOT / "registry.schema.json").write_text(
         json.dumps(SCHEMA, indent=2) + "\n"
     )

@@ -689,7 +689,7 @@
 	box-shadow:0 14px 30px -18px rgba(12,10,29,.45),0 2px 4px rgba(12,10,29,.12),inset 0 1px 0 rgba(255,255,255,.25)}
 .odd-panel .odd-shop__card-art::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(140% 100% at 30% 20%,rgba(255,255,255,.35) 0%,rgba(255,255,255,0) 55%);mix-blend-mode:screen}
 .odd-panel .odd-shop__card-art > img{display:block;width:100%;height:100%;object-fit:cover;background:inherit}
-.odd-panel .odd-shop__card--scene .odd-shop__card-art{aspect-ratio:16/10;border-radius:0}
+.odd-panel .odd-shop__card--scene .odd-shop__card-art{aspect-ratio:16/9;border-radius:0}
 .odd-panel .odd-shop__card--app .odd-shop__card-art{aspect-ratio:1/1}
 .odd-panel .odd-shop__card--app .odd-shop__card-art > img{padding:10%;object-fit:contain;background:transparent}
 .odd-panel .odd-shop__card--icon-set .odd-shop__card-art{background:radial-gradient(120% 90% at 28% 18%,rgba(88,86,214,.36) 0%,rgba(88,86,214,0) 52%),linear-gradient(135deg,#171126 0%,#080511 100%)}

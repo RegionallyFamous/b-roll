@@ -10,6 +10,11 @@
 
 class Test_Catalog_Fallback extends WP_UnitTestCase {
 
+	public function set_up() {
+		parent::set_up();
+		add_filter( 'oddout_catalog_signature_required', '__return_false' );
+	}
+
 	private function catalog_row( $slug, $overrides = array() ) {
 		$base = 'https://odd.regionallyfamous.com/catalog/v1/';
 		return array_merge(
@@ -32,6 +37,7 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		delete_transient( ODDOUT_CATALOG_TRANSIENT );
 		delete_option( ODDOUT_CATALOG_STALE_OPTION );
 		delete_option( ODDOUT_CATALOG_META_OPTION );
+		delete_option( ODDOUT_CATALOG_ROLLBACK_OPTION );
 		wp_set_current_user( 0 );
 		global $wp_rest_server;
 		$wp_rest_server = null;
@@ -43,6 +49,11 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		remove_all_filters( 'oddout_catalog_max_response_bytes' );
 		remove_all_filters( 'oddout_catalog_allow_empty_remote' );
 		remove_all_filters( 'oddout_catalog_url' );
+		remove_all_filters( 'oddout_catalog_signature_required' );
+		remove_all_filters( 'oddout_catalog_registry_signature_body' );
+		remove_all_filters( 'oddout_catalog_public_keys' );
+		remove_all_filters( 'oddout_catalog_current_versions' );
+		remove_all_filters( 'oddout_catalog_api_version' );
 		remove_all_filters( 'pre_http_request' );
 		parent::tear_down();
 	}
@@ -465,6 +476,294 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		$result = oddout_catalog_fetch_remote( 'http://example.com/catalog/v1/registry.json' );
 		$this->assertWPError( $result );
 		$this->assertSame( 'insecure_catalog_url', $result->get_error_code() );
+	}
+
+	public function test_first_party_catalog_requires_valid_signature() {
+		if ( ! function_exists( 'sodium_crypto_sign_keypair' ) ) {
+			$this->markTestSkipped( 'Sodium is required for catalog signature tests.' );
+		}
+
+		remove_all_filters( 'oddout_catalog_signature_required' );
+		add_filter( 'oddout_catalog_signature_required', '__return_true' );
+
+		$keypair = sodium_crypto_sign_keypair();
+		$secret  = sodium_crypto_sign_secretkey( $keypair );
+		$public  = sodium_crypto_sign_publickey( $keypair );
+		add_filter(
+			'oddout_catalog_public_keys',
+			static function () use ( $public ) {
+				return array( base64_encode( $public ) );
+			}
+		);
+
+		$raw  = array(
+			'version' => 1,
+			'bundles' => array( $this->catalog_row( 'signed-widget' ) ),
+		);
+		$body = wp_json_encode( $raw );
+		$sig  = base64_encode( sodium_crypto_sign_detached( $body, $secret ) );
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) use ( $body, $sig ) {
+				return array(
+					'headers'  => array(),
+					'body'     => false !== strpos( $url, 'registry.json.sig' ) ? $sig : $body,
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			},
+			10,
+			3
+		);
+
+		$registry = oddout_catalog_load( true );
+		$this->assertSame( 'signed-widget', $registry['bundles'][0]['slug'] );
+		$meta = oddout_catalog_meta();
+		$this->assertSame( 'remote', $meta['source'] );
+		$this->assertSame( 'valid', $meta['signature_status'] );
+		$this->assertNotEmpty( $meta['signature_key'] );
+	}
+
+	public function test_bad_signature_preserves_stale_catalog() {
+		if ( ! function_exists( 'sodium_crypto_sign_keypair' ) ) {
+			$this->markTestSkipped( 'Sodium is required for catalog signature tests.' );
+		}
+
+		$stale = oddout_catalog_stamp_accepted_registry(
+			oddout_catalog_normalise(
+				array(
+					'version' => 1,
+					'bundles' => array( $this->catalog_row( 'signed-stale' ) ),
+				)
+			)
+		);
+		update_option( ODDOUT_CATALOG_STALE_OPTION, $stale, false );
+		remove_all_filters( 'oddout_catalog_signature_required' );
+		add_filter( 'oddout_catalog_signature_required', '__return_true' );
+
+		$keypair = sodium_crypto_sign_keypair();
+		$public  = sodium_crypto_sign_publickey( $keypair );
+		add_filter(
+			'oddout_catalog_public_keys',
+			static function () use ( $public ) {
+				return array( base64_encode( $public ) );
+			}
+		);
+
+		$body = wp_json_encode(
+			array(
+				'version' => 1,
+				'bundles' => array( $this->catalog_row( 'bad-signature-widget' ) ),
+			)
+		);
+		$sig  = base64_encode( str_repeat( 'x', 64 ) );
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) use ( $body, $sig ) {
+				return array(
+					'headers'  => array(),
+					'body'     => false !== strpos( $url, 'registry.json.sig' ) ? $sig : $body,
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			},
+			10,
+			3
+		);
+
+		$registry = oddout_catalog_load( true );
+		$this->assertSame( 'signed-stale', $registry['bundles'][0]['slug'] );
+		$meta = oddout_catalog_meta();
+		$this->assertSame( 'stale_option', $meta['source'] );
+		$this->assertSame( 'catalog_signature_mismatch', $meta['last_error_code'] );
+		$this->assertSame( 'mismatch', $meta['signature_status'] );
+	}
+
+	public function test_missing_signature_rejects_first_party_catalog() {
+		remove_all_filters( 'oddout_catalog_signature_required' );
+		add_filter( 'oddout_catalog_signature_required', '__return_true' );
+		$body = wp_json_encode(
+			array(
+				'version' => 1,
+				'bundles' => array( $this->catalog_row( 'missing-signature-widget' ) ),
+			)
+		);
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) use ( $body ) {
+				return array(
+					'headers'  => array(),
+					'body'     => false !== strpos( $url, 'registry.json.sig' ) ? '' : $body,
+					'response' => array(
+						'code'    => false !== strpos( $url, 'registry.json.sig' ) ? 404 : 200,
+						'message' => false !== strpos( $url, 'registry.json.sig' ) ? 'Not Found' : 'OK',
+					),
+				);
+			},
+			10,
+			3
+		);
+
+		$result = oddout_catalog_fetch_remote( ODDOUT_CATALOG_URL );
+		$this->assertWPError( $result );
+		$this->assertSame( 'catalog_signature_status', $result->get_error_code() );
+		$this->assertSame( 'missing', $result->get_error_data()['signature_status'] );
+	}
+
+	public function test_private_unsigned_mirror_can_opt_out_of_signatures() {
+		$url = 'https://mirror.example.com/catalog/v1/registry.json';
+		add_filter(
+			'oddout_catalog_url',
+			static function () use ( $url ) {
+				return $url;
+			}
+		);
+		add_filter( 'oddout_catalog_signature_required', '__return_false' );
+		add_filter( 'oddout_catalog_entry_url_allowed', '__return_true' );
+		$body          = wp_json_encode(
+			array(
+				'version' => 1,
+				'bundles' => array( $this->catalog_row( 'private-widget' ) ),
+			)
+		);
+		$signature_hit = false;
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $request_url ) use ( $body, &$signature_hit ) {
+				if ( false !== strpos( $request_url, 'registry.json.sig' ) ) {
+					$signature_hit = true;
+				}
+				return array(
+					'headers'  => array(),
+					'body'     => $body,
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			},
+			10,
+			3
+		);
+
+		$registry = oddout_catalog_load( true );
+		$this->assertSame( 'private-widget', $registry['bundles'][0]['slug'] );
+		$this->assertFalse( $signature_hit );
+		$this->assertSame( 'skipped', oddout_catalog_meta()['signature_status'] );
+	}
+
+	public function test_remote_acceptance_saves_previous_stale_for_rollback_restore() {
+		$previous = oddout_catalog_stamp_accepted_registry(
+			oddout_catalog_normalise(
+				array(
+					'version' => 1,
+					'bundles' => array( $this->catalog_row( 'previous-widget' ) ),
+				)
+			)
+		);
+		update_option( ODDOUT_CATALOG_STALE_OPTION, $previous, false );
+
+		$raw = array(
+			'version' => 1,
+			'bundles' => array( $this->catalog_row( 'new-widget' ) ),
+		);
+		add_filter(
+			'pre_http_request',
+			static function () use ( $raw ) {
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode( $raw ),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			}
+		);
+
+		$loaded = oddout_catalog_load( true );
+		$this->assertSame( 'new-widget', $loaded['bundles'][0]['slug'] );
+		$this->assertTrue( oddout_catalog_meta()['rollback_available'] );
+
+		$restored = oddout_catalog_restore_previous_snapshot();
+		$this->assertIsArray( $restored );
+		$this->assertSame( 'previous-widget', $restored['bundles'][0]['slug'] );
+		$mirror = get_option( ODDOUT_CATALOG_STALE_OPTION );
+		$this->assertSame( 'previous-widget', $mirror['bundles'][0]['slug'] );
+		$meta = oddout_catalog_meta();
+		$this->assertSame( 'rollback_option', $meta['source'] );
+		$this->assertTrue( $meta['rollback_available'] );
+	}
+
+	public function test_requires_rows_stay_visible_but_cannot_install_or_seed_starter_pack() {
+		add_filter(
+			'oddout_catalog_current_versions',
+			static function () {
+				return array(
+					'odd'         => '1.0.0',
+					'desktopMode' => '0.8.0',
+					'api'         => '2.3.0',
+				);
+			}
+		);
+		$raw = array(
+			'version'      => 1,
+			'starter_pack' => array(
+				'widgets' => array( 'future-widget', 'current-widget' ),
+			),
+			'bundles'      => array(
+				$this->catalog_row(
+					'future-widget',
+					array(
+						'requires' => array( 'odd' => '99.0.0' ),
+					)
+				),
+				$this->catalog_row( 'current-widget' ),
+			),
+		);
+		add_filter(
+			'pre_http_request',
+			static function () use ( $raw ) {
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode( $raw ),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			}
+		);
+
+		$registry = oddout_catalog_load( true );
+		$future   = null;
+		foreach ( $registry['bundles'] as $row ) {
+			if ( isset( $row['slug'] ) && 'future-widget' === $row['slug'] ) {
+				$future = $row;
+				break;
+			}
+		}
+		$this->assertIsArray( $future );
+		$this->assertTrue( $future['incompatible'] );
+		$this->assertSame( 'incompatible', $future['state'] );
+		$this->assertSame( array( 'current-widget' ), $registry['starter_pack']['widgets'] );
+
+		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $user );
+		global $wp_rest_server;
+		$wp_rest_server = new WP_REST_Server();
+		do_action( 'rest_api_init' );
+
+		$request = new WP_REST_Request( 'POST', '/odd/v1/bundles/install-from-catalog' );
+		$request->set_param( 'slug', 'future-widget' );
+		$response = $wp_rest_server->dispatch( $request );
+		$data     = $response->get_data();
+		$this->assertSame( 409, $response->get_status() );
+		$this->assertSame( 'catalog_incompatible', $data['code'] );
 	}
 
 	public function test_remote_catalog_rejects_duplicate_slugs() {

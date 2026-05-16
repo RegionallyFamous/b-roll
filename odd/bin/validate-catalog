@@ -9,6 +9,8 @@ that don't resolve. Fails the CI job on any mismatch.
 Checks:
   1. Registry JSON parses and matches the schema in
      `site/catalog/v1/registry.schema.json`.
+     When `registry.json.sig` exists, or signature validation is
+     required by env, it must verify against the bundled public key.
   2. `version` is 1.
   3. Every starter_pack entry (scenes[], iconSets[], cursorSets[], widgets[], apps[])
      names a slug that exists in `bundles[]` with the matching type.
@@ -30,9 +32,11 @@ Exit code 0 on success, non-zero with a bullet list of problems.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import io
+import os
 import re
 import subprocess
 import sys
@@ -41,7 +45,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageStat
 
 
 HERE = Path(__file__).resolve().parent
@@ -49,8 +53,10 @@ PLUGIN_DIR = HERE.parent
 REPO_ROOT = PLUGIN_DIR.parent
 CATALOG_DIR = REPO_ROOT / "site" / "catalog" / "v1"
 REGISTRY = CATALOG_DIR / "registry.json"
+REGISTRY_SIG = CATALOG_DIR / "registry.json.sig"
 SCHEMA = CATALOG_DIR / "registry.schema.json"
 FALLBACK_REGISTRY = REPO_ROOT / "odd" / "data" / "fallback-registry.json"
+DEFAULT_CATALOG_PUBLIC_KEY = "BPO20QYLeo+NK796j8vse4zWx0jKz/UhlU+3fWrmW64="
 
 # If a bundle's icon_url / download_url starts with this prefix, strip
 # it to resolve against the on-disk catalog.
@@ -63,8 +69,11 @@ FIRST_PARTY_ICON_KEYS = {
 }
 ICON_IMAGE_MAX_BYTES = 768 * 1024
 ICON_IMAGE_EXTENSIONS = {"png": "PNG", "webp": "WEBP"}
+SCENE_CARD_SIZE = (1024, 576)
+SCENE_CARD_RMS_LIMIT = 10.0
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$")
+REQUIRES_KEYS = {"odd", "desktopMode", "api"}
 
 
 def sha256_file(path: Path) -> str:
@@ -73,6 +82,45 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: fh.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def signature_required() -> bool:
+    return os.environ.get("ODD_VALIDATE_REQUIRE_CATALOG_SIGNATURE") == "1"
+
+
+def check_registry_signature(problems: list[str]) -> None:
+    if not signature_required() and not REGISTRY_SIG.is_file():
+        return
+    if not REGISTRY_SIG.is_file():
+        problems.append("registry.json.sig is missing")
+        return
+    public_key_raw = (os.environ.get("ODD_CATALOG_PUBLIC_KEY") or DEFAULT_CATALOG_PUBLIC_KEY).strip()
+    try:
+        public_key = base64.b64decode(public_key_raw, validate=True)
+    except Exception as exc:  # noqa: BLE001 - report validation problem and continue.
+        problems.append(f"catalog public key is not valid base64: {exc}")
+        return
+    if len(public_key) != 32:
+        problems.append("catalog public key must decode to 32 bytes")
+        return
+    try:
+        signature = base64.b64decode(REGISTRY_SIG.read_text(encoding="utf-8").strip(), validate=True)
+    except Exception as exc:  # noqa: BLE001 - report validation problem and continue.
+        problems.append(f"registry.json.sig is not valid base64: {exc}")
+        return
+    if len(signature) != 64:
+        problems.append("registry.json.sig must decode to a 64-byte Ed25519 signature")
+        return
+    try:
+        from nacl.exceptions import BadSignatureError
+        from nacl.signing import VerifyKey
+    except Exception as exc:  # noqa: BLE001 - report validation problem and continue.
+        problems.append(f"PyNaCl is required to validate registry.json.sig: {exc}")
+        return
+    try:
+        VerifyKey(public_key).verify(REGISTRY.read_bytes(), signature)
+    except BadSignatureError:
+        problems.append("registry.json.sig does not verify registry.json")
 
 
 def resolve_to_disk(url: str) -> Path | None:
@@ -110,6 +158,41 @@ def validate_icon_image(slug: str, rel: str, data: bytes, problems: list[str]) -
         problems.append(f"icon-set {slug}: icon {rel!r} must be square, got {width}x{height}")
     if width < 64 or height < 64 or width > 2048 or height > 2048:
         problems.append(f"icon-set {slug}: icon {rel!r} dimensions out of range: {width}x{height}")
+
+
+def scene_card_from_wallpaper(wallpaper_data: bytes) -> Image.Image:
+    with Image.open(io.BytesIO(wallpaper_data)) as img:
+        return img.convert("RGB").resize(SCENE_CARD_SIZE, Image.Resampling.LANCZOS)
+
+
+def validate_scene_card_matches_wallpaper(
+    slug: str,
+    card_disk: Path,
+    wallpaper_data: bytes,
+    problems: list[str],
+) -> None:
+    try:
+        with Image.open(card_disk) as img:
+            card = img.convert("RGB")
+    except Exception as exc:  # noqa: BLE001 - validation should report and continue.
+        problems.append(f"scene {slug}: card_url image is invalid ({exc})")
+        return
+
+    if card.size != SCENE_CARD_SIZE:
+        problems.append(
+            f"scene {slug}: card_url image must be {SCENE_CARD_SIZE[0]}x{SCENE_CARD_SIZE[1]}, "
+            f"got {card.size[0]}x{card.size[1]}"
+        )
+        return
+
+    expected = scene_card_from_wallpaper(wallpaper_data)
+    diff = ImageChops.difference(card, expected)
+    rms = sum(v * v for v in ImageStat.Stat(diff).rms) ** 0.5
+    if rms > SCENE_CARD_RMS_LIMIT:
+        problems.append(
+            f"scene {slug}: card_url image does not match wallpaper.webp derivative "
+            f"(RMS {rms:.2f} > {SCENE_CARD_RMS_LIMIT:.2f})"
+        )
 
 
 def check_schema(data: Any, problems: list[str]) -> None:
@@ -156,6 +239,19 @@ def check_bundle_row(
         problems.append(f"bundle[{idx}] ({slug}): invalid slug")
     if not isinstance(version, str) or not SEMVER_RE.match(version):
         problems.append(f"bundle[{idx}] ({slug}): invalid version {version!r}")
+
+    requires = row.get("requires")
+    if requires is not None:
+        if not isinstance(requires, dict):
+            problems.append(f"bundle[{idx}] ({slug}): requires must be an object")
+        else:
+            for key, value in requires.items():
+                if key not in REQUIRES_KEYS:
+                    problems.append(f"bundle[{idx}] ({slug}): unsupported requires key {key!r}")
+                if not isinstance(value, str) or not SEMVER_RE.match(value):
+                    problems.append(
+                        f"bundle[{idx}] ({slug}): requires.{key} must be a semver-like string"
+                    )
 
     sha = row["sha256"]
     if not isinstance(sha, str) or len(sha) != 64:
@@ -241,6 +337,14 @@ def check_bundle_row(
                     f"bundle[{idx}] ({slug}): manifest version "
                     f"{manifest.get('version')!r} != row {version!r}"
                 )
+            if btype == "scene":
+                try:
+                    wallpaper_data = zf.read("wallpaper.webp")
+                except KeyError:
+                    problems.append(f"bundle[{idx}] ({slug}): scene archive missing wallpaper.webp")
+                else:
+                    if card_disk is not None and card_disk.is_file():
+                        validate_scene_card_matches_wallpaper(slug, card_disk, wallpaper_data, problems)
             if btype == "icon-set":
                 icons = manifest.get("icons")
                 if not isinstance(icons, dict):
@@ -326,6 +430,8 @@ def catalog_artifact_paths() -> list[Path]:
         + list((CATALOG_DIR / "cards").glob("*"))
         + [REGISTRY, SCHEMA, FALLBACK_REGISTRY]
     )
+    if REGISTRY_SIG.is_file():
+        paths.append(REGISTRY_SIG)
     return sorted(p for p in paths if p.is_file())
 
 
@@ -348,9 +454,7 @@ def check_deterministic_rebuild(problems: list[str]) -> None:
     fast."""
     if not (REPO_ROOT / "_tools" / "build-catalog.py").is_file():
         return
-    import os as _os
-
-    if _os.environ.get("ODD_VALIDATE_REBUILD") != "1":
+    if os.environ.get("ODD_VALIDATE_REBUILD") != "1":
         return
     # Snapshot shas of every published catalog artifact plus the
     # frozen in-plugin fallback mirror. Storefront-only changes often
@@ -398,6 +502,7 @@ def main() -> int:
         print(f"error: registry.json is not valid JSON: {err}", file=sys.stderr)
         return 1
 
+    check_registry_signature(problems)
     check_schema(data, problems)
 
     bundles = data.get("bundles") or []

@@ -190,6 +190,37 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( cards[ 0 ].querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
 	} );
 
+	it( 'catalog scene card art is derived from the scene preview asset', () => {
+		seed( {
+			bundleCatalog: {
+				scene: [
+					{
+						slug:        'gusts',
+						label:       'Gusts',
+						franchise:   'Atmosphere',
+						featured:    true,
+						installed:   false,
+						card_url:    'https://example.com/catalog/v1/cards/unrelated-art.webp',
+						preview_url: 'https://example.com/catalog/v1/previews/scene-gusts.webp',
+						wallpaper:   'https://example.com/catalog/v1/wallpapers/scene-gusts.webp',
+					},
+				],
+				iconSet: [],
+				cursorSet: [],
+				widget: [],
+			},
+		} );
+		loadPanel();
+		const { host } = mount();
+
+		const card = host.querySelector( '[data-odd-shop-card][data-catalog-slug="gusts"]' );
+		expect( card, 'catalog scene tile must be rendered' ).toBeTruthy();
+		const img = card.querySelector( '.odd-shop__card-art--scene img' );
+		expect( img, 'scene catalog cards should render real scene artwork' ).toBeTruthy();
+		expect( img.getAttribute( 'src' ) ).toBe( 'https://example.com/catalog/v1/previews/scene-gusts.webp' );
+		expect( img.getAttribute( 'src' ) ).not.toBe( 'https://example.com/catalog/v1/cards/unrelated-art.webp' );
+	} );
+
 	it( 'installed inactive scene renders an Apply button', () => {
 		seed( {
 			wallpaper: 'gusts',

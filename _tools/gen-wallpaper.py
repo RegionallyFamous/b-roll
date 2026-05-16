@@ -11,8 +11,11 @@ using OpenAI's gpt-image-2 model. Reads OPENAI_API_KEY from one of (in order):
   3. ~/.env.local
 
 Outputs:
+  _tools/catalog-sources/scenes/<slug>/source-imagegen.png
+                                                      (raw generated master)
   _tools/catalog-sources/scenes/<slug>/wallpaper.webp  (1920x1080, q82, cover-fit)
   _tools/catalog-sources/scenes/<slug>/preview.webp    (640x360,  q80)
+  _tools/catalog-sources/scenes/<slug>/card.webp       (1024x576,  q88)
 
 Usage:
   python3 _tools/gen-wallpaper.py <slug> "<prompt>" [--quality high|medium|low]
@@ -58,6 +61,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCENES_DIR = REPO_ROOT / "_tools" / "catalog-sources" / "scenes"
 WALLPAPER_W, WALLPAPER_H = 1920, 1080
 PREVIEW_W, PREVIEW_H = 640, 360
+CARD_W, CARD_H = 1024, 576
 GEN_W, GEN_H = 1536, 864  # gpt-image-2 16:9 landscape
 MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
 
@@ -139,26 +143,42 @@ def cover_fit(im: Image.Image, target_w: int, target_h: int) -> Image.Image:
     return im_r.crop((left, top, left + target_w, top + target_h))
 
 
-def write_pair(slug: str, png: bytes) -> tuple[int, int]:
+def write_pair(slug: str, png: bytes) -> tuple[int, int, int, int]:
     scene_dir = SCENES_DIR / slug
     scene_dir.mkdir(parents=True, exist_ok=True)
     src = Image.open(io.BytesIO(png)).convert("RGB")
+
+    out_src = scene_dir / "source-imagegen.png"
+    src.save(out_src, "PNG", optimize=True)
+
     wp = cover_fit(src, WALLPAPER_W, WALLPAPER_H)
     out_wp = scene_dir / "wallpaper.webp"
     wp.save(out_wp, "WEBP", quality=82, method=6)
+
     pv = wp.resize((PREVIEW_W, PREVIEW_H), Image.LANCZOS)
     out_pv = scene_dir / "preview.webp"
     pv.save(out_pv, "WEBP", quality=80, method=6)
-    return out_wp.stat().st_size, out_pv.stat().st_size
+
+    card = wp.resize((CARD_W, CARD_H), Image.LANCZOS)
+    out_card = scene_dir / "card.webp"
+    card.save(out_card, "WEBP", quality=88, method=6)
+    return (
+        out_src.stat().st_size,
+        out_wp.stat().st_size,
+        out_pv.stat().st_size,
+        out_card.stat().st_size,
+    )
 
 
 def gen_one(slug: str, prompt: str, quality: str, key: str) -> None:
-    print(f"[{slug}] quality={quality}")
-    print(f"  prompt: {prompt[:160]}{'...' if len(prompt) > 160 else ''}")
+    print(f"[{slug}] quality={quality}", flush=True)
+    print(f"  prompt: {prompt[:160]}{'...' if len(prompt) > 160 else ''}", flush=True)
     png = call_gpt_image_2(prompt, quality, key)
-    wp_size, pv_size = write_pair(slug, png)
-    print(f"  wrote _tools/catalog-sources/scenes/{slug}/wallpaper.webp ({wp_size:,} B)")
-    print(f"  wrote _tools/catalog-sources/scenes/{slug}/preview.webp ({pv_size:,} B)")
+    src_size, wp_size, pv_size, card_size = write_pair(slug, png)
+    print(f"  wrote _tools/catalog-sources/scenes/{slug}/source-imagegen.png ({src_size:,} B)", flush=True)
+    print(f"  wrote _tools/catalog-sources/scenes/{slug}/wallpaper.webp ({wp_size:,} B)", flush=True)
+    print(f"  wrote _tools/catalog-sources/scenes/{slug}/preview.webp ({pv_size:,} B)", flush=True)
+    print(f"  wrote _tools/catalog-sources/scenes/{slug}/card.webp ({card_size:,} B)", flush=True)
 
 
 def main() -> int:
@@ -167,12 +187,16 @@ def main() -> int:
     ap.add_argument("prompt", nargs="?", help="prompt text")
     ap.add_argument("--quality", default="high", choices=["low", "medium", "high"])
     ap.add_argument("--batch", help="path to JSON map of {slug: {prompt, quality?}}")
+    ap.add_argument("--only", action="append", default=[], help="When using --batch, generate only this slug. Repeatable.")
     args = ap.parse_args()
 
     key = load_api_key()
 
     if args.batch:
         spec = json.loads(Path(args.batch).read_text())
+        if args.only:
+            only = set(args.only)
+            spec = {slug: cfg for slug, cfg in spec.items() if slug in only}
         ok = 0
         for slug, cfg in spec.items():
             try:

@@ -36,6 +36,10 @@ jobs:
           odd/bin/check-plugin-metadata
 
       - name: Build + validate remote catalog
+        env:
+          ODD_CATALOG_SIGNING_KEY: ${{ secrets.ODD_CATALOG_SIGNING_KEY }}
+          ODD_CATALOG_REQUIRE_SIGNATURE: '1'
+          ODD_VALIDATE_REQUIRE_CATALOG_SIGNATURE: '1'
         run: |
           set -e
           # ODD 1.0 content lives in the remote catalog. Build it first

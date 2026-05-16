@@ -3192,20 +3192,37 @@
 			var starter = health.starter || {};
 			var apps = health.apps || {};
 			var source = catalog.source || 'unknown';
-			var warning = source === 'fallback_file' || source === 'stale_option' || source === 'empty' || !! catalog.last_error_message;
+			var sig = catalog.signature_status || 'unknown';
+			var badSig = [ 'invalid', 'missing', 'mismatch', 'no_key', 'unavailable' ].indexOf( sig ) !== -1;
+			var warning = source === 'fallback_file' || source === 'stale_option' || source === 'empty' || !! catalog.last_error_message || badSig;
 			var strip = el( 'div', { class: 'odd-shop__health' + ( warning ? ' is-warning' : ' is-ok' ) } );
 			var body = el( 'div', { class: 'odd-shop__health-body' } );
 			var title = el( 'strong' );
-			title.textContent = source === 'remote' || source === 'transient'
+			title.textContent = ! badSig && ( source === 'remote' || source === 'transient' )
 				? __( 'Catalog healthy' )
 				: __( 'Catalog needs attention' );
 			var detail = el( 'span' );
+			var effectiveCount = catalog.effective_bundle_count || catalog.bundle_count || 0;
+			var rawCount = catalog.raw_bundle_count || effectiveCount;
+			var staleAge = Math.max( 0, parseInt( catalog.stale_age || 0, 10 ) || 0 );
+			var staleLabel = staleAge > 0
+				? Math.round( staleAge / 60 ) + 'm'
+				: 'fresh';
+			var hash = catalog.registry_sha256 ? String( catalog.registry_sha256 ).slice( 0, 12 ) : '';
 			var parts = [
 				'Catalog: ' + source.replace( /_/g, ' ' ),
-				'Bundles: ' + ( catalog.bundle_count || 0 ),
+				'Bundles: ' + effectiveCount + ' effective / ' + rawCount + ' raw',
+				'Signature: ' + sig,
+				'Stale age: ' + staleLabel,
 				'Starter: ' + ( starter.status || 'unknown' ),
 				'Apps: ' + ( apps.installed || 0 ),
 			];
+			if ( hash ) {
+				parts.splice( 3, 0, 'Hash: ' + hash );
+			}
+			if ( catalog.rollback_count ) {
+				parts.push( 'Rollback: ' + catalog.rollback_count );
+			}
 			if ( catalog.last_error_message ) {
 				parts.push( 'Last error: ' + catalog.last_error_message );
 			}
@@ -3242,6 +3259,42 @@
 				} );
 			} );
 			actions.appendChild( refreshBtn );
+
+			if ( catalog.rollback_available ) {
+				var rollbackBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+				rollbackBtn.textContent = __( 'Restore previous' );
+				rollbackBtn.addEventListener( 'click', function () {
+					rollbackBtn.disabled = true;
+					rollbackBtn.textContent = __( 'Restoring…' );
+					fetch( ( state.cfg.bundleCatalogUrl || '' ).replace( /\/catalog\/?$/, '/catalog-rollback' ), {
+						method: 'POST',
+						credentials: 'same-origin',
+						headers: {
+							'Content-Type': 'application/json',
+							'X-WP-Nonce': state.cfg.restNonce || '',
+						},
+						body: JSON.stringify( { index: 0 } ),
+					} ).then( function ( res ) {
+						return res.ok ? res.json() : null;
+					} ).then( function ( res ) {
+						if ( res && res.meta ) {
+							state.cfg.systemHealth = state.cfg.systemHealth || {};
+							state.cfg.systemHealth.catalog = res.meta;
+							toast( __( 'Previous catalog restored.' ) );
+						} else {
+							toast( __( 'Catalog restore failed.' ), 'error' );
+						}
+						renderSection( 'settings', { keepQuery: true } );
+					} ).catch( function ( err ) {
+						reportError( 'bundles.catalog-rollback', err );
+						toast( __( 'Catalog restore failed.' ), 'error' );
+					} ).finally( function () {
+						rollbackBtn.disabled = false;
+						rollbackBtn.textContent = __( 'Restore previous' );
+					} );
+				} );
+				actions.appendChild( rollbackBtn );
+			}
 
 			var copyBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
 			copyBtn.textContent = __( 'Copy diagnostics' );
@@ -4303,8 +4356,8 @@
 		 * Render a MAS-style shelf: franchise title + count anchor
 		 * over a horizontally-scrolling row of cards built by
 		 * `cardFn`. `opts.scope` ("wallpaper" | "icons") swaps the
-		 * card track class so wallpapers get square-ish tile cards
-		 * while icon sets get wide list rows that still wrap on
+		 * card track class so wallpapers get wide preview cards
+		 * while icon sets get list rows that still wrap on
 		 * narrow widths.
 		 */
 		/**
@@ -5938,6 +5991,7 @@
 				builtin:       !! raw.builtin,
 				broken:        !! raw.broken || raw.state === 'broken' || raw.status === 'broken',
 				incompatible:  !! raw.incompatible || raw.state === 'incompatible' || raw.status === 'incompatible',
+				incompatibilityReason: raw.incompatibility_reason || raw.incompatibilityReason || '',
 				updateAvailable: !! raw.updateAvailable || !! raw.update_available || raw.state === 'updateAvailable',
 				requiresReload: !! raw.requiresReload,
 				installed:     raw.installed === undefined ? true : !! raw.installed,
@@ -6417,25 +6471,25 @@
 				return img;
 			}
 
-			if ( row.cardUrl ) {
-				art.appendChild( artImg( row.cardUrl, 'odd-shop__card-art-fill' ) );
-				return art;
-			}
-
 			if ( row.type === 'scene' ) {
 				art.style.backgroundColor = row.fallbackColor || '#1d1d22';
 				// Catalog rows only ship `icon_url` (a single thumbnail);
 				// installed rows have a richer `previewUrl`. Fall back
-				// through the chain so neither path renders a broken
-				// `<img>` placeholder over the CATALOG badge.
-				var sceneUrl = row.previewUrl || row.iconUrl || '';
+				// through the chain before `cardUrl` so wallpapers always
+				// render the actual scene artwork, not parallel card art.
+				var sceneUrl = row.previewUrl || row.iconUrl || row.cardUrl || '';
 				if ( sceneUrl ) {
-					art.appendChild( artImg( sceneUrl ) );
+					art.appendChild( artImg( sceneUrl, 'odd-shop__card-art-fill' ) );
 				} else {
 					var sceneMono = el( 'div', { class: 'odd-shop__card-mono' } );
 					sceneMono.textContent = ( row.name || row.slug ).slice( 0, 2 ).toUpperCase();
 					art.appendChild( sceneMono );
 				}
+				return art;
+			}
+
+			if ( row.cardUrl ) {
+				art.appendChild( artImg( row.cardUrl, 'odd-shop__card-art-fill' ) );
 				return art;
 			}
 
@@ -6592,6 +6646,9 @@
 				'data-odd-cursor': action.disabled ? 'not-allowed' : 'pointer',
 			} );
 			btn.textContent = action.label;
+			if ( row.incompatibilityReason ) {
+				btn.title = row.incompatibilityReason;
+			}
 			if ( action.disabled ) btn.disabled = true;
 			btn.addEventListener( 'click', function ( e ) {
 				e.stopPropagation();

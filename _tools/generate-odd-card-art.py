@@ -22,10 +22,13 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
+from PIL import Image
+
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 SOURCES = HERE / "catalog-sources"
+SCENE_CARD_SIZE = (1024, 576)
 
 STYLE = """ODD Diorama System: cozy weird polished toy-like desktop surrealism; dark ink-plum base, iris violet, electric cyan, peach glow, acid green details, paper cream highlights; rounded squircle portals, soft bevels, layered cardboard/paper depth, luminous desktop props, subtle eye or portal motifs, tactile grain, rim lighting, soft shadows, tiny magical desktop universe. Square editorial shop card art. No text, no letters, no readable UI, no logos, no WordPress marks, no browser chrome, no people, no horror, no gore, no weapons, no generic corporate SaaS vector art."""
 
@@ -186,6 +189,16 @@ def generate_image(api_key: str, model: str, prompt: str) -> bytes:
     return base64.b64decode(b64)
 
 
+def write_scene_card(item: Item) -> None:
+    """Scene cards must be the actual wallpaper, not parallel prompt art."""
+    wallpaper = item.source_dir / "wallpaper.webp"
+    if not wallpaper.is_file():
+        raise RuntimeError(f"{item.type}/{item.slug}: missing wallpaper.webp")
+    with Image.open(wallpaper) as src:
+        card = src.convert("RGB").resize(SCENE_CARD_SIZE, Image.Resampling.LANCZOS)
+    card.save(item.output, "WEBP", quality=88, method=6)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default=os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2"))
@@ -210,18 +223,26 @@ def main() -> int:
     if args.dry_run:
         for item in items:
             print(f"{item.type}/{item.slug} -> {item.output.relative_to(REPO)}")
-            print(prompt_for(item))
+            if item.type == "scene":
+                print("Derive scene card from wallpaper.webp.")
+            else:
+                print(prompt_for(item))
             print("---")
         return 0
 
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
+    needs_api = any(item.type != "scene" for item in items)
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if needs_api and not api_key:
         print("error: OPENAI_API_KEY is not set in the environment", file=sys.stderr)
         return 2
 
     for index, item in enumerate(items, start=1):
         if item.output.exists() and not args.force:
             print(f"[{index}/{len(items)}] skip {item.type}/{item.slug} (card.webp exists)")
+            continue
+        if item.type == "scene":
+            print(f"[{index}/{len(items)}] derive {item.type}/{item.slug} from wallpaper.webp")
+            write_scene_card(item)
             continue
         print(f"[{index}/{len(items)}] generate {item.type}/{item.slug}")
         image = generate_image(api_key, args.model, prompt_for(item))

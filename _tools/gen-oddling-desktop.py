@@ -12,7 +12,7 @@ image into the files shipped by the catalog:
     * `_tools/catalog-sources/scenes/oddling-desktop/preview.webp`
       640x360, WebP q80.
     * `_tools/catalog-sources/scenes/oddling-desktop/card.webp`
-      1024x1024, WebP q88, square Discover card art.
+      1024x576, WebP q88, the same 16:9 art as the wallpaper.
 
 Usage:
     python3 _tools/gen-oddling-desktop.py
@@ -98,23 +98,7 @@ def write_scene_assets() -> None:
         method=6,
     )
 
-    with Image.open(SOURCE_IMAGE) as src:
-        card = ImageOps.fit(
-            src.convert("RGB"),
-            (1024, 1024),
-            method=Image.Resampling.LANCZOS,
-            centering=(0.68, 0.5),
-        ).convert("RGBA")
-    edge = Image.new("RGBA", card.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(edge)
-    for i in range(40):
-        alpha = int(2 + i * 1.8)
-        draw.rectangle(
-            (i, i, 1024 - i, 1024 - i),
-            outline=(0, 0, 0, alpha),
-            width=1,
-        )
-    card = Image.alpha_composite(card, edge).convert("RGB")
+    card = wallpaper.resize((1024, 576), Image.Resampling.LANCZOS)
     card.save(
         SCENE_DIR / "card.webp",
         format="WEBP",
