@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parents[1]
 SIZE = 1024
 CARD = (SIZE, SIZE)
+CURSOR_CARD = (1024, 576)
 INK = "#080511"
 RIM = "#07050f"
 PAPER = "#f3efe7"
@@ -43,8 +44,6 @@ THEMES = {
     "eight-ball": (VIOLET, "#22316f", CYAN),
     "spotify": (GREEN, CYAN, VIOLET),
     "sticky": (GOLD, PINK, CYAN),
-    "odd-default-cursors": (CYAN, VIOLET, PINK),
-    "oddlings-cursors": (PINK, CYAN, VIOLET),
 }
 
 def rgb(value: str) -> tuple[int, int, int]:
@@ -336,6 +335,156 @@ def draw_cursors(layer: Image.Image, colors, oddlings: bool = False) -> None:
         d.ellipse((x - 22, y - 22, x + 22, y + 22), fill=rgba(fill, 220))
 
 
+def cursor_manifest_palette(src_dir: Path) -> tuple[str, str, str, str, str]:
+    meta = json.loads((src_dir / "manifest.json").read_text())
+    effects = meta.get("effects") if isinstance(meta.get("effects"), dict) else {}
+    accent = clean_hex(effects.get("accent") or meta.get("accent") or CYAN, CYAN)
+    spark = clean_hex(effects.get("spark") or PINK, PINK)
+    warm = clean_hex(effects.get("warm") or GOLD, GOLD)
+    ink = clean_hex(effects.get("ink") or INK, INK)
+    recipe = str(effects.get("recipe") or ("oddlings" if meta.get("slug") == "oddlings-cursors" else "default"))
+    return accent, spark, warm, ink, recipe
+
+
+def cursor_card_plate(accent: str, spark: str, warm: str, ink: str) -> Image.Image:
+    width, height = CURSOR_CARD
+    img = Image.new("RGBA", CURSOR_CARD, rgba("#100719"))
+    draw = ImageDraw.Draw(img)
+    for y in range(height):
+        t = y / (height - 1)
+        draw.line((0, y, width, y), fill=(*mix("#1a0a24", ink, t * 0.78), 255))
+
+    glows = Image.new("RGBA", CURSOR_CARD, (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glows)
+    gd.ellipse((-260, -210, 560, 560), fill=rgba(accent, 76))
+    gd.ellipse((520, -220, 1280, 430), fill=rgba(spark, 56))
+    gd.ellipse((180, 290, 960, 820), fill=rgba(warm, 34))
+    img.alpha_composite(glows.filter(ImageFilter.GaussianBlur(62)))
+
+    grain = Image.new("RGBA", CURSOR_CARD, (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grain)
+    for x in range(26, width, 38):
+        for y in range(22, height, 38):
+            if (x * 13 + y * 7) % 5 == 0:
+                gd.ellipse((x, y, x + 2, y + 2), fill=(255, 255, 255, 24))
+    img.alpha_composite(grain)
+    return img
+
+
+def cursor_pointer_layer(x: int, y: int, scale: float, rotate: float = 0) -> Image.Image:
+    layer = Image.new("RGBA", CURSOR_CARD, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    points = [
+        (x, y),
+        (x + 166 * scale, y + 98 * scale),
+        (x + 98 * scale, y + 122 * scale),
+        (x + 138 * scale, y + 226 * scale),
+        (x + 82 * scale, y + 250 * scale),
+        (x + 42 * scale, y + 144 * scale),
+        (x, y + 188 * scale),
+    ]
+    d.polygon(points, fill=rgba(RIM, 255))
+    d.line(points + [points[0]], fill=(255, 255, 255, 160), width=max(4, int(6 * scale)), joint="curve")
+    inset = [(px + (512 - px) * 0.018, py + (288 - py) * 0.018) for px, py in points]
+    d.polygon(inset, fill=rgba(PAPER, 255))
+    d.line([(x + 88 * scale, y + 132 * scale), (x + 134 * scale, y + 230 * scale)], fill=rgba(RIM, 220), width=max(8, int(13 * scale)))
+    d.line([(x + 101 * scale, y + 136 * scale), (x + 146 * scale, y + 220 * scale)], fill=rgba(PAPER_2, 245), width=max(5, int(7 * scale)))
+    if rotate:
+        layer = layer.rotate(rotate, resample=Image.Resampling.BICUBIC, center=(x + 84 * scale, y + 128 * scale))
+    return layer
+
+
+def paste_with_shadow(base: Image.Image, layer: Image.Image, offset=(0, 14), blur=18, alpha=150) -> None:
+    mask = layer.getchannel("A")
+    shadow = Image.new("RGBA", CURSOR_CARD, (0, 0, 0, 0))
+    shadow.putalpha(mask.point(lambda p: min(alpha, p)))
+    shifted = Image.new("RGBA", CURSOR_CARD, (0, 0, 0, 0))
+    shifted.alpha_composite(shadow, offset)
+    base.alpha_composite(shifted.filter(ImageFilter.GaussianBlur(blur)))
+    base.alpha_composite(layer)
+
+
+def draw_ring(draw: ImageDraw.ImageDraw, center: tuple[int, int], radius: int, color: str, width: int, alpha: int = 180) -> None:
+    x, y = center
+    draw.ellipse((x - radius, y - radius, x + radius, y + radius), outline=rgba(color, alpha), width=width)
+
+
+def draw_arc(draw: ImageDraw.ImageDraw, box, start: int, end: int, color: str, width: int, alpha: int = 210) -> None:
+    draw.arc(box, start=start, end=end, fill=rgba(color, alpha), width=width)
+
+
+def draw_cursor_effect(base: Image.Image, recipe: str, accent: str, spark: str, warm: str) -> None:
+    d = ImageDraw.Draw(base)
+    if recipe == "gel-pop":
+        for x, y, r, fill, a in ((392, 278, 100, accent, 90), (488, 218, 58, spark, 78), (616, 336, 42, warm, 86), (284, 364, 28, accent, 120)):
+            d.ellipse((x - r, y - r, x + r, y + r), fill=rgba(fill, a))
+        line_round(d, [(248, 402), (346, 372), (446, 402), (550, 372)], rgba(accent, 150), 18)
+        for x, y, r in ((682, 188, 9), (724, 232, 13), (196, 318, 11), (764, 378, 10)):
+            d.ellipse((x - r, y - r, x + r, y + r), fill=rgba(spark if x % 2 else warm, 210))
+    elif recipe == "moonlight-focus":
+        for radius, color, width, alpha in ((132, accent, 8, 190), (188, spark, 4, 110), (236, warm, 3, 86)):
+            draw_ring(d, (512, 288), radius, color, width, alpha)
+        line_round(d, [(512, 58), (512, 154)], rgba(accent, 150), 4)
+        line_round(d, [(512, 422), (512, 518)], rgba(accent, 150), 4)
+        line_round(d, [(282, 288), (380, 288)], rgba(accent, 150), 4)
+        line_round(d, [(644, 288), (742, 288)], rgba(accent, 150), 4)
+        d.ellipse((704, 154, 734, 184), fill=rgba(spark, 170))
+        d.ellipse((276, 390, 294, 408), fill=rgba(warm, 180))
+    elif recipe == "paper-sparks":
+        line_round(d, [(260, 408), (388, 362), (526, 390), (674, 336), (806, 362)], rgba(spark, 150), 12)
+        for i, (x, y, fill) in enumerate(((270, 178, warm), (330, 244, accent), (410, 150, PAPER), (612, 190, warm), (688, 270, spark), (744, 174, PAPER), (792, 338, accent), (540, 418, PAPER), (212, 336, spark))):
+            shard = Image.new("RGBA", CURSOR_CARD, (0, 0, 0, 0))
+            sd = ImageDraw.Draw(shard)
+            sd.rounded_rectangle((x - 12, y - 9, x + 12, y + 9), radius=3, fill=rgba(fill, 210))
+            shard = shard.rotate((i * 17) % 42 - 20, resample=Image.Resampling.BICUBIC, center=(x, y))
+            base.alpha_composite(shard)
+    elif recipe == "signal-bloom":
+        for radius, alpha in ((74, 210), (118, 150), (168, 100), (226, 68)):
+            draw_ring(d, (512, 288), radius, accent, 5, alpha)
+        for x in range(260, 790, 58):
+            y = 376 + round(math.sin(x * 0.04) * 34)
+            d.rounded_rectangle((x - 12, y - 12, x + 12, y + 12), radius=5, fill=rgba(spark if x % 3 else warm, 180))
+        line_round(d, [(230, 420), (342, 420), (342, 456), (456, 456), (456, 424)], rgba(accent, 150), 10)
+    elif recipe == "solar-orbit":
+        draw_arc(d, (238, 86, 786, 574), 190, 350, warm, 18, 210)
+        draw_arc(d, (330, 126, 888, 624), 208, 328, accent, 8, 170)
+        d.ellipse((680, 132, 726, 178), fill=rgba(accent, 220))
+        d.ellipse((704, 158, 718, 172), fill=(255, 255, 255, 210))
+        for x, y, r in ((610, 212, 22), (760, 322, 12), (342, 410, 14)):
+            d.ellipse((x - r, y - r, x + r, y + r), fill=rgba(spark, 190))
+    else:
+        for radius, color, width, alpha in ((92, accent, 12, 190), (150, spark, 6, 110), (214, warm, 3, 70)):
+            draw_ring(d, (512, 288), radius, color, width, alpha)
+        line_round(d, [(250, 410), (354, 384), (464, 408), (588, 386)], rgba(accent, 130), 13)
+        for x, y, color in ((700, 188, warm), (308, 210, spark), (758, 364, accent), (228, 350, warm)):
+            d.ellipse((x - 12, y - 12, x + 12, y + 12), fill=rgba(color, 200))
+
+    if recipe == "oddlings":
+        for x, y, color in ((330, 168, accent), (684, 184, spark), (744, 394, warm), (278, 392, accent), (618, 444, spark)):
+            d.ellipse((x - 24, y - 24, x + 24, y + 24), fill=rgba(RIM, 210))
+            d.ellipse((x - 15, y - 15, x + 15, y + 15), fill=rgba(color, 230))
+            d.ellipse((x - 6, y - 6, x + 6, y + 6), fill=rgba(INK, 230))
+
+
+def render_cursor_card(src_dir: Path) -> Image.Image:
+    accent, spark, warm, ink, recipe = cursor_manifest_palette(src_dir)
+    base = cursor_card_plate(accent, spark, warm, ink)
+    draw_cursor_effect(base, recipe, accent, spark, warm)
+    pointer = cursor_pointer_layer(454, 174, 1.16, -6 if recipe in ("gel-pop", "solar-orbit") else 0)
+    paste_with_shadow(base, pointer, offset=(0, 18), blur=18, alpha=170)
+    glow = Image.new("RGBA", CURSOR_CARD, (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.ellipse((400, 156, 650, 404), outline=rgba(accent, 110), width=10)
+    base.alpha_composite(glow.filter(ImageFilter.GaussianBlur(4)))
+    return base.convert("RGB")
+
+
+def write_cursor_card(src_dir: Path) -> None:
+    path = src_dir / "card.webp"
+    render_cursor_card(src_dir).save(path, "WEBP", quality=88, method=6)
+    print(path)
+
+
 DRAWERS = {
     "board": draw_board,
     "flow": draw_flow,
@@ -356,10 +505,6 @@ def render(slug: str) -> Image.Image:
     glyph = Image.new("RGBA", CARD, (0, 0, 0, 0))
     if slug in DRAWERS:
         DRAWERS[slug](glyph, colors)
-    elif slug == "odd-default-cursors":
-        draw_cursors(glyph, colors, False)
-    elif slug == "oddlings-cursors":
-        draw_cursors(glyph, colors, True)
     else:
         raise SystemExit(f"no drawer for {slug}")
     shadow_paste(base, glyph)
@@ -439,8 +584,9 @@ def main() -> None:
             write_card(ROOT / "_tools" / "catalog-sources" / "widgets" / slug / "card.webp", slug)
 
     if "all" in targets or "cursors" in targets:
-        for slug in ("odd-default-cursors", "oddlings-cursors"):
-            write_card(ROOT / "_tools" / "catalog-sources" / "cursor-sets" / slug / "card.webp", slug)
+        for folder in sorted((ROOT / "_tools" / "catalog-sources" / "cursor-sets").iterdir()):
+            if folder.is_dir() and (folder / "manifest.json").is_file():
+                write_cursor_card(folder)
 
 
 if __name__ == "__main__":
