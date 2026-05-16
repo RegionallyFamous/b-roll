@@ -220,7 +220,7 @@ add_action(
 						'sanitize_callback' => 'rest_sanitize_boolean',
 					),
 					'surfaces' => array(
-						'description'       => __( 'Desktop Mode launch surfaces for this app.', 'odd-outlandish-desktop-decorator' ),
+						'description'       => __( 'Fallback Desktop Mode launch surface metadata for this app.', 'odd-outlandish-desktop-decorator' ),
 						'type'              => 'object',
 						'required'          => false,
 						'validate_callback' => static function ( $value ) {

@@ -12,12 +12,12 @@ Only the primary action changes by content type.
 | State | Server-owned fields | Primary action | Recovery path |
 |-------|---------------------|----------------|---------------|
 | `available` | catalog row exists, `installed: false` | Install | Retry install; copy diagnostics on failure. |
-| `installing` | client optimistic only | Installing... | Button is disabled until request settles. |
-| `installed` | installed registry row exists | Type action | Scene/icon/cursor preview, widget add, app open. |
-| `updateAvailable` | installed row or catalog overlay declares `update_available` / `updateAvailable` | Update | Reinstall from catalog with `allow_update=1`. |
-| `requiresReload` | installed row declares `requiresReload` after a runtime-only change | Reload / Reload to apply | Reload the page so Desktop Mode re-registers surfaces. |
-| `broken` | installed row declares `broken` or `state: broken` | Repair | Reinstall from catalog with `allow_update=1`; diagnostics remain visible. |
-| `incompatible` | catalog or installed row declares `incompatible` or `state: incompatible` | Incompatible | Disabled until a compatible plugin/Desktop Mode version is installed. |
+| `working` | client optimistic only, or pending reload | Working... | Button is disabled until request settles. |
+| `ready` | installed registry row exists for scene/icon/cursor/widget and is not active | Apply or Add | Scene/icon/cursor preview/apply, widget add. |
+| `installed` | installed app row exists | Open | Opens the registered Desktop Mode native window. |
+| `attention` | installed row declares `broken`, `update_available`, `updateAvailable`, or `requiresReload` | Repair, Update, or Reload | Reinstall from catalog with `allow_update=1`, or reload when explicitly required. |
+| `blocked` | catalog or installed row declares `incompatible` or `state: incompatible` | Unavailable | Disabled until a compatible plugin/Desktop Mode version is installed. |
+| `active` | current wallpaper/icon/cursor/widget selection matches the row | Active | Disabled because this row is already applied/enabled. |
 
 `uninstalling` is a request state rather than a persistent card state. The
 server remains authoritative: paths, bundle identity, installed status,
@@ -31,7 +31,7 @@ capabilities, hashes, and manifest fields are never trusted from the browser.
 | `icon-set` | Preview | Preview opens the bar; applying triggers the server-side icon filter path. |
 | `cursor-set` | Preview | Preview injects a temporary cursor style before apply. |
 | `widget` | Add | Adds the widget to the Desktop Mode widget layer. |
-| `app` | Open | Opens the registered Desktop Mode native window. Surface changes set `requiresReload`. |
+| `app` | Open | Opens the registered Desktop Mode native window. Surface changes write Desktop Mode `itemVisibility` when available. |
 
 ## Trust Labels
 
@@ -73,11 +73,11 @@ Every card also carries a plain-language trust label:
 `tests/integration/shop-card.test.js` owns the card state-machine coverage:
 
 - available → Install
-- incompatible → disabled Incompatible
-- broken → Repair
-- updateAvailable → Update
-- requiresReload → Reload / Reload to apply
-- installed scene/icon/cursor → Preview
+- blocked → disabled Unavailable
+- attention + broken → Repair
+- attention + updateAvailable → Update
+- attention + requiresReload → Reload
+- ready scene/icon/cursor → Preview from card body, Apply from primary button
 - installed widget → Add / Active
 - installed app → Open
 

@@ -5,11 +5,11 @@
  * renders a single `renderShopCard(row)` tile whose primary action
  * button derives its label from the durable item state:
  *
- *   incompatible?    → "Incompatible" (disabled)
+ *   incompatible?    → "Unavailable" (disabled)
  *   not installed?   → "Install"
  *   broken?          → "Repair"
  *   updateAvailable? → "Update"
- *   requiresReload?  → "Reload now" (escape hatch; pending reload → "Applying…")
+ *   requiresReload?  → "Reload" (escape hatch; pending reload → "Working…")
  *   active?          → "Active" (disabled)
  *   type=scene/icon/cursor → "Apply" (card body still previews)
  *   type=widget      → "Add"
@@ -29,8 +29,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const PANEL_JS = resolve( __dirname, '../../odd/src/panel/index.js' );
 const PANEL_CSS = resolve( __dirname, '../../odd/src/panel/styles.css' );
+const SHOP_FLOW_JS = resolve( __dirname, '../../odd/src/panel/shop-flow.js' );
 
 function loadPanel() {
+	const flowSrc = readFileSync( SHOP_FLOW_JS, 'utf8' );
+	const flowFn = new Function( `${ flowSrc }\n//# sourceURL=panel/shop-flow.js` );
+	flowFn.call( globalThis );
 	const src = readFileSync( PANEL_JS, 'utf8' );
 	const fn = new Function( `${ src }\n//# sourceURL=panel/index.js` );
 	fn.call( globalThis );
@@ -259,9 +263,9 @@ describe( 'ODD Shop · unified card state machine', () => {
 		const installingCard = host.querySelector( '[data-odd-shop-card][data-catalog-slug="gusts"]' );
 		const btn = installingCard.querySelector( '.odd-shop__card-btn' );
 		expect( installingCard.classList.contains( 'is-installing' ) ).toBe( true );
-		expect( installingCard.getAttribute( 'data-odd-card-state' ) ).toBe( 'installing' );
-		expect( installingCard.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Installing' );
-		expect( btn.textContent.trim() ).toBe( 'Installing…' );
+		expect( installingCard.getAttribute( 'data-odd-card-state' ) ).toBe( 'working' );
+		expect( installingCard.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Working' );
+		expect( btn.textContent.trim() ).toBe( 'Working…' );
 		expect( btn.disabled ).toBe( true );
 		expect( btn.getAttribute( 'aria-busy' ) ).toBe( 'true' );
 		expect( btn.querySelector( '.odd-shop__btn-spinner' ) ).toBeTruthy();
@@ -340,7 +344,7 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'ready' );
 		expect( card.getAttribute( 'data-odd-card-action' ) ).toBe( 'apply' );
 		expect( card.getAttribute( 'data-odd-trust' ) ).toBe( 'local-code' );
-		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready to apply' );
+		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready' );
 		expect( card.querySelector( '.odd-shop__card-trust' ) ).toBeNull();
 		expect( card.querySelector( '#odd-shop-card-terrazzo-trust' )?.textContent.trim() ).toBe( 'Runs locally' );
 		expect( card.querySelector( '.odd-shop__card-hint' )?.textContent ).toBe( 'Click card to preview' );
@@ -385,6 +389,45 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( host.querySelector( '.odd-shop__flow-toast-action' )?.textContent.trim() ).toBe( 'Undo' );
 	} );
 
+	it( 'preview refresh keeps visible action and click handler in sync', async () => {
+		globalThis.fetch = vi.fn( () => Promise.resolve( {
+			ok:   true,
+			json: () => Promise.resolve( { wallpaper: 'gusts' } ),
+		} ) );
+		seed( {
+			wallpaper: 'gusts',
+			scene:     'gusts',
+			scenes: [
+				{ slug: 'gusts',   label: 'Gusts',   category: 'Atmosphere', fallbackColor: '#333' },
+				{ slug: 'terrazzo', label: 'Terrazzo', category: 'Forms',    fallbackColor: '#444' },
+			],
+		} );
+		loadPanel();
+		const { host } = mount();
+
+		host.querySelector( '[data-odd-shop-card][data-scene-slug="terrazzo"] .odd-shop__card' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		const activeCard = host.querySelector( '[data-odd-shop-card][data-scene-slug="gusts"]' );
+		const activeBtn = activeCard.querySelector( '.odd-shop__card-btn' );
+		expect( activeBtn.textContent.trim() ).toBe( 'Apply' );
+		expect( activeBtn.disabled ).toBe( false );
+		expect( activeBtn.getAttribute( 'data-odd-card-action' ) ).toBe( 'apply' );
+		expect( activeCard.getAttribute( 'data-odd-card-action' ) ).toBe( 'apply' );
+		expect( activeCard.getAttribute( 'data-odd-card-state' ) ).toBe( 'ready' );
+
+		activeBtn.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+		await flush();
+
+		expect( globalThis.fetch ).toHaveBeenCalledWith(
+			'/wp-json/odd/v1/prefs',
+			expect.objectContaining( {
+				method: 'POST',
+				body:   JSON.stringify( { wallpaper: 'gusts' } ),
+			} )
+		);
+	} );
+
 	it( 'active scene renders a disabled Active button', () => {
 		seed( {
 			wallpaper: 'gusts',
@@ -407,7 +450,7 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Active' );
 	} );
 
-	it( 'incompatible catalog rows render a disabled Incompatible button', () => {
+	it( 'incompatible catalog rows render a disabled Unavailable button', () => {
 		seed( {
 			bundleCatalog: {
 				scene: [ { slug: 'future-scene', label: 'Future Scene', installed: false, state: 'incompatible' } ],
@@ -420,11 +463,11 @@ describe( 'ODD Shop · unified card state machine', () => {
 
 		const card = host.querySelector( '[data-odd-shop-card][data-catalog-slug="future-scene"]' );
 		const btn  = card.querySelector( '.odd-shop__card-btn' );
-		expect( btn.textContent.trim() ).toBe( 'Incompatible' );
+		expect( btn.textContent.trim() ).toBe( 'Unavailable' );
 		expect( btn.disabled ).toBe( true );
 		expect( btn.getAttribute( 'aria-disabled' ) ).toBe( 'true' );
-		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'incompatible' );
-		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Incompatible' );
+		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'blocked' );
+		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Unavailable' );
 	} );
 
 	it( 'installed broken apps render a Repair button', async () => {
@@ -442,8 +485,8 @@ describe( 'ODD Shop · unified card state machine', () => {
 		const btn  = card.querySelector( '.odd-shop__card-btn' );
 		expect( btn.textContent.trim() ).toBe( 'Repair' );
 		expect( btn.disabled ).toBe( false );
-		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'repair' );
-		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Needs repair' );
+		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'attention' );
+		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Needs attention' );
 	} );
 
 	it( 'installed rows with catalog updates render an Update button', async () => {
@@ -461,8 +504,8 @@ describe( 'ODD Shop · unified card state machine', () => {
 		const btn  = card.querySelector( '.odd-shop__card-btn' );
 		expect( btn.textContent.trim() ).toBe( 'Update' );
 		expect( btn.disabled ).toBe( false );
-		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'update' );
-		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Update available' );
+		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'attention' );
+		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Needs attention' );
 		expect( card.querySelectorAll( '.odd-shop__card-btn' ) ).toHaveLength( 1 );
 	} );
 
@@ -496,9 +539,9 @@ describe( 'ODD Shop · unified card state machine', () => {
 
 		const card = host.querySelector( '[data-odd-shop-card][data-slug="board"]' );
 		const btn = card.querySelector( '.odd-shop__card-btn' );
-		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'updating' );
-		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Updating' );
-		expect( btn.textContent.trim() ).toBe( 'Updating…' );
+		expect( card.getAttribute( 'data-odd-card-state' ) ).toBe( 'working' );
+		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Working' );
+		expect( btn.textContent.trim() ).toBe( 'Working…' );
 		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Updating Board' );
 	} );
 
@@ -669,7 +712,9 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( css ).toContain( '.odd-panel .odd-sr-only' );
 		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-state\{[^}]*font:800 11px\/1\.25[^}]*color:#333336/ );
 		expect( css ).not.toContain( '.odd-shop__card-trust' );
-		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-btn--active,\.odd-panel \.odd-shop__card-btn\.is-disabled\{[^}]*color:#3f3f46/ );
+		expect( css ).toMatch( /\.odd-panel\.odd-shop \.odd-shop__card-btn\{[^}]*justify-self:start[^}]*min-width:88px[^}]*text-align:center[^}]*user-select:none/ );
+		expect( css ).toMatch( /\.odd-panel\.odd-shop \.odd-shop__quick-look\{[^}]*text-align:center[^}]*user-select:none/ );
+		expect( css ).toMatch( /\.odd-panel\.odd-shop \.odd-shop__card-btn--active,\.odd-panel\.odd-shop \.odd-shop__card-btn\.is-disabled\{[^}]*color:#3f3f46/ );
 		expect( css ).toContain( '.odd-panel .odd-shop__card-fav:focus-visible' );
 		expect( css ).toMatch( /\.odd-panel\.odd-shop \.odd-shop__card-btn:focus-visible,[^{}]*\.odd-panel\.odd-shop \.odd-shop__card-fav:focus-visible\{[^}]*outline:3px solid var\(--odd-shop-focus-ring\)/ );
 	} );

@@ -188,7 +188,7 @@
 		},
 		"surfaces": {
 			"type": "object",
-				"description": "App manifests only. Install-time defaults for which Desktop Mode launch surfaces ODD should register. Both keys default to the v1 surfaces (desktop: true, taskbar: false) when missing. Users override per install from the ODD Shop.",
+			"description": "App manifests only. Install-time defaults for Desktop Mode's core itemVisibility placement for the app launcher. Both keys default to the v1 surfaces (desktop: true, taskbar: false) when missing. Users override per install from the ODD Shop.",
 			"additionalProperties": false,
 			"properties": {
 				"desktop": { "type": "boolean", "description": "Render a desktop shortcut icon for this app." },

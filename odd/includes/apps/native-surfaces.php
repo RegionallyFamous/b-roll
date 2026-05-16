@@ -10,22 +10,15 @@
  *     iframe pointing at /wp-json/odd/v1/apps/serve/{slug}/. The
  *     window is always registered so that `wp.desktop.openWindow(
  *     'odd-app-{slug}' )` (from the Shop, slash commands, or a
- *     sibling plugin) always opens it — even when both visible
- *     surfaces below are off.
+ *     sibling plugin) always opens it.
  *
- * The visible surfaces are opt-in per app and per user, via the
- * row's `surfaces` shape (see oddout_apps_row_surfaces()):
- *
- *   surfaces.taskbar → forwarded to register_window() as
- *     `placement => 'dock'`; Desktop Mode renders the dock
- *     icon via its internal `rail.appendSystemItem({ onOpen: … })`
- *     path so no JS click handler is needed on our side. When false
- *     we pass `placement => 'none'` (window registered, no tile).
- *
- *   surfaces.desktop → gates register_icon() entirely. When false
- *     the paired desktop shortcut is not created and the user
- *     launches the window via the taskbar icon (or any other
- *     entry point listed above).
+ *   desktop_mode_register_icon( 'odd-app-{slug}', [...] )
+ *     Always publishes the canonical Desktop Mode launcher. The host's
+ *     own `itemVisibility` OS setting decides whether that launcher
+ *     appears on the desktop, taskbar, both, or neither. ODD keeps the
+ *     manifest `surfaces` shape as install metadata and a fallback
+ *     REST contract, but it no longer mirrors Desktop Mode placement
+ *     through custom window placement or skipped icon registration.
  *
  * Both IDs are prefixed `odd-app-` so the dock-filter can ignore
  * them when re-skinning icon sets (ODD-native chrome, not WP admin
@@ -64,7 +57,6 @@ function oddout_apps_register_surfaces( $row ) {
 		return;
 	}
 	$manifest = oddout_apps_manifest_load( $slug );
-	$surfaces = oddout_apps_row_surfaces( $row );
 
 	$window_id = 'odd-app-' . $slug;
 	$icon_url  = oddout_apps_icon_url( $slug, $manifest );
@@ -81,10 +73,10 @@ function oddout_apps_register_surfaces( $row ) {
 		'height'     => 600,
 		'min_width'  => 420,
 		'min_height' => 320,
-		// 'dock' → Desktop Mode appends a system tile whose onOpen
-		// handler calls the window manager directly. 'none' registers
-		// the window but leaves the rail untouched.
-		'placement'  => $surfaces['taskbar'] ? 'dock' : 'none',
+		// Desktop Mode's itemVisibility setting places the paired
+		// launcher on desktop/taskbar/both/hidden. Keep the native
+		// window registered without adding a second system tile.
+		'placement'  => 'none',
 	);
 
 	if ( isset( $manifest['window'] ) && is_array( $manifest['window'] ) ) {
@@ -100,13 +92,6 @@ function oddout_apps_register_surfaces( $row ) {
 	}
 
 	desktop_mode_register_window( $window_id, $window_defaults );
-
-	if ( ! $surfaces['desktop'] ) {
-		// User opted out of a desktop shortcut for this app — the
-		// taskbar icon (or any wp.desktop.openWindow() caller)
-		// remains the launch path. Nothing to register.
-		return;
-	}
 
 	$icon_defaults = array(
 		'title'    => $name,

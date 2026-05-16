@@ -93,7 +93,7 @@ Covered in full by the [Building an App](building-an-app.md) guide.
 | `capability`  | no       | Defaults to `"manage_options"`. Checked on every serve request. Manifest values are normalized against ODD's capability floor, so bundles cannot broaden access to all logged-in users by declaring `"read"` unless a site deliberately opts in with filters. |
 | `window`      | no       | `{ width, height, min_width, min_height, title }`.                           |
 | `desktopIcon` | no       | `{ title, position }`. Position is an ordering hint (lower = earlier).       |
-| `surfaces`    | no       | `{ desktop: bool, taskbar: bool }`. Install-time defaults for the app's two visible launch surfaces — desktop icon and Desktop Mode taskbar icon. Missing keys default to `{ desktop: true, taskbar: false }`. Users can override each independently from the ODD Shop. |
+| `surfaces`    | no       | `{ desktop: bool, taskbar: bool }`. Install-time defaults for Desktop Mode's core `itemVisibility` placement for the app launcher. Missing keys default to `{ desktop: true, taskbar: false }`. Users can override each independently from the ODD Shop. |
 | `extensions`  | no       | Declarative registrations against the ODD extension registries.              |
 
 ### Type: `icon-set`
@@ -271,7 +271,7 @@ set these in your source `manifest.json` — they'll be overwritten:
 |-------------|------------------------------------|-----------------------------------------------|
 | `installed` | Per-type installer                 | Unix timestamp of the install.                |
 | `enabled`   | Apps-only: `oddout_apps_set_enabled`  | Whether the app is available to open and serve. |
-| `surfaces`  | Apps-only: `oddout_apps_set_surfaces` | User-overridden `{ desktop, taskbar }` launch surfaces. |
+| `surfaces`  | Apps-only: `oddout_apps_set_surfaces` | Compatibility metadata for `{ desktop, taskbar }` launcher placement; current Shop changes use Desktop Mode `itemVisibility` when available. |
 
 These are exposed on `GET /odd/v1/bundles/<slug>` (and the older
 `GET /odd/v1/apps/<slug>`) so the Shop can flag state, but they're

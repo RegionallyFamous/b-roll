@@ -37,7 +37,7 @@ Permission shorthand used below:
 | `GET`    | `/apps/{slug}`                               | login         | Full manifest for one app.                 |
 | `POST`   | `/apps/upload`                               | admin         | App bundle upload endpoint for `.wp` archives. |
 | `DELETE` | `/apps/{slug}`                               | admin         | Uninstall an app and delete its files.     |
-| `POST`   | `/apps/{slug}/toggle`                        | admin         | Enable/disable an installed app or update its desktop/taskbar surfaces. |
+| `POST`   | `/apps/{slug}/toggle`                        | admin         | Enable/disable an installed app or update fallback desktop/taskbar surface metadata. |
 | `GET`    | `/apps/serve/{slug}/{path...}`               | per-app cap   | Serve a file from the app bundle.          |
 | `GET`    | `/apps/icon/{slug}`                          | public        | Serve the app's declared icon file.        |
 | `POST`   | `/bundles/upload`                            | admin         | Install any `.wp` bundle (app, icon set, cursor set, scene, widget). |
@@ -107,6 +107,11 @@ Writable keys: `wallpaper`, `scene`, `favorites`, `recents`, `shuffle`,
 `screensaver`, `audioReactive`, `shopTaskbar`, `shopDesktopPinned`, `theme`,
 `chaosMode`, `initiated`, `mascotQuiet`, `winkUnlocked`, `appsPinned`,
 `iconSet`, and `cursorSet`.
+
+`shopTaskbar` is a compatibility/default mirror. Current clients write the
+actual ODD Shop launcher placement through Desktop Mode's core
+`itemVisibility.odd` OS setting, then persist this value for older hosts and
+workspace export/import.
 
 ```json
 {
@@ -275,11 +280,11 @@ entry. Idempotent — returns `200` for unknown slugs.
 
 ### `POST /apps/{slug}/toggle`
 
-Enable or disable an installed app, or update where it appears in WP
-Desktop Mode. Disabled apps keep their files and manifest; their
-desktop icon, taskbar item, native window, and serve endpoint stop
-working until re-enabled. Surface changes are stored even while an app
-is disabled and take effect on the next Desktop Mode registration pass.
+Enable or disable an installed app, or update fallback surface metadata.
+Disabled apps keep their files and manifest; their Desktop Mode
+launcher, native window, and serve endpoint stop working until
+re-enabled. On current hosts, live launcher placement is driven by
+Desktop Mode's `itemVisibility` OS setting rather than this endpoint.
 
 **Auth:** admin
 **Content-Type:** `application/json`
@@ -296,7 +301,10 @@ is disabled and take effect on the next Desktop Mode registration pass.
 Send `enabled`, `surfaces`, or both. Empty requests are rejected with
 `missing_toggle_fields`; the endpoint never flips state implicitly. If
 `surfaces` is present, only the provided keys are changed; missing keys
-keep their current values. Both keys are booleans.
+keep their current values. Both keys are booleans. Current ODD Shop
+builds prefer Desktop Mode's core `itemVisibility` OS setting for live
+launcher placement and use this REST surface only as compatibility
+metadata/fallback.
 
 **Response** — `200 OK`:
 

@@ -523,14 +523,13 @@ Third-party registrations can also be injected directly via the
 
 ### App surfaces
 
-Each installed app has two **visible** launch surfaces — the desktop
-shortcut icon and the Desktop Mode taskbar icon — plus an always-on
-**invisible** surface (the registered native window, reachable from
+Each installed app has one canonical Desktop Mode launcher that can be
+shown on two **visible** launch surfaces — the desktop shortcut area and
+the Desktop Mode taskbar — plus an always-on **invisible** surface (the registered native window, reachable from
 `wp.desktop.openWindow( 'odd-app-<slug>' )` regardless of the two
 visible ones).
 
-The visible pair is controlled by a per-app `surfaces` object on each
-index row:
+Manifest and REST metadata use a per-app `surfaces` object:
 
 ```php
 array(
@@ -545,20 +544,21 @@ the **ODD Shop → Apps** card. Missing keys default to
 `{ desktop: true, taskbar: false }` so rows without explicit surface
 metadata remain usable.
 
-Under the hood this forwards into Desktop Mode's stable
-`desktop_mode_register_window( id, [ 'placement' =>
-'taskbar'|'none', ... ] )` argument and conditionally skips
-`desktop_mode_register_icon()` when `surfaces.desktop` is false. ODD
-registers no custom dock filters and no click handlers — Desktop Mode
-paints the pill and wires its `onOpen` call to the window manager.
+Under the hood ODD always registers the app's native window and its
+canonical `desktop_mode_register_icon( 'odd-app-<slug>' )` launcher.
+Current Desktop Mode owns visible placement through
+`wp.desktop.updateOsSettings( { itemVisibility } )`, using the values
+`desktop`, `dock`, `both`, or `hidden`. ODD registers no custom dock
+filters and no click handlers — Desktop Mode paints the launcher and
+wires its open action to the window manager.
 
 `oddout_app_surfaces_changed` fires after a successful
 `oddout_apps_set_surfaces()` call. Handlers receive
 `( string $slug, array $surfaces )` where `$surfaces` is the clean,
 normalized `{ desktop: bool, taskbar: bool }` shape. The REST route
 that the Shop calls (`POST /odd/v1/apps/{slug}/toggle` with a
-`surfaces` body) goes through the same helper, so PHP listeners see
-both user edits and direct helper calls on the same hook.
+`surfaces` body) remains for compatibility and direct PHP listeners; the
+Shop prefers Desktop Mode's core OS-settings API when it is available.
 
 ### Sandboxing
 

@@ -18,8 +18,12 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const PANEL_JS = resolve( __dirname, '../../odd/src/panel/index.js' );
+const SHOP_FLOW_JS = resolve( __dirname, '../../odd/src/panel/shop-flow.js' );
 
 function loadPanel() {
+	const flowSrc = readFileSync( SHOP_FLOW_JS, 'utf8' );
+	const flowFn = new Function( `${ flowSrc }\n//# sourceURL=panel/shop-flow.js` );
+	flowFn.call( globalThis );
 	const src = readFileSync( PANEL_JS, 'utf8' );
 	const fn = new Function( `${ src }\n//# sourceURL=panel/index.js` );
 	fn.call( globalThis );
@@ -154,8 +158,8 @@ describe( 'ODD Shop · install flows', () => {
 
 		const installedTile = host.querySelector( '[data-odd-shop-card][data-scene-slug="gusts"]' );
 		expect( installedTile, 'hot-registered scene must appear in the grid' ).toBeTruthy();
-		expect( installedTile.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready to apply' );
-		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Ready to apply' );
+		expect( installedTile.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready' );
+		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Ready.' );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
 	} );
@@ -198,8 +202,8 @@ describe( 'ODD Shop · install flows', () => {
 		const installedTile = host.querySelector( '[data-odd-shop-card][data-set-slug="filament"]' );
 		expect( installedTile, 'installed icon set must appear in the grid' ).toBeTruthy();
 		expect( installedTile.querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Apply' );
-		expect( installedTile.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready to apply' );
-		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Ready to apply' );
+		expect( installedTile.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready' );
+		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Ready.' );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
 	} );
@@ -260,8 +264,8 @@ describe( 'ODD Shop · install flows', () => {
 		const installedTile = host.querySelector( '[data-odd-shop-card][data-cursor-set-slug="oddlings-cursors"]' );
 		expect( installedTile, 'installed cursor set must appear in the grid' ).toBeTruthy();
 		expect( installedTile.querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Apply' );
-		expect( installedTile.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready to apply' );
-		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Ready to apply' );
+		expect( installedTile.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready' );
+		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Ready.' );
 		expect( window.odd.cursorSets.find( ( row ) => row.slug === 'oddlings-cursors' )?.effects?.accent ).toBe( '#38e8ff' );
 		expect( window.odd.cursorSets.find( ( row ) => row.slug === 'oddlings-cursors' )?.effects?.recipe ).toBe( 'signal-bloom' );
 		expect( window.odd.cursorSets.find( ( row ) => row.slug === 'oddlings-cursors' )?.cursors?.pointer?.url ).toBe( '/cursor-pointer.svg' );
@@ -330,8 +334,8 @@ describe( 'ODD Shop · install flows', () => {
 
 		const installedTile = host.querySelector( '[data-odd-shop-card][data-widget-id="odd/clock"]' );
 		expect( installedTile, 'hot-registered widget must appear in the grid' ).toBeTruthy();
-		expect( installedTile.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready to add' );
-		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Ready to add' );
+		expect( installedTile.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready' );
+		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Ready.' );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 		// No reload → no breadcrumb.
 		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeNull();
@@ -375,7 +379,7 @@ describe( 'ODD Shop · install flows', () => {
 		await flush();
 		await new Promise( ( r ) => setTimeout( r, 20 ) );
 
-		expect( host.querySelector( '[data-odd-shop-card][data-catalog-slug="clock"] .odd-shop__card-btn' ).textContent.trim() ).toBe( 'Installing…' );
+		expect( host.querySelector( '[data-odd-shop-card][data-catalog-slug="clock"] .odd-shop__card-btn' ).textContent.trim() ).toBe( 'Working…' );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 
 		window.desktopModeWidgets = window.desktopModeWidgets || {};
@@ -431,7 +435,7 @@ describe( 'ODD Shop · install flows', () => {
 		const installedTile = host.querySelector( '[data-odd-shop-card][data-widget-id="odd/broken"]' );
 		expect( installedTile, 'failed hot-register still adds the installed tile' ).toBeTruthy();
 		const btn = installedTile.querySelector( '.odd-shop__card-btn' );
-		expect( btn.textContent.trim() ).toBe( 'Applying…' );
+		expect( btn.textContent.trim() ).toBe( 'Working…' );
 		expect( window.sessionStorage.getItem( 'odd.justInstalled' ) ).toBeTruthy();
 		await new Promise( ( r ) => setTimeout( r, 450 ) );
 		expect( reloadSpy ).toHaveBeenCalled();

@@ -1,13 +1,13 @@
 <?php
 /**
- * Tests for the per-app `surfaces` preference — which of Desktop
- * Mode's launch affordances (desktop icon, taskbar icon) an app
- * registers.
+ * Tests for the per-app `surfaces` preference. Current Desktop Mode owns
+ * visible placement through itemVisibility; ODD stores `surfaces` as
+ * install metadata plus a fallback REST contract.
  *
  * Covers the helper API (`oddout_apps_set_surfaces`,
  * `oddout_apps_row_surfaces`), the REST toggle route extension, and
- * the `oddout_apps_register_surfaces()` dispatcher's forwarding into
- * `desktop_mode_register_window()` / `desktop_mode_register_icon()`.
+ * the `oddout_apps_register_surfaces()` dispatcher publishing the
+ * canonical Desktop Mode window + icon entries the host can place.
  *
  * The Desktop Mode functions are stubbed at runtime via
  * `uopz_set_return` when available, and otherwise re-declared as
@@ -251,7 +251,7 @@ class Test_Apps_Surfaces extends ODDOUT_REST_Test_Case {
 		oddout_apps_index_save( $index );
 	}
 
-	public function test_register_surfaces_forwards_dock_placement_and_skips_icon_when_desktop_off() {
+	public function test_register_surfaces_always_publishes_core_window_and_icon() {
 		$this->require_desktop_mode_stubs();
 
 		$manifest = $this->install_fixture(
@@ -269,10 +269,11 @@ class Test_Apps_Surfaces extends ODDOUT_REST_Test_Case {
 
 		$window = $this->find_call( 'window', 'odd-app-register-tbar-no-desk' );
 		$this->assertNotNull( $window, 'register_window was not called.' );
-		$this->assertSame( 'dock', $window['args']['placement'] );
+		$this->assertSame( 'none', $window['args']['placement'], 'Visible placement belongs to Desktop Mode itemVisibility.' );
 
 		$icon = $this->find_call( 'icon', 'odd-app-register-tbar-no-desk' );
-		$this->assertNull( $icon, 'register_icon must be skipped when surfaces.desktop is false.' );
+		$this->assertNotNull( $icon, 'The canonical launcher must always be registered for core itemVisibility.' );
+		$this->assertSame( 'odd-app-register-tbar-no-desk', $icon['args']['window'] );
 	}
 
 	public function test_register_surfaces_forwards_placement_none_when_taskbar_off() {
@@ -298,7 +299,7 @@ class Test_Apps_Surfaces extends ODDOUT_REST_Test_Case {
 		$this->assertNotNull( $icon, 'register_icon must run when surfaces.desktop is true.' );
 	}
 
-	public function test_register_surfaces_registers_both_when_both_surfaces_on() {
+	public function test_register_surfaces_keeps_window_out_of_dock_when_both_surfaces_on() {
 		$this->require_desktop_mode_stubs();
 		$this->install_fixture(
 			'register-both',
@@ -318,7 +319,7 @@ class Test_Apps_Surfaces extends ODDOUT_REST_Test_Case {
 
 		$this->assertNotNull( $window );
 		$this->assertNotNull( $icon );
-		$this->assertSame( 'dock', $window['args']['placement'] );
+		$this->assertSame( 'none', $window['args']['placement'] );
 	}
 
 	public function test_register_surfaces_uses_manifest_icon_for_desktop_and_taskbar() {
@@ -363,7 +364,7 @@ class Test_Apps_Surfaces extends ODDOUT_REST_Test_Case {
 		$icon   = $this->find_call( 'icon', 'odd-app-default-register' );
 
 		$this->assertNotNull( $window );
-		$this->assertSame( 'none', $window['args']['placement'], 'Default surfaces: no taskbar icon.' );
+		$this->assertSame( 'none', $window['args']['placement'], 'Default registration leaves taskbar placement to itemVisibility.' );
 		$this->assertNotNull( $icon, 'Default surfaces: desktop icon on.' );
 	}
 

@@ -6,15 +6,14 @@
  * `window.odd` + stubbed `fetch`, switch to the Apps department,
  * then exercise the two checkboxes inside each app card.
  *
- * The server normalizes the response shape (`{ enabled, surfaces }`);
- * these tests only care that:
+ * Desktop Mode owns visible placement via its `itemVisibility` OS
+ * setting. These tests only care that:
  *
  *   1. The checkboxes initialize from app.surfaces.
- *   2. A toggle POSTs `/odd/v1/apps/{slug}/toggle` with
- *      `{ surfaces: { <field>: bool } }` — partial payloads only,
- *      so the two checkboxes stay independent.
- *   3. After a successful POST the panel asks Desktop Mode to live
- *      refresh its native registries via `wp.desktop.refreshMenu()`.
+ *   2. A toggle writes the canonical `odd-app-{slug}` itemVisibility
+ *      placement through `wp.desktop.updateOsSettings()`.
+ *   3. The older `/apps/{slug}/toggle` surfaces route remains a fallback
+ *      only when the host does not expose Desktop Mode OS settings.
  *   4. Toggles are disabled when app.enabled === false.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -24,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const PANEL_JS  = resolve( __dirname, '../../odd/src/panel/index.js' );
+const SHOP_FLOW_JS = resolve( __dirname, '../../odd/src/panel/shop-flow.js' );
 
 function seedConfig( apps ) {
 	window.odd = {
@@ -63,6 +63,9 @@ function installHooks() {
 }
 
 function loadPanel() {
+	const flowSrc = readFileSync( SHOP_FLOW_JS, 'utf8' );
+	const flowFn  = new Function( `${ flowSrc }\n//# sourceURL=panel/shop-flow.js` );
+	flowFn.call( globalThis );
 	const src = readFileSync( PANEL_JS, 'utf8' );
 	const fn  = new Function( `${ src }\n//# sourceURL=panel/index.js` );
 	fn.call( globalThis );
@@ -99,6 +102,8 @@ describe( 'ODD Shop · App surfaces', () => {
 	let fetchMock;
 	let reloadSpy;
 	let refreshMenuSpy;
+	let updateOsSettingsSpy;
+	let osSettings;
 
 	beforeEach( () => {
 		document.body.innerHTML = '';
@@ -128,8 +133,24 @@ describe( 'ODD Shop · App surfaces', () => {
 		];
 		seedConfig( apps );
 		installHooks();
+		osSettings = { itemVisibility: {}, dockOrder: [] };
 		refreshMenuSpy = vi.fn( () => Promise.resolve() );
-		window.wp.desktop = { refreshMenu: refreshMenuSpy };
+		updateOsSettingsSpy = vi.fn( ( patch ) => {
+			if ( patch && patch.itemVisibility ) {
+				osSettings.itemVisibility = Object.assign( {}, patch.itemVisibility );
+			}
+			if ( patch && patch.dockOrder ) {
+				osSettings.dockOrder = patch.dockOrder.slice();
+			}
+		} );
+		window.wp.desktop = {
+			refreshMenu: refreshMenuSpy,
+			getOsSettings: () => ( {
+				itemVisibility: Object.assign( {}, osSettings.itemVisibility ),
+				dockOrder: osSettings.dockOrder.slice(),
+			} ),
+			updateOsSettings: updateOsSettingsSpy,
+		};
 
 		// fetchApps() hits GET /odd/v1/apps; toggle POST hits
 		// /odd/v1/apps/{slug}/toggle. Both paths share the same
@@ -192,7 +213,21 @@ describe( 'ODD Shop · App surfaces', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'toggling taskbar posts a partial { surfaces: { taskbar } } payload and refreshes Desktop Mode live', async () => {
+	it( 'prefers Desktop Mode itemVisibility over stale ODD surfaces metadata', async () => {
+		osSettings.itemVisibility[ 'odd-app-demo-app' ] = 'both';
+		const { host, cleanup } = mountPanel();
+		await gotoAppsDepartment( host );
+
+		const card = host.querySelector( '.odd-card--app[data-app-slug="demo-app"]' );
+		const checks = card.querySelectorAll( '.odd-card__surfaces input[type="checkbox"]' );
+		expect( checks[ 0 ].checked ).toBe( true );
+		expect( checks[ 1 ].checked ).toBe( true );
+		expect( updateOsSettingsSpy ).not.toHaveBeenCalled();
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'toggling taskbar writes the core itemVisibility placement without reloading', async () => {
 		const { host, cleanup } = mountPanel();
 		await gotoAppsDepartment( host );
 
@@ -207,20 +242,20 @@ describe( 'ODD Shop · App surfaces', () => {
 		await tick( 0 );
 
 		const postCall = fetchMock.mock.calls.find( ( c ) => c[ 1 ] && c[ 1 ].method === 'POST' );
-		expect( postCall, 'A POST to /apps/{slug}/toggle must fire' ).toBeTruthy();
-		expect( postCall[ 0 ] ).toContain( '/odd/v1/apps/demo-app/toggle' );
-		const body = JSON.parse( postCall[ 1 ].body );
-		expect( body ).toEqual( { surfaces: { taskbar: true } } );
-		expect( Object.keys( body.surfaces ) ).toEqual( [ 'taskbar' ] );
+		expect( postCall, 'Core Desktop Mode settings should avoid the fallback REST toggle.' ).toBeFalsy();
+		expect( updateOsSettingsSpy ).toHaveBeenCalledTimes( 1 );
+		expect( updateOsSettingsSpy.mock.calls[ 0 ][ 0 ] ).toEqual( {
+			itemVisibility: { 'odd-app-demo-app': 'both' },
+		} );
 
 		await tick( 0 );
-		expect( refreshMenuSpy ).toHaveBeenCalledTimes( 1 );
+		expect( refreshMenuSpy ).not.toHaveBeenCalled();
 		expect( reloadSpy ).not.toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'toggling desktop posts only { surfaces: { desktop } } — independent of taskbar', async () => {
+	it( 'toggling desktop writes hidden when both launch surfaces are off', async () => {
 		const { host, cleanup } = mountPanel();
 		await gotoAppsDepartment( host );
 
@@ -233,9 +268,44 @@ describe( 'ODD Shop · App surfaces', () => {
 		await tick( 0 );
 
 		const postCall = fetchMock.mock.calls.find( ( c ) => c[ 1 ] && c[ 1 ].method === 'POST' );
-		expect( postCall ).toBeTruthy();
+		expect( postCall ).toBeFalsy();
+		expect( updateOsSettingsSpy ).toHaveBeenCalledTimes( 1 );
+		expect( updateOsSettingsSpy.mock.calls[ 0 ][ 0 ] ).toEqual( {
+			itemVisibility: { 'odd-app-demo-app': 'hidden' },
+		} );
+
+		await tick( 0 );
+		expect( refreshMenuSpy ).not.toHaveBeenCalled();
+		expect( reloadSpy ).not.toHaveBeenCalled();
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'falls back to the ODD REST surfaces route when core OS settings are unavailable', async () => {
+		delete window.wp.desktop.getOsSettings;
+		delete window.wp.desktop.updateOsSettings;
+		const { host, cleanup } = mountPanel();
+		await gotoAppsDepartment( host );
+
+		const card   = host.querySelector( '.odd-card--app[data-app-slug="demo-app"]' );
+		const labels = card.querySelectorAll( '.odd-card__surface' );
+		const taskbarBox = labels[ 1 ].querySelector( 'input[type="checkbox"]' );
+		taskbarBox.checked = true;
+		taskbarBox.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+
+		await tick( 0 );
+		await tick( 0 );
+
+		const postCall = fetchMock.mock.calls.find( ( c ) => c[ 1 ] && c[ 1 ].method === 'POST' );
+		expect( postCall, 'The compatibility REST toggle should fire without core OS settings.' ).toBeTruthy();
+		expect( postCall[ 0 ] ).toContain( '/odd/v1/apps/demo-app/toggle' );
 		const body = JSON.parse( postCall[ 1 ].body );
-		expect( body ).toEqual( { surfaces: { desktop: false } } );
+		expect( body ).toEqual( { surfaces: { taskbar: true } } );
+
+		await tick( 450 );
+		expect( updateOsSettingsSpy ).not.toHaveBeenCalled();
+		expect( refreshMenuSpy ).not.toHaveBeenCalled();
+		expect( reloadSpy ).toHaveBeenCalledTimes( 1 );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
@@ -303,7 +373,7 @@ describe( 'ODD Shop · App surfaces', () => {
 		const labelsMid = Array.from( host.querySelectorAll( '.odd-shop__card-btn' ) )
 			.map( ( btn ) => btn.textContent.trim() );
 		expect( labelsMid ).toContain( 'Open' );
-		expect( labelsMid ).not.toContain( 'Applying…' );
+		expect( labelsMid ).not.toContain( 'Working…' );
 
 		await tick( 0 );
 		expect( refreshMenuSpy ).toHaveBeenCalledTimes( 1 );

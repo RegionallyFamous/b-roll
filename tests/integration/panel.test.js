@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const PANEL_JS = resolve( __dirname, '../../odd/src/panel/index.js' );
+const SHOP_FLOW_JS = resolve( __dirname, '../../odd/src/panel/shop-flow.js' );
 const WORKSPACE_JS = resolve( __dirname, '../../odd/src/shared/workspace.js' );
 
 function seedConfig() {
@@ -125,6 +126,9 @@ function deferred() {
 }
 
 function loadPanel() {
+	const flowSrc = readFileSync( SHOP_FLOW_JS, 'utf8' );
+	const flowFn = new Function( `${ flowSrc }\n//# sourceURL=panel/shop-flow.js` );
+	flowFn.call( globalThis );
 	const src = readFileSync( PANEL_JS, 'utf8' );
 	const fn = new Function( `${ src }\n//# sourceURL=panel/index.js` );
 	fn.call( globalThis );
@@ -793,6 +797,49 @@ describe( 'ODD Shop', () => {
 			.find( ( b ) => b.textContent.trim() === 'Copy diagnostics' );
 		copy.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 		expect( window.__odd.diagnostics.copy ).toHaveBeenCalled();
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'Settings taskbar toggle writes Desktop Mode itemVisibility', async () => {
+		window.odd.shopTaskbar = false;
+		const osSettings = { itemVisibility: { odd: 'desktop' }, dockOrder: [] };
+		const updateOsSettings = vi.fn( ( patch ) => {
+			if ( patch && patch.itemVisibility ) {
+				osSettings.itemVisibility = Object.assign( {}, patch.itemVisibility );
+			}
+		} );
+		window.wp.desktop = {
+			getOsSettings: () => ( {
+				itemVisibility: Object.assign( {}, osSettings.itemVisibility ),
+				dockOrder: osSettings.dockOrder.slice(),
+			} ),
+			updateOsSettings,
+		};
+		fetchMock.mockImplementation( ( _url, opts ) => {
+			const body = opts && opts.body ? JSON.parse( opts.body ) : {};
+			return Promise.resolve( {
+				ok:   true,
+				json: () => Promise.resolve( { shopTaskbar: !! body.shopTaskbar } ),
+			} );
+		} );
+
+		const { host, cleanup } = mountPanel();
+		const settingsTab = Array.from( host.querySelectorAll( '.odd-shop__rail-item' ) )
+			.find( ( b ) => b.querySelector( '.odd-shop__rail-label strong' )?.textContent.trim() === 'Settings' );
+		settingsTab.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		const dockBox = host.querySelector( '.odd-setting-card--shop-taskbar input[type="checkbox"]' );
+		expect( dockBox.checked ).toBe( false );
+		dockBox.checked = true;
+		dockBox.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+
+		expect( updateOsSettings ).toHaveBeenCalledTimes( 1 );
+		expect( updateOsSettings.mock.calls[ 0 ][ 0 ] ).toEqual( {
+			itemVisibility: { odd: 'both' },
+		} );
+		expect( osSettings.itemVisibility.odd ).toBe( 'both' );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );

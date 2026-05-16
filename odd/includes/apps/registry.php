@@ -204,18 +204,14 @@ function oddout_apps_set_enabled( $slug, $enabled ) {
 }
 
 /**
- * Update the per-app `surfaces` preference — which of the two Desktop
- * Mode launch affordances (the desktop icon, the taskbar icon) this
- * app should register on the next shell paint.
+ * Update the per-app `surfaces` preference.
  *
- * The row is the source of truth; `oddout_apps_register_surfaces()` reads
- * it on every `init` and forwards `surfaces.taskbar` into the
- * `placement` argument of `desktop_mode_register_window()`, and skips
- * `desktop_mode_register_icon()` entirely when `surfaces.desktop` is
- * false. Callers in the Shop POST the new shape and flip the row's
- * `requiresReload` flag so the unified card action becomes "Reload to
- * apply" — native-window registration runs once per request, so the
- * saved preference only takes visible effect after the next reload.
+ * In current Desktop Mode, visible placement belongs to the host-owned
+ * `itemVisibility` OS setting for the canonical `odd-app-{slug}` icon.
+ * ODD still stores this normalized shape for install defaults, REST
+ * compatibility, and older hosts that do not expose the OS-settings API.
+ * Runtime registration always publishes the app window and launcher; it
+ * does not use this row to add/remove Desktop Mode surfaces itself.
  *
  * @param string $slug
  * @param array  $surfaces { desktop?: bool, taskbar?: bool }

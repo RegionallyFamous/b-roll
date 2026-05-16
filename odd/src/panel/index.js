@@ -433,8 +433,11 @@
 		} );
 		var shopSfx = { ctx: null, last: {} };
 		var pendingAdminReloadTimer = null;
+		var migratedCoreAppSurfaces = {};
+		var migratedCoreShopTaskbar = false;
 
 		var ODD_RELOAD_DELAY_MS_DEFAULT = 400;
+		var ODD_RELOAD_DELAY_MS_NATIVE_SURFACE = 360;
 
 		function clearPendingAdminReload() {
 			if ( pendingAdminReloadTimer ) {
@@ -497,15 +500,189 @@
 			}
 		}
 
-		function refreshAppsNativeSurfaces( wrap, source, okMessage ) {
+		function refreshAppsNativeSurfaces( wrap, source, okMessage, opts ) {
+			opts = opts || {};
+			if ( opts.scheduleReload ) {
+				setAppsStatus( wrap, __( 'Saved. Reloading Desktop Mode…' ), '' );
+				scheduleAdminReload( {
+					delayMs:      typeof opts.delayMs === 'number' ? opts.delayMs : ODD_RELOAD_DELAY_MS_NATIVE_SURFACE,
+					slug:         opts.slug || '',
+					type:         opts.type || 'app',
+					name:         opts.name || opts.slug || '',
+					toastMessage: opts.toastMessage || __( 'Reloading Desktop Mode to apply app surfaces…' ),
+				} );
+				return;
+			}
 			setAppsStatus( wrap, __( 'Updating Desktop Mode…' ), '' );
 			refreshDesktopModeMenu( source ).then( function ( refreshed ) {
 				setAppsStatus(
 					wrap,
-					refreshed ? okMessage : __( 'Saved. Desktop Mode will update on its next refresh.' ),
+					refreshed ? okMessage : __( 'Saved. Desktop Mode will update shortly.' ),
 					refreshed ? 'ok' : ''
 				);
 			} );
+		}
+
+		function appSurfaceItemId( slug ) {
+			return 'odd-app-' + String( slug || '' );
+		}
+
+		function normalizeAppSurfaces( surfaces ) {
+			surfaces = surfaces && typeof surfaces === 'object' ? surfaces : {};
+			return {
+				desktop: Object.prototype.hasOwnProperty.call( surfaces, 'desktop' ) ? !! surfaces.desktop : true,
+				taskbar: Object.prototype.hasOwnProperty.call( surfaces, 'taskbar' ) ? !! surfaces.taskbar : false,
+			};
+		}
+
+		function appSurfacesToCorePlacement( surfaces ) {
+			surfaces = normalizeAppSurfaces( surfaces );
+			if ( surfaces.desktop && surfaces.taskbar ) return 'both';
+			if ( surfaces.taskbar ) return 'dock';
+			if ( surfaces.desktop ) return 'desktop';
+			return 'hidden';
+		}
+
+		function corePlacementToAppSurfaces( placement, fallback ) {
+			if ( placement === 'both' ) return { desktop: true, taskbar: true };
+			if ( placement === 'dock' ) return { desktop: false, taskbar: true };
+			if ( placement === 'desktop' ) return { desktop: true, taskbar: false };
+			if ( placement === 'hidden' ) return { desktop: false, taskbar: false };
+			return normalizeAppSurfaces( fallback );
+		}
+
+		function readCoreItemVisibility() {
+			var desktop = window.wp && window.wp.desktop;
+			if ( ! desktop || typeof desktop.getOsSettings !== 'function' ) {
+				return null;
+			}
+			try {
+				var snap = desktop.getOsSettings() || {};
+				return ( snap.itemVisibility && typeof snap.itemVisibility === 'object' ) ? snap.itemVisibility : {};
+			} catch ( err ) {
+				reportError( 'desktop.itemVisibility.read', err );
+				return null;
+			}
+		}
+
+		function writeCoreItemVisibilityPlacement( itemId, placement, diagName ) {
+			var desktop = window.wp && window.wp.desktop;
+			diagName = diagName || 'desktop.itemVisibility';
+			if (
+				! itemId ||
+				! desktop ||
+				typeof desktop.getOsSettings !== 'function' ||
+				typeof desktop.updateOsSettings !== 'function'
+			) {
+				return Promise.resolve( false );
+			}
+			try {
+				var snap = desktop.getOsSettings() || {};
+				var next = Object.assign( {}, snap.itemVisibility || {} );
+				next[ itemId ] = placement;
+				return Promise.resolve( desktop.updateOsSettings( { itemVisibility: next } ) ).then(
+					function () {
+						diagCount( diagName + '.ok' );
+						return true;
+					},
+					function ( err ) {
+						reportError( diagName, err );
+						return false;
+					}
+				);
+			} catch ( errWrite ) {
+				reportError( diagName, errWrite );
+				return Promise.resolve( false );
+			}
+		}
+
+		function removeCoreItemVisibilityPlacement( itemId, diagName ) {
+			var desktop = window.wp && window.wp.desktop;
+			diagName = diagName || 'desktop.itemVisibility.remove';
+			if (
+				! itemId ||
+				! desktop ||
+				typeof desktop.getOsSettings !== 'function' ||
+				typeof desktop.updateOsSettings !== 'function'
+			) {
+				return;
+			}
+			try {
+				var snap = desktop.getOsSettings() || {};
+				var next = Object.assign( {}, snap.itemVisibility || {} );
+				delete next[ itemId ];
+				desktop.updateOsSettings( { itemVisibility: next } );
+			} catch ( errRemove ) {
+				reportError( diagName, errRemove );
+			}
+		}
+
+		function readAppSurfaceState( app ) {
+			var fallback = normalizeAppSurfaces( app && app.surfaces );
+			var visibility = readCoreItemVisibility();
+			if ( visibility && app && app.slug ) {
+				var id = appSurfaceItemId( app.slug );
+				if ( Object.prototype.hasOwnProperty.call( visibility, id ) ) {
+					return corePlacementToAppSurfaces( visibility[ id ], fallback );
+				}
+				if (
+					app.enabled !== false &&
+					app.surfaces &&
+					appSurfacesToCorePlacement( fallback ) !== 'desktop' &&
+					! migratedCoreAppSurfaces[ id ]
+				) {
+					migratedCoreAppSurfaces[ id ] = true;
+					writeCoreAppSurfaceState( app.slug, fallback );
+				}
+			}
+			return fallback;
+		}
+
+		function writeCoreAppSurfaceState( slug, surfaces ) {
+			if ( ! slug ) {
+				return Promise.resolve( null );
+			}
+			var nextSurfaces = normalizeAppSurfaces( surfaces );
+			return writeCoreItemVisibilityPlacement(
+				appSurfaceItemId( slug ),
+				appSurfacesToCorePlacement( nextSurfaces ),
+				'desktop.itemVisibility.app'
+			).then( function ( ok ) {
+				return ok ? nextSurfaces : null;
+			} );
+		}
+
+		function removeCoreAppSurfaceState( slug ) {
+			removeCoreItemVisibilityPlacement( appSurfaceItemId( slug ), 'desktop.itemVisibility.app.remove' );
+		}
+
+		function shopTaskbarFromCorePlacement( placement, fallback ) {
+			if ( placement === 'both' || placement === 'dock' ) return true;
+			if ( placement === 'desktop' || placement === 'hidden' ) return false;
+			return !! fallback;
+		}
+
+		function readShopTaskbarState() {
+			var fallback = !! state.cfg.shopTaskbar;
+			var visibility = readCoreItemVisibility();
+			if ( visibility ) {
+				if ( Object.prototype.hasOwnProperty.call( visibility, 'odd' ) ) {
+					return shopTaskbarFromCorePlacement( visibility.odd, fallback );
+				}
+				if ( ! migratedCoreShopTaskbar ) {
+					migratedCoreShopTaskbar = true;
+					writeCoreShopTaskbarState( fallback );
+				}
+			}
+			return fallback;
+		}
+
+		function writeCoreShopTaskbarState( enabled ) {
+			return writeCoreItemVisibilityPlacement(
+				'odd',
+				enabled ? 'both' : 'desktop',
+				'desktop.itemVisibility.shop'
+			);
 		}
 
 		function captureShopScrollTops() {
@@ -1194,9 +1371,7 @@
 		function renderAppCardManagement( app, wrap ) {
 			var manage = el( 'div', { class: 'odd-shop__card-manage' } );
 
-			var rowSurfaces = ( app.surfaces && typeof app.surfaces === 'object' )
-				? app.surfaces
-				: { desktop: true, taskbar: false };
+			var rowSurfaces = readAppSurfaceState( app );
 			var surfacesRow = el( 'div', {
 				class: 'odd-card__surfaces odd-shop__card-surfaces',
 				'aria-label': __( 'App surfaces' ),
@@ -1222,23 +1397,35 @@
 				wrapLbl.appendChild( text );
 				box.addEventListener( 'change', function () {
 					if ( ! app.enabled ) return;
-					var payload      = {};
-					payload[ key ]   = !! box.checked;
-					rowSurfaces[ key ] = !! box.checked;
+					var previous = Object.assign( {}, rowSurfaces );
+					var payload  = {};
+					payload[ key ] = !! box.checked;
+					rowSurfaces = Object.assign( {}, rowSurfaces, payload );
 					box.disabled = true;
-					setAppSurfaces( app.slug, payload ).then( function ( res ) {
+					saveAppSurfaceState( app.slug, rowSurfaces, payload ).then( function ( res ) {
 						box.disabled = false;
 						if ( res && res.surfaces ) {
-							mirrorAppSurfacesInCfg( app.slug, res.surfaces );
-							refreshAppsNativeSurfaces(
-								wrap,
-								'app.surfaces',
-								__( 'App surfaces updated.' )
-							);
+							rowSurfaces = normalizeAppSurfaces( res.surfaces );
+							mirrorAppSurfacesInCfg( app.slug, rowSurfaces );
+							if ( res.native ) {
+								setAppsStatus( wrap, __( 'App surfaces updated.' ), 'ok' );
+							} else {
+								refreshAppsNativeSurfaces(
+									wrap,
+									'app.surfaces',
+									__( 'App surfaces updated.' ),
+									{
+										scheduleReload: true,
+										slug: app.slug,
+										type: 'app',
+										name: app.name || app.slug,
+									}
+								);
+							}
 							return;
 						}
-						box.checked  = ! box.checked;
-						rowSurfaces[ key ] = !! box.checked;
+						rowSurfaces = previous;
+						box.checked = !! rowSurfaces[ key ];
 						setAppsStatus( wrap, __( 'Could not update surfaces.' ), 'error' );
 					} );
 				} );
@@ -1273,6 +1460,7 @@
 					if ( ok ) {
 						var ev = window.__odd && window.__odd.events;
 						if ( ev ) ev.emit( 'odd.app-uninstalled', { slug: app.slug } );
+						removeCoreAppSurfaceState( app.slug );
 						refreshAppsGallery( wrap );
 						refreshAppsNativeSurfaces(
 							wrap,
@@ -1550,12 +1738,9 @@
 			meta.appendChild( sub );
 			card.appendChild( meta );
 
-			// Surface toggles: Desktop icon + Taskbar icon. Desktop
-			// Mode refreshes its server-owned registries live through
-			// `wp.desktop.refreshMenu()` after the REST toggle succeeds.
-			var rowSurfaces = ( app.surfaces && typeof app.surfaces === 'object' )
-				? app.surfaces
-				: { desktop: true, taskbar: false };
+			// Surface toggles: Desktop icon + Taskbar icon. Desktop Mode's
+			// native itemVisibility setting owns the visible placement.
+			var rowSurfaces = readAppSurfaceState( app );
 			var surfacesRow = el( 'div', {
 				class: 'odd-card__surfaces',
 				'aria-label': __( 'App surfaces' ),
@@ -1582,23 +1767,35 @@
 
 				box.addEventListener( 'change', function () {
 					if ( ! app.enabled ) return;
-					var payload      = {};
-					payload[ key ]   = !! box.checked;
-					rowSurfaces[ key ] = !! box.checked;
+					var previous = Object.assign( {}, rowSurfaces );
+					var payload  = {};
+					payload[ key ] = !! box.checked;
+					rowSurfaces = Object.assign( {}, rowSurfaces, payload );
 					box.disabled = true;
-					setAppSurfaces( app.slug, payload ).then( function ( res ) {
+					saveAppSurfaceState( app.slug, rowSurfaces, payload ).then( function ( res ) {
 						box.disabled = false;
 						if ( res && res.surfaces ) {
-							mirrorAppSurfacesInCfg( app.slug, res.surfaces );
-							refreshAppsNativeSurfaces(
-								wrap,
-								'app.surfaces',
-								__( 'App surfaces updated.' )
-							);
+							rowSurfaces = normalizeAppSurfaces( res.surfaces );
+							mirrorAppSurfacesInCfg( app.slug, rowSurfaces );
+							if ( res.native ) {
+								setAppsStatus( wrap, __( 'App surfaces updated.' ), 'ok' );
+							} else {
+								refreshAppsNativeSurfaces(
+									wrap,
+									'app.surfaces',
+									__( 'App surfaces updated.' ),
+									{
+										scheduleReload: true,
+										slug: app.slug,
+										type: 'app',
+										name: app.name || app.slug,
+									}
+								);
+							}
 							return;
 						}
-						box.checked  = ! box.checked;
-						rowSurfaces[ key ] = !! box.checked;
+						rowSurfaces = previous;
+						box.checked = !! rowSurfaces[ key ];
 						setAppsStatus(
 							wrap,
 							__( 'Could not update surfaces.' ),
@@ -1657,6 +1854,7 @@
 					if ( ok ) {
 						var ev = window.__odd && window.__odd.events;
 						if ( ev ) ev.emit( 'odd.app-uninstalled', { slug: app.slug } );
+						removeCoreAppSurfaceState( app.slug );
 						refreshAppsGallery( wrap );
 						refreshAppsNativeSurfaces(
 							wrap,
@@ -1814,9 +2012,9 @@
 		}
 
 		function actionProgressCopy( mode ) {
-			if ( mode === 'update' ) return { label: __( 'Updating…' ), status: __( 'Updating' ), verb: __( 'Updating' ) };
-			if ( mode === 'repair' ) return { label: __( 'Repairing…' ), status: __( 'Repairing' ), verb: __( 'Repairing' ) };
-			return { label: __( 'Installing…' ), status: __( 'Installing' ), verb: __( 'Installing' ) };
+			if ( mode === 'update' ) return { label: __( 'Working…' ), status: __( 'Working' ), verb: __( 'Updating' ) };
+			if ( mode === 'repair' ) return { label: __( 'Working…' ), status: __( 'Working' ), verb: __( 'Repairing' ) };
+			return { label: __( 'Working…' ), status: __( 'Working' ), verb: __( 'Installing' ) };
 		}
 
 		function installTypeLabel( type ) {
@@ -1833,13 +2031,10 @@
 			if ( scheduleReload ) {
 				return __( 'Installed ' ) + installTypeLabel( type ) + ' "' + label + __( '". Reloading to finish setup…' );
 			}
-			if ( type === 'widget' ) {
-				return __( 'Installed widget "' ) + label + __( '". Ready to add.' );
-			}
 			if ( type === 'app' ) {
 				return __( 'Installed app "' ) + label + __( '". Ready to open.' );
 			}
-			return __( 'Installed ' ) + installTypeLabel( type ) + ' "' + label + __( '". Ready to apply.' );
+			return __( 'Installed ' ) + installTypeLabel( type ) + ' "' + label + __( '". Ready.' );
 		}
 
 		function errorCopy( code, fallback ) {
@@ -2038,29 +2233,34 @@
 			} );
 		}
 
-		function onInstallSuccessInPanel( data, type, slug, name, message, reloadOpts ) {
-			reloadOpts       = reloadOpts || {};
-			var scheduleReload = !! reloadOpts.scheduleReload;
-			var reloadDelayMs = typeof reloadOpts.delayMs === 'number' ? reloadOpts.delayMs : ODD_RELOAD_DELAY_MS_DEFAULT;
-			var row          = data && data.row;
-			clearInstallFlow( type, slug );
-			if ( 'app' === type ) {
-				row = Object.assign(
-					{},
-					row || {},
-					{
-						slug: slug,
-						name: ( row && row.name ) || name || slug,
-						installed: true,
-						requiresReload: false,
+			function onInstallSuccessInPanel( data, type, slug, name, message, reloadOpts ) {
+				reloadOpts       = reloadOpts || {};
+				var scheduleReload = !! reloadOpts.scheduleReload;
+				var reloadDelayMs = typeof reloadOpts.delayMs === 'number' ? reloadOpts.delayMs : ODD_RELOAD_DELAY_MS_DEFAULT;
+				var row          = data && data.row;
+				var appSurfaces  = null;
+				clearInstallFlow( type, slug );
+				if ( 'app' === type ) {
+					appSurfaces = ( row && row.surfaces ) || ( data && data.manifest && data.manifest.surfaces ) || null;
+					row = Object.assign(
+						{},
+						row || {},
+						{
+							slug: slug,
+							name: ( row && row.name ) || name || slug,
+							installed: true,
+							requiresReload: false,
 						}
 					);
-				message = message || installSuccessMessage( 'app', name, false );
-			}
-			spliceInstalledRow( type, slug, row, data && data.manifest );
-			if ( 'app' === type && data && data.serve_url ) {
-				syncWindowOddAfterAppInstall( slug, data.serve_url );
-			}
+					message = message || installSuccessMessage( 'app', name, false );
+				}
+				spliceInstalledRow( type, slug, row, data && data.manifest );
+				if ( 'app' === type ) {
+					writeCoreAppSurfaceState( slug, appSurfaces || { desktop: true, taskbar: false } );
+				}
+				if ( 'app' === type && data && data.serve_url ) {
+					syncWindowOddAfterAppInstall( slug, data.serve_url );
+				}
 			state.justInstalled = { type: type, slug: slug, name: name, at: Date.now() };
 			playShopSound( 'success' );
 			if ( scheduleReload ) {
@@ -3397,11 +3597,12 @@
 				} );
 			} );
 
-			// ODD Shop taskbar launcher. Desktop Mode now refreshes
-			// its server-owned window and icon registries live.
-			var dockRow = el( 'label', { class: 'odd-setting-card odd-setting-card--shop-taskbar odd-switch-row' } );
-			var dockBox = el( 'input', { type: 'checkbox' } );
-			dockBox.checked = !! state.cfg.shopTaskbar;
+				// ODD Shop taskbar launcher. Desktop Mode owns live placement
+				// through itemVisibility. The ODD preference is kept as a
+				// compatibility/default mirror for older hosts and workspaces.
+				var dockRow = el( 'label', { class: 'odd-setting-card odd-setting-card--shop-taskbar odd-switch-row' } );
+				var dockBox = el( 'input', { type: 'checkbox' } );
+				dockBox.checked = readShopTaskbarState();
 			var dockKnob = el( 'span', { class: 'odd-switch' } );
 			var dockText = el( 'span', { class: 'odd-setting-card__text' } );
 			var dockLbl = el( 'strong' );
@@ -3412,18 +3613,37 @@
 			dockText.appendChild( dockHint );
 			dockRow.appendChild( dockBox );
 			dockRow.appendChild( dockKnob );
-			dockRow.appendChild( dockText );
-			settings.appendChild( dockRow );
-			dockBox.addEventListener( 'change', function () {
-				savePrefs( { shopTaskbar: dockBox.checked }, function ( data ) {
-					if ( data && Object.prototype.hasOwnProperty.call( data, 'shopTaskbar' ) ) {
-						state.cfg.shopTaskbar = !! data.shopTaskbar;
-					}
-					refreshDesktopModeMenu( 'settings.shopTaskbar' ).then( function () {
-						toast( __( 'Updated ODD taskbar setting.' ) );
+				dockRow.appendChild( dockText );
+				settings.appendChild( dockRow );
+				dockBox.addEventListener( 'change', function () {
+					var nextTaskbar = !! dockBox.checked;
+					writeCoreShopTaskbarState( nextTaskbar ).then( function ( coreSaved ) {
+						if ( coreSaved ) {
+							state.cfg.shopTaskbar = nextTaskbar;
+							savePrefs( { shopTaskbar: nextTaskbar }, function ( data ) {
+								if ( data && Object.prototype.hasOwnProperty.call( data, 'shopTaskbar' ) ) {
+									state.cfg.shopTaskbar = !! data.shopTaskbar;
+									dockBox.checked = state.cfg.shopTaskbar;
+								}
+							} );
+							toast( __( 'Updated ODD taskbar setting.' ) );
+							return;
+						}
+						savePrefs( { shopTaskbar: nextTaskbar }, function ( data ) {
+							if ( data && Object.prototype.hasOwnProperty.call( data, 'shopTaskbar' ) ) {
+								state.cfg.shopTaskbar = !! data.shopTaskbar;
+								dockBox.checked = state.cfg.shopTaskbar;
+							}
+							scheduleAdminReload( {
+								delayMs: ODD_RELOAD_DELAY_MS_NATIVE_SURFACE,
+								slug: 'odd',
+								type: 'setting',
+								name: 'ODD taskbar setting',
+								toastMessage: __( 'Reloading Desktop Mode to update ODD taskbar setting…' ),
+							} );
+						} );
 					} );
 				} );
-			} );
 
 			var pinRow = el( 'label', { class: 'odd-setting-card odd-setting-card--shop-desktop-pin odd-switch-row' } );
 			var pinBox = el( 'input', { type: 'checkbox' } );
@@ -3699,12 +3919,12 @@
 			} ).then( function ( r ) { return r.ok; } ).catch( function () { return false; } );
 		}
 		/**
-		 * POST a partial surfaces update (one or both of
-		 * { desktop, taskbar }) to the same /toggle route and
-		 * return the new, server-normalized shape.
+		 * Fallback for hosts without Desktop Mode itemVisibility. Current
+		 * Desktop Mode owns placement via `updateOsSettings`; this keeps the
+		 * older ODD REST contract alive for incomplete host environments.
 		 *
-		 * Desktop Mode's live menu refresh re-reads the native-window
-		 * and desktop-icon payload after a successful save.
+		 * Accepts a partial surfaces update (one or both of
+		 * { desktop, taskbar }) and returns the server-normalized shape.
 		 */
 		function setAppSurfaces( slug, surfaces ) {
 			return fetch( appsBaseUrl() + '/' + encodeURIComponent( slug ) + '/toggle', {
@@ -3714,14 +3934,28 @@
 					'Content-Type': 'application/json',
 					'X-WP-Nonce':   state.cfg.restNonce || '',
 				},
-				body: JSON.stringify( { surfaces: surfaces } ),
-			} ).then( function ( r ) {
-				return r.ok ? r.json() : null;
-			} ).catch( function () { return null; } );
+					body: JSON.stringify( { surfaces: surfaces } ),
+				} ).then( function ( r ) {
+					return r.ok ? r.json() : null;
+				} ).catch( function () { return null; } );
+		}
+		function saveAppSurfaceState( slug, fullSurfaces, partialSurfaces ) {
+			return writeCoreAppSurfaceState( slug, fullSurfaces ).then( function ( coreSurfaces ) {
+				if ( coreSurfaces ) {
+					return { native: true, surfaces: coreSurfaces };
+				}
+				return setAppSurfaces( slug, partialSurfaces ).then( function ( res ) {
+					if ( res && res.surfaces ) {
+						return { native: false, surfaces: res.surfaces };
+					}
+					return null;
+				} );
+			} );
 		}
 		/**
-		 * Mirror server-normalised `surfaces` onto the cfg.apps row
-		 * before callers refresh Desktop Mode's live registries.
+		 * Mirror the normalized `surfaces` shape onto the cfg.apps row so
+		 * this panel stays consistent with the host-owned itemVisibility
+		 * placement or the fallback REST response.
 		 */
 		function mirrorAppSurfacesInCfg( slug, surfaces ) {
 			if ( ! slug || ! surfaces || typeof surfaces !== 'object' ) return;
@@ -5076,12 +5310,6 @@
 			if ( isPreview ) {
 				card.classList.add( 'is-previewing' );
 				wrap.classList.add( 'is-previewing' );
-				var btn = wrap.querySelector( '.odd-shop__card-btn' );
-				if ( btn ) {
-					btn.textContent = 'Apply';
-					btn.disabled = false;
-					btn.classList.remove( 'is-disabled' );
-				}
 			}
 			if ( active && ! state.preview ) {
 				var art = wrap.querySelector( '.odd-shop__card-art' );
@@ -5202,37 +5430,16 @@
 					cardWrap.classList.toggle( 'is-previewing', !! ( previewSlug && slug === previewSlug ) );
 				}
 
-				// Keep the inline pill label in sync so the shelf
-				// cards mirror the hero state without a full re-render.
-				var pill = c.querySelector( '.odd-shop__tile-pill' );
-				if ( pill ) {
-					if ( previewSlug && slug === previewSlug ) pill.textContent = 'Previewing';
-					else if ( ! previewSlug && slug === currentSlug ) pill.textContent = 'Open';
-					else pill.textContent = 'Apply';
-				}
-				var actionBtn = cardWrap ? cardWrap.querySelector( '.odd-shop__card-btn' ) : null;
-				if ( actionBtn ) {
-					var cardName = ( c.querySelector( '.odd-shop__card-title' ) || {} ).textContent || slug;
-					if ( previewSlug && slug === previewSlug ) {
-						actionBtn.textContent = 'Apply';
-						actionBtn.disabled = false;
-						actionBtn.removeAttribute( 'aria-disabled' );
-						actionBtn.setAttribute( 'aria-label', 'Apply ' + cardName + ' - Ready to apply' );
-						actionBtn.classList.remove( 'is-disabled' );
-					} else if ( ! previewSlug && slug === currentSlug ) {
-						actionBtn.textContent = 'Active';
-						actionBtn.disabled = true;
-						actionBtn.setAttribute( 'aria-disabled', 'true' );
-						actionBtn.setAttribute( 'aria-label', 'Active ' + cardName + ' - Active' );
-						actionBtn.classList.add( 'is-disabled' );
-					} else {
-						actionBtn.textContent = 'Apply';
-						actionBtn.disabled = false;
-						actionBtn.removeAttribute( 'aria-disabled' );
-						actionBtn.setAttribute( 'aria-label', 'Apply ' + cardName + ' - Ready to apply' );
-						actionBtn.classList.remove( 'is-disabled' );
+					if ( cardWrap ) {
+						var sceneRow = shopRowByTypeAndSlug( 'scene', slug );
+						if ( sceneRow ) {
+							syncShopCardElement( cardWrap, sceneRow, {
+								isActive: slug === currentSlug,
+								hasPreview: !! previewSlug,
+								isPreviewing: !! ( previewSlug && slug === previewSlug ),
+							} );
+						}
 					}
-				}
 				// Sync the favorite star's on-state so flipping a
 				// favorite on one tile updates that tile without a
 				// full re-render. The star lives as a *sibling* of
@@ -5580,8 +5787,8 @@
 			if ( ! row ) return el( 'div' );
 			var wrap = renderShopCard( row );
 			if ( wrap ) {
-					// Stable marker + data-slug on the inner card so the in-place
-					// preview decorator finds its tiles after a selection changes.
+				// Stable marker + data-slug on the inner card so the in-place
+				// preview decorator finds its tiles after a selection changes.
 				var inner = wrap.querySelector( '.odd-shop__card' );
 				if ( inner ) {
 					inner.classList.add( 'odd-catalog-row--iconset' );
@@ -5592,8 +5799,6 @@
 				if ( isPreview ) {
 					wrap.classList.add( 'is-previewing' );
 					if ( inner ) inner.classList.add( 'is-previewing' );
-					var btn = wrap.querySelector( '.odd-shop__card-btn' );
-					if ( btn ) { btn.textContent = 'Apply'; btn.disabled = false; btn.classList.remove( 'is-disabled' ); }
 				}
 			}
 			return wrap;
@@ -5750,8 +5955,6 @@
 				if ( isPreview ) {
 					wrap.classList.add( 'is-previewing' );
 					if ( inner ) inner.classList.add( 'is-previewing' );
-					var btn = wrap.querySelector( '.odd-shop__card-btn' );
-					if ( btn ) { btn.textContent = 'Apply'; btn.disabled = false; btn.classList.remove( 'is-disabled' ); }
 				}
 			}
 			return wrap;
@@ -5829,20 +6032,14 @@
 					wrap.classList.toggle( 'is-active', !! ( isActive && ! previewSlug ) );
 					wrap.classList.toggle( 'is-previewing', !! isPreviewing );
 				}
-				var btn = ( wrap && wrap.querySelector( '.odd-shop__card-btn' ) ) || row.querySelector( '.odd-shop__card-btn' );
-				if ( btn ) {
-					if ( isPreviewing ) {
-						btn.textContent = 'Apply';
-						btn.disabled = false;
-						btn.classList.remove( 'is-disabled' );
-					} else if ( isActive && ! previewSlug ) {
-						btn.textContent = 'Active';
-						btn.disabled = true;
-						btn.classList.add( 'is-disabled' );
-					} else {
-						btn.textContent = 'Apply';
-						btn.disabled = false;
-						btn.classList.remove( 'is-disabled' );
+				if ( wrap ) {
+					var cursorRow = shopRowByTypeAndSlug( 'cursor-set', slug );
+					if ( cursorRow ) {
+						syncShopCardElement( wrap, cursorRow, {
+							isActive: isActive,
+							hasPreview: !! previewSlug,
+							isPreviewing: !! isPreviewing,
+						} );
 					}
 				}
 			}
@@ -5929,25 +6126,14 @@
 					wrap.classList.toggle( 'is-previewing', !! isPreviewing );
 				}
 
-				// Support both the unified tile button class and the
-				// `.odd-apps-btn` remains on a few current utility pills, including
-				// the Icons-department "Reset to default" action.
-				var btn = ( wrap && wrap.querySelector( '.odd-shop__card-btn' ) )
-					|| row.querySelector( '.odd-shop__card-btn' )
-					|| row.querySelector( '.odd-apps-btn' );
-				if ( btn ) {
-					if ( isPreviewing ) {
-						btn.textContent = 'Apply';
-						btn.disabled = false;
-						btn.classList.remove( 'is-disabled' );
-					} else if ( isActive && ! previewSlug ) {
-						btn.textContent = 'Active';
-						btn.disabled = true;
-						btn.classList.add( 'is-disabled' );
-					} else {
-						btn.textContent = 'Apply';
-						btn.disabled = false;
-						btn.classList.remove( 'is-disabled' );
+				if ( wrap ) {
+					var iconRow = shopRowByTypeAndSlug( 'icon-set', slug );
+					if ( iconRow ) {
+						syncShopCardElement( wrap, iconRow, {
+							isActive: isActive,
+							hasPreview: !! previewSlug,
+							isPreviewing: !! isPreviewing,
+						} );
 					}
 				}
 			}
@@ -6479,7 +6665,7 @@
 			} else if ( kind === 'cursorSet' ) {
 				text.innerHTML = 'Previewing <em></em> cursors. Apply to save, Cancel to revert.';
 			} else if ( liveRefresh ) {
-				text.innerHTML = 'Applying <em></em> refreshes Desktop Mode so the native icon surfaces update together.';
+				text.innerHTML = 'Applying <em></em> updates the native icon surfaces together.';
 			} else {
 				text.innerHTML = 'Previewing <em></em> icons. Apply to save, Cancel to revert.';
 			}
@@ -6782,154 +6968,40 @@
 
 		// One derived state model feeds the visible badge, state line,
 		// button label, and data attributes for every Shop card.
+		function shopPreviewKindForType( type ) {
+			if ( type === 'scene' ) return 'wallpaper';
+			if ( type === 'icon-set' ) return 'iconSet';
+			if ( type === 'cursor-set' ) return 'cursorSet';
+			return '';
+		}
+
+		function shopCardHasPreview( row ) {
+			var kind = row && shopPreviewKindForType( row.type );
+			return !! ( kind && state.preview && state.preview.kind === kind );
+		}
+
+		function shopCardIsPreviewing( row ) {
+			return !! ( shopCardHasPreview( row ) && state.preview.slug === row.slug );
+		}
+
 		function shopCardState( row, opts ) {
 			opts = opts || {};
 			var hasActive = Object.prototype.hasOwnProperty.call( opts, 'isActive' );
 			var isActive = hasActive ? !! opts.isActive : shopCardIsActive( row );
 			var flow = window.__odd && window.__odd.shopFlow;
-			if ( flow && typeof flow.cardState === 'function' ) {
-				return flow.cardState( row, {
-					isActive: isActive,
-					isInstalling: isShopInstalling( row ),
-					installMode: shopInstallMode( row ),
-					progress: actionProgressCopy( shopInstallMode( row ) ),
-					pendingReload: state.pendingAdminReload,
-					t: __,
-				} );
+			if ( ! flow || typeof flow.cardState !== 'function' ) {
+				throw new Error( 'ODD Shop flow helper did not load before the panel.' );
 			}
-			function make( id, phase, statusLabel, badgeLabel, badgeMod, action ) {
-				return {
-					id: id,
-					phase: phase,
-					statusLabel: statusLabel,
-					badge: { label: badgeLabel || statusLabel, mod: badgeMod || id },
-					action: action,
-					isActive: isActive,
-				};
-			}
-
-			if ( row && row.incompatible ) {
-				return make(
-					'incompatible',
-					'blocked',
-					__( 'Incompatible' ),
-					__( 'Requires newer host' ),
-					'warning',
-					{ label: __( 'Incompatible' ), kind: 'incompatible', disabled: true }
-				);
-			}
-			if ( isShopInstalling( row ) ) {
-				var installMode = shopInstallMode( row );
-				var progress = actionProgressCopy( installMode );
-				var busyId = installMode === 'update' ? 'updating' : ( installMode === 'repair' ? 'repairing' : 'installing' );
-				return make(
-					busyId,
-					'busy',
-					progress.status,
-					progress.status,
-					'installing',
-					{ label: progress.label, kind: 'installing', disabled: true, progress: true }
-				);
-			}
-			if ( ! row || ! row.installed ) {
-				return make(
-					'available',
-					'available',
-					__( 'Available' ),
-					__( 'Available' ),
-					'available',
-					{ label: __( 'Install' ), kind: 'install', disabled: false }
-				);
-			}
-			if ( row.broken ) {
-				return make(
-					'repair',
-					'attention',
-					__( 'Needs repair' ),
-					__( 'Needs repair' ),
-					'warning',
-					{ label: __( 'Repair' ), kind: 'repair', disabled: false }
-				);
-			}
-			if ( row.updateAvailable ) {
-				return make(
-					'update',
-					'attention',
-					__( 'Update available' ),
-					__( 'Update' ),
-					'update',
-					{ label: __( 'Update' ), kind: 'update', disabled: false }
-				);
-			}
-			var pend = state.pendingAdminReload;
-			if ( pend && row && row.slug && row.installed && ( pend.slug === row.slug || pend.slug === '*' ) ) {
-				return make(
-					'applying',
-					'busy',
-					__( 'Applying changes' ),
-					__( 'Applying' ),
-					'applying',
-					{ label: __( 'Applying…' ), kind: 'pending_reload', disabled: true }
-				);
-			}
-			if ( row.requiresReload ) {
-				return make(
-					'reload',
-					'attention',
-					__( 'Reload required' ),
-					__( 'Reload required' ),
-					'warning',
-					{ label: __( 'Reload now' ), kind: 'reload', disabled: false }
-				);
-			}
-			if ( isActive ) {
-				return make(
-					'active',
-					'active',
-					__( 'Active' ),
-					__( 'Active' ),
-					'active',
-					{ label: __( 'Active' ), kind: 'active', disabled: true }
-				);
-			}
-			if ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) {
-				return make(
-					'ready',
-					'ready',
-					__( 'Ready to apply' ),
-					__( 'Installed' ),
-					'installed',
-					{ label: __( 'Apply' ), kind: 'apply', disabled: false }
-				);
-			}
-			if ( row.type === 'widget' ) {
-				return make(
-					'ready',
-					'ready',
-					__( 'Ready to add' ),
-					__( 'Installed' ),
-					'installed',
-					{ label: __( 'Add' ), kind: 'add', disabled: false }
-				);
-			}
-			if ( row.type === 'app' ) {
-				return make(
-					'installed',
-					'installed',
-					__( 'Installed' ),
-					__( 'Installed' ),
-					'installed',
-					{ label: __( 'Open' ), kind: 'open', disabled: false }
-				);
-			}
-			return make(
-				'installed',
-				'installed',
-				__( 'Installed' ),
-				__( 'Installed' ),
-				'installed',
-				{ label: __( 'Open' ), kind: 'open', disabled: false }
-			);
+			return flow.cardState( row, {
+				isActive: isActive,
+				isInstalling: isShopInstalling( row ),
+				installMode: shopInstallMode( row ),
+				progress: actionProgressCopy( shopInstallMode( row ) ),
+				pendingReload: state.pendingAdminReload,
+				hasPreview: Object.prototype.hasOwnProperty.call( opts, 'hasPreview' ) ? !! opts.hasPreview : shopCardHasPreview( row ),
+				isPreviewing: Object.prototype.hasOwnProperty.call( opts, 'isPreviewing' ) ? !! opts.isPreviewing : shopCardIsPreviewing( row ),
+				t: __,
+			} );
 		}
 
 		// Primary action label + kind derived from state. The kind is
@@ -6937,6 +7009,73 @@
 		// the user actually sees on the tile's pill button.
 		function shopCardAction( row ) {
 			return shopCardState( row ).action;
+		}
+
+		function shopRowByTypeAndSlug( type, slug ) {
+			if ( ! type || ! slug ) return null;
+			var rows = shopRowsFor( type );
+			for ( var i = 0; i < rows.length; i++ ) {
+				if ( rows[ i ] && rows[ i ].slug === slug ) return rows[ i ];
+			}
+			return null;
+		}
+
+		function paintShopButtonState( btn, row, cardState ) {
+			if ( ! btn || ! row || ! cardState || ! cardState.action ) return;
+			var action = cardState.action;
+			var kind = action.kind;
+			btn.className = 'odd-shop__card-btn odd-shop__tile-btn odd-shop__card-btn--' + kind
+				+ ( action.disabled ? ' is-disabled' : ' odd-shop__tile-btn--primary' )
+				+ ( kind === 'install' ? ' odd-shop__card-btn--install' : '' );
+			btn.setAttribute( 'data-odd-card-action', kind );
+			btn.setAttribute( 'aria-label', action.label + ' ' + row.name + ' - ' + cardState.statusLabel );
+			btn.setAttribute( 'data-odd-cursor', action.disabled ? 'not-allowed' : 'pointer' );
+			btn.disabled = !! action.disabled;
+			if ( action.disabled ) {
+				btn.setAttribute( 'aria-disabled', 'true' );
+			} else {
+				btn.removeAttribute( 'aria-disabled' );
+			}
+			btn.removeAttribute( 'aria-busy' );
+			btn.textContent = '';
+			if ( action.progress ) {
+				btn.appendChild( el( 'span', { class: 'odd-shop__btn-spinner', 'aria-hidden': 'true' } ) );
+				var label = el( 'span', { class: 'odd-shop__btn-label' } );
+				label.textContent = action.label;
+				btn.appendChild( label );
+				btn.setAttribute( 'aria-busy', 'true' );
+			} else {
+				btn.textContent = action.label;
+			}
+		}
+
+		function syncShopCardElement( wrap, row, opts ) {
+			if ( ! wrap || ! row ) return;
+			var cardState = shopCardState( row, opts || {} );
+			var action = cardState.action;
+			var oldState = wrap.getAttribute( 'data-odd-card-state' );
+			if ( oldState ) wrap.classList.remove( 'is-state-' + oldState );
+			wrap.classList.add( 'is-state-' + cardState.id );
+			wrap.classList.toggle( 'is-active', !! cardState.isActive );
+			wrap.classList.toggle( 'is-installing', !! action.progress );
+			wrap.setAttribute( 'data-odd-card-state', cardState.id );
+			wrap.setAttribute( 'data-odd-card-phase', cardState.phase );
+			wrap.setAttribute( 'data-odd-card-status', cardState.statusLabel );
+			wrap.setAttribute( 'data-odd-card-action', action.kind );
+
+			var card = wrap.querySelector( '.odd-shop__card' );
+			if ( card ) {
+				card.classList.toggle( 'is-active', !! cardState.isActive );
+				card.setAttribute( 'aria-label', row.name + ' - ' + cardState.statusLabel );
+			}
+
+			var stateLine = wrap.querySelector( '.odd-shop__card-state' );
+			if ( stateLine ) {
+				stateLine.className = 'odd-shop__card-state odd-shop__card-state--' + cardState.id;
+				stateLine.textContent = cardState.statusLabel;
+			}
+
+			paintShopButtonState( wrap.querySelector( '.odd-shop__card-btn' ), row, cardState );
 		}
 
 		function dispatchShopAction( row, kind, btn ) {
@@ -6954,7 +7093,7 @@
 					if ( row.type === 'cursor-set' ) { previewCursorSet( row.slug ); break; }
 					break;
 				case 'apply':
-					if ( btn ) { btn.disabled = true; btn.textContent = 'Applying…'; }
+					if ( btn ) { btn.disabled = true; btn.textContent = 'Working…'; }
 					if ( row.type === 'scene' ) { applyScene( row.slug ); break; }
 					if ( row.type === 'icon-set' ) { applyIconSet( row.slug ); break; }
 					if ( row.type === 'cursor-set' ) { applyCursorSet( row.slug ); break; }
@@ -7030,50 +7169,10 @@
 
 		function trustProfileFor( row ) {
 			var flow = window.__odd && window.__odd.shopFlow;
-			if ( flow && typeof flow.trustProfile === 'function' ) {
-				return flow.trustProfile( row, { t: __ } );
+			if ( ! flow || typeof flow.trustProfile !== 'function' ) {
+				throw new Error( 'ODD Shop flow helper did not load before the panel.' );
 			}
-			var type = row && row.type;
-			if ( type === 'icon-set' ) {
-				return {
-					id: 'static-images',
-					label: __( 'Static images' ),
-					detail: __( 'Raster icon files only. ODD validates the image files and Desktop Mode renders them natively.' ),
-				};
-			}
-			if ( type === 'cursor-set' ) {
-				return {
-					id: 'pointer-assets',
-					label: __( 'Pointer assets' ),
-					detail: __( 'Cursor files and generated CSS only. ODD validates paths, sizes, and cursor formats before install.' ),
-				};
-			}
-			if ( type === 'scene' ) {
-				return {
-					id: 'local-code',
-					label: __( 'Runs locally' ),
-					detail: __( 'Wallpaper scenes run JavaScript locally in your admin session so they can animate the desktop canvas.' ),
-				};
-			}
-			if ( type === 'widget' ) {
-				return {
-					id: 'local-code',
-					label: __( 'Runs locally' ),
-					detail: __( 'Widgets run JavaScript locally and use Desktop Mode widget teardown when they leave the desktop.' ),
-				};
-			}
-			if ( type === 'app' ) {
-				return {
-					id: 'sandboxed-app',
-					label: __( 'Sandboxed app' ),
-					detail: __( 'Apps open inside a Desktop Mode window with ODD file serving, CSP headers, and local diagnostics.' ),
-				};
-			}
-			return {
-				id: 'bundle',
-				label: __( 'ODD bundle' ),
-				detail: __( 'Installed through the same validated ODD bundle pipeline as the rest of the Shop.' ),
-			};
+			return flow.trustProfile( row, { t: __ } );
 		}
 
 		function closeProductSheet() {
@@ -7486,10 +7585,11 @@
 				class: 'odd-shop__card-btn odd-shop__tile-btn odd-shop__card-btn--' + kind
 					+ ( action.disabled ? ' is-disabled' : ' odd-shop__tile-btn--primary' )
 					+ ( kind === 'install' ? ' odd-shop__card-btn--install' : '' ),
-				'aria-label': action.label + ' ' + row.name + ' - ' + cardState.statusLabel,
-				'aria-describedby': describedBy.join( ' ' ),
-				'data-odd-cursor': action.disabled ? 'not-allowed' : 'pointer',
-			} );
+					'aria-label': action.label + ' ' + row.name + ' - ' + cardState.statusLabel,
+					'aria-describedby': describedBy.join( ' ' ),
+					'data-odd-card-action': kind,
+					'data-odd-cursor': action.disabled ? 'not-allowed' : 'pointer',
+				} );
 			if ( action.progress ) {
 				btn.appendChild( el( 'span', { class: 'odd-shop__btn-spinner', 'aria-hidden': 'true' } ) );
 				var btnLabel = el( 'span', { class: 'odd-shop__btn-label' } );
@@ -7506,32 +7606,32 @@
 				btn.disabled = true;
 				btn.setAttribute( 'aria-disabled', 'true' );
 			}
-			btn.addEventListener( 'click', function ( e ) {
-				e.stopPropagation();
-				if ( btn.disabled ) return;
-				dispatchShopAction( row, kind, btn );
-			} );
+				btn.addEventListener( 'click', function ( e ) {
+					e.stopPropagation();
+					if ( btn.disabled ) return;
+					dispatchShopAction( row, btn.getAttribute( 'data-odd-card-action' ) || kind, btn );
+				} );
 
 			// Whole-card click auditions installed decor, while the pill
 			// performs the durable primary action. Catalog rows still
 			// require an explicit Install click so misplaced hover-clicks
 			// don't trigger a network download.
 			card.addEventListener( 'click', function ( e ) {
-				if ( e.target && e.target.closest && e.target.closest( '.odd-shop__card-btn' ) ) return;
-				if ( ! row.installed ) return;
-				if ( action.disabled ) return;
-				if ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) {
-					dispatchShopAction( row, 'preview', btn );
-					return;
-				}
-				dispatchShopAction( row, kind, btn );
-			} );
+					if ( e.target && e.target.closest && e.target.closest( '.odd-shop__card-btn' ) ) return;
+					if ( ! row.installed ) return;
+					if ( btn && btn.disabled ) return;
+					if ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) {
+						dispatchShopAction( row, 'preview', btn );
+						return;
+					}
+					dispatchShopAction( row, btn.getAttribute( 'data-odd-card-action' ) || kind, btn );
+				} );
 
 			wrap.appendChild( card );
 
 			if ( row.installed && ! isActive && ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) ) {
 				var hint = el( 'div', { class: 'odd-shop__card-hint' } );
-				hint.textContent = row.type === 'icon-set' ? 'Apply refreshes icons together' : 'Click card to preview';
+				hint.textContent = row.type === 'icon-set' ? 'Apply updates icons together' : 'Click card to preview';
 				wrap.appendChild( hint );
 			}
 

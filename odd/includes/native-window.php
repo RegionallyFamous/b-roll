@@ -47,6 +47,7 @@ add_action(
 
 		$icon_url = oddout_control_icon_url();
 		$uid      = get_current_user_id();
+		oddout_shop_seed_taskbar_visibility( $uid );
 
 		if ( function_exists( 'desktop_mode_register_wallpaper' ) ) {
 			desktop_mode_register_wallpaper(
@@ -75,7 +76,10 @@ add_action(
 				'height'     => (int) $geometry['height'],
 				'min_width'  => (int) $geometry['min_width'],
 				'min_height' => (int) $geometry['min_height'],
-				'placement'  => oddout_shop_taskbar_enabled( $uid ) ? 'dock' : 'none',
+				// Desktop Mode's itemVisibility setting owns whether
+				// the paired `odd` launcher appears on desktop, taskbar,
+				// both, or neither. ODD registers the window only.
+				'placement'  => 'none',
 			)
 		);
 
@@ -249,13 +253,12 @@ function oddout_control_icon_url() {
 }
 
 /**
- * Whether the ODD Shop should be shown as a Desktop Mode dock item.
+ * Stored ODD preference for the Shop taskbar launcher.
  *
- * The desktop shortcut remains registered either way. This only
- * controls native-window placement, which Desktop Mode reads during
- * shell boot, so changing it requires a soft reload.
+ * @param int $uid User ID.
+ * @return bool
  */
-function oddout_shop_taskbar_enabled( $uid = 0 ) {
+function oddout_shop_fallback_taskbar_enabled( $uid = 0 ) {
 	$uid = $uid ? (int) $uid : get_current_user_id();
 	if ( $uid <= 0 ) {
 		return false;
@@ -267,12 +270,106 @@ function oddout_shop_taskbar_enabled( $uid = 0 ) {
 	return (bool) $value;
 }
 
+/**
+ * Reads the ODD Shop taskbar visibility from Desktop Mode OS settings.
+ *
+ * @param int $uid User ID.
+ * @return bool|null Null when Desktop Mode has no explicit value.
+ */
+function oddout_shop_core_taskbar_enabled( $uid = 0 ) {
+	$uid = $uid ? (int) $uid : get_current_user_id();
+	if ( $uid <= 0 || ! function_exists( 'desktop_mode_get_os_settings' ) ) {
+		return null;
+	}
+	$settings = desktop_mode_get_os_settings( $uid );
+	if ( ! is_array( $settings ) || empty( $settings['itemVisibility'] ) || ! is_array( $settings['itemVisibility'] ) ) {
+		return null;
+	}
+	if ( ! array_key_exists( 'odd', $settings['itemVisibility'] ) ) {
+		return null;
+	}
+	$placement = (string) $settings['itemVisibility']['odd'];
+	if ( in_array( $placement, array( 'both', 'dock' ), true ) ) {
+		return true;
+	}
+	if ( in_array( $placement, array( 'desktop', 'hidden' ), true ) ) {
+		return false;
+	}
+	return null;
+}
+
+/**
+ * Writes the ODD Shop taskbar visibility through Desktop Mode OS settings.
+ *
+ * @param int  $uid     User ID.
+ * @param bool $enabled Whether to show the ODD Shop in the taskbar.
+ * @return bool
+ */
+function oddout_shop_set_core_taskbar_enabled( $uid, $enabled ) {
+	$uid = (int) $uid;
+	if (
+		$uid <= 0 ||
+		! function_exists( 'desktop_mode_get_os_settings' ) ||
+		! function_exists( 'desktop_mode_save_os_settings' )
+	) {
+		return false;
+	}
+	$settings = desktop_mode_get_os_settings( $uid );
+	if ( ! is_array( $settings ) ) {
+		return false;
+	}
+	if ( empty( $settings['itemVisibility'] ) || ! is_array( $settings['itemVisibility'] ) ) {
+		$settings['itemVisibility'] = array();
+	}
+	$settings['itemVisibility']['odd'] = $enabled ? 'both' : 'desktop';
+	return (bool) desktop_mode_save_os_settings( $uid, $settings );
+}
+
+/**
+ * One-way seed for users who only have the older ODD preference.
+ *
+ * @param int $uid User ID.
+ * @return bool True when Desktop Mode settings were updated.
+ */
+function oddout_shop_seed_taskbar_visibility( $uid = 0 ) {
+	$uid = $uid ? (int) $uid : get_current_user_id();
+	if (
+		$uid <= 0 ||
+		null !== oddout_shop_core_taskbar_enabled( $uid ) ||
+		! function_exists( 'desktop_mode_get_os_settings' ) ||
+		! function_exists( 'desktop_mode_save_os_settings' )
+	) {
+		return false;
+	}
+	return oddout_shop_set_core_taskbar_enabled( $uid, oddout_shop_fallback_taskbar_enabled( $uid ) );
+}
+
+/**
+ * Stored/default preference for showing the ODD Shop in the taskbar.
+ *
+ * Current runtimes use Desktop Mode's `itemVisibility.odd` setting for
+ * live placement. Keep this user_meta value as install/default metadata
+ * for older clients, REST responses, and workspace export/import.
+ */
+function oddout_shop_taskbar_enabled( $uid = 0 ) {
+	$uid = $uid ? (int) $uid : get_current_user_id();
+	if ( $uid <= 0 ) {
+		return false;
+	}
+	$core = oddout_shop_core_taskbar_enabled( $uid );
+	if ( null !== $core ) {
+		return $core;
+	}
+	return oddout_shop_fallback_taskbar_enabled( $uid );
+}
+
 function oddout_shop_set_taskbar_enabled( $uid, $enabled ) {
 	$uid = (int) $uid;
 	if ( $uid <= 0 ) {
 		return false;
 	}
 	update_user_meta( $uid, 'oddout_shop_taskbar', $enabled ? 1 : 0 );
+	oddout_shop_set_core_taskbar_enabled( $uid, $enabled );
 	return oddout_shop_taskbar_enabled( $uid );
 }
 

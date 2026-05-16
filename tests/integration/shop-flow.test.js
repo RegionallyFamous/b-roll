@@ -29,6 +29,18 @@ describe( 'ODD Shop flow module', () => {
 		expect( state.action ).toEqual( { label: 'Apply', kind: 'apply', disabled: false } );
 	} );
 
+	it( 'keeps visible statuses intentionally small', () => {
+		const flow = loadShopFlow();
+		const t = ( s ) => s;
+
+		expect( flow.cardState( { type: 'scene', slug: 'a', installed: true, updateAvailable: true }, { t } ) )
+			.toMatchObject( { id: 'attention', statusLabel: 'Needs attention', action: { label: 'Update', kind: 'update' } } );
+		expect( flow.cardState( { type: 'scene', slug: 'a', installed: true }, { t, isInstalling: true } ) )
+			.toMatchObject( { id: 'working', statusLabel: 'Working', action: { label: 'Working…', kind: 'installing' } } );
+		expect( flow.cardState( { type: 'scene', slug: 'a', installed: false, incompatible: true }, { t } ) )
+			.toMatchObject( { id: 'blocked', statusLabel: 'Unavailable', action: { label: 'Unavailable', kind: 'incompatible' } } );
+	} );
+
 	it( 'distinguishes visual bundles from code-running bundles', () => {
 		const flow = loadShopFlow();
 

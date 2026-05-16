@@ -31,25 +31,24 @@
 	function cardState( row, ctx ) {
 		ctx = ctx || {};
 		var isActive = !! ctx.isActive;
+		var hasPreview = !! ctx.hasPreview;
 		if ( row && row.incompatible ) {
 			return makeState(
 				ctx,
-				'incompatible',
 				'blocked',
-				text( ctx, 'Incompatible' ),
+				'blocked',
+				text( ctx, 'Unavailable' ),
 				text( ctx, 'Requires newer host' ),
 				'warning',
-				{ label: text( ctx, 'Incompatible' ), kind: 'incompatible', disabled: true },
+				{ label: text( ctx, 'Unavailable' ), kind: 'incompatible', disabled: true },
 				isActive
 			);
 		}
 		if ( ctx.isInstalling ) {
-			var progress = ctx.progress || { label: text( ctx, 'Installing…' ), status: text( ctx, 'Installing' ) };
-			var mode = ctx.installMode || 'install';
-			var busyId = mode === 'update' ? 'updating' : ( mode === 'repair' ? 'repairing' : 'installing' );
+			var progress = ctx.progress || { label: text( ctx, 'Working…' ), status: text( ctx, 'Working' ) };
 			return makeState(
 				ctx,
-				busyId,
+				'working',
 				'busy',
 				progress.status,
 				progress.status,
@@ -73,10 +72,10 @@
 		if ( row.broken ) {
 			return makeState(
 				ctx,
-				'repair',
 				'attention',
-				text( ctx, 'Needs repair' ),
-				text( ctx, 'Needs repair' ),
+				'attention',
+				text( ctx, 'Needs attention' ),
+				text( ctx, 'Needs attention' ),
 				'warning',
 				{ label: text( ctx, 'Repair' ), kind: 'repair', disabled: false },
 				isActive
@@ -85,11 +84,11 @@
 		if ( row.updateAvailable ) {
 			return makeState(
 				ctx,
-				'update',
 				'attention',
-				text( ctx, 'Update available' ),
-				text( ctx, 'Update' ),
-				'update',
+				'attention',
+				text( ctx, 'Needs attention' ),
+				text( ctx, 'Needs attention' ),
+				'warning',
 				{ label: text( ctx, 'Update' ), kind: 'update', disabled: false },
 				isActive
 			);
@@ -98,25 +97,37 @@
 		if ( pending && row.slug && row.installed && ( pending.slug === row.slug || pending.slug === '*' ) ) {
 			return makeState(
 				ctx,
-				'applying',
+				'working',
 				'busy',
-				text( ctx, 'Applying changes' ),
-				text( ctx, 'Applying' ),
-				'applying',
-				{ label: text( ctx, 'Applying…' ), kind: 'pending_reload', disabled: true },
+				text( ctx, 'Working' ),
+				text( ctx, 'Working' ),
+				'installing',
+				{ label: text( ctx, 'Working…' ), kind: 'pending_reload', disabled: true },
 				isActive
 			);
 		}
 		if ( row.requiresReload ) {
 			return makeState(
 				ctx,
-				'reload',
 				'attention',
-				text( ctx, 'Reload required' ),
-				text( ctx, 'Reload required' ),
+				'attention',
+				text( ctx, 'Needs attention' ),
+				text( ctx, 'Needs attention' ),
 				'warning',
-				{ label: text( ctx, 'Reload now' ), kind: 'reload', disabled: false },
+				{ label: text( ctx, 'Reload' ), kind: 'reload', disabled: false },
 				isActive
+			);
+		}
+		if ( hasPreview && ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) ) {
+			return makeState(
+				ctx,
+				'ready',
+				'ready',
+				text( ctx, 'Ready' ),
+				text( ctx, 'Installed' ),
+				'installed',
+				{ label: text( ctx, 'Apply' ), kind: 'apply', disabled: false },
+				false
 			);
 		}
 		if ( isActive ) {
@@ -136,7 +147,7 @@
 				ctx,
 				'ready',
 				'ready',
-				text( ctx, 'Ready to apply' ),
+				text( ctx, 'Ready' ),
 				text( ctx, 'Installed' ),
 				'installed',
 				{ label: text( ctx, 'Apply' ), kind: 'apply', disabled: false },
@@ -148,7 +159,7 @@
 				ctx,
 				'ready',
 				'ready',
-				text( ctx, 'Ready to add' ),
+				text( ctx, 'Ready' ),
 				text( ctx, 'Installed' ),
 				'installed',
 				{ label: text( ctx, 'Add' ), kind: 'add', disabled: false },

@@ -116,12 +116,12 @@ The fastest path to a working app. No tools, no npm, no bundler.
 ```
 
 The `surfaces` object is optional. It sets the **install-time
-defaults** for whether ODD registers a desktop icon and/or a Desktop
-Mode taskbar icon for your app. The v1 default is `desktop: true` and
+defaults** for Desktop Mode's native `itemVisibility` placement for
+your app launcher. The v1 default is `desktop: true` and
 `taskbar: false`, so omitting the key is equivalent to "desktop icon
 only." Users can flip either independently from the **ODD Shop → Apps**
 card after install — the manifest value only controls what the app
-looks like the moment it lands. Regardless of the visible surfaces, the app is always reachable via
+looks like the moment it lands. Regardless of the visible placement, the app is always reachable via
 `wp.desktop.openWindow( 'odd-app-{slug}' )`, the ODD Shop's **Open**
 button, and slash commands.
 
@@ -492,8 +492,8 @@ anywhere on the Shop), and ODD handles the rest:
 1. The Shop extracts + validates the archive.
 2. On success, it jumps to the Apps department and flashes your new
    app's tile so you can see where it landed.
-3. The taskbar icon and/or desktop shortcut appear on the next paint,
-   based on the app's `surfaces` setting.
+3. Desktop Mode places the app launcher on desktop, taskbar, both, or
+   neither using its core `itemVisibility` setting.
 
 To remove an app, click the × on its card.
 
