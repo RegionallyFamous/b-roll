@@ -1406,6 +1406,24 @@
 	// Registration — one wallpaper card.
 	// ============================================================ //
 
+	var oddWallpaperDef = {
+		id:      'odd',
+		label:   'ODD',
+		type:    'canvas',
+		preview: previewBg( defaultScene() ),
+		needs:   [ 'pixijs' ],
+		mount:   mountODD,
+		renderEditor: renderWallpaperEditor,
+	};
+
+	function publishWallpaperDef() {
+		window.desktopModeWallpapers = window.desktopModeWallpapers || {};
+		window.desktopModeWallpapers.odd = oddWallpaperDef;
+		return oddWallpaperDef;
+	}
+
+	publishWallpaperDef();
+
 	var registered = false;
 	function registerAll() {
 		if ( registered ) return;
@@ -1414,15 +1432,7 @@
 		registered = true;
 
 		try {
-			window.wp.desktop.registerWallpaper( {
-				id:      'odd',
-				label:   'ODD',
-				type:    'canvas',
-				preview: previewBg( defaultScene() ),
-				needs:   [ 'pixijs' ],
-				mount:   mountODD,
-				renderEditor: renderWallpaperEditor,
-			} );
+			window.wp.desktop.registerWallpaper( publishWallpaperDef() );
 		} catch ( e ) {
 			if ( window.console ) window.console.warn( 'ODD: registerWallpaper failed', e );
 		}

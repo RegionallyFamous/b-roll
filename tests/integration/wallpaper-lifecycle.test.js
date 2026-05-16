@@ -123,6 +123,7 @@ describe( 'ODD wallpaper lifecycle', () => {
 	beforeEach( () => {
 		document.body.innerHTML = '';
 		delete window.PIXI;
+		delete window.desktopModeWallpapers;
 		vi.spyOn( window.HTMLCanvasElement.prototype, 'getContext' ).mockReturnValue( {
 			drawImage: vi.fn(),
 			getImageData: vi.fn( () => ( { data: new Uint8ClampedArray( 32 * 32 * 4 ) } ) ),
@@ -131,6 +132,15 @@ describe( 'ODD wallpaper lifecycle', () => {
 
 	afterEach( () => {
 		vi.restoreAllMocks();
+	} );
+
+	it( 'publishes the server-registered wallpaper def on the Desktop Mode global map', () => {
+		const { wallpaperDef } = loadWallpaper();
+
+		expect( window.desktopModeWallpapers.odd ).toBe( wallpaperDef );
+		expect( window.desktopModeWallpapers.odd.id ).toBe( 'odd' );
+		expect( typeof window.desktopModeWallpapers.odd.mount ).toBe( 'function' );
+		expect( typeof window.desktopModeWallpapers.odd.renderEditor ).toBe( 'function' );
 	} );
 
 	it( 'returns a teardown function synchronously from the Desktop Mode mount contract', () => {
