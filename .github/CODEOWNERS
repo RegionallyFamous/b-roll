@@ -4,9 +4,17 @@
 /odd/                   @RegionallyFamous
 /docs/                  @RegionallyFamous
 /.github/workflows/     @RegionallyFamous
+/.github/CODEOWNERS     @RegionallyFamous
+/.github/pull_request_template.md @RegionallyFamous
+/.claude/               @RegionallyFamous
+/.husky/                @RegionallyFamous
 /CHANGELOG.md           @RegionallyFamous
 /composer.json          @RegionallyFamous
 /phpcs.xml.dist         @RegionallyFamous
 /phpunit.xml.dist       @RegionallyFamous
 /package.json           @RegionallyFamous
+/package-lock.json      @RegionallyFamous
+/requirements-catalog.txt @RegionallyFamous
 /blueprint.json         @RegionallyFamous
+/blueprint-dev.json     @RegionallyFamous
+/site/playground/       @RegionallyFamous

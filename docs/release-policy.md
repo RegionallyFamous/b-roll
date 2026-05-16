@@ -86,7 +86,7 @@ Prereleases follow `1.10.0-rc.1`, `1.10.0-rc.2`, etc. They're tagged and attache
 
 ## Cutting a release
 
-Automated in `odd/bin/bump-version`:
+Start with `odd/bin/bump-version`, then make the release-note edits by hand:
 
 ```sh
 next_version=<next-version>
@@ -94,7 +94,7 @@ odd/bin/bump-version "$next_version"
 # edits odd/odd.php header + ODDOUT_VERSION constant
 odd/bin/check-version --expect "$next_version"
 odd/bin/check-plugin-metadata
-# updates CHANGELOG.md scaffold
+# add/update the CHANGELOG.md release section and any readme metadata needed
 git diff
 # review, then:
 git commit -m "release: $next_version"

@@ -1,7 +1,9 @@
 # Desktop Mode hook coverage
 
-ODD targets WP Desktop Mode v0.8.5+ for its minimum desktop integration,
-and the hosted Playground is pinned to WP Desktop Mode v0.8.5. This matrix
+ODD targets WP Desktop Mode v0.8.5+ for its minimum desktop integration.
+The stable hosted Playground installs the current WordPress.org Desktop Mode
+release, while the dev Playground pins the release zip declared by
+`ODDOUT_DESKTOP_MODE_PLAYGROUND_VERSION`. This matrix
 tracks every Desktop Mode hook/API family that matters to ODD and states
 whether ODD uses it for product behavior, diagnostics, or documented
 non-participation.

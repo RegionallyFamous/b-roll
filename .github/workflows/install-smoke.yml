@@ -46,7 +46,7 @@ jobs:
           extensions: mysqli, zip, dom, gd, mbstring, xml, intl
           coverage: none
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -337,7 +337,7 @@ jobs:
           php-version: '8.2'
           extensions: mysqli, zip, dom, gd, mbstring, xml, intl
           coverage: none
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install Python catalog dependencies
@@ -447,7 +447,7 @@ jobs:
           php-version: '8.2'
           extensions: mysqli, zip, dom, gd, mbstring, xml, intl
           coverage: none
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Wait for MySQL
@@ -570,7 +570,7 @@ jobs:
           php-version: '8.2'
           extensions: mysqli, zip, dom, gd, mbstring, xml, intl
           coverage: none
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Wait for MySQL

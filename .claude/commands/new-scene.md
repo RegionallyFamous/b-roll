@@ -69,21 +69,25 @@ Use this skeleton. Fill in a 1–3 line header comment describing the visual (fr
 {
   "slug": "<slug>",
   "label": "<Label>",
-  "franchise": "<Franchise>",
+  "category": "Community",
   "tags": ["tag1", "tag2"],
   "fallbackColor": "#111111",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "author": "Regionally Famous",
+  "description": "<One sentence shown in the Shop detail sheet.>"
 }
 ```
 
-The builder populates `previewUrl` + `wallpaperUrl` from the files on disk.
+The builder turns this source folder into a signed catalog row with `icon_url`,
+`card_url`, `download_url`, `sha256`, and `size`. It derives the Shop card from
+`wallpaper.webp` and uses `preview.webp` for the compact scene icon.
 
 ## 3. Drop the assets next to `meta.json`
 
-- `_tools/catalog-sources/scenes/<slug>/preview.webp` — 1.6:1, ~640 px wide, WebP q82, ~50–100 KB.
+- `_tools/catalog-sources/scenes/<slug>/preview.webp` — 16:9, ~640×360, WebP q82, ~50–100 KB.
 - `_tools/catalog-sources/scenes/<slug>/wallpaper.webp` — 1920×1080, WebP q82, ~300–500 KB.
 
-Run `python3 _tools/build-catalog.py && odd/bin/validate-catalog` — the builder rejects broken source trees and the validator refuses catalogs with missing bundles / hash mismatches / bad manifests.
+Run `python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog` — the builder rejects broken source trees and the validator refuses catalogs with missing bundles / hash mismatches / bad manifests / bad starter-pack references.
 
 ## 4. Build and validate the catalog
 

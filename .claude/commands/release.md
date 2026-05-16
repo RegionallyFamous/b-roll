@@ -27,23 +27,30 @@ If on a different branch, stop and ask.
 
 ## 2. Bump version pins
 
-Use the helper — it updates `odd/odd.php` **and** both Playground blueprints’ ODD **`git:directory` ref** to the peeled **commit** for `v<version>` when that tag already exists locally (recommended for Playground reliability); otherwise it falls back to `refType: tag` + `v<version>` until you tag and re-run bump. If you change `ODD_DESKTOP_MODE_MIN_VERSION` without a plugin bump, update the **Desktop Mode** `installPlugin` URL in **both** blueprints to `https://downloads.wordpress.org/plugin/desktop-mode.<version>.zip`; `odd/bin/validate-blueprint` checks it against `odd/odd.php`.
+Use the helper — it updates the `Version:` header and `ODDOUT_VERSION`
+constant in `odd/odd.php`. Public Playground blueprints install the latest
+approved ODD and Desktop Mode releases from WordPress.org, so the helper skips
+those installs. Dev Playgrounds keep ODD on `main` and pin Desktop Mode via
+`ODDOUT_DESKTOP_MODE_PLAYGROUND_VERSION` / the dev blueprint zip URL; if that
+host baseline changes, update the constant and both dev blueprints together.
 
 ```bash
-odd/bin/bump-version <version>   # before tag: sets tag ref; after tag: re-run to pin commit SHA
+odd/bin/bump-version <version>   # updates odd.php; skips public wp.org Playground installs
 ```
 
 Then confirm they agree:
 
 ```bash
 odd/bin/check-version --expect <version>
+odd/bin/check-plugin-metadata
 odd/bin/validate-blueprint
 ```
 
-Commit whatever changed (`odd/odd.php`; both `blueprint.json` files when bump-version rewrote the tag):
+Commit whatever changed. For a normal plugin release this is usually
+`odd/odd.php` plus any deliberate changelog/readme/package metadata edits:
 
 ```bash
-git add odd/odd.php blueprint.json site/playground/blueprint.json
+git add odd/odd.php odd/readme.txt CHANGELOG.md package.json package-lock.json blueprint*.json site/playground/blueprint*.json
 git commit -m "chore: bump version to v<version>"
 ```
 
@@ -60,11 +67,11 @@ Pushing the tag triggers
 which:
 
 1. Asserts the tag matches `odd/odd.php`'s committed version.
-2. Runs `python3 _tools/build-catalog.py && ODD_VALIDATE_REBUILD=1 odd/bin/validate-catalog`.
-3. Runs `odd/bin/build-zip` to produce `dist/odd.zip`.
-4. Calls `gh release create "v<version>" dist/odd.zip --latest=true --generate-notes`
-   (auto-generates release notes from commits since the previous tag).
-5. Verifies `releases/latest/download/odd.zip` resolves via curl.
+2. Runs the reusable CI quality gates, including PHPUnit, Plugin Check, and the catalog validators.
+3. Builds and validates `dist/odd.zip`.
+4. Runs `install-smoke.yml` against the built zip.
+5. Creates the GitHub release, preferring `CHANGELOG.md` notes when present and falling back to generated notes.
+6. Verifies `releases/latest/download/odd.zip` resolves via curl.
 
 ## 4. Watch the release
 
@@ -79,7 +86,8 @@ Or browse to the Actions tab in the repo.
 Give the user:
 
 - The release URL: `https://github.com/RegionallyFamous/odd/releases/tag/v<version>`
-- The Playground demo URL (hosted blueprint): `https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dv2-1.0.3`. Raw GitHub mirror: `https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fraw.githubusercontent.com%2FRegionallyFamous%2Fodd%2Fmain%2Fblueprint.json%3Foddbp%3Dv2-1.0.3`.
+- The stable Playground URL: `https://odd.regionallyfamous.com/go/`
+- The trunk/dev Playground URL for validating `main`: `https://odd.regionallyfamous.com/go/dev/`
 - A one-line summary of what shipped
 
 If the auto-generated release notes need editing, open the release in

@@ -65,7 +65,7 @@ catalog-only changes.
 
 ## Playground Smoke
 
-1. Open `https://odd.regionallyfamous.com/playground/` (stable: newest approved ODD + Desktop Mode releases from WordPress.org). For trunk, use [`/playground/dev/`](https://odd.regionallyfamous.com/playground/dev/) instead — **do not** use the stable URL to validate `main`.
+1. Open `https://odd.regionallyfamous.com/go/` (stable: newest approved ODD + Desktop Mode releases from WordPress.org). For trunk, use [`/go/dev/`](https://odd.regionallyfamous.com/go/dev/) instead — **do not** use the stable URL to validate `main`.
 2. Confirm WordPress Playground loads Desktop Mode v0.8.5+ and ODD.
 3. Confirm the ODD Shop opens.
 4. Confirm the starter wallpaper, icon set, and cursor set install or show a
