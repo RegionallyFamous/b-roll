@@ -40,6 +40,11 @@ describe( 'ODD cursor runtime', () => {
 			writable:     true,
 			configurable: true,
 		} );
+		Object.defineProperty( window, 'requestAnimationFrame', {
+			value:        undefined,
+			writable:     true,
+			configurable: true,
+		} );
 		delete document.__oddCursorBridge;
 		window.__odd = { debug: {} };
 		window.odd = {
@@ -103,7 +108,7 @@ describe( 'ODD cursor runtime', () => {
 		expect( link ).toBeTruthy();
 		expect( link.getAttribute( 'href' ) ).toContain( 'set=oddlings-cursors' );
 		iframeDoc.querySelector( 'button' ).dispatchEvent( new iframe.contentWindow.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
-		expect( iframeDoc.querySelector( 'button' ).style.cursor ).toContain( 'pointer.svg' );
+		expect( iframeDoc.querySelector( 'button' ).style.cursor ).toBe( 'pointer' );
 	} );
 
 	it( 'bridges host elements that compute to native pointer cursors', () => {
@@ -114,7 +119,7 @@ describe( 'ODD cursor runtime', () => {
 
 		window.__odd.cursors.bridgeTarget( item );
 
-		expect( item.style.cursor ).toContain( 'pointer.svg' );
+		expect( item.style.cursor ).toBe( 'pointer' );
 		expect( window.__odd.cursors.status().bridged ).toBe( 1 );
 
 		window.__odd.cursors.clear();
@@ -133,7 +138,7 @@ describe( 'ODD cursor runtime', () => {
 
 		window.__odd.cursors.bridgeTarget( item );
 
-		expect( item.style.cursor ).toContain( 'pointer.svg' );
+		expect( item.style.cursor ).toBe( 'pointer' );
 		expect( item.style.getPropertyPriority( 'cursor' ) ).toBe( 'important' );
 
 		window.__odd.cursors.clear();
@@ -156,9 +161,9 @@ describe( 'ODD cursor runtime', () => {
 		loadRuntime();
 		window.__odd.cursors.bridgeTarget( image );
 
-		expect( image.style.cursor ).toContain( 'pointer.svg' );
+		expect( image.style.cursor ).toBe( 'pointer' );
 		expect( image.style.getPropertyPriority( 'cursor' ) ).toBe( 'important' );
-		expect( icon.style.cursor ).toContain( 'pointer.svg' );
+		expect( icon.style.cursor ).toBe( 'pointer' );
 		expect( window.__odd.cursors.status().lastResolved.roleOwner.className ).toContain( 'desktop-mode-icon' );
 	} );
 
@@ -173,8 +178,9 @@ describe( 'ODD cursor runtime', () => {
 
 		window.__odd.cursors.bridgeTarget( item );
 
-		expect( item.style.cursor ).toContain( 'css-pointer.svg' );
-		expect( item.style.cursor ).toContain( '3 4' );
+		expect( item.style.cursor ).toBe( 'pointer' );
+		expect( window.__odd.cursors.status().lastResolved.cursor ).toContain( 'css-pointer.svg' );
+		expect( window.__odd.cursors.status().lastResolved.nativeCursor ).toBe( 'pointer' );
 	} );
 
 	it( 'stamps semantic roles and resolves them through the runtime controller', () => {
@@ -191,7 +197,7 @@ describe( 'ODD cursor runtime', () => {
 		window.__odd.cursors.bridgeTarget( tile );
 
 		expect( tile.getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
-		expect( tile.style.cursor ).toContain( 'pointer.svg' );
+		expect( tile.style.cursor ).toBe( 'pointer' );
 		expect( window.__odd.cursors.status().bridged ).toBe( 1 );
 		expect( window.__odd.cursors.status().semantics.pointer ).toBeGreaterThan( 0 );
 	} );
@@ -214,9 +220,9 @@ describe( 'ODD cursor runtime', () => {
 		expect( icon.getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
 
 		area.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
-		expect( area.style.cursor ).toContain( 'default.svg' );
+		expect( area.style.cursor ).toBe( 'default' );
 		icon.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
-		expect( icon.style.cursor ).toContain( 'pointer.svg' );
+		expect( icon.style.cursor ).toBe( 'pointer' );
 		expect( window.__odd.cursors.status().desktop.roots ).toBeGreaterThan( 0 );
 	} );
 
@@ -252,7 +258,7 @@ describe( 'ODD cursor runtime', () => {
 		window.__odd.cursors.markRoot( win );
 		window.__odd.cursors.bridgeTarget( titlebar );
 
-		expect( titlebar.style.cursor ).toContain( 'url(' );
+		expect( titlebar.style.cursor ).toBe( 'grab' );
 		expect( window.__odd.cursors.status().bridged ).toBeGreaterThanOrEqual( 1 );
 	} );
 
@@ -274,8 +280,7 @@ describe( 'ODD cursor runtime', () => {
 		window.__odd.cursors.observeSurface( win, { source: 'test' } );
 		close.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
 
-		expect( close.style.cursor ).toContain( 'url(' );
-		expect( close.style.cursor ).toContain( 'pointer.svg' );
+		expect( close.style.cursor ).toBe( 'pointer' );
 		expect( window.__odd.cursors.status().lastResolved.role ).toBe( 'pointer' );
 	} );
 
@@ -293,7 +298,7 @@ describe( 'ODD cursor runtime', () => {
 		win.appendChild( close );
 		close.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
 
-		expect( close.style.cursor ).toContain( 'pointer.svg' );
+		expect( close.style.cursor ).toBe( 'pointer' );
 		expect( window.__odd.cursors.status().observedSurfaces ).toBeGreaterThanOrEqual( 1 );
 	} );
 
@@ -311,11 +316,11 @@ describe( 'ODD cursor runtime', () => {
 		window.__odd.cursors.observeSurface( document.body, { source: 'test' } );
 		close.dispatchEvent( new window.MouseEvent( 'pointerover', { bubbles: true, composed: true } ) );
 
-		expect( close.style.cursor ).toContain( 'pointer.svg' );
+		expect( close.style.cursor ).toBe( 'pointer' );
 		expect( window.__odd.cursors.status().shadowRoots ).toBeGreaterThanOrEqual( 1 );
 	} );
 
-	it( 'creates a live cursor aura on Desktop surfaces using the active cursor artwork', () => {
+	it( 'creates a lightweight live cursor aura while keeping the native cursor visible', () => {
 		const shell = document.createElement( 'div' );
 		shell.className = 'desktop-mode-shell';
 		const icon = document.createElement( 'button' );
@@ -335,15 +340,17 @@ describe( 'ODD cursor runtime', () => {
 		expect( layer.getAttribute( 'data-visible' ) ).toBe( 'true' );
 		expect( layer.getAttribute( 'data-role' ) ).toBe( 'pointer' );
 		expect( layer.getAttribute( 'data-mode' ) ).toBe( 'aura' );
-		expect( layer.style.getPropertyValue( '--odd-cursor-image' ) ).toContain( 'pointer.svg' );
-		expect( layer.style.getPropertyValue( '--odd-cursor-x' ) ).toBe( '130px' );
-		expect( style.textContent ).toContain( 'width:42px' );
-		expect( style.textContent ).toContain( 'opacity:.22' );
+		expect( layer.style.getPropertyValue( '--odd-cursor-image' ) ).toBe( 'none' );
+		expect( layer.style.getPropertyValue( '--odd-cursor-x' ) ).toBe( '124px' );
+		expect( icon.style.cursor ).toBe( 'pointer' );
+		expect( style.textContent ).toContain( 'width:28px' );
+		expect( style.textContent ).toContain( '.odd-live-cursor__shape{display:none' );
+		expect( style.textContent ).not.toContain( 'opacity:.22' );
 		expect( style.textContent ).toContain( 'overflow:visible' );
 		expect( style.textContent ).not.toContain( 'contain:layout style paint' );
 		expect( window.__odd.cursors.status().layer.visible ).toBe( true );
 		expect( window.__odd.cursors.status().layer.coalesced ).toBe( 1 );
-		expect( window.__odd.cursors.status().layer.predicted ).toBe( 1 );
+		expect( window.__odd.cursors.status().layer.predicted ).toBe( 0 );
 	} );
 
 	it( 'shows the live cursor layer on ordinary resolved controls too', () => {
@@ -358,7 +365,35 @@ describe( 'ODD cursor runtime', () => {
 		expect( layer ).toBeTruthy();
 		expect( layer.getAttribute( 'data-role' ) ).toBe( 'pointer' );
 		expect( layer.getAttribute( 'data-visible' ) ).toBe( 'true' );
-		expect( button.style.cursor ).toContain( 'pointer.svg' );
+		expect( button.style.cursor ).toBe( 'pointer' );
+	} );
+
+	it( 'batches repeated live cursor move paints after the first frame', () => {
+		let paintFrame = null;
+		window.requestAnimationFrame = vi.fn( ( callback ) => {
+			paintFrame = callback;
+			return 1;
+		} );
+		const shell = document.createElement( 'div' );
+		shell.className = 'desktop-mode-shell';
+		const icon = document.createElement( 'button' );
+		icon.className = 'desktop-mode-icon';
+		shell.appendChild( icon );
+		document.body.appendChild( shell );
+
+		loadRuntime();
+		icon.dispatchEvent( new window.MouseEvent( 'pointermove', { bubbles: true, composed: true, clientX: 10, clientY: 20 } ) );
+		const layer = document.getElementById( 'odd-live-cursor' );
+		expect( layer.style.getPropertyValue( '--odd-cursor-x' ) ).toBe( '10px' );
+
+		icon.dispatchEvent( new window.MouseEvent( 'pointermove', { bubbles: true, composed: true, clientX: 30, clientY: 40 } ) );
+		icon.dispatchEvent( new window.MouseEvent( 'pointermove', { bubbles: true, composed: true, clientX: 50, clientY: 60 } ) );
+
+		expect( window.requestAnimationFrame ).toHaveBeenCalledTimes( 1 );
+		expect( layer.style.getPropertyValue( '--odd-cursor-x' ) ).toBe( '10px' );
+
+		paintFrame();
+		expect( layer.style.getPropertyValue( '--odd-cursor-x' ) ).toBe( '50px' );
 	} );
 
 	it( 'simplifies the live cursor layer over text targets', () => {
@@ -412,6 +447,7 @@ describe( 'ODD cursor runtime', () => {
 
 		const layer = document.getElementById( 'odd-live-cursor' );
 		expect( layer.getAttribute( 'data-mode' ) ).toBe( 'replace' );
+		expect( layer.style.getPropertyValue( '--odd-cursor-image' ) ).toContain( 'pointer.svg' );
 		expect( icon.style.cursor ).toBe( 'none' );
 		expect( window.__odd.cursors.status().lastResolved.cursor ).toContain( 'pointer.svg' );
 		expect( window.__odd.cursors.status().lastResolved.nativeCursor ).toBe( 'none' );

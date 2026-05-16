@@ -104,7 +104,8 @@ class Test_Cursors extends WP_UnitTestCase {
 		$this->assertStringContainsString( '.wp-desktop-icon', $css );
 		$this->assertStringContainsString( '.wp-desktop-window__titlebar', $css );
 		$this->assertStringContainsString( 'input:not([type="button"])', $css );
-		$this->assertStringContainsString( 'cursor: var(--odd-cursor-pointer) !important;', $css );
+		$this->assertStringContainsString( 'cursor: pointer !important;', $css );
+		$this->assertStringNotContainsString( 'cursor: var(--odd-cursor-pointer) !important;', $css );
 	}
 
 	public function test_cursor_css_keeps_descendant_roles_out_of_the_cascade_contract() {

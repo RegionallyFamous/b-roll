@@ -59,12 +59,19 @@
 			coalesced:   0,
 			predicted:   0,
 			trail:       [],
+			queued:      false,
+			pending:     null,
+			resolved:    null,
+			path:        [],
+			target:      null,
+			vars:        {},
 			bound:       false,
 		},
 	};
 	var bridged = [];
 	var documents = [];
 	var docSeq = 0;
+	var controllerId = 'odd-cursors-' + Math.random().toString( 36 ).slice( 2 );
 
 	function cfg() {
 		return ( window.odd && typeof window.odd === 'object' ) ? window.odd : {};
@@ -175,6 +182,24 @@
 
 	function cursorValue( kind, node ) {
 		return cursorMeta( kind, node ).value;
+	}
+
+	function nativeCursorValue( kind ) {
+		kind = semanticKinds[ kind ] ? kind : 'default';
+		if ( kind === 'grabbing' ) return 'grabbing';
+		if ( kind === 'grab' ) return 'grab';
+		if ( kind === 'text' ) return 'text';
+		if ( kind === 'pointer' ) return 'pointer';
+		if ( kind === 'crosshair' ) return 'crosshair';
+		if ( kind === 'not-allowed' ) return 'not-allowed';
+		if ( kind === 'wait' ) return 'wait';
+		if ( kind === 'progress' ) return 'progress';
+		if ( kind === 'help' ) return 'help';
+		return 'default';
+	}
+
+	function usePlainNativeCursor() {
+		return liveCursorMode() === 'aura' && liveCursorEnabledByConfig();
 	}
 
 	function nodeDoc( node ) {
@@ -489,7 +514,7 @@
 		options = options || {};
 		var meta = cursorMeta( resolved.kind, resolved.node );
 		if ( ! meta.value ) return null;
-		var value = options.hideNative ? 'none' : meta.value;
+		var value = options.hideNative ? 'none' : ( usePlainNativeCursor() ? nativeCursorValue( resolved.kind ) : meta.value );
 		var target = resolved.target && resolved.target.nodeType === 1 ? resolved.target : resolved.node;
 		rememberBridge( target, value, resolved.kind );
 		if ( target !== resolved.node ) {
@@ -512,8 +537,24 @@
 		var resolved = resolvePath( path );
 		captureDragPointer( event, resolved );
 		var applied = applyResolved( resolved, { hideNative: shouldHideNativeForLayer( event, resolved, path ) } );
-		updateLiveCursorLayer( event, applied || resolved, path );
+		rememberLiveCursorResolved( applied || resolved, path, event && event.target );
+		queueLiveCursorLayerUpdate( event, applied || resolved, path );
 		return applied;
+	}
+
+	function rememberLiveCursorResolved( resolved, path, target ) {
+		state.layer.resolved = resolved || null;
+		state.layer.path = path || [];
+		state.layer.target = target || null;
+	}
+
+	function handleCursorMove( event ) {
+		var resolved = state.layer.resolved;
+		if ( ! resolved || ! resolved.node || ! resolved.node.isConnected || state.layer.target !== ( event && event.target ) ) {
+			return resolveAndApplyEvent( event );
+		}
+		queueLiveCursorLayerUpdate( event, resolved, state.layer.path || [] );
+		return resolved;
 	}
 
 	function resolveAndApplyNode( node ) {
@@ -648,6 +689,12 @@
 		return mode === 'replace' ? 'replace' : 'aura';
 	}
 
+	function liveCursorUsesPrediction() {
+		var c = cfg();
+		var shell = shellConfig();
+		return c.cursorLayerPrediction === true || c.liveCursorPrediction === true || shell.oddCursorLayerPrediction === true;
+	}
+
 	function liveCursorEverywhere() {
 		var c = cfg();
 		var shell = shellConfig();
@@ -702,34 +749,33 @@
 
 	function liveCursorCss() {
 		return (
-			'#' + LAYER_ID + '{--odd-cursor-x:0px;--odd-cursor-y:0px;--odd-cursor-speed:0;--odd-cursor-angle:0deg;--odd-cursor-tilt:0deg;--odd-cursor-pen-tilt:0deg;--odd-cursor-stretch:1;--odd-cursor-pressure:0;--odd-cursor-aura-scale:1;--odd-cursor-eye-scale:1;--odd-trail-opacity1:.30;--odd-trail-opacity2:.22;--odd-trail-opacity3:.14;--odd-hot-x:0;--odd-hot-y:0;--odd-hot-x-px:0px;--odd-hot-y-px:0px;--odd-hot-x-neg:0px;--odd-hot-y-neg:0px;--odd-trail-x1:0px;--odd-trail-y1:0px;--odd-trail-x2:0px;--odd-trail-y2:0px;--odd-trail-x3:0px;--odd-trail-y3:0px;position:fixed;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none;contain:layout style;overflow:visible;opacity:0;transform:translate3d(var(--odd-cursor-x),var(--odd-cursor-y),0);transition:opacity .08s ease;}' +
+			'#' + LAYER_ID + '{--odd-cursor-x:0px;--odd-cursor-y:0px;--odd-cursor-aura-scale:1;--odd-cursor-eye-scale:1;--odd-cursor-pen-tilt:0deg;--odd-wake-x:0px;--odd-wake-y:0px;--odd-wake-opacity:.12;--odd-hot-x-px:0px;--odd-hot-y-px:0px;--odd-hot-x-neg:0px;--odd-hot-y-neg:0px;position:fixed;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none;contain:layout style;overflow:visible;opacity:0;transform:translate3d(var(--odd-cursor-x),var(--odd-cursor-y),0);transition:opacity .08s ease;will-change:transform,opacity;}' +
 			'#' + LAYER_ID + '[data-visible="true"]{opacity:1;}' +
 			'#' + LAYER_ID + ' span{position:absolute;display:block;pointer-events:none;}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__aura{left:-21px;top:-21px;width:42px;height:42px;border-radius:999px;border:3px solid rgba(66,217,210,.92);background:rgba(66,217,210,.26);box-shadow:0 0 0 9px rgba(66,217,210,.12),0 0 34px rgba(66,217,210,.45);transform:rotate(var(--odd-cursor-pen-tilt)) scale(var(--odd-cursor-aura-scale));animation:oddLiveCursorBreathe 1.9s ease-in-out infinite;}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__eye{left:-6px;top:-6px;width:12px;height:12px;border-radius:999px;background:#19091f;box-shadow:0 0 0 6px #42d9d2,0 0 0 9px rgba(25,9,31,.13);transform:scale(var(--odd-cursor-eye-scale));}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__trail{left:-8px;top:-8px;width:16px;height:16px;border-radius:999px;background:#42d9d2;box-shadow:0 0 18px rgba(66,217,210,.35);opacity:var(--odd-trail-opacity1);}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__trail--one{transform:translate3d(var(--odd-trail-x1),var(--odd-trail-y1),0) scale(1);}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__trail--two{transform:translate3d(var(--odd-trail-x2),var(--odd-trail-y2),0) scale(.72);opacity:var(--odd-trail-opacity2);}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__trail--three{transform:translate3d(var(--odd-trail-x3),var(--odd-trail-y3),0) scale(.52);opacity:var(--odd-trail-opacity3);}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__spark{left:17px;top:-26px;width:18px;height:18px;opacity:0;transform:rotate(45deg);border:4px solid #ff4f8b;border-radius:5px;box-shadow:0 0 16px rgba(255,79,139,.35);}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__spark--two{left:34px;top:10px;width:12px;height:12px;border-color:#f6b73c;animation-delay:.14s;}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__vein{left:-2px;top:-29px;width:5px;height:58px;border-radius:999px;background:#42d9d2;opacity:0;box-shadow:0 0 14px rgba(66,217,210,.42);animation:oddLiveCursorPulse .92s ease-in-out infinite;}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__orbit{left:-28px;top:-28px;width:56px;height:56px;border-radius:999px;border:4px solid transparent;border-top-color:#42d9d2;border-right-color:#f6b73c;border-bottom-color:rgba(255,79,139,.62);opacity:0;animation:oddLiveCursorSpin .72s linear infinite;}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__slash{left:-25px;top:-3px;width:50px;height:6px;border-radius:999px;background:#ff4f8b;opacity:0;box-shadow:0 0 14px rgba(255,79,139,.4);transform:rotate(-43deg);}' +
-			'#' + LAYER_ID + ' .odd-live-cursor__shape{display:block;left:0;top:0;width:64px;height:64px;background-image:var(--odd-cursor-image);background-repeat:no-repeat;background-size:contain;opacity:.22;transform-origin:var(--odd-hot-x-px) var(--odd-hot-y-px);transform:translate3d(var(--odd-hot-x-neg),var(--odd-hot-y-neg),0) rotate(var(--odd-cursor-tilt)) scaleX(var(--odd-cursor-stretch));filter:drop-shadow(0 9px 10px rgba(25,9,31,.18));}' +
-			'#' + LAYER_ID + '[data-mode="replace"] .odd-live-cursor__shape{opacity:1;}' +
-			'#' + LAYER_ID + '[data-role="pointer"] .odd-live-cursor__spark,#' + LAYER_ID + '[data-role="help"] .odd-live-cursor__spark{opacity:1;animation:oddLiveCursorSpark .92s ease-in-out infinite;}' +
-			'#' + LAYER_ID + '[data-role="text"] .odd-live-cursor__vein{opacity:.78;}' +
+			'#' + LAYER_ID + ' .odd-live-cursor__wake{left:-7px;top:-7px;width:14px;height:14px;border-radius:999px;background:rgba(66,217,210,.72);opacity:var(--odd-wake-opacity);transform:translate3d(var(--odd-wake-x),var(--odd-wake-y),0) scale(.78);will-change:transform,opacity;}' +
+			'#' + LAYER_ID + ' .odd-live-cursor__aura{left:-14px;top:-14px;width:28px;height:28px;border-radius:999px;border:2px solid rgba(66,217,210,.82);background:rgba(66,217,210,.12);box-shadow:0 0 0 4px rgba(66,217,210,.08);transform:rotate(var(--odd-cursor-pen-tilt)) scale(var(--odd-cursor-aura-scale));will-change:transform;}' +
+			'#' + LAYER_ID + ' .odd-live-cursor__eye{left:-3px;top:-3px;width:6px;height:6px;border-radius:999px;background:#19091f;box-shadow:0 0 0 3px #42d9d2;transform:scale(var(--odd-cursor-eye-scale));}' +
+			'#' + LAYER_ID + ' .odd-live-cursor__spark{left:15px;top:-17px;width:10px;height:10px;opacity:0;transform:rotate(45deg);border:2px solid #ff4f8b;border-radius:3px;}' +
+			'#' + LAYER_ID + ' .odd-live-cursor__vein{left:-1px;top:-20px;width:3px;height:40px;border-radius:999px;background:#42d9d2;opacity:0;transform:scaleY(.72);}' +
+			'#' + LAYER_ID + ' .odd-live-cursor__orbit{left:-20px;top:-20px;width:40px;height:40px;border-radius:999px;border:3px solid transparent;border-top-color:#42d9d2;border-right-color:#f6b73c;opacity:0;animation:oddLiveCursorSpin .84s linear infinite;}' +
+			'#' + LAYER_ID + ' .odd-live-cursor__slash{left:-18px;top:-2px;width:36px;height:4px;border-radius:999px;background:#ff4f8b;opacity:0;transform:rotate(-43deg);}' +
+			'#' + LAYER_ID + ' .odd-live-cursor__shape{display:none;left:0;top:0;width:64px;height:64px;background-image:var(--odd-cursor-image,none);background-repeat:no-repeat;background-size:contain;opacity:1;transform-origin:var(--odd-hot-x-px) var(--odd-hot-y-px);transform:translate3d(var(--odd-hot-x-neg),var(--odd-hot-y-neg),0);}' +
+			'#' + LAYER_ID + '[data-mode="replace"] .odd-live-cursor__shape{display:block;}' +
+			'#' + LAYER_ID + '[data-mode="replace"] .odd-live-cursor__aura{opacity:.28;}' +
+			'#' + LAYER_ID + '[data-role="pointer"] .odd-live-cursor__aura,#' + LAYER_ID + '[data-role="help"] .odd-live-cursor__aura{border-color:rgba(255,79,139,.82);background:rgba(255,79,139,.1);box-shadow:0 0 0 4px rgba(255,79,139,.07);}' +
+			'#' + LAYER_ID + '[data-role="pointer"] .odd-live-cursor__spark,#' + LAYER_ID + '[data-role="help"] .odd-live-cursor__spark{opacity:.9;animation:oddLiveCursorSpark .9s ease-in-out infinite;}' +
+			'#' + LAYER_ID + '[data-role="text"] .odd-live-cursor__vein{opacity:.72;animation:oddLiveCursorPulse .95s ease-in-out infinite;}' +
+			'#' + LAYER_ID + '[data-role="text"] .odd-live-cursor__aura{width:18px;height:34px;left:-9px;top:-17px;border-radius:999px;background:rgba(66,217,210,.07);}' +
 			'#' + LAYER_ID + '[data-role="grab"] .odd-live-cursor__aura{border-radius:42% 58% 50% 50%;}' +
-			'#' + LAYER_ID + '[data-role="grabbing"] .odd-live-cursor__aura,#' + LAYER_ID + '[data-pressed="true"] .odd-live-cursor__aura{transform:scaleX(.78) scaleY(1.18);}' +
-			'#' + LAYER_ID + '[data-role="wait"] .odd-live-cursor__orbit,#' + LAYER_ID + '[data-role="progress"] .odd-live-cursor__orbit{opacity:.9;}' +
-			'#' + LAYER_ID + '[data-role="not-allowed"] .odd-live-cursor__slash{opacity:.92;animation:oddLiveCursorBite .48s ease-out;}' +
-			'#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__spark,#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__trail,#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__orbit{display:none;}' +
-			'#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__aura{width:24px;height:44px;left:-12px;top:-22px;border-radius:999px;box-shadow:0 0 18px rgba(66,217,210,.2);background:rgba(66,217,210,.12);}' +
-			'#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__shape{opacity:.12;}' +
-			'@keyframes oddLiveCursorBreathe{0%,100%{filter:saturate(1);opacity:.9;}50%{filter:saturate(1.28);opacity:1;}}' +
-			'@keyframes oddLiveCursorSpark{0%,100%{transform:rotate(45deg) translate3d(0,0,0) scale(.72);opacity:.28;}45%{transform:rotate(45deg) translate3d(3px,-4px,0) scale(1.18);opacity:1;}}' +
-			'@keyframes oddLiveCursorPulse{0%,100%{transform:scaleY(.62);opacity:.5;}50%{transform:scaleY(1.08);opacity:1;}}' +
+			'#' + LAYER_ID + '[data-role="grabbing"] .odd-live-cursor__aura,#' + LAYER_ID + '[data-pressed="true"] .odd-live-cursor__aura{border-radius:45% 55% 62% 38%;background:rgba(246,183,60,.13);border-color:rgba(246,183,60,.84);}' +
+			'#' + LAYER_ID + '[data-role="wait"] .odd-live-cursor__orbit,#' + LAYER_ID + '[data-role="progress"] .odd-live-cursor__orbit{opacity:.86;}' +
+			'#' + LAYER_ID + '[data-role="wait"] .odd-live-cursor__aura,#' + LAYER_ID + '[data-role="progress"] .odd-live-cursor__aura{border-color:rgba(246,183,60,.84);background:rgba(246,183,60,.1);}' +
+			'#' + LAYER_ID + '[data-role="not-allowed"] .odd-live-cursor__aura{border-color:rgba(255,79,139,.88);background:rgba(255,79,139,.1);}' +
+			'#' + LAYER_ID + '[data-role="not-allowed"] .odd-live-cursor__slash{opacity:.88;animation:oddLiveCursorBite .48s ease-out;}' +
+			'#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__spark,#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__wake,#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__orbit{display:none;}' +
+			'#' + LAYER_ID + '[data-soft="true"] .odd-live-cursor__aura{box-shadow:none;background:rgba(66,217,210,.06);}' +
+			'@keyframes oddLiveCursorSpark{0%,100%{transform:rotate(45deg) translate3d(0,0,0) scale(.72);opacity:.25;}45%{transform:rotate(45deg) translate3d(2px,-3px,0) scale(1.08);opacity:.9;}}' +
+			'@keyframes oddLiveCursorPulse{0%,100%{transform:scaleY(.65);opacity:.45;}50%{transform:scaleY(1.05);opacity:.9;}}' +
 			'@keyframes oddLiveCursorSpin{to{transform:rotate(360deg);}}' +
 			'@keyframes oddLiveCursorBite{0%{transform:rotate(-43deg) translateX(-5px);}60%{transform:rotate(-43deg) translateX(4px);}100%{transform:rotate(-43deg) translateX(0);}}' +
 			'@media (prefers-reduced-motion: reduce){#' + LAYER_ID + '{display:none!important;}}'
@@ -759,11 +805,12 @@
 				layer.setAttribute( 'data-visible', 'false' );
 				layer.setAttribute( 'data-mode', liveCursorMode() );
 				layer.setAttribute( 'data-role', 'default' );
-				layer.innerHTML = '<span class="odd-live-cursor__trail odd-live-cursor__trail--three"></span><span class="odd-live-cursor__trail odd-live-cursor__trail--two"></span><span class="odd-live-cursor__trail odd-live-cursor__trail--one"></span><span class="odd-live-cursor__aura"></span><span class="odd-live-cursor__vein"></span><span class="odd-live-cursor__eye"></span><span class="odd-live-cursor__spark odd-live-cursor__spark--one"></span><span class="odd-live-cursor__spark odd-live-cursor__spark--two"></span><span class="odd-live-cursor__orbit"></span><span class="odd-live-cursor__slash"></span><span class="odd-live-cursor__shape"></span>';
+				layer.innerHTML = '<span class="odd-live-cursor__wake"></span><span class="odd-live-cursor__aura"></span><span class="odd-live-cursor__vein"></span><span class="odd-live-cursor__eye"></span><span class="odd-live-cursor__spark"></span><span class="odd-live-cursor__orbit"></span><span class="odd-live-cursor__slash"></span><span class="odd-live-cursor__shape"></span>';
 				doc.body.appendChild( layer );
 			}
 			state.layer.el = layer;
 			state.layer.doc = doc;
+			state.layer.vars = {};
 		}
 		if ( ! state.layer.bound ) {
 			state.layer.bound = true;
@@ -779,14 +826,14 @@
 		return 'url("' + url.replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' ) + '")';
 	}
 
-	function eventSample( event ) {
+	function eventSample( event, usePredicted ) {
 		var coalesced = [];
 		var predicted = [];
 		try {
 			if ( event && typeof event.getCoalescedEvents === 'function' ) coalesced = event.getCoalescedEvents() || [];
 		} catch ( e ) {}
 		try {
-			if ( event && typeof event.getPredictedEvents === 'function' ) predicted = event.getPredictedEvents() || [];
+			if ( usePredicted && event && typeof event.getPredictedEvents === 'function' ) predicted = event.getPredictedEvents() || [];
 		} catch ( e ) {}
 		var base = coalesced.length ? coalesced[ coalesced.length - 1 ] : event;
 		var lead = predicted.length ? predicted[ predicted.length - 1 ] : base;
@@ -800,10 +847,37 @@
 		};
 	}
 
+	function liveEventFrame( event ) {
+		var mode = liveCursorMode();
+		var sample = eventSample( event, mode === 'replace' || liveCursorUsesPrediction() );
+		return {
+			type:        event && event.type || '',
+			target:      event && event.target || null,
+			sample:      sample,
+			mode:        mode,
+			pointerType: pointerTypeForEvent( event ),
+			pressure:    event && typeof event.pressure === 'number' ? event.pressure : null,
+			tiltX:       event && typeof event.tiltX === 'number' ? event.tiltX : 0,
+			tiltY:       event && typeof event.tiltY === 'number' ? event.tiltY : 0,
+			twist:       event && typeof event.twist === 'number' ? event.twist : 0,
+			width:       event && typeof event.width === 'number' ? event.width : 0,
+			height:      event && typeof event.height === 'number' ? event.height : 0,
+			hasCoords:   !! ( event && typeof event.clientX === 'number' ),
+		};
+	}
+
+	function updateLayerPressedFromEvent( event ) {
+		var type = event && event.type || '';
+		if ( type === 'pointerdown' || type === 'mousedown' ) state.layer.pressed = true;
+		if ( type === 'pointerup' || type === 'pointercancel' || type === 'mouseup' ) state.layer.pressed = false;
+	}
+
 	function hideLiveCursorLayer() {
 		if ( state.layer.el ) state.layer.el.setAttribute( 'data-visible', 'false' );
 		state.layer.visible = false;
 		state.layer.pressed = false;
+		state.layer.pending = null;
+		rememberLiveCursorResolved( null, [], null );
 	}
 
 	function captureDragPointer( event, resolved ) {
@@ -822,49 +896,100 @@
 		return pointerTypeForEvent( event ) !== 'pen';
 	}
 
-	function updateLiveCursorLayer( event, resolved, path ) {
-		if ( ! resolved || ! event ) {
+	function scheduleLiveCursorPaint() {
+		if ( state.layer.queued ) return;
+		state.layer.queued = true;
+		var raf = window.requestAnimationFrame || function ( callback ) { return window.setTimeout( callback, 16 ); };
+		raf( function () {
+			var pending = state.layer.pending;
+			state.layer.pending = null;
+			state.layer.queued = false;
+			if ( pending ) paintLiveCursorLayer( pending.frame, pending.resolved, pending.path );
+		} );
+	}
+
+	function queueLiveCursorLayerUpdate( event, resolved, path ) {
+		updateLayerPressedFromEvent( event );
+		if ( ! event ) {
 			hideLiveCursorLayer();
 			return;
 		}
-		if ( typeof event.clientX !== 'number' && ! /^(pointer|mouse)/.test( event.type || '' ) ) return;
-		if ( event.type === 'pointerdown' || event.type === 'mousedown' ) state.layer.pressed = true;
-		if ( event.type === 'pointerup' || event.type === 'pointercancel' || event.type === 'mouseup' ) state.layer.pressed = false;
-		if ( ! liveCursorAllowed( event, resolved, path ) ) {
+		var frame = liveEventFrame( event );
+		if ( ( event.type === 'pointermove' || event.type === 'mousemove' ) && state.layer.visible ) {
+			state.layer.pending = { frame: frame, resolved: resolved, path: path || [] };
+			scheduleLiveCursorPaint();
+			return;
+		}
+		paintLiveCursorLayer( frame, resolved, path );
+	}
+
+	function round( value, places ) {
+		var scale = places === 1 ? 10 : 100;
+		return Math.round( value * scale ) / scale;
+	}
+
+	function px( value ) {
+		return round( value, 1 ) + 'px';
+	}
+
+	function scalar( value ) {
+		return String( round( value, 2 ) );
+	}
+
+	function setLayerVar( layer, name, value ) {
+		value = String( value );
+		if ( state.layer.vars && state.layer.vars[ name ] === value ) return;
+		layer.style.setProperty( name, value );
+		state.layer.vars[ name ] = value;
+	}
+
+	function setLayerAttr( layer, name, value ) {
+		value = String( value );
+		if ( layer.getAttribute( name ) !== value ) layer.setAttribute( name, value );
+	}
+
+	function paintLiveCursorLayer( frame, resolved, path ) {
+		if ( ! resolved || ! frame ) {
 			hideLiveCursorLayer();
 			return;
 		}
-		var sample = eventSample( event );
+		if ( ! frame.hasCoords && ! /^(pointer|mouse)/.test( frame.type || '' ) ) return;
+		if ( ! liveCursorAllowed( frame, resolved, path ) ) {
+			hideLiveCursorLayer();
+			return;
+		}
+		var sample = frame.sample;
 		var doc = nodeDoc( resolved.target || resolved.node );
 		var layer = ensureLiveCursorLayer( doc );
 		if ( ! layer ) return;
 		var now = ( window.performance && window.performance.now ) ? window.performance.now() : Date.now();
-		var dx = sample.x - state.layer.x;
-		var dy = sample.y - state.layer.y;
+		var previousX = state.layer.time ? state.layer.x : sample.x;
+		var previousY = state.layer.time ? state.layer.y : sample.y;
+		var dx = sample.x - previousX;
+		var dy = sample.y - previousY;
 		var dt = Math.max( 8, now - ( state.layer.time || now ) );
 		var velocity = Math.sqrt( dx * dx + dy * dy ) / dt;
 		var speed = Math.max( 0, Math.min( 1, velocity / 1.15 ) );
-		var angle = Math.atan2( dy || 0, dx || 0 ) * 180 / Math.PI;
 		var role = resolved.kind || 'default';
 		if ( state.layer.pressed && role === 'grab' ) role = 'grabbing';
 		var soft = liveCursorSoftRole( role, resolved );
-		var meta = cursorMeta( role, resolved.node );
-		var pressure = typeof event.pressure === 'number' ? event.pressure : ( state.layer.pressed ? 0.45 : 0 );
-		var tiltX = typeof event.tiltX === 'number' ? event.tiltX : 0;
-		var tiltY = typeof event.tiltY === 'number' ? event.tiltY : 0;
-		var twist = typeof event.twist === 'number' ? event.twist : 0;
-		var width = typeof event.width === 'number' ? event.width : 0;
-		var height = typeof event.height === 'number' ? event.height : 0;
+		var pressure = typeof frame.pressure === 'number' ? frame.pressure : ( state.layer.pressed ? 0.45 : 0 );
+		var tiltX = frame.tiltX || 0;
+		var tiltY = frame.tiltY || 0;
+		var twist = frame.twist || 0;
+		var width = frame.width || 0;
+		var height = frame.height || 0;
 		var contact = Math.max( 0, Math.min( 32, Math.max( width, height ) ) );
-		state.layer.trail.unshift( { x: state.layer.x || sample.x, y: state.layer.y || sample.y } );
-		if ( state.layer.trail.length > 3 ) state.layer.trail.length = 3;
+		var wakeX = Math.max( -22, Math.min( 22, previousX - sample.x ) ) * 0.55;
+		var wakeY = Math.max( -22, Math.min( 22, previousY - sample.y ) ) * 0.55;
+		state.layer.trail[ 0 ] = { x: previousX, y: previousY };
 		state.layer.x = sample.x;
 		state.layer.y = sample.y;
 		state.layer.time = now;
 		state.layer.speed = speed;
 		state.layer.role = role;
-		state.layer.mode = liveCursorMode();
-		state.layer.pointerType = pointerTypeForEvent( event );
+		state.layer.mode = frame.mode;
+		state.layer.pointerType = frame.pointerType;
 		state.layer.pressure = pressure;
 		state.layer.tiltX = tiltX;
 		state.layer.tiltY = tiltY;
@@ -872,36 +997,29 @@
 		state.layer.contact = contact;
 		state.layer.coalesced = sample.coalesced;
 		state.layer.predicted = sample.predicted;
-		layer.setAttribute( 'data-visible', 'true' );
-		layer.setAttribute( 'data-role', role );
-		layer.setAttribute( 'data-mode', state.layer.mode );
-		layer.setAttribute( 'data-pointer', state.layer.pointerType || 'mouse' );
-		layer.setAttribute( 'data-pressed', state.layer.pressed ? 'true' : 'false' );
-		layer.setAttribute( 'data-soft', soft ? 'true' : 'false' );
-		layer.style.setProperty( '--odd-cursor-x', sample.x + 'px' );
-		layer.style.setProperty( '--odd-cursor-y', sample.y + 'px' );
-		layer.style.setProperty( '--odd-cursor-speed', String( speed ) );
-		layer.style.setProperty( '--odd-cursor-angle', angle + 'deg' );
-		layer.style.setProperty( '--odd-cursor-tilt', ( angle * 0.035 ) + 'deg' );
-		layer.style.setProperty( '--odd-cursor-stretch', String( 1 + speed * 0.24 ) );
-		layer.style.setProperty( '--odd-cursor-pressure', String( pressure ) );
-		layer.style.setProperty( '--odd-cursor-pen-tilt', ( tiltX * 0.18 + tiltY * 0.12 + twist * 0.02 ) + 'deg' );
-		layer.style.setProperty( '--odd-cursor-aura-scale', String( 1.05 + speed * 0.45 + pressure * 0.24 + contact * 0.012 ) );
-		layer.style.setProperty( '--odd-cursor-eye-scale', String( 1 + pressure * 0.36 ) );
-		layer.style.setProperty( '--odd-trail-opacity1', String( 0.30 + speed * 0.55 ) );
-		layer.style.setProperty( '--odd-trail-opacity2', String( 0.22 + speed * 0.36 ) );
-		layer.style.setProperty( '--odd-trail-opacity3', String( 0.14 + speed * 0.24 ) );
-		layer.style.setProperty( '--odd-hot-x', String( meta.hotspot[ 0 ] || 0 ) );
-		layer.style.setProperty( '--odd-hot-y', String( meta.hotspot[ 1 ] || 0 ) );
-		layer.style.setProperty( '--odd-hot-x-px', ( meta.hotspot[ 0 ] || 0 ) + 'px' );
-		layer.style.setProperty( '--odd-hot-y-px', ( meta.hotspot[ 1 ] || 0 ) + 'px' );
-		layer.style.setProperty( '--odd-hot-x-neg', ( -1 * ( meta.hotspot[ 0 ] || 0 ) ) + 'px' );
-		layer.style.setProperty( '--odd-hot-y-neg', ( -1 * ( meta.hotspot[ 1 ] || 0 ) ) + 'px' );
-		layer.style.setProperty( '--odd-cursor-image', meta.url ? cssUrlValue( meta.url ) : 'none' );
-		for ( var i = 0; i < 3; i++ ) {
-			var point = state.layer.trail[ i ] || { x: sample.x, y: sample.y };
-			layer.style.setProperty( '--odd-trail-x' + ( i + 1 ), ( point.x - sample.x ) + 'px' );
-			layer.style.setProperty( '--odd-trail-y' + ( i + 1 ), ( point.y - sample.y ) + 'px' );
+		setLayerAttr( layer, 'data-visible', 'true' );
+		setLayerAttr( layer, 'data-role', role );
+		setLayerAttr( layer, 'data-mode', state.layer.mode );
+		setLayerAttr( layer, 'data-pointer', state.layer.pointerType || 'mouse' );
+		setLayerAttr( layer, 'data-pressed', state.layer.pressed ? 'true' : 'false' );
+		setLayerAttr( layer, 'data-soft', soft ? 'true' : 'false' );
+		setLayerVar( layer, '--odd-cursor-x', px( sample.x ) );
+		setLayerVar( layer, '--odd-cursor-y', px( sample.y ) );
+		setLayerVar( layer, '--odd-cursor-pen-tilt', round( tiltX * 0.18 + tiltY * 0.12 + twist * 0.02, 1 ) + 'deg' );
+		setLayerVar( layer, '--odd-cursor-aura-scale', scalar( 0.98 + speed * 0.28 + pressure * 0.14 + contact * 0.005 ) );
+		setLayerVar( layer, '--odd-cursor-eye-scale', scalar( 1 + pressure * 0.22 ) );
+		setLayerVar( layer, '--odd-wake-x', px( wakeX ) );
+		setLayerVar( layer, '--odd-wake-y', px( wakeY ) );
+		setLayerVar( layer, '--odd-wake-opacity', scalar( 0.08 + speed * 0.22 ) );
+		if ( state.layer.mode === 'replace' ) {
+			var meta = cursorMeta( role, resolved.node );
+			setLayerVar( layer, '--odd-hot-x-px', ( meta.hotspot[ 0 ] || 0 ) + 'px' );
+			setLayerVar( layer, '--odd-hot-y-px', ( meta.hotspot[ 1 ] || 0 ) + 'px' );
+			setLayerVar( layer, '--odd-hot-x-neg', ( -1 * ( meta.hotspot[ 0 ] || 0 ) ) + 'px' );
+			setLayerVar( layer, '--odd-hot-y-neg', ( -1 * ( meta.hotspot[ 1 ] || 0 ) ) + 'px' );
+			setLayerVar( layer, '--odd-cursor-image', meta.url ? cssUrlValue( meta.url ) : 'none' );
+		} else {
+			setLayerVar( layer, '--odd-cursor-image', 'none' );
 		}
 		state.layer.visible = true;
 	}
@@ -942,11 +1060,12 @@
 	}
 
 	function installListeners( target ) {
-		if ( ! target || ! target.addEventListener || target.__oddCursorController ) return;
-		target.__oddCursorController = true;
-		[ 'pointerover', 'pointermove', 'pointerdown', 'pointerup', 'pointercancel', 'focusin', 'mouseover', 'mousedown', 'mouseup' ].forEach( function ( name ) {
+		if ( ! target || ! target.addEventListener || target.__oddCursorController === controllerId ) return;
+		target.__oddCursorController = controllerId;
+		[ 'pointerover', 'pointerdown', 'pointerup', 'pointercancel', 'focusin', 'mouseover', 'mousedown', 'mouseup' ].forEach( function ( name ) {
 			try { target.addEventListener( name, resolveAndApplyEvent, true ); } catch ( e ) {}
 		} );
+		try { target.addEventListener( 'pointermove', handleCursorMove, true ); } catch ( e ) {}
 	}
 
 	function mark( node, kind ) {
