@@ -1,21 +1,24 @@
 /**
- * ODD scene: Cloud City — v1.0.0
- * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (wallpaper.webp),
- * a pastel-sunrise floating-city gondola deck. Motion:
+ * ODD scene: Cloud City.
  *
- *   1. Three cloud parallax bands (back/mid/near) drift left.
- *   2. Small airship silhouettes at two depths cross slowly.
- *   3. Paper balloon-lanterns bob on gold threads in the mid-ground.
+ * Open-deck sunrise backdrop with calm sky-only motion: high cloud
+ * wisps, tiny airships, and a few kite-side lantern glints.
  */
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
-	var h = window.__odd.helpers;
+	var h = window.__odd.helpers || {};
 	var scriptUrl = document.currentScript && document.currentScript.src;
+	var TAU = h.tau || Math.PI * 2;
 
-	var LANTERNS = 5;
+	function rand( min, max ) {
+		return h.rand ? h.rand( min, max ) : min + Math.random() * ( max - min );
+	}
+
+	function choose( list ) {
+		return h.choose ? h.choose( list ) : list[ ( Math.random() * list.length ) | 0 ];
+	}
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -25,47 +28,52 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeCloudBand( w, hh, count, yFrac, rBase ) {
-		var out = [];
-		for ( var i = 0; i < count; i++ ) {
-			out.push( {
-				x: h.rand( -w * 0.2, w * 1.2 ),
-				y: hh * yFrac + h.rand( -hh * 0.03, hh * 0.04 ),
-				r: h.rand( rBase * 0.7, rBase * 1.4 ),
-				puffs: 3 + ( Math.random() * 2 ) | 0,
-				alpha: h.rand( 0.22, 0.5 ),
-				speed: h.rand( 0.03, 0.08 ),
-			} );
-		}
-		return out;
+	function countFor( env, normal, low ) {
+		return env.perfTier === 'low' ? low : normal;
 	}
 
-	function makeAirships( w, hh, count, yFrac ) {
-		var out = [];
+	function makeWisps( w, hh, count, y0, y1, size ) {
+		var arr = [];
 		for ( var i = 0; i < count; i++ ) {
-			out.push( {
-				x: h.rand( -w * 0.3, w * 1.3 ),
-				y: hh * yFrac + h.rand( -24, 24 ),
-				len: h.rand( 40, 90 ),
-				speed: h.rand( 0.12, 0.2 ) * ( Math.random() < 0.5 ? 1 : -1 ),
-				alpha: h.rand( 0.22, 0.4 ),
+			arr.push( {
+				x: rand( -w * 0.12, w * 1.18 ),
+				y: rand( hh * y0, hh * y1 ),
+				r: rand( size * 0.7, size * 1.35 ),
+				speed: rand( 0.012, 0.038 ),
+				puffs: 3 + ( Math.random() * 3 ) | 0,
+				alpha: rand( 0.08, 0.22 ),
+				phase: Math.random() * TAU,
 			} );
 		}
-		return out;
+		return arr;
 	}
 
-	function makeLanterns( w, hh ) {
-		var out = [];
-		for ( var i = 0; i < LANTERNS; i++ ) {
-			out.push( {
-				x: w * ( 0.18 + i * 0.14 ),
-				y: hh * ( 0.52 + ( i % 2 ) * 0.05 ),
-				r: h.rand( 10, 16 ),
-				phase: Math.random() * h.tau,
-				color: h.choose( [ 0xff9aa8, 0xffc56d, 0xfff2a8, 0xbde7ff, 0xffd4ff ] ),
+	function makeAirships( w, hh, count ) {
+		var arr = [];
+		for ( var i = 0; i < count; i++ ) {
+			arr.push( {
+				x: rand( -w * 0.2, w * 1.2 ),
+				y: rand( hh * 0.16, hh * 0.43 ),
+				len: rand( 28, 62 ),
+				speed: rand( 0.028, 0.065 ) * ( Math.random() > 0.5 ? 1 : -1 ),
+				alpha: rand( 0.18, 0.34 ),
 			} );
 		}
-		return out;
+		return arr;
+	}
+
+	function makeLanterns( w, hh, count ) {
+		var arr = [];
+		for ( var i = 0; i < count; i++ ) {
+			arr.push( {
+				x: rand( w * 0.61, w * 0.86 ),
+				y: rand( hh * 0.37, hh * 0.62 ),
+				r: rand( 7, 13 ),
+				phase: Math.random() * TAU,
+				color: choose( [ 0xff9aa8, 0xffc56d, 0xfff2a8, 0xbde7ff, 0xffd4ff ] ),
+			} );
+		}
+		return arr;
 	}
 
 	window.__odd.scenes[ 'cloud-city' ] = {
@@ -82,38 +90,40 @@
 			}
 			fitBackdrop();
 
-			var cloudsBack = new PIXI.Graphics(); app.stage.addChild( cloudsBack );
-			var airshipsBack = new PIXI.Graphics(); app.stage.addChild( airshipsBack );
-			var cloudsMid = new PIXI.Graphics(); app.stage.addChild( cloudsMid );
-			var lanternsG = new PIXI.Graphics(); app.stage.addChild( lanternsG );
-			var airshipsMid = new PIXI.Graphics(); app.stage.addChild( airshipsMid );
-			var cloudsNear = new PIXI.Graphics(); app.stage.addChild( cloudsNear );
+			var backWisps = new PIXI.Graphics();
+			app.stage.addChild( backWisps );
+			var ships = new PIXI.Graphics();
+			app.stage.addChild( ships );
+			var nearWisps = new PIXI.Graphics();
+			app.stage.addChild( nearWisps );
+			var lanterns = new PIXI.Graphics();
+			lanterns.blendMode = 'add';
+			app.stage.addChild( lanterns );
 
 			var w = app.renderer.width, hh = app.renderer.height;
 			return {
-				backdrop: backdrop, fitBackdrop: fitBackdrop,
-				cBackG: cloudsBack, cMidG: cloudsMid, cNearG: cloudsNear,
-				shipBackG: airshipsBack, shipMidG: airshipsMid,
-				lanternsG: lanternsG,
-				cloudsBack: makeCloudBand( w, hh, 7, 0.22, 55 ),
-				cloudsMid: makeCloudBand( w, hh, 5, 0.36, 75 ),
-				cloudsNear: makeCloudBand( w, hh, 3, 0.52, 100 ),
-				airshipsBack: makeAirships( w, hh, 2, 0.19 ),
-				airshipsMid: makeAirships( w, hh, 2, 0.34 ),
-				lanterns: makeLanterns( w, hh ),
-				time: 0, pulse: 0,
+				backdrop: backdrop,
+				fitBackdrop: fitBackdrop,
+				backWispsG: backWisps,
+				nearWispsG: nearWisps,
+				shipsG: ships,
+				lanternsG: lanterns,
+				backWisps: makeWisps( w, hh, countFor( env, 8, 4 ), 0.09, 0.34, 38 ),
+				nearWisps: makeWisps( w, hh, countFor( env, 5, 2 ), 0.44, 0.58, 70 ),
+				airships: makeAirships( w, hh, countFor( env, 4, 2 ) ),
+				lanterns: makeLanterns( w, hh, countFor( env, 4, 2 ) ),
+				time: 0,
+				pulse: 0,
 			};
 		},
 
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.cloudsBack = makeCloudBand( w, hh, 7, 0.22, 55 );
-			state.cloudsMid = makeCloudBand( w, hh, 5, 0.36, 75 );
-			state.cloudsNear = makeCloudBand( w, hh, 3, 0.52, 100 );
-			state.airshipsBack = makeAirships( w, hh, 2, 0.19 );
-			state.airshipsMid = makeAirships( w, hh, 2, 0.34 );
-			state.lanterns = makeLanterns( w, hh );
+			state.backWisps = makeWisps( w, hh, countFor( env, 8, 4 ), 0.09, 0.34, 38 );
+			state.nearWisps = makeWisps( w, hh, countFor( env, 5, 2 ), 0.44, 0.58, 70 );
+			state.airships = makeAirships( w, hh, countFor( env, 4, 2 ) );
+			state.lanterns = makeLanterns( w, hh, countFor( env, 4, 2 ) );
 		},
 
 		tick: function ( state, env ) {
@@ -121,12 +131,11 @@
 			var w = app.renderer.width, hh = app.renderer.height;
 			if ( ! env.reducedMotion ) state.time += dt;
 			state.pulse *= 0.92;
-
 			var bass = ( env.audio && env.audio.enabled ) ? env.audio.bass : 0;
 			var px = env.parallax ? env.parallax.x : 0;
 			var py = env.parallax ? env.parallax.y : 0;
 
-			function drawCloudBand( g, list, scroll, alphaMul ) {
+			function drawWisps( g, list, scroll, alphaMul ) {
 				g.clear();
 				for ( var i = 0; i < list.length; i++ ) {
 					var c = list[ i ];
@@ -134,57 +143,55 @@
 					if ( c.x < -c.r * 4 ) c.x = w + c.r * 3;
 					var cx = c.x + scroll;
 					for ( var p = 0; p < c.puffs; p++ ) {
-						var dx = ( p - ( c.puffs - 1 ) / 2 ) * c.r * 0.7;
-						var dy = Math.sin( p + i ) * c.r * 0.1;
-						var rr = c.r * ( 0.8 + Math.abs( Math.sin( p * 0.7 + i ) ) * 0.35 );
-						g.circle( cx + dx, c.y + dy, rr ).fill( { color: 0xffffff, alpha: c.alpha * alphaMul } );
+						var dx = ( p - ( c.puffs - 1 ) / 2 ) * c.r * 0.62;
+						var dy = Math.sin( c.phase + p * 1.3 ) * c.r * 0.1;
+						g.ellipse( cx + dx, c.y + dy, c.r, c.r * 0.38 )
+							.fill( { color: 0xffffff, alpha: c.alpha * alphaMul } );
 					}
 				}
 			}
-			drawCloudBand( state.cBackG, state.cloudsBack, px * 4, 0.8 );
-			drawCloudBand( state.cMidG, state.cloudsMid, px * 8, 1.0 );
-			drawCloudBand( state.cNearG, state.cloudsNear, px * 14, 1.1 );
+			drawWisps( state.backWispsG, state.backWisps, px * 4, 0.85 );
+			drawWisps( state.nearWispsG, state.nearWisps, px * 8, 0.55 );
 
-			function drawAirships( g, list, scroll, alphaMul ) {
-				g.clear();
-				for ( var i = 0; i < list.length; i++ ) {
-					var a = list[ i ];
-					if ( ! env.reducedMotion ) a.x += a.speed * dt;
-					if ( a.speed > 0 && a.x > w + a.len * 2 ) a.x = -a.len * 2;
-					if ( a.speed < 0 && a.x < -a.len * 2 ) a.x = w + a.len * 2;
-					var ax = a.x + scroll;
-					g.ellipse( ax, a.y, a.len, a.len * 0.32 ).fill( { color: 0x3a2440, alpha: a.alpha * alphaMul } );
-					g.rect( ax - a.len * 0.3, a.y + a.len * 0.22, a.len * 0.6, a.len * 0.12 )
-						.fill( { color: 0x2a1830, alpha: a.alpha * alphaMul } );
-				}
+			var sg = state.shipsG;
+			sg.clear();
+			for ( var i = 0; i < state.airships.length; i++ ) {
+				var ship = state.airships[ i ];
+				if ( ! env.reducedMotion ) ship.x += ship.speed * dt;
+				if ( ship.speed > 0 && ship.x > w + ship.len * 2 ) ship.x = -ship.len * 2;
+				if ( ship.speed < 0 && ship.x < -ship.len * 2 ) ship.x = w + ship.len * 2;
+				var sx = ship.x + px * 7;
+				sg.ellipse( sx, ship.y, ship.len, ship.len * 0.28 )
+					.fill( { color: 0x805a6c, alpha: ship.alpha } );
+				sg.rect( sx - ship.len * 0.24, ship.y + ship.len * 0.2, ship.len * 0.48, ship.len * 0.11 )
+					.fill( { color: 0x5f3e51, alpha: ship.alpha * 0.85 } );
 			}
-			drawAirships( state.shipBackG, state.airshipsBack, px * 6, 0.9 );
-			drawAirships( state.shipMidG, state.airshipsMid, px * 12, 1.0 );
 
 			var lg = state.lanternsG;
 			lg.clear();
-			for ( var i = 0; i < state.lanterns.length; i++ ) {
-				var L = state.lanterns[ i ];
-				if ( ! env.reducedMotion ) L.phase += 0.01 * dt;
-				var bob = Math.sin( L.phase ) * 8;
-				var lx = L.x + px * 10;
-				var ly = L.y + bob + py * 4;
-				lg.moveTo( lx, ly - L.r - 40 )
-					.lineTo( lx, ly - L.r )
-					.stroke( { color: 0x8a6a2a, width: 1, alpha: 0.6 } );
-				lg.circle( lx, ly, L.r + 4 ).fill( { color: L.color, alpha: 0.25 } );
-				lg.circle( lx, ly, L.r ).fill( { color: L.color, alpha: 0.95 } );
-				lg.circle( lx - 1, ly - 1, L.r * 0.35 ).fill( { color: 0xffffff, alpha: 0.35 + bass * 0.2 + state.pulse * 0.3 } );
+			for ( var j = 0; j < state.lanterns.length; j++ ) {
+				var l = state.lanterns[ j ];
+				if ( ! env.reducedMotion ) l.phase += 0.0045 * dt;
+				var bob = Math.sin( l.phase ) * 5;
+				var lx = l.x + px * 9;
+				var ly = l.y + bob + py * 5;
+				lg.circle( lx, ly, l.r * 2.1 )
+					.fill( { color: l.color, alpha: 0.08 + state.pulse * 0.04 } );
+				lg.circle( lx, ly, l.r )
+					.fill( { color: l.color, alpha: 0.34 + bass * 0.08 + state.pulse * 0.12 } );
+				lg.circle( lx - 1, ly - 1, l.r * 0.34 )
+					.fill( { color: 0xffffff, alpha: 0.22 } );
 			}
-
 		},
 
 		onRipple: function ( opts, state ) {
-			state.pulse = Math.min( 1, state.pulse + ( ( opts && opts.intensity ) || 0.5 ) );
+			state.pulse = Math.min( 1, state.pulse + ( ( opts && opts.intensity ) || 0.45 ) );
 		},
 
 		onAudio: function ( state, env ) {
-			if ( env.audio.bass > 0.55 ) state.pulse = Math.min( 1, state.pulse + 0.1 );
+			if ( env.audio && env.audio.enabled && env.audio.bass > 0.58 ) {
+				state.pulse = Math.min( 1, state.pulse + 0.08 );
+			}
 		},
 
 		stillFrame: function ( state, env ) {
@@ -195,8 +202,9 @@
 		},
 
 		cleanup: function ( state ) {
-			state.cloudsBack = []; state.cloudsMid = []; state.cloudsNear = [];
-			state.airshipsBack = []; state.airshipsMid = [];
+			state.backWisps = [];
+			state.nearWisps = [];
+			state.airships = [];
 			state.lanterns = [];
 		},
 	};

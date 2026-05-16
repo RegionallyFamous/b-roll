@@ -1,25 +1,25 @@
 /**
- * ODD scene: Mercado — v1.0.0
- * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (wallpaper.webp), a
- * bright market aisle with papel-picado bunting. Motion:
+ * ODD scene: Mercado.
  *
- *   1. Two rows of colored bunting flags ripple on shared wind curves.
- *   2. Marigold petals drift down along the aisle.
- *   3. Diagonal sunbeam bands ease in / out.
+ * Sunlit market backdrop with light canopy ripples, right-stall
+ * marigold drift, and slow warm sunbeams kept off the icon lane.
  */
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
-	var h = window.__odd.helpers;
+	var h = window.__odd.helpers || {};
 	var scriptUrl = document.currentScript && document.currentScript.src;
+	var TAU = h.tau || Math.PI * 2;
+	var FLAG_COLORS = [ 0xff4fa8, 0x2fd1d8, 0xffb800, 0xff6a5c, 0x80d45b, 0x2a4fc2 ];
 
-	var PETAL_COUNT = 110;
-	var FLAG_ROW_A = 16;
-	var FLAG_ROW_B = 14;
-	var SUNBEAMS = 4;
-	var BUNTING_COLORS = [ 0xff4fa8, 0x2fd1d8, 0xffb800, 0xff6a5c, 0x6fd26c, 0x2a4fc2, 0xff6bcf ];
+	function rand( min, max ) {
+		return h.rand ? h.rand( min, max ) : min + Math.random() * ( max - min );
+	}
+
+	function choose( list ) {
+		return h.choose ? h.choose( list ) : list[ ( Math.random() * list.length ) | 0 ];
+	}
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -29,45 +29,52 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makePetals( w, hh ) {
-		var out = [];
-		for ( var i = 0; i < PETAL_COUNT; i++ ) {
-			out.push( {
-				x: h.rand( 0, w ),
-				y: h.rand( -hh * 0.2, hh ),
-				size: h.rand( 2.4, 4.6 ),
-				vx: h.rand( 0.05, 0.2 ),
-				vy: h.rand( 0.2, 0.5 ),
-				phase: Math.random() * h.tau,
-				color: h.choose( [ 0xff8a2a, 0xffb400, 0xff6b1a, 0xffd257 ] ),
-				alpha: h.rand( 0.55, 0.9 ),
-			} );
-		}
-		return out;
+	function countFor( env, normal, low ) {
+		return env.perfTier === 'low' ? low : normal;
 	}
 
-	function buildBuntingRow( count ) {
-		var out = [];
+	function makePetals( w, hh, count ) {
+		var arr = [];
 		for ( var i = 0; i < count; i++ ) {
-			out.push( {
-				color: BUNTING_COLORS[ i % BUNTING_COLORS.length ],
-				phase: Math.random() * h.tau,
+			var stallSide = Math.random() > 0.18;
+			arr.push( {
+				x: stallSide ? rand( w * 0.48, w * 0.96 ) : rand( w * 0.18, w * 0.72 ),
+				y: stallSide ? rand( hh * 0.16, hh * 0.78 ) : rand( hh * 0.16, hh * 0.48 ),
+				size: rand( 2.0, 4.3 ),
+				vx: rand( -0.015, 0.06 ),
+				vy: rand( 0.045, 0.13 ),
+				phase: Math.random() * TAU,
+				color: choose( [ 0xff8a2a, 0xffb400, 0xff6b1a, 0xffd257, 0xf6427d ] ),
+				alpha: rand( 0.42, 0.78 ),
 			} );
 		}
-		return out;
+		return arr;
 	}
 
-	function makeSunbeams( w, hh ) {
-		var out = [];
-		for ( var i = 0; i < SUNBEAMS; i++ ) {
-			out.push( {
-				x: w * ( 0.1 + i * ( 0.85 / ( SUNBEAMS - 1 ) ) ),
-				width: w * 0.09,
-				phase: Math.random() * h.tau,
-				speed: h.rand( 0.001, 0.002 ),
+	function makeFlags( count ) {
+		var arr = [];
+		for ( var i = 0; i < count; i++ ) {
+			arr.push( {
+				color: FLAG_COLORS[ i % FLAG_COLORS.length ],
+				phase: Math.random() * TAU,
+				w: rand( 19, 28 ),
+				h: rand( 16, 24 ),
 			} );
 		}
-		return out;
+		return arr;
+	}
+
+	function makeBeams( w, hh, count ) {
+		var arr = [];
+		for ( var i = 0; i < count; i++ ) {
+			arr.push( {
+				x: rand( w * 0.05, w * 0.55 ),
+				width: rand( w * 0.055, w * 0.12 ),
+				phase: Math.random() * TAU,
+				speed: rand( 0.0008, 0.0018 ),
+			} );
+		}
+		return arr;
 	}
 
 	window.__odd.scenes[ 'mercado' ] = {
@@ -86,32 +93,34 @@
 
 			var beams = new PIXI.Graphics();
 			beams.blendMode = 'add';
-			beams.alpha = 0.4;
 			app.stage.addChild( beams );
-
 			var bunting = new PIXI.Graphics();
 			app.stage.addChild( bunting );
-
 			var petals = new PIXI.Graphics();
+			petals.blendMode = 'add';
 			app.stage.addChild( petals );
 
 			var w = app.renderer.width, hh = app.renderer.height;
 			return {
-				backdrop: backdrop, fitBackdrop: fitBackdrop,
-				beamG: beams, buntingG: bunting, petalG: petals,
-				flagsA: buildBuntingRow( FLAG_ROW_A ),
-				flagsB: buildBuntingRow( FLAG_ROW_B ),
-				petals: makePetals( w, hh ),
-				sunbeams: makeSunbeams( w, hh ),
-				time: 0, pulse: 0,
+				backdrop: backdrop,
+				fitBackdrop: fitBackdrop,
+				beamsG: beams,
+				buntingG: bunting,
+				petalsG: petals,
+				beams: makeBeams( w, hh, countFor( env, 3, 1 ) ),
+				flagsNear: makeFlags( 11 ),
+				flagsFar: makeFlags( 9 ),
+				petals: makePetals( w, hh, countFor( env, 64, 28 ) ),
+				time: 0,
+				pulse: 0,
 			};
 		},
 
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.petals = makePetals( w, hh );
-			state.sunbeams = makeSunbeams( w, hh );
+			state.beams = makeBeams( w, hh, countFor( env, 3, 1 ) );
+			state.petals = makePetals( w, hh, countFor( env, 64, 28 ) );
 		},
 
 		tick: function ( state, env ) {
@@ -119,87 +128,87 @@
 			var w = app.renderer.width, hh = app.renderer.height;
 			if ( ! env.reducedMotion ) state.time += dt;
 			state.pulse *= 0.92;
-
 			var bass = ( env.audio && env.audio.enabled ) ? env.audio.bass : 0;
 			var high = ( env.audio && env.audio.enabled ) ? env.audio.high : 0;
 			var px = env.parallax ? env.parallax.x : 0;
 			var py = env.parallax ? env.parallax.y : 0;
 
-			var bg = state.beamG;
+			var bg = state.beamsG;
 			bg.clear();
-			for ( var sI = 0; sI < state.sunbeams.length; sI++ ) {
-				var sb = state.sunbeams[ sI ];
-				var breath = 0.5 + Math.sin( state.time * sb.speed + sb.phase ) * 0.5;
-				var steps = 14;
-				for ( var stp = 0; stp < steps; stp++ ) {
-					var t = stp / ( steps - 1 );
-					var xc = sb.x + 0.28 * hh * t + px * 6;
-					var wSeg = sb.width * ( 0.75 + t * 0.55 );
-					var a = ( 1 - t ) * 0.06 * ( 0.55 + breath * 0.9 ) * ( 1 + bass * 0.4 );
-					bg.rect( xc - wSeg * 0.5, hh * t, wSeg, hh / steps + 1 )
-						.fill( { color: 0xffe3a0, alpha: a } );
+			for ( var bi = 0; bi < state.beams.length; bi++ ) {
+				var beam = state.beams[ bi ];
+				var breath = 0.52 + Math.sin( state.time * beam.speed + beam.phase ) * 0.48;
+				for ( var st = 0; st < 12; st++ ) {
+					var t = st / 11;
+					var y = hh * ( 0.03 + t * 0.42 );
+					var x = beam.x + hh * 0.32 * t + px * 3;
+					var alpha = ( 1 - t ) * 0.045 * ( 0.5 + breath * 0.7 ) * ( 1 + bass * 0.25 );
+					bg.rect( x - beam.width * 0.5, y, beam.width * ( 0.9 + t * 0.7 ), hh * 0.045 )
+						.fill( { color: 0xffe0a0, alpha: alpha } );
 				}
 			}
 
-			function drawBunting( rowArr, rowY, amp, wavePhase ) {
-				var lenX = w * 0.92;
-				var startX = w * 0.04;
-				var count = rowArr.length;
-				var step = lenX / ( count - 1 );
+			function drawFlags( flags, y0, y1, x0, x1, amp, alpha ) {
 				var points = [];
-				for ( var i = 0; i < count; i++ ) {
-					var t = i / ( count - 1 );
-					var sag = Math.sin( t * Math.PI ) * 20;
-					var ripple = Math.sin( state.time * 0.04 + i * 0.6 + wavePhase ) * amp;
-					var x = startX + step * i + px * 4;
-					var y = rowY + sag + ripple + py * 2;
+				for ( var i = 0; i < flags.length; i++ ) {
+					var t = i / Math.max( 1, flags.length - 1 );
+					var x = x0 + ( x1 - x0 ) * t + px * 3;
+					var y = y0 + ( y1 - y0 ) * t + Math.sin( t * Math.PI ) * 14
+						+ Math.sin( state.time * 0.018 + flags[ i ].phase ) * amp + py * 2;
 					points.push( { x: x, y: y } );
 				}
 				state.buntingG.moveTo( points[ 0 ].x, points[ 0 ].y );
 				for ( var j = 1; j < points.length; j++ ) {
 					state.buntingG.lineTo( points[ j ].x, points[ j ].y );
 				}
-				state.buntingG.stroke( { color: 0x4a2d12, width: 1.3, alpha: 0.8 } );
-				for ( var k = 0; k < count; k++ ) {
+				state.buntingG.stroke( { color: 0x5a3518, width: 1.2, alpha: alpha * 0.75 } );
+				for ( var k = 0; k < flags.length; k++ ) {
+					var f = flags[ k ];
 					var pt = points[ k ];
-					var flag = rowArr[ k ];
-					var twist = Math.sin( state.time * 0.06 + flag.phase ) * 0.25;
-					var fw = 16 + Math.cos( twist ) * 6;
-					var fh = 20;
+					var twist = Math.sin( state.time * 0.025 + f.phase ) * 0.18;
+					var fw = f.w * ( 0.92 + Math.cos( twist ) * 0.08 );
 					state.buntingG.moveTo( pt.x - fw * 0.5, pt.y )
 						.lineTo( pt.x + fw * 0.5, pt.y )
-						.lineTo( pt.x, pt.y + fh )
-						.fill( { color: flag.color, alpha: 0.92 } );
+						.lineTo( pt.x + fw * 0.32, pt.y + f.h )
+						.lineTo( pt.x, pt.y + f.h * 0.78 )
+						.lineTo( pt.x - fw * 0.32, pt.y + f.h )
+						.fill( { color: f.color, alpha: alpha } );
 				}
 			}
 
 			state.buntingG.clear();
-			drawBunting( state.flagsA, hh * 0.12, 4 + state.pulse * 3 + bass * 4, 0 );
-			drawBunting( state.flagsB, hh * 0.22, 3 + state.pulse * 3 + bass * 3, 1.4 );
+			drawFlags( state.flagsFar, hh * 0.29, hh * 0.13, w * 0.08, w * 0.58, 2.2 + state.pulse * 1.5, 0.55 );
+			drawFlags( state.flagsNear, hh * 0.23, hh * 0.09, w * 0.36, w * 0.98, 3.2 + state.pulse * 2 + bass * 1.5, 0.82 );
 
-			var pg = state.petalG;
+			var pg = state.petalsG;
 			pg.clear();
-			for ( var i = 0; i < state.petals.length; i++ ) {
-				var p = state.petals[ i ];
+			for ( var pI = 0; pI < state.petals.length; pI++ ) {
+				var p = state.petals[ pI ];
 				if ( ! env.reducedMotion ) {
 					p.x += p.vx * dt;
 					p.y += p.vy * dt;
-					p.phase += 0.05 * dt;
-					if ( p.y > hh + 6 ) { p.y = -8; p.x = h.rand( 0, w ); }
-					if ( p.x > w + 6 ) p.x = -6;
+					p.phase += 0.012 * dt;
+					if ( p.y > hh * 0.84 || p.x > w + 8 ) {
+						p.x = rand( w * 0.48, w * 0.96 );
+						p.y = rand( hh * 0.12, hh * 0.3 );
+					}
 				}
-				var sway = Math.sin( p.phase ) * 3;
-				pg.rect( p.x + sway - p.size * 0.5, p.y - p.size * 0.3, p.size, p.size * 0.6 )
-					.fill( { color: p.color, alpha: p.alpha * ( 0.85 + high * 0.2 ) } );
+				var leftQuiet = p.x < w * 0.34 && p.y > hh * 0.26;
+				var sway = Math.sin( p.phase ) * 3.5;
+				var a = p.alpha * ( leftQuiet ? 0.16 : 1 ) * ( 0.88 + high * 0.12 );
+				pg.ellipse( p.x + sway + px * 2, p.y + py * 2, p.size, p.size * 0.48 )
+					.fill( { color: p.color, alpha: a } );
 			}
 		},
 
 		onRipple: function ( opts, state ) {
-			state.pulse = Math.min( 1, state.pulse + ( ( opts && opts.intensity ) || 0.6 ) );
+			state.pulse = Math.min( 1, state.pulse + ( ( opts && opts.intensity ) || 0.55 ) );
 		},
 
 		onAudio: function ( state, env ) {
-			if ( env.audio.bass > 0.55 ) state.pulse = Math.min( 1, state.pulse + 0.15 );
+			if ( env.audio && env.audio.enabled && env.audio.bass > 0.58 ) {
+				state.pulse = Math.min( 1, state.pulse + 0.1 );
+			}
 		},
 
 		stillFrame: function ( state, env ) {
@@ -210,10 +219,10 @@
 		},
 
 		cleanup: function ( state ) {
+			state.beams = [];
+			state.flagsNear = [];
+			state.flagsFar = [];
 			state.petals = [];
-			state.sunbeams = [];
-			state.flagsA = [];
-			state.flagsB = [];
 		},
 	};
 } )();

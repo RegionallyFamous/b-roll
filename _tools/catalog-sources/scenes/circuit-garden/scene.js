@@ -1,14 +1,24 @@
 /**
  * ODD scene: Circuit Garden.
  *
- * GPT Image 2 backdrop with quiet fireflies, trace pulses, and dew glints.
+ * Regenerated backdrop tuned with a quiet lower-left board area,
+ * slow trace pulses, right-side blossom breaths, and sparse fireflies.
  */
 ( function () {
 	'use strict';
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
-	var h = window.__odd.helpers;
+	var h = window.__odd.helpers || {};
 	var scriptUrl = document.currentScript && document.currentScript.src;
+	var TAU = h.tau || Math.PI * 2;
+
+	function rand( min, max ) {
+		return h.rand ? h.rand( min, max ) : min + Math.random() * ( max - min );
+	}
+
+	function choose( list ) {
+		return h.choose ? h.choose( list ) : list[ ( Math.random() * list.length ) | 0 ];
+	}
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -18,20 +28,78 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeSparks( w, hh ) {
-		var out = [];
-		for ( var i = 0; i < 120; i++ ) {
-			out.push( {
-				x: h.rand( w * 0.18, w * 0.95 ),
-				y: h.rand( hh * 0.08, hh * 0.88 ),
-				r: h.rand( 0.8, 2.2 ),
-				phase: Math.random() * Math.PI * 2,
-				speed: h.rand( 0.004, 0.018 ),
-				alpha: h.rand( 0.12, 0.42 ),
-				color: Math.random() > 0.55 ? 0xb6ff5c : 0x70fff0,
+	function seasonPalette( season ) {
+		switch ( season ) {
+			case 'spring': return { firefly: 0xb5ffdf, blossom: 0xff9dd2, trace: 0x7effc8, bus: 0xffc060 };
+			case 'summer': return { firefly: 0xfff2a0, blossom: 0xff7f6b, trace: 0xffcb5b, bus: 0xffd070 };
+			case 'autumn': return { firefly: 0xffc27a, blossom: 0xff8a3a, trace: 0xff7aa2, bus: 0xffa84d };
+			case 'winter': return { firefly: 0xcfe8ff, blossom: 0xbde3ff, trace: 0x9bd7ff, bus: 0xd9f2ff };
+			case 'halloween': return { firefly: 0xff9a3b, blossom: 0xb074ff, trace: 0x4ce0a5, bus: 0xff8a3b };
+			case 'newYear': return { firefly: 0xffd79a, blossom: 0xffa9d0, trace: 0xffe88a, bus: 0xffd79a };
+			default: return { firefly: 0xc8ffd0, blossom: 0xff9fd0, trace: 0x9affc5, bus: 0xffc060 };
+		}
+	}
+
+	function countFor( env, normal, low ) {
+		return env.perfTier === 'low' ? low : normal;
+	}
+
+	function makeFireflies( w, hh, count ) {
+		var arr = [];
+		for ( var i = 0; i < count; i++ ) {
+			var rightGlow = Math.random() > 0.28;
+			arr.push( {
+				x: rightGlow ? rand( w * 0.43, w * 0.97 ) : rand( w * 0.16, w * 0.75 ),
+				y: rightGlow ? rand( hh * 0.08, hh * 0.82 ) : rand( hh * 0.08, hh * 0.44 ),
+				r: rand( 0.8, 2.2 ),
+				phase: Math.random() * TAU,
+				speed: rand( 0.003, 0.012 ),
+				alpha: rand( 0.14, 0.46 ),
+				color: choose( [ 0xffd968, 0xaaff75, 0x6fffee, 0xa48cff ] ),
 			} );
 		}
-		return out;
+		return arr;
+	}
+
+	function makeBusPulses( w, hh, count ) {
+		var arr = [];
+		for ( var i = 0; i < count; i++ ) {
+			arr.push( {
+				t: Math.random(),
+				speed: rand( 0.0009, 0.0022 ),
+				r: rand( 1.4, 2.8 ),
+				offset: rand( -7, 7 ),
+				phase: Math.random() * TAU,
+			} );
+		}
+		return arr;
+	}
+
+	function makeBlossoms( w, hh, count ) {
+		var arr = [];
+		for ( var i = 0; i < count; i++ ) {
+			arr.push( {
+				x: rand( w * 0.55, w * 0.96 ),
+				y: rand( hh * 0.16, hh * 0.72 ),
+				r: rand( 4, 11 ),
+				phase: Math.random() * TAU,
+				speed: rand( 0.003, 0.008 ),
+				petals: 5 + ( Math.random() * 3 ) | 0,
+				color: choose( [ 0xff8fe7, 0x9d7cff, 0xffb65f, 0x80fff1 ] ),
+			} );
+		}
+		return arr;
+	}
+
+	function pointOnBus( w, hh, t, offset ) {
+		var x0 = w * 0.12;
+		var y0 = hh * 0.46;
+		var x1 = w * 0.97;
+		var y1 = hh * 0.63;
+		return {
+			x: x0 + ( x1 - x0 ) * t,
+			y: y0 + ( y1 - y0 ) * t + Math.sin( t * Math.PI ) * hh * 0.06 + offset,
+		};
 	}
 
 	window.__odd.scenes[ 'circuit-garden' ] = {
@@ -47,378 +115,127 @@
 				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
 			}
 			fitBackdrop();
-			var traces = new PIXI.Graphics();
-			traces.blendMode = 'add';
-			app.stage.addChild( traces );
-			var sparks = new PIXI.Graphics();
-			sparks.blendMode = 'add';
-			app.stage.addChild( sparks );
-			return {
-				backdrop: backdrop,
-				fitBackdrop: fitBackdrop,
-				traces: traces,
-				sparks: sparks,
-				sparkList: makeSparks( app.renderer.width, app.renderer.height ),
-				time: 0,
-				ripple: 0,
-				glanceX: 0,
-			};
-		},
-		onResize: function ( state, env ) {
-			state.fitBackdrop();
-			state.sparkList = makeSparks( env.app.renderer.width, env.app.renderer.height );
-		},
-		tick: function ( state, env ) {
-			var app = env.app, dt = env.dt;
-			var w = app.renderer.width, hh = app.renderer.height;
-			state.time += dt;
-			state.ripple *= 0.93;
-			state.glanceX *= 0.9;
-			var mid = ( env.audio && env.audio.enabled ) ? env.audio.mid : 0;
 
-			var tg = state.traces;
-			tg.clear();
-			for ( var i = 0; i < 8; i++ ) {
-				var y = hh * ( 0.22 + i * 0.075 );
-				var pulse = 0.02 + Math.max( 0, Math.sin( state.time * 0.018 + i * 0.8 ) ) * 0.08;
-				tg.moveTo( w * 0.18, y )
-					.lineTo( w * ( 0.42 + state.glanceX * 0.02 ), y + Math.sin( i ) * 18 )
-					.lineTo( w * 0.86, y + Math.cos( i ) * 26 )
-					.stroke( { color: 0x8dff72, width: 1.2 + state.ripple, alpha: pulse + mid * 0.04 + state.ripple * 0.04, cap: 'round' } );
-			}
-
-			var sg = state.sparks;
-			sg.clear();
-			for ( var s = 0; s < state.sparkList.length; s++ ) {
-				var p = state.sparkList[ s ];
-				if ( ! env.reducedMotion ) p.phase += p.speed * dt;
-				var x = p.x + Math.sin( p.phase ) * 10 + state.glanceX * 8;
-				var y = p.y + Math.cos( p.phase * 0.8 ) * 8;
-				var a = p.alpha * ( 0.6 + Math.sin( p.phase * 2 ) * 0.4 ) + state.ripple * 0.08;
-				sg.circle( x, y, p.r ).fill( { color: p.color, alpha: Math.max( 0, a ) } );
-			}
-
-		},
-		onRipple: function ( opts, state ) {
-			state.ripple = Math.min( 1, state.ripple + ( ( opts && opts.intensity ) || 0.45 ) );
-		},
-		onGlance: function ( opts, state, env ) {
-			if ( ! opts || opts.nod ) return;
-			var w = env.app.renderer.width;
-			state.glanceX = Math.max( -1, Math.min( 1, ( ( opts.x || w / 2 ) / w - 0.5 ) * 2 ) );
-		},
-		onGlitch: function ( opts, state ) {
-			state.ripple = 1;
-		},
-		onAudio: function ( state, env ) {
-			if ( env.audio.high > 0.62 ) state.ripple = Math.min( 1, state.ripple + 0.07 );
-		},
-		stillFrame: function ( state, env ) {
-			var saveDt = env.dt;
-			env.dt = 1;
-			this.tick( state, env );
-			env.dt = saveDt;
-		},
-		cleanup: function ( state ) {
-			state.sparkList = [];
-		},
-	};
-} )();
-/**
- * ODD scene: Circuit Garden � v1.0.0
- * ---------------------------------------------------------------
- * GPT Image 2 painted backdrop (wallpaper.webp)
- * with a thin layer of "living circuitry":
- *
- *   1. ~80 data fireflies drifting on a slow noise field with short
- *      glowing tails. Speed scales with mid-range audio energy.
- *
- *   2. Circuit traces that pulse a moving spark along pre-seeded
- *      paths, as if a packet were routing through the garden.
- *
- *   3. A scatter of "blossoms" � small radial bursts that inhale
- *      and exhale on a breath rhythm, tinted by season.
- *
- *   4. Optional low-perf fallback: skip traces, keep fireflies and
- *      blossoms.
- *
- * Audio: bass makes blossoms exhale, mid speeds up fireflies, high
- * triggers extra trace sparks.
- *
- * Reduced motion: everything frozen on a settled pose.
- */
-( function () {
-	'use strict';
-	window.__odd = window.__odd || {};
-	window.__odd.scenes = window.__odd.scenes || {};
-	var h = window.__odd.helpers;
-
-	var FIREFLY_COUNT = 80;
-	var TRACE_COUNT = 5;
-	var BLOSSOM_COUNT = 16;
-
-	function backdropUrl() {
-		var cfg = window.odd || {};
-		var sm = cfg.sceneMap || {};
-		var desc = sm[ 'circuit-garden' ] || {};
-		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
-	}
-
-	function seasonPalette( season ) {
-		switch ( season ) {
-			case 'spring':    return { firefly: 0xb5ffdf, blossom: 0xff9dd2, trace: 0x7effc8 };
-			case 'summer':    return { firefly: 0xfff2a0, blossom: 0xff7f6b, trace: 0xffcb5b };
-			case 'autumn':    return { firefly: 0xffc27a, blossom: 0xff8a3a, trace: 0xff7aa2 };
-			case 'winter':    return { firefly: 0xcfe8ff, blossom: 0xbde3ff, trace: 0x9bd7ff };
-			case 'halloween': return { firefly: 0xff9a3b, blossom: 0xb074ff, trace: 0x4ce0a5 };
-			case 'newYear':   return { firefly: 0xffd79a, blossom: 0xffa9d0, trace: 0xffe88a };
-			default:          return { firefly: 0xc8ffd0, blossom: 0xff9fd0, trace: 0x9affc5 };
-		}
-	}
-
-	function makeFireflies( w, hh ) {
-		var arr = [];
-		for ( var i = 0; i < FIREFLY_COUNT; i++ ) {
-			arr.push( {
-				x: h.rand( 0, w ),
-				y: h.rand( hh * 0.15, hh * 0.95 ),
-				vx: h.rand( -0.25, 0.25 ),
-				vy: h.rand( -0.15, 0.15 ),
-				phase: Math.random() * h.tau,
-				r: h.rand( 1.0, 2.2 ),
-				base: h.rand( 0.4, 0.95 ),
-				trail: [],
-			} );
-		}
-		return arr;
-	}
-
-	function makeTraces( w, hh ) {
-		var arr = [];
-		for ( var i = 0; i < TRACE_COUNT; i++ ) {
-			var points = [];
-			var x = h.rand( 0, w );
-			var y = h.rand( hh * 0.25, hh * 0.85 );
-			var dir = Math.random() < 0.5 ? 1 : -1;
-			points.push( { x: x, y: y } );
-			var segs = 4 + ( ( Math.random() * 4 ) | 0 );
-			for ( var s = 0; s < segs; s++ ) {
-				if ( s % 2 === 0 ) {
-					x += dir * h.rand( w * 0.08, w * 0.18 );
-				} else {
-					y += h.rand( -hh * 0.12, hh * 0.12 );
-				}
-				points.push( { x: x, y: y } );
-			}
-			arr.push( {
-				points: points,
-				t: Math.random(),
-				speed: h.rand( 0.004, 0.009 ),
-				spark: h.rand( 1.6, 2.8 ),
-			} );
-		}
-		return arr;
-	}
-
-	function makeBlossoms( w, hh ) {
-		var arr = [];
-		for ( var i = 0; i < BLOSSOM_COUNT; i++ ) {
-			arr.push( {
-				x: h.rand( w * 0.04, w * 0.96 ),
-				y: h.rand( hh * 0.35, hh * 0.9 ),
-				r: h.rand( 6, 16 ),
-				phase: Math.random() * h.tau,
-				speed: h.rand( 0.008, 0.018 ),
-				petals: 5 + ( ( Math.random() * 3 ) | 0 ),
-			} );
-		}
-		return arr;
-	}
-
-	function totalLen( pts ) {
-		var sum = 0;
-		for ( var i = 1; i < pts.length; i++ ) {
-			var dx = pts[ i ].x - pts[ i - 1 ].x;
-			var dy = pts[ i ].y - pts[ i - 1 ].y;
-			sum += Math.sqrt( dx * dx + dy * dy );
-		}
-		return sum;
-	}
-
-	function samplePath( pts, t ) {
-		var total = totalLen( pts );
-		var want = total * t;
-		var acc = 0;
-		for ( var i = 1; i < pts.length; i++ ) {
-			var a = pts[ i - 1 ], b = pts[ i ];
-			var dx = b.x - a.x, dy = b.y - a.y;
-			var seg = Math.sqrt( dx * dx + dy * dy );
-			if ( acc + seg >= want ) {
-				var ft = seg > 0 ? ( want - acc ) / seg : 0;
-				return { x: a.x + dx * ft, y: a.y + dy * ft };
-			}
-			acc += seg;
-		}
-		return pts[ pts.length - 1 ];
-	}
-
-	window.__odd.scenes[ 'circuit-garden' ] = {
-		setup: async function ( env ) {
-			var PIXI = env.PIXI, app = env.app;
-
-			var tex = await PIXI.Assets.load( backdropUrl() );
-			var backdrop = new PIXI.Sprite( tex );
-			app.stage.addChild( backdrop );
-			function fitBackdrop() {
-				var s = Math.max(
-					app.renderer.width  / tex.width,
-					app.renderer.height / tex.height
-				);
-				backdrop.scale.set( s );
-				backdrop.x = ( app.renderer.width  - tex.width  * s ) / 2;
-				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
-			}
-			fitBackdrop();
-
-			var traces = new PIXI.Graphics();
-			traces.blendMode = 'add';
-			app.stage.addChild( traces );
-
+			var bus = new PIXI.Graphics();
+			bus.blendMode = 'add';
+			app.stage.addChild( bus );
 			var blossoms = new PIXI.Graphics();
 			blossoms.blendMode = 'add';
 			app.stage.addChild( blossoms );
-
-			var fireflies = new PIXI.Graphics();
-			fireflies.blendMode = 'add';
-			app.stage.addChild( fireflies );
+			var sparks = new PIXI.Graphics();
+			sparks.blendMode = 'add';
+			app.stage.addChild( sparks );
 
 			var w = app.renderer.width, hh = app.renderer.height;
-
 			return {
-				backdrop: backdrop, fitBackdrop: fitBackdrop,
-				tracesG: traces, blossomsG: blossoms, firefliesG: fireflies,
-				fireflies: makeFireflies( w, hh ),
-				traces: makeTraces( w, hh ),
-				blossoms: makeBlossoms( w, hh ),
+				backdrop: backdrop,
+				fitBackdrop: fitBackdrop,
+				busG: bus,
+				blossomG: blossoms,
+				sparkG: sparks,
+				fireflies: makeFireflies( w, hh, countFor( env, 72, 36 ) ),
+				busPulses: makeBusPulses( w, hh, countFor( env, 9, 4 ) ),
+				blossoms: makeBlossoms( w, hh, countFor( env, 13, 6 ) ),
 				palette: seasonPalette( env.season ),
 				time: 0,
-				lastSeasonCheck: 0,
 				breath: 0,
+				glanceX: 0,
 			};
 		},
 
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.fireflies = makeFireflies( w, hh );
-			state.traces = makeTraces( w, hh );
-			state.blossoms = makeBlossoms( w, hh );
+			state.fireflies = makeFireflies( w, hh, countFor( env, 72, 36 ) );
+			state.busPulses = makeBusPulses( w, hh, countFor( env, 9, 4 ) );
+			state.blossoms = makeBlossoms( w, hh, countFor( env, 13, 6 ) );
 		},
 
 		tick: function ( state, env ) {
 			var app = env.app, dt = env.dt;
 			var w = app.renderer.width, hh = app.renderer.height;
-			state.time += dt;
-			state.breath *= 0.93;
-
-			// Re-sample season roughly every ~15s in case a tab survives
-			// past midnight or an equinox without a reload.
-			if ( state.time - state.lastSeasonCheck > 900 ) {
-				state.palette = seasonPalette( env.season );
-				state.lastSeasonCheck = state.time;
-			}
-
+			if ( ! env.reducedMotion ) state.time += dt;
+			state.breath *= 0.94;
+			state.glanceX *= 0.9;
+			state.palette = seasonPalette( env.season );
 			var pal = state.palette;
-			var perfLow = env.perfTier === 'low';
-			var bass = ( env.audio && env.audio.enabled ) ? env.audio.bass : 0;
-			var mid  = ( env.audio && env.audio.enabled ) ? env.audio.mid  : 0;
-
+			var mid = ( env.audio && env.audio.enabled ) ? env.audio.mid : 0;
+			var high = ( env.audio && env.audio.enabled ) ? env.audio.high : 0;
 			var px = env.parallax ? env.parallax.x : 0;
 			var py = env.parallax ? env.parallax.y : 0;
 
-			if ( ! perfLow ) {
-				var tg = state.tracesG;
-				tg.clear();
-				for ( var ti = 0; ti < state.traces.length; ti++ ) {
-					var tr = state.traces[ ti ];
-					// Faint path glow.
-					for ( var pi = 1; pi < tr.points.length; pi++ ) {
-						var a = tr.points[ pi - 1 ], b = tr.points[ pi ];
-						tg.moveTo( a.x + px * 3, a.y + py * 2 )
-							.lineTo( b.x + px * 3, b.y + py * 2 )
-							.stroke( { color: pal.trace, width: 1.2, alpha: 0.16, cap: 'round' } );
-					}
-					if ( ! env.reducedMotion ) tr.t = ( tr.t + tr.speed * dt ) % 1;
-					var sp = samplePath( tr.points, tr.t );
-					tg.circle( sp.x + px * 3, sp.y + py * 2, tr.spark + state.breath * 1.5 )
-						.fill( { color: pal.trace, alpha: 0.85 } );
-					tg.circle( sp.x + px * 3, sp.y + py * 2, tr.spark * 2.4 )
-						.fill( { color: pal.trace, alpha: 0.28 } );
+			var bus = state.busG;
+			bus.clear();
+			for ( var rail = 0; rail < 4; rail++ ) {
+				var prev = pointOnBus( w, hh, 0, rail * 4 - 8 );
+				for ( var step = 1; step <= 22; step++ ) {
+					var t = step / 22;
+					var p = pointOnBus( w, hh, t, rail * 4 - 8 );
+					bus.moveTo( prev.x + px * 2, prev.y + py )
+						.lineTo( p.x + px * 2, p.y + py )
+						.stroke( { color: pal.bus, width: 0.9, alpha: 0.06, cap: 'round' } );
+					prev = p;
 				}
 			}
+			for ( var i = 0; i < state.busPulses.length; i++ ) {
+				var bp = state.busPulses[ i ];
+				if ( ! env.reducedMotion ) bp.t = ( bp.t + bp.speed * dt * ( 1 + mid * 0.7 ) ) % 1;
+				var pp = pointOnBus( w, hh, bp.t, bp.offset );
+				var pulse = 0.55 + Math.sin( state.time * 0.015 + bp.phase ) * 0.25 + state.breath * 0.3;
+				bus.circle( pp.x + px * 2, pp.y + py, bp.r * 3.2 )
+					.fill( { color: pal.bus, alpha: 0.08 * pulse } );
+				bus.circle( pp.x + px * 2, pp.y + py, bp.r )
+					.fill( { color: pal.bus, alpha: 0.55 * pulse } );
+			}
 
-			var bg = state.blossomsG;
+			var bg = state.blossomG;
 			bg.clear();
-			var bloomBoost = 1 + bass * 0.7 + state.breath * 0.6;
-			for ( var bi = 0; bi < state.blossoms.length; bi++ ) {
-				var bl = state.blossoms[ bi ];
+			for ( var b = 0; b < state.blossoms.length; b++ ) {
+				var bl = state.blossoms[ b ];
 				if ( ! env.reducedMotion ) bl.phase += bl.speed * dt;
-				var breathing = 1 + Math.sin( bl.phase ) * 0.25;
-				var rr = bl.r * breathing * bloomBoost;
-				var cx = bl.x + px * 8;
-				var cy = bl.y + py * 5;
-				bg.circle( cx, cy, rr * 0.4 ).fill( { color: 0xffffff, alpha: 0.5 } );
+				var open = 0.82 + Math.sin( bl.phase ) * 0.18 + state.breath * 0.2;
+				var cx = bl.x + px * 7 + state.glanceX * 7;
+				var cy = bl.y + py * 4;
+				bg.circle( cx, cy, bl.r * 0.38 ).fill( { color: 0xffffff, alpha: 0.26 } );
 				for ( var ptl = 0; ptl < bl.petals; ptl++ ) {
-					var ang = ( ptl / bl.petals ) * h.tau + bl.phase * 0.3;
-					var px2 = cx + Math.cos( ang ) * rr;
-					var py2 = cy + Math.sin( ang ) * rr;
-					bg.circle( px2, py2, rr * 0.5 )
-						.fill( { color: pal.blossom, alpha: 0.42 } );
+					var ang = ptl / bl.petals * TAU + bl.phase * 0.12;
+					bg.ellipse( cx + Math.cos( ang ) * bl.r * open, cy + Math.sin( ang ) * bl.r * open, bl.r * 0.48, bl.r * 0.28 )
+						.fill( { color: bl.color || pal.blossom, alpha: 0.25 } );
 				}
 			}
 
-			var fg = state.firefliesG;
-			fg.clear();
-			var speedMul = 1 + mid * 1.5;
-			for ( var fi = 0; fi < state.fireflies.length; fi++ ) {
-				var f = state.fireflies[ fi ];
-				if ( ! env.reducedMotion ) {
-					f.phase += 0.03 * dt;
-					f.vx += Math.cos( f.phase * 0.9 ) * 0.005;
-					f.vy += Math.sin( f.phase * 1.1 ) * 0.004;
-					f.vx *= 0.98; f.vy *= 0.98;
-					f.x += f.vx * dt * speedMul;
-					f.y += f.vy * dt * speedMul;
-					if ( f.x < -10 ) f.x = w + 10;
-					if ( f.x > w + 10 ) f.x = -10;
-					if ( f.y < hh * 0.1 ) f.y = hh * 0.95;
-					if ( f.y > hh + 10 ) f.y = hh * 0.15;
-					f.trail.push( { x: f.x, y: f.y } );
-					if ( f.trail.length > 6 ) f.trail.shift();
-				}
-				for ( var tri = 0; tri < f.trail.length; tri++ ) {
-					var pt = f.trail[ tri ];
-					var tta = tri / Math.max( 1, f.trail.length - 1 );
-					fg.circle( pt.x + px * 2, pt.y + py * 1, f.r * ( 0.45 + tta * 0.55 ) )
-						.fill( { color: pal.firefly, alpha: f.base * tta * 0.5 } );
-				}
-				var twinkle = 0.55 + Math.sin( f.phase ) * 0.45;
-				fg.circle( f.x + px * 2, f.y + py * 1, f.r )
-					.fill( { color: 0xffffff, alpha: f.base * twinkle } );
-				fg.circle( f.x + px * 2, f.y + py * 1, f.r * 2.4 )
-					.fill( { color: pal.firefly, alpha: f.base * twinkle * 0.25 } );
+			var sg = state.sparkG;
+			sg.clear();
+			for ( var s = 0; s < state.fireflies.length; s++ ) {
+				var f = state.fireflies[ s ];
+				if ( ! env.reducedMotion ) f.phase += f.speed * dt * ( 1 + mid * 0.8 );
+				var x = f.x + Math.sin( f.phase ) * 9 + px * 4 + state.glanceX * 5;
+				var y = f.y + Math.cos( f.phase * 0.8 ) * 7 + py * 3;
+				var twinkle = 0.52 + Math.sin( f.phase * 1.8 ) * 0.36;
+				sg.circle( x, y, f.r * 2.6 )
+					.fill( { color: f.color, alpha: f.alpha * 0.18 * ( 1 + high * 0.25 ) } );
+				sg.circle( x, y, f.r )
+					.fill( { color: f.color, alpha: f.alpha * twinkle * ( 1 + high * 0.25 ) } );
 			}
-
 		},
 
 		onRipple: function ( opts, state ) {
-			state.breath = Math.min( 1, state.breath + ( ( opts && opts.intensity ) || 0.5 ) );
+			state.breath = Math.min( 1, state.breath + ( ( opts && opts.intensity ) || 0.45 ) );
+		},
+
+		onGlance: function ( opts, state, env ) {
+			if ( ! opts || opts.nod ) return;
+			var w = env.app.renderer.width;
+			state.glanceX = Math.max( -1, Math.min( 1, ( ( opts.x || w / 2 ) / w - 0.5 ) * 2 ) );
+		},
+
+		onGlitch: function ( opts, state ) {
+			state.breath = 1;
 		},
 
 		onAudio: function ( state, env ) {
-			if ( env.audio.high > 0.62 ) {
-				state.breath = Math.min( 1, state.breath + 0.12 );
+			if ( env.audio && env.audio.enabled && env.audio.high > 0.62 ) {
+				state.breath = Math.min( 1, state.breath + 0.06 );
 			}
 		},
 
@@ -431,7 +248,7 @@
 
 		cleanup: function ( state ) {
 			state.fireflies = [];
-			state.traces = [];
+			state.busPulses = [];
 			state.blossoms = [];
 		},
 	};

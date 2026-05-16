@@ -1,5 +1,5 @@
 /**
- * ODD scene: Wildflower Meadow — v1.0.0
+ * ODD scene: Wildflower Meadow - v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp).
  * Motion:
@@ -15,9 +15,9 @@
 	var h = window.__odd.helpers;
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var BUTTERFLY_COUNT = 6;
-	var BEE_COUNT = 4;
-	var PETAL_COUNT = 80;
+	var BUTTERFLY_COUNT = 5;
+	var BEE_COUNT = 3;
+	var PETAL_COUNT = 46;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -27,12 +27,16 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeButterflies( w, hh ) {
+	function avoidIconZone( x, y, w, hh ) {
+		return x < w * 0.34 && y > hh * 0.5;
+	}
+
+	function makeButterflies( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < BUTTERFLY_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
 			out.push( {
-				x: h.rand( 0, w ), y: h.rand( hh * 0.2, hh * 0.7 ),
-				vx: h.rand( 0.25, 0.55 ) * ( Math.random() < 0.5 ? 1 : -1 ),
+				x: h.rand( w * 0.22, w ), y: h.rand( hh * 0.18, hh * 0.56 ),
+				vx: h.rand( 0.16, 0.34 ) * ( Math.random() < 0.5 ? 1 : -1 ),
 				phase: Math.random() * h.tau,
 				amp: h.rand( 18, 42 ),
 				flap: Math.random() * h.tau,
@@ -43,23 +47,26 @@
 		return out;
 	}
 
-	function makeBees( w, hh ) {
+	function makeBees( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < BEE_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
 			out.push( {
-				x: h.rand( 0, w ), y: h.rand( hh * 0.4, hh * 0.85 ),
-				vx: h.rand( 1.0, 1.8 ) * ( Math.random() < 0.5 ? 1 : -1 ),
+				x: h.rand( w * 0.36, w ), y: h.rand( hh * 0.38, hh * 0.72 ),
+				vx: h.rand( 0.55, 1.05 ) * ( Math.random() < 0.5 ? 1 : -1 ),
 				phase: Math.random() * h.tau,
 			} );
 		}
 		return out;
 	}
 
-	function makePetals( w, hh ) {
+	function makePetals( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < PETAL_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
+			var x = h.rand( w * 0.08, w );
+			var y = h.rand( -hh * 0.1, hh );
+			if ( avoidIconZone( x, y, w, hh ) ) x = h.rand( w * 0.42, w * 0.96 );
 			out.push( {
-				x: h.rand( 0, w ), y: h.rand( -hh * 0.1, hh ),
+				x: x, y: y,
 				r: h.rand( 1.2, 2.6 ),
 				vx: h.rand( 0.08, 0.22 ),
 				vy: h.rand( 0.12, 0.3 ),
@@ -90,12 +97,16 @@
 			var bfG = new PIXI.Graphics(); app.stage.addChild( bfG );
 
 			var w = app.renderer.width, hh = app.renderer.height;
+			var low = env.perfTier === 'low';
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				petalG: petalG, beeG: beeG, bfG: bfG,
-				butterflies: makeButterflies( w, hh ),
-				bees: makeBees( w, hh ),
-				petals: makePetals( w, hh ),
+				butterflyCount: low ? 2 : BUTTERFLY_COUNT,
+				beeCount: low ? 1 : BEE_COUNT,
+				petalCount: low ? 18 : PETAL_COUNT,
+				butterflies: makeButterflies( w, hh, low ? 2 : BUTTERFLY_COUNT ),
+				bees: makeBees( w, hh, low ? 1 : BEE_COUNT ),
+				petals: makePetals( w, hh, low ? 18 : PETAL_COUNT ),
 				time: 0, pulse: 0,
 			};
 		},
@@ -103,9 +114,9 @@
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.butterflies = makeButterflies( w, hh );
-			state.bees = makeBees( w, hh );
-			state.petals = makePetals( w, hh );
+			state.butterflies = makeButterflies( w, hh, state.butterflyCount );
+			state.bees = makeBees( w, hh, state.beeCount );
+			state.petals = makePetals( w, hh, state.petalCount );
 		},
 
 		tick: function ( state, env ) {
@@ -129,6 +140,7 @@
 					if ( p.x > w + 5 ) p.x = -5;
 				}
 				var sway = Math.sin( p.phase ) * 3;
+				if ( avoidIconZone( p.x + sway, p.y, w, hh ) ) continue;
 				pg.circle( p.x + sway, p.y, p.r )
 					.fill( { color: p.color, alpha: p.alpha } );
 			}
@@ -145,6 +157,7 @@
 				}
 				var zig = Math.sin( b.phase ) * 6 + Math.sin( b.phase * 2.3 ) * 3;
 				var bx = b.x, by = b.y + zig;
+				if ( avoidIconZone( bx, by, w, hh ) ) continue;
 				bg.ellipse( bx, by, 2.6, 1.6 ).fill( { color: 0xf6c434, alpha: 0.9 } );
 				bg.rect( bx - 1.2, by - 0.4, 0.8, 0.8 ).fill( { color: 0x1e1206, alpha: 0.9 } );
 				bg.rect( bx + 0.4, by - 0.4, 0.8, 0.8 ).fill( { color: 0x1e1206, alpha: 0.9 } );
@@ -164,6 +177,7 @@
 				}
 				var yy = bf.y + Math.sin( bf.phase ) * bf.amp + py * 4;
 				var xx = bf.x + px * 6;
+				if ( avoidIconZone( xx, yy, w, hh ) ) continue;
 				var openness = Math.abs( Math.sin( bf.flap ) );
 				var wingW = bf.size * ( 0.4 + openness );
 				fg.ellipse( xx - bf.size * 0.6, yy, wingW, bf.size ).fill( { color: bf.color, alpha: 0.9 } );

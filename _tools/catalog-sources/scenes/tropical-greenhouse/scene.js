@@ -1,5 +1,5 @@
 /**
- * ODD scene: Tropical Greenhouse — v1.0.0
+ * ODD scene: Tropical Greenhouse - v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp)
  * with late-morning palm-house motion:
@@ -18,7 +18,7 @@
 	var h = window.__odd.helpers;
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var MOTE_COUNT = 110;
+	var MOTE_COUNT = 72;
 	var SHAFT_COUNT = 4;
 
 	function backdropUrl() {
@@ -29,11 +29,16 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeMotes( w, hh ) {
+	function makeMotes( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < MOTE_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
+			var x = h.rand( w * 0.06, w * 0.98 );
+			var y = h.rand( 0, hh );
+			if ( x < w * 0.34 && y > hh * 0.48 ) {
+				x = h.rand( w * 0.42, w * 0.95 );
+			}
 			out.push( {
-				x: h.rand( 0, w ), y: h.rand( 0, hh ),
+				x: x, y: y,
 				r: h.rand( 0.5, 1.8 ),
 				phase: Math.random() * h.tau,
 				speed: h.rand( 0.005, 0.014 ),
@@ -43,13 +48,13 @@
 		return out;
 	}
 
-	function makeShafts( w ) {
+	function makeShafts( w, count ) {
 		var out = [];
-		for ( var i = 0; i < SHAFT_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
 			out.push( {
-				x: w * ( 0.1 + i * ( 0.85 / ( SHAFT_COUNT - 1 ) ) ),
+				x: w * ( 0.26 + i * ( 0.68 / Math.max( 1, count - 1 ) ) ),
 				tilt: 0.35 + Math.random() * 0.12,
-				width: w * ( 0.08 + Math.random() * 0.06 ),
+				width: w * ( 0.055 + Math.random() * 0.045 ),
 				phase: Math.random() * h.tau,
 				speed: h.rand( 0.0009, 0.002 ),
 			} );
@@ -84,21 +89,24 @@
 			app.stage.addChild( parrot );
 
 			var w = app.renderer.width, hh = app.renderer.height;
+			var low = env.perfTier === 'low';
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				shafts: shafts, motes: motes, parrot: parrot,
-				moteList: makeMotes( w, hh ),
-				shaftList: makeShafts( w ),
+				moteCount: low ? 28 : MOTE_COUNT,
+				shaftCount: low ? 2 : SHAFT_COUNT,
+				moteList: makeMotes( w, hh, low ? 28 : MOTE_COUNT ),
+				shaftList: makeShafts( w, low ? 2 : SHAFT_COUNT ),
 				time: 0, pulse: 0,
-				parrotT: -1, parrotNext: 8,
+				parrotT: -1, parrotNext: low ? 999 : 12,
 			};
 		},
 
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.moteList = makeMotes( w, hh );
-			state.shaftList = makeShafts( w );
+			state.moteList = makeMotes( w, hh, state.moteCount );
+			state.shaftList = makeShafts( w, state.shaftCount );
 		},
 
 		tick: function ( state, env ) {

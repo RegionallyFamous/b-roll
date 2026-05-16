@@ -1,5 +1,5 @@
 /**
- * ODD scene: Beach Umbrellas — v1.0.0
+ * ODD scene: Beach Umbrellas - v1.1.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp),
  * a high-aerial beach. Motion:
@@ -15,7 +15,7 @@
 	var h = window.__odd.helpers;
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var SPARKLE_COUNT = 140;
+	var SPARKLE_COUNT = 88;
 	var GULL_COUNT = 3;
 
 	function backdropUrl() {
@@ -26,27 +26,33 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeSparkles( w, hh ) {
+	function makeSparkles( w, hh, perfLow ) {
 		var out = [];
-		for ( var i = 0; i < SPARKLE_COUNT; i++ ) {
+		var count = perfLow ? Math.floor( SPARKLE_COUNT * 0.45 ) : SPARKLE_COUNT;
+		for ( var i = 0; i < count; i++ ) {
+			var x = h.rand( 0, w );
+			var y = h.rand( hh * 0.25, hh );
+			var inIconZone = x < w * 0.36 && y > hh * 0.48;
 			out.push( {
-				x: h.rand( 0, w ),
-				y: h.rand( hh * 0.25, hh ),
-				r: h.rand( 0.5, 1.4 ),
+				x: x,
+				y: y,
+				r: inIconZone ? h.rand( 0.35, 0.7 ) : h.rand( 0.45, 1.15 ),
 				phase: Math.random() * h.tau,
-				speed: h.rand( 0.03, 0.09 ),
+				speed: h.rand( 0.018, 0.055 ),
+				alpha: inIconZone ? h.rand( 0.08, 0.2 ) : h.rand( 0.45, 0.8 ),
 			} );
 		}
 		return out;
 	}
 
-	function makeGulls( w, hh ) {
+	function makeGulls( w, hh, perfLow ) {
 		var out = [];
-		for ( var i = 0; i < GULL_COUNT; i++ ) {
+		var count = perfLow ? 1 : GULL_COUNT;
+		for ( var i = 0; i < count; i++ ) {
 			out.push( {
 				t: -h.rand( 0, 1 ),
-				y: hh * ( 0.32 + i * 0.18 ),
-				speed: h.rand( 0.004, 0.008 ),
+				y: hh * ( 0.28 + i * 0.16 ),
+				speed: h.rand( 0.0025, 0.005 ),
 				dir: Math.random() < 0.5 ? 1 : -1,
 				size: h.rand( 6, 11 ),
 				next: h.rand( 6, 22 ),
@@ -84,8 +90,8 @@
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				foamG: foam, sparkleG: sparkle, gullG: gulls,
-				sparkles: makeSparkles( w, hh ),
-				gulls: makeGulls( w, hh ),
+				sparkles: makeSparkles( w, hh, env.perfTier === 'low' ),
+				gulls: makeGulls( w, hh, env.perfTier === 'low' ),
 				time: 0, pulse: 0,
 			};
 		},
@@ -93,8 +99,8 @@
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.sparkles = makeSparkles( w, hh );
-			state.gulls = makeGulls( w, hh );
+			state.sparkles = makeSparkles( w, hh, env.perfTier === 'low' );
+			state.gulls = makeGulls( w, hh, env.perfTier === 'low' );
 		},
 
 		tick: function ( state, env ) {
@@ -110,8 +116,8 @@
 			var fg = state.foamG;
 			fg.clear();
 			var foamBand = hh * 0.18;
-			var waveAdvance = 0.5 + Math.sin( state.time * 0.012 ) * 0.5;
-			var foamTop = foamBand - waveAdvance * 22 - state.pulse * 6 - bass * 8;
+			var waveAdvance = 0.5 + Math.sin( state.time * 0.009 ) * 0.5;
+			var foamTop = foamBand - waveAdvance * 16 - state.pulse * 5 - bass * 6;
 			var segments = 32;
 			for ( var i = 0; i < segments; i++ ) {
 				var t = i / segments;
@@ -120,16 +126,16 @@
 				var y2 = foamBand + Math.sin( state.time * 0.02 + i * 0.8 + 1 ) * 2;
 				fg.moveTo( x1, y2 )
 					.lineTo( x1 + w / segments, y1 )
-					.stroke( { color: 0xffffff, width: 3, alpha: 0.45 } );
+					.stroke( { color: 0xffffff, width: 2.2, alpha: 0.34 } );
 			}
-			fg.rect( 0, 0, w, foamTop ).fill( { color: 0x5ab4d2, alpha: 0.08 } );
+			fg.rect( 0, 0, w, foamTop ).fill( { color: 0x5ab4d2, alpha: 0.055 } );
 
 			var sg = state.sparkleG;
 			sg.clear();
 			for ( var k = 0; k < state.sparkles.length; k++ ) {
 				var p = state.sparkles[ k ];
 				if ( ! env.reducedMotion ) p.phase += p.speed * dt;
-				var a = Math.pow( Math.abs( Math.sin( p.phase ) ), 6 ) * 0.7 * ( 0.7 + high * 0.5 );
+				var a = Math.pow( Math.abs( Math.sin( p.phase ) ), 6 ) * p.alpha * ( 0.65 + high * 0.4 );
 				sg.circle( p.x + px * 4, p.y, p.r )
 					.fill( { color: 0xfff6d8, alpha: a } );
 			}
@@ -152,6 +158,7 @@
 					var gx = G.dir > 0 ? w * ( -0.1 + 1.2 * tt ) : w * ( 1.1 - 1.2 * tt );
 					var gy = G.y + Math.sin( tt * Math.PI ) * -20;
 					var flap = Math.sin( state.time * 0.3 + m ) * 2;
+					if ( gx < w * 0.34 && gy > hh * 0.48 ) continue;
 					var sx = gx + 6;
 					var sy = gy + 18;
 					gg.moveTo( sx - G.size, sy + flap )
@@ -167,7 +174,9 @@
 		},
 
 		onAudio: function ( state, env ) {
-			if ( env.audio.bass > 0.5 ) state.pulse = Math.min( 1, state.pulse + 0.14 );
+			if ( env.audio && env.audio.enabled && env.audio.bass > 0.5 ) {
+				state.pulse = Math.min( 1, state.pulse + 0.14 );
+			}
 		},
 
 		stillFrame: function ( state, env ) {

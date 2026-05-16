@@ -1,5 +1,5 @@
 /**
- * ODD scene: Tide Pool — v1.0.0
+ * ODD scene: Tide Pool - v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp)
  * with noon rockpool motion:
@@ -17,8 +17,8 @@
 	var h = window.__odd.helpers;
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var FISH_COUNT = 14;
-	var SPARKLE_COUNT = 70;
+	var FISH_COUNT = 10;
+	var SPARKLE_COUNT = 42;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -28,16 +28,26 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeFish( w, hh ) {
+	function safePoint( w, hh ) {
+		var x = h.rand( w * 0.16, w * 0.94 );
+		var y = h.rand( hh * 0.16, hh * 0.82 );
+		if ( x < w * 0.36 && y > hh * 0.52 ) {
+			x = h.rand( w * 0.44, w * 0.92 );
+		}
+		return { x: x, y: y };
+	}
+
+	function makeFish( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < FISH_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
+			var pt = safePoint( w, hh );
 			out.push( {
-				x: h.rand( w * 0.08, w * 0.92 ),
-				y: h.rand( hh * 0.18, hh * 0.88 ),
+				x: pt.x,
+				y: pt.y,
 				len: h.rand( 5, 11 ),
-				speed: h.rand( 0.9, 1.8 ) * ( Math.random() < 0.5 ? 1 : -1 ),
+				speed: h.rand( 0.35, 0.85 ) * ( Math.random() < 0.5 ? 1 : -1 ),
 				phase: Math.random() * h.tau,
-				sway: h.rand( 12, 28 ),
+				sway: h.rand( 8, 20 ),
 				alpha: h.rand( 0.22, 0.48 ),
 				tint: h.choose( [ 0x20303a, 0x273640, 0x3a2a22 ] ),
 			} );
@@ -45,12 +55,13 @@
 		return out;
 	}
 
-	function makeSparkles( w, hh ) {
+	function makeSparkles( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < SPARKLE_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
+			var pt = safePoint( w, hh );
 			out.push( {
-				x: h.rand( 0, w ),
-				y: h.rand( 0, hh ),
+				x: pt.x,
+				y: pt.y,
 				r: h.rand( 0.4, 1.4 ),
 				phase: Math.random() * h.tau,
 				speed: h.rand( 0.012, 0.03 ),
@@ -87,11 +98,14 @@
 			app.stage.addChild( sparkles );
 
 			var w = app.renderer.width, hh = app.renderer.height;
+			var low = env.perfTier === 'low';
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				caustics: caustics, fish: fish, sparkles: sparkles,
-				fishList: makeFish( w, hh ),
-				sparkleList: makeSparkles( w, hh ),
+				fishCount: low ? 5 : FISH_COUNT,
+				sparkleCount: low ? 18 : SPARKLE_COUNT,
+				fishList: makeFish( w, hh, low ? 5 : FISH_COUNT ),
+				sparkleList: makeSparkles( w, hh, low ? 18 : SPARKLE_COUNT ),
 				time: 0, pulse: 0,
 			};
 		},
@@ -99,8 +113,8 @@
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.fishList = makeFish( w, hh );
-			state.sparkleList = makeSparkles( w, hh );
+			state.fishList = makeFish( w, hh, state.fishCount );
+			state.sparkleList = makeSparkles( w, hh, state.sparkleCount );
 		},
 
 		tick: function ( state, env ) {
@@ -115,11 +129,12 @@
 
 			var cg = state.caustics;
 			cg.clear();
-			for ( var i = 0; i < 9; i++ ) {
+			for ( var i = 0; i < 7; i++ ) {
 				var t = state.time * 0.006;
 				var y = hh * ( 0.22 + i * 0.09 ) + Math.sin( t + i * 0.7 ) * 10;
-				cg.moveTo( -20, y )
-					.bezierCurveTo( w * 0.3, y - 22 + Math.cos( t + i ) * 6, w * 0.62, y + 24, w + 20, y - 8 )
+				var startX = y > hh * 0.52 ? w * 0.34 : -20;
+				cg.moveTo( startX, y )
+					.bezierCurveTo( w * 0.38, y - 18 + Math.cos( t + i ) * 5, w * 0.66, y + 20, w + 20, y - 8 )
 					.stroke( { color: 0xfff4c8, width: 1.2, alpha: 0.12 + state.pulse * 0.1, cap: 'round' } );
 			}
 			for ( var j = 0; j < 5; j++ ) {

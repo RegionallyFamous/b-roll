@@ -35,7 +35,7 @@
 	var h = window.__odd.helpers || {};
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var SPECIMEN_COUNT = 12;
+	var SPECIMEN_COUNT = 11;
 	var TAB_COUNT      = 5;
 	var PALETTE        = [ 0x38e8ff, 0xff5fa8, 0xffd84a, 0xb8ff5a, 0xb266ff ];
 
@@ -192,9 +192,14 @@
 			var desktopActivity = env.desktop && env.desktop.activity && ! env.reducedMotion && env.perfTier !== 'low'
 				? ( env.desktop.activity.window || 0 )
 				: 0;
-			var speed = 1 + bass * 1.4 + desktopActivity * 0.22;
+			var motion = env.reducedMotion ? 0 : 1;
+			var speed = motion * ( 1 + bass * 1.4 + desktopActivity * 0.22 );
 			var px = env.parallax ? env.parallax.x : 0;
 			var py = env.parallax ? env.parallax.y : 0;
+
+			var targetTabs = perfLow ? 3 : TAB_COUNT;
+			while ( state.tabs.length > targetTabs ) state.tabs.pop();
+			while ( state.tabs.length < targetTabs ) state.tabs.push( spawnTab( w, hh ) );
 
 			state.tabLayer.clear();
 			for ( var i = 0; i < state.tabs.length; i++ ) {
@@ -231,7 +236,7 @@
 				s.blinkTimer -= dt / 60;
 				if ( s.blinkTimer <= 0 ) {
 					s.blink = 0.05;
-					s.blinkTimer = h.rand( 3, 9 );
+					s.blinkTimer = rand( 3, 9 );
 				} else if ( s.blink < 1 ) {
 					s.blink = Math.min( 1, s.blink + dt * 0.08 );
 				}
@@ -261,7 +266,7 @@
 
 			// Peek-eyes.
 			var peek = state.peek;
-			if ( ! perfLow ) {
+			if ( ! perfLow && ! env.reducedMotion ) {
 				if ( peek.active ) {
 					peek.phase += dt / 60;
 					peek.life  -= dt / 60;
@@ -329,8 +334,8 @@
 			var edges = [
 				{ x: w * 0.04, y: hh * 0.18, dir: 1 },
 				{ x: w * 0.96, y: hh * 0.22, dir: -1 },
-				{ x: w * 0.12, y: hh * 0.9,  dir: 1 },
 				{ x: w * 0.88, y: hh * 0.88, dir: -1 },
+				{ x: w * 0.46, y: hh * 0.1,  dir: 1 },
 			];
 			return edges[ ( Math.random() * edges.length ) | 0 ];
 		},
@@ -358,6 +363,7 @@
 		},
 
 		onAudio: function ( state, env ) {
+			if ( ! env.audio || ! env.audio.enabled ) return;
 			if ( env.audio.high > 0.55 && state.flareBoost < 0.3 ) {
 				state.flareBoost = 0.7;
 			}

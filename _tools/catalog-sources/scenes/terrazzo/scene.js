@@ -1,5 +1,5 @@
 /**
- * ODD scene: Terrazzo — v1.0.0
+ * ODD scene: Terrazzo - v1.0.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp), a
  * flat overhead terrazzo floor. Motion layer is deliberately quiet:
@@ -16,8 +16,8 @@
 	var h = window.__odd.helpers;
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var MOTE_COUNT = 80;
-	var SPARKLE_COUNT = 50;
+	var MOTE_COUNT = 58;
+	var SPARKLE_COUNT = 32;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -27,11 +27,21 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeMotes( w, hh ) {
+	function safePoint( w, hh, minY ) {
+		var x = h.rand( 0, w );
+		var y = h.rand( minY || 0, hh );
+		if ( x < w * 0.34 && y > hh * 0.5 ) {
+			x = h.rand( w * 0.42, w * 0.96 );
+		}
+		return { x: x, y: y };
+	}
+
+	function makeMotes( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < MOTE_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
+			var pt = safePoint( w, hh, 0 );
 			out.push( {
-				x: h.rand( 0, w ), y: h.rand( 0, hh ),
+				x: pt.x, y: pt.y,
 				r: h.rand( 0.4, 1.4 ),
 				phase: Math.random() * h.tau,
 				speed: h.rand( 0.004, 0.012 ),
@@ -40,11 +50,12 @@
 		return out;
 	}
 
-	function makeSparkles( w, hh ) {
+	function makeSparkles( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < SPARKLE_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
+			var pt = safePoint( w, hh, 0 );
 			out.push( {
-				x: h.rand( 0, w ), y: h.rand( 0, hh ),
+				x: pt.x, y: pt.y,
 				r: h.rand( 0.6, 1.4 ),
 				phase: Math.random() * h.tau,
 				speed: h.rand( 0.02, 0.05 ),
@@ -79,11 +90,14 @@
 			sparkles.blendMode = 'add';
 			app.stage.addChild( sparkles );
 
+			var low = env.perfTier === 'low';
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				sun: sun, motes: motes, sparkles: sparkles,
-				moteList: makeMotes( app.renderer.width, app.renderer.height ),
-				sparkleList: makeSparkles( app.renderer.width, app.renderer.height ),
+				moteCount: low ? 26 : MOTE_COUNT,
+				sparkleCount: low ? 12 : SPARKLE_COUNT,
+				moteList: makeMotes( app.renderer.width, app.renderer.height, low ? 26 : MOTE_COUNT ),
+				sparkleList: makeSparkles( app.renderer.width, app.renderer.height, low ? 12 : SPARKLE_COUNT ),
 				time: 0, pulse: 0,
 			};
 		},
@@ -91,8 +105,8 @@
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.moteList = makeMotes( w, hh );
-			state.sparkleList = makeSparkles( w, hh );
+			state.moteList = makeMotes( w, hh, state.moteCount );
+			state.sparkleList = makeSparkles( w, hh, state.sparkleCount );
 		},
 
 		tick: function ( state, env ) {
@@ -106,9 +120,9 @@
 			var py = env.parallax ? env.parallax.y : 0;
 
 			var todT = ( env.tod != null ) ? env.tod : 0.5;
-			var sunX = w * ( 0.08 + todT * 0.84 );
-			var sunY = hh * ( 0.2 + Math.sin( todT * Math.PI ) * -0.08 + 0.2 );
-			var sunR = Math.min( w, hh ) * 0.55;
+			var sunX = w * ( 0.18 + todT * 0.72 );
+			var sunY = hh * ( 0.22 + Math.sin( todT * Math.PI ) * -0.07 + 0.18 );
+			var sunR = Math.min( w, hh ) * 0.44;
 
 			var sg = state.sun;
 			sg.clear();

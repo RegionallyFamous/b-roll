@@ -1,5 +1,5 @@
 /**
- * ODD scene: Balcony Noon — v1.0.0
+ * ODD scene: Balcony Noon - v1.1.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp),
  * a Tokyo balcony at bright noon. Motion:
@@ -16,7 +16,7 @@
 	var h = window.__odd.helpers;
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var MOTE_COUNT = 90;
+	var MOTE_COUNT = 62;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -33,15 +33,19 @@
 		{ color: 0x9cc7ff, w: 40, h: 100, tx: 0.86 },
 	];
 
-	function makeMotes( w, hh ) {
+	function makeMotes( w, hh, perfLow ) {
 		var out = [];
-		for ( var i = 0; i < MOTE_COUNT; i++ ) {
+		var count = perfLow ? Math.floor( MOTE_COUNT * 0.5 ) : MOTE_COUNT;
+		for ( var i = 0; i < count; i++ ) {
+			var x = h.rand( 0, w );
+			var y = h.rand( 0, hh );
+			var inIconZone = x < w * 0.36 && y > hh * 0.48;
 			out.push( {
-				x: h.rand( 0, w ), y: h.rand( 0, hh ),
-				r: h.rand( 0.4, 1.6 ),
+				x: x, y: y,
+				r: inIconZone ? h.rand( 0.3, 0.8 ) : h.rand( 0.4, 1.4 ),
 				phase: Math.random() * h.tau,
-				speed: h.rand( 0.005, 0.013 ),
-				alpha: h.rand( 0.15, 0.35 ),
+				speed: h.rand( 0.003, 0.01 ),
+				alpha: inIconZone ? h.rand( 0.03, 0.08 ) : h.rand( 0.08, 0.22 ),
 			} );
 		}
 		return out;
@@ -75,14 +79,18 @@
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				hazeG: haze, laundryG: laundry, motesG: motes,
-				moteList: makeMotes( app.renderer.width, app.renderer.height ),
+				moteList: makeMotes( app.renderer.width, app.renderer.height, env.perfTier === 'low' ),
 				time: 0, pulse: 0,
 			};
 		},
 
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
-			state.moteList = makeMotes( env.app.renderer.width, env.app.renderer.height );
+			state.moteList = makeMotes(
+				env.app.renderer.width,
+				env.app.renderer.height,
+				env.perfTier === 'low'
+			);
 		},
 
 		tick: function ( state, env ) {
@@ -125,10 +133,11 @@
 
 			var hg = state.hazeG;
 			hg.clear();
-			for ( var k = 0; k < 6; k++ ) {
+			var hazeLines = env.perfTier === 'low' ? 3 : 5;
+			for ( var k = 0; k < hazeLines; k++ ) {
 				var y = hh * ( 0.46 + k * 0.04 ) + Math.sin( state.time * 0.015 + k ) * 3;
 				hg.moveTo( 0, y ).lineTo( w, y )
-					.stroke( { color: 0xfff6dc, width: 1, alpha: 0.05 } );
+					.stroke( { color: 0xfff6dc, width: 1, alpha: 0.035 } );
 			}
 
 			var mg = state.motesG;
@@ -149,7 +158,9 @@
 		},
 
 		onAudio: function ( state, env ) {
-			if ( env.audio.bass > 0.55 ) state.pulse = Math.min( 1, state.pulse + 0.12 );
+			if ( env.audio && env.audio.enabled && env.audio.bass > 0.55 ) {
+				state.pulse = Math.min( 1, state.pulse + 0.12 );
+			}
 		},
 
 		stillFrame: function ( state, env ) {

@@ -1,128 +1,5 @@
 /**
- * ODD scene: Abyssal Aquarium.
- *
- * GPT Image 2 backdrop with subtle deep-sea motion: drifting bubbles,
- * bioluminescent specks, and slow glass caustics.
- */
-( function () {
-	'use strict';
-	window.__odd = window.__odd || {};
-	window.__odd.scenes = window.__odd.scenes || {};
-	var h = window.__odd.helpers;
-	var scriptUrl = document.currentScript && document.currentScript.src;
-
-	function backdropUrl() {
-		var cfg = window.odd || {};
-		var sm = cfg.sceneMap || {};
-		var desc = sm[ 'abyssal-aquarium' ] || {};
-		if ( desc.wallpaperUrl ) return desc.wallpaperUrl;
-		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
-	}
-
-	function makeBubbles( w, hh ) {
-		var out = [];
-		for ( var i = 0; i < 90; i++ ) {
-			out.push( {
-				x: h.rand( w * 0.08, w * 0.88 ),
-				y: h.rand( hh * 0.12, hh * 0.95 ),
-				r: h.rand( 0.7, 3.4 ),
-				speed: h.rand( 0.08, 0.32 ),
-				phase: Math.random() * Math.PI * 2,
-				alpha: h.rand( 0.08, 0.28 ),
-			} );
-		}
-		return out;
-	}
-
-	window.__odd.scenes[ 'abyssal-aquarium' ] = {
-		setup: async function ( env ) {
-			var PIXI = env.PIXI, app = env.app;
-			var tex = await PIXI.Assets.load( backdropUrl() );
-			var backdrop = new PIXI.Sprite( tex );
-			app.stage.addChild( backdrop );
-			function fitBackdrop() {
-				var s = Math.max( app.renderer.width / tex.width, app.renderer.height / tex.height );
-				backdrop.scale.set( s );
-				backdrop.x = ( app.renderer.width - tex.width * s ) / 2;
-				backdrop.y = ( app.renderer.height - tex.height * s ) / 2;
-			}
-			fitBackdrop();
-			var caustics = new PIXI.Graphics();
-			caustics.blendMode = 'add';
-			app.stage.addChild( caustics );
-			var bubbles = new PIXI.Graphics();
-			bubbles.blendMode = 'add';
-			app.stage.addChild( bubbles );
-			return {
-				backdrop: backdrop,
-				fitBackdrop: fitBackdrop,
-				caustics: caustics,
-				bubbles: bubbles,
-				bubbleList: makeBubbles( app.renderer.width, app.renderer.height ),
-				time: 0,
-				ripple: 0,
-				glitch: 0,
-			};
-		},
-		onResize: function ( state, env ) {
-			state.fitBackdrop();
-			state.bubbleList = makeBubbles( env.app.renderer.width, env.app.renderer.height );
-		},
-		tick: function ( state, env ) {
-			var app = env.app, dt = env.dt;
-			var w = app.renderer.width, hh = app.renderer.height;
-			state.time += dt;
-			state.ripple *= 0.94;
-			state.glitch *= 0.88;
-			var bass = ( env.audio && env.audio.enabled ) ? env.audio.bass : 0;
-
-			var cg = state.caustics;
-			cg.clear();
-			for ( var i = 0; i < 7; i++ ) {
-				var y = hh * ( 0.18 + i * 0.085 ) + Math.sin( state.time * 0.01 + i ) * 8;
-				var a = 0.025 + bass * 0.03 + state.ripple * 0.04;
-				cg.moveTo( w * 0.02, y )
-					.bezierCurveTo( w * 0.25, y - 28, w * 0.58, y + 28, w * 0.98, y - 8 )
-					.stroke( { color: 0x76f7ff, width: 1.1 + state.ripple, alpha: a, cap: 'round' } );
-			}
-
-			var bg = state.bubbles;
-			bg.clear();
-			for ( var b = 0; b < state.bubbleList.length; b++ ) {
-				var p = state.bubbleList[ b ];
-				if ( ! env.reducedMotion ) {
-					p.y -= p.speed * dt;
-					p.phase += 0.012 * dt;
-				}
-				if ( p.y < -10 ) p.y = hh + h.rand( 4, 40 );
-				var x = p.x + Math.sin( p.phase ) * 9;
-				bg.circle( x, p.y, p.r ).stroke( { color: 0xb8fff8, width: 0.8, alpha: p.alpha + state.ripple * 0.12 } );
-			}
-
-		},
-		onRipple: function ( opts, state ) {
-			state.ripple = Math.min( 1, state.ripple + ( ( opts && opts.intensity ) || 0.5 ) );
-		},
-		onGlitch: function ( opts, state ) {
-			state.glitch = 1;
-			state.ripple = Math.min( 1, state.ripple + 0.45 );
-		},
-		onAudio: function ( state, env ) {
-			if ( env.audio.high > 0.6 ) state.ripple = Math.min( 1, state.ripple + 0.08 );
-		},
-		stillFrame: function ( state, env ) {
-			var saveDt = env.dt;
-			env.dt = 1;
-			this.tick( state, env );
-			env.dt = saveDt;
-		},
-		cleanup: function ( state ) {
-			state.bubbleList = [];
-		},
-	};
-} )();
-/**
- * ODD scene: Abyssal Aquarium � v1.0.0
+ * ODD scene: Abyssal Aquarium - v1.1.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp)
  * with layered Pixi motion that sells the aquarium glass:
@@ -145,12 +22,13 @@
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
 	var h = window.__odd.helpers;
+	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var JELLY_COUNTS = [ 6, 5, 4 ];       // back, mid, front
+	var JELLY_COUNTS = [ 4, 4, 2 ];       // back, mid, front
 	var JELLY_SCALES = [ 0.55, 0.9, 1.35 ];
-	var JELLY_ALPHAS = [ 0.18, 0.36, 0.58 ];
-	var BUBBLE_COUNTS = [ 40, 30, 18 ];
-	var DUST_COUNT = 90;
+	var JELLY_ALPHAS = [ 0.14, 0.26, 0.4 ];
+	var BUBBLE_COUNTS = [ 28, 22, 12 ];
+	var DUST_COUNT = 64;
 	var SHAFT_COUNT = 2;
 
 	function backdropUrl() {
@@ -161,14 +39,18 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeJellies( w, hh ) {
+	function makeJellies( w, hh, perfLow ) {
 		var layers = [];
 		for ( var band = 0; band < 3; band++ ) {
 			var items = [];
-			for ( var i = 0; i < JELLY_COUNTS[ band ]; i++ ) {
+			var count = perfLow ? Math.max( 1, Math.floor( JELLY_COUNTS[ band ] * 0.55 ) ) : JELLY_COUNTS[ band ];
+			for ( var i = 0; i < count; i++ ) {
+				var x = h.rand( w * 0.18, w * 0.94 );
+				var y = h.rand( hh * 0.16, hh * 0.74 );
+				if ( x < w * 0.38 && y > hh * 0.5 ) x += w * 0.28;
 				items.push( {
-					x: h.rand( w * 0.08, w * 0.92 ),
-					y: h.rand( hh * 0.18, hh * 0.78 ),
+					x: x,
+					y: y,
 					// Bell radius shrinks with depth.
 					r: h.rand( 22, 42 ) * JELLY_SCALES[ band ],
 					phase: Math.random() * h.tau,
@@ -182,19 +64,22 @@
 		return layers;
 	}
 
-	function makeBubbles( w, hh ) {
+	function makeBubbles( w, hh, perfLow ) {
 		var layers = [];
 		for ( var band = 0; band < 3; band++ ) {
 			var items = [];
-			for ( var i = 0; i < BUBBLE_COUNTS[ band ]; i++ ) {
+			var count = perfLow ? Math.max( 4, Math.floor( BUBBLE_COUNTS[ band ] * 0.55 ) ) : BUBBLE_COUNTS[ band ];
+			for ( var i = 0; i < count; i++ ) {
+				var x = h.rand( 0, w );
+				var y = h.rand( 0, hh );
 				items.push( {
-					x: h.rand( 0, w ),
-					y: h.rand( 0, hh ),
+					x: x,
+					y: y,
 					r: h.rand( 0.8, 2.4 ) + band * 0.9,
 					speed: h.rand( 0.25, 0.55 ) + band * 0.3,
 					sway: h.rand( 0.3, 0.9 ),
 					phase: Math.random() * h.tau,
-					alpha: 0.22 + band * 0.14,
+					alpha: ( x < w * 0.34 && y > hh * 0.52 ) ? 0.08 : 0.16 + band * 0.1,
 				} );
 			}
 			layers.push( items );
@@ -202,16 +87,19 @@
 		return layers;
 	}
 
-	function makeDust( w, hh ) {
+	function makeDust( w, hh, perfLow ) {
 		var arr = [];
-		for ( var i = 0; i < DUST_COUNT; i++ ) {
+		var count = perfLow ? Math.floor( DUST_COUNT * 0.5 ) : DUST_COUNT;
+		for ( var i = 0; i < count; i++ ) {
+			var x = h.rand( 0, w );
+			var y = h.rand( 0, hh );
 			arr.push( {
-				x: h.rand( 0, w ),
-				y: h.rand( 0, hh ),
+				x: x,
+				y: y,
 				r: h.rand( 0.4, 1.4 ),
 				phase: Math.random() * h.tau,
 				speed: h.rand( 0.003, 0.009 ),
-				alpha: h.rand( 0.08, 0.28 ),
+				alpha: ( x < w * 0.34 && y > hh * 0.5 ) ? h.rand( 0.03, 0.08 ) : h.rand( 0.06, 0.2 ),
 			} );
 		}
 		return arr;
@@ -232,7 +120,7 @@
 	}
 
 	function drawJelly( g, x, y, r, alpha, tint ) {
-		// Translucent bell � three stacked filled half-ellipses for
+		// Translucent bell: three stacked filled half-ellipses for
 		// volume, plus a short tentacle fringe.
 		for ( var k = 0; k < 3; k++ ) {
 			var kr = r * ( 1 - k * 0.18 );
@@ -303,15 +191,16 @@
 			app.stage.addChild( vignette );
 
 			var w = app.renderer.width, hh = app.renderer.height;
+			var perfLow = env.perfTier === 'low';
 
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				shafts: shafts, dust: dust, vignette: vignette,
 				jellyLayers: [ jelliesBack, jelliesMid, jelliesFront ],
 				bubbleLayers: [ bubblesBack, bubblesMid, bubblesFront ],
-				jellies: makeJellies( w, hh ),
-				bubbles: makeBubbles( w, hh ),
-				dustList: makeDust( w, hh ),
+				jellies: makeJellies( w, hh, perfLow ),
+				bubbles: makeBubbles( w, hh, perfLow ),
+				dustList: makeDust( w, hh, perfLow ),
 				shaftList: makeShafts( w ),
 				time: 0,
 				pulse: 0,
@@ -321,16 +210,17 @@
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.jellies = makeJellies( w, hh );
-			state.bubbles = makeBubbles( w, hh );
-			state.dustList = makeDust( w, hh );
+			var perfLow = env.perfTier === 'low';
+			state.jellies = makeJellies( w, hh, perfLow );
+			state.bubbles = makeBubbles( w, hh, perfLow );
+			state.dustList = makeDust( w, hh, perfLow );
 			state.shaftList = makeShafts( w );
 		},
 
 		tick: function ( state, env ) {
 			var app = env.app, dt = env.dt;
 			var w = app.renderer.width, hh = app.renderer.height;
-			state.time += dt;
+			if ( ! env.reducedMotion ) state.time += dt;
 			state.pulse *= 0.92;
 
 			var perfLow = env.perfTier === 'low';

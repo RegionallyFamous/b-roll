@@ -37,15 +37,15 @@
 	'use strict';
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
-	var h = window.__odd.helpers;
+	var h = window.__odd.helpers || {};
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var MID_COUNT_HIGH    = 140;
-	var MID_COUNT_NORMAL  = 95;
-	var MID_COUNT_LOW     = 55;
-	var FG_COUNT_HIGH     = 35;
-	var FG_COUNT_NORMAL   = 22;
-	var FG_COUNT_LOW      = 14;
+	var MID_COUNT_HIGH    = 105;
+	var MID_COUNT_NORMAL  = 74;
+	var MID_COUNT_LOW     = 42;
+	var FG_COUNT_HIGH     = 24;
+	var FG_COUNT_NORMAL   = 16;
+	var FG_COUNT_LOW      = 9;
 	var MAX_SPLASHES      = 64;   // ring pool
 	var SURFACE_REFRESH_MS = 120; // throttle host call
 
@@ -57,24 +57,38 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
+	function rand( min, max ) {
+		if ( h.rand ) return h.rand( min, max );
+		return min + Math.random() * ( max - min );
+	}
+
+	function paintFallback( g, w, hh ) {
+		g.clear();
+		if ( h.paintVGradient ) {
+			h.paintVGradient( g, w, hh, 0x050811, 0x111b2e );
+		} else {
+			g.rect( 0, 0, w, hh ).fill( { color: 0x09101e, alpha: 1 } );
+		}
+	}
+
 	function makeMidDrop( w, hh, wind ) {
 		return {
 			x:  Math.random() * w,
 			y:  Math.random() * hh,
-			vy: h.rand( 7.5, 10.5 ),
+			vy: rand( 5.4, 8.2 ),
 			vx: wind,
-			len: h.rand( 10, 22 ),
-			alpha: h.rand( 0.25, 0.55 ),
+			len: rand( 10, 20 ),
+			alpha: rand( 0.18, 0.42 ),
 		};
 	}
 	function makeFgDrop( w, hh, wind ) {
 		return {
 			x:  Math.random() * w,
 			y:  Math.random() * hh,
-			vy: h.rand( 13, 18 ),
+			vy: rand( 9.5, 14 ),
 			vx: wind * 1.4,
-			len: h.rand( 22, 34 ),
-			alpha: h.rand( 0.55, 0.85 ),
+			len: rand( 20, 32 ),
+			alpha: rand( 0.42, 0.7 ),
 		};
 	}
 
@@ -86,33 +100,36 @@
 
 	window.__odd.scenes.rainfall = {
 
-		setup: function ( env ) {
+		setup: async function ( env ) {
 			var PIXI = env.PIXI;
 			var app  = env.app;
 			var w = app.renderer.width;
 			var hh = app.renderer.height;
 
-			// Painted backdrop sprite (fills the canvas).
 			var bgSprite = null;
+			var bgTex = null;
 			try {
-				PIXI.Assets.load( backdropUrl() ).then( function ( tex ) {
-					if ( ! tex ) return;
-					bgSprite = new PIXI.Sprite( tex );
-					bgSprite.width  = app.renderer.width;
-					bgSprite.height = app.renderer.height;
-					app.stage.addChildAt( bgSprite, 0 );
-				} ).catch( function () {} );
+				bgTex = await PIXI.Assets.load( backdropUrl() );
+				bgSprite = new PIXI.Sprite( bgTex );
+				app.stage.addChild( bgSprite );
 			} catch ( e ) {}
+			function fitBackdrop() {
+				if ( ! bgSprite || ! bgTex ) return;
+				var scale = Math.max( app.renderer.width / bgTex.width, app.renderer.height / bgTex.height );
+				bgSprite.scale.set( scale );
+				bgSprite.x = ( app.renderer.width - bgTex.width * scale ) / 2;
+				bgSprite.y = ( app.renderer.height - bgTex.height * scale ) / 2;
+			}
+			fitBackdrop();
 
-			// Subtle navy haze so the scene still looks right before
-			// the WebP loads (or if it 404s in dev).
+			// Subtle navy haze doubles as the fallback if the WebP fails.
 			var haze = new PIXI.Graphics();
-			h.paintVGradient( haze, w, hh, 0x050811, 0x111b2e );
-			haze.alpha = 0.94;
+			paintFallback( haze, w, hh );
+			haze.alpha = bgSprite ? 0.18 : 0.94;
 			app.stage.addChild( haze );
 			var hazeRef = haze;
 
-			var wind = h.rand( -0.45, 0.35 );
+			var wind = rand( -0.32, 0.24 );
 
 			// Layers.
 			var puddleLayer = new PIXI.Graphics();
@@ -201,6 +218,7 @@
 			return {
 				w: w, hh: hh, wind: wind,
 				bgRef: bgSprite,
+				fitBackdrop: fitBackdrop,
 				hazeRef: hazeRef,
 				puddleLayer: puddleLayer,
 				midLayer: midLayer,
@@ -222,23 +240,23 @@
 			var w = app.renderer.width, hh = app.renderer.height;
 			if ( w !== state.w || hh !== state.hh ) {
 				state.w = w; state.hh = hh;
-				if ( state.bgRef ) { state.bgRef.width = w; state.bgRef.height = hh; }
+				state.fitBackdrop();
 				if ( state.hazeRef ) {
-					state.hazeRef.clear();
-					h.paintVGradient( state.hazeRef, w, hh, 0x050811, 0x111b2e );
+					paintFallback( state.hazeRef, w, hh );
 				}
 			}
 
-			var dt = env.dt || 1;
+			var dt = typeof env.dt === 'number' ? env.dt : 1;
+			var motionDt = env.reducedMotion ? 0 : dt;
 			state.refreshSurfaces( ( window.performance && window.performance.now ) ? window.performance.now() : Date.now(), env.app.canvas );
 
 			// Audio wind sway: bass adds a sideways pulse; subtle.
 			var bass = env.audio && env.audio.enabled ? env.audio.bass : 0;
-			state.windOffset += ( ( bass * 1.2 ) - state.windOffset ) * 0.04;
+			state.windOffset += ( ( bass * 0.9 ) - state.windOffset ) * 0.04;
 			var wind = state.wind + state.windOffset;
 
 			// ---- Puddle shimmer (below drops) ---- //
-			state.puddlePulse += 0.015 * dt;
+			state.puddlePulse += 0.015 * motionDt;
 			var pp = state.puddleLayer;
 			pp.clear();
 			var pulse = 0.55 + Math.sin( state.puddlePulse ) * 0.1;
@@ -257,8 +275,8 @@
 			for ( var j = 0; j < state.mid.length; j++ ) {
 				var d = state.mid[ j ];
 				var prevY = d.y;
-				d.x += d.vx * dt;
-				d.y += d.vy * dt;
+				d.x += d.vx * motionDt;
+				d.y += d.vy * motionDt;
 
 				// Wrap X.
 				if ( d.x < -20 ) d.x += w + 40;
@@ -267,14 +285,14 @@
 				// Surface collision.
 				var hit = state.surfaceAt( d.x, prevY, d.y );
 				if ( hit ) {
-					state.spawnSplash( d.x, hit.y, h.rand( 5, 9 ) );
-					d.y = -h.rand( 10, 80 );
+					state.spawnSplash( d.x, hit.y, rand( 5, 9 ) );
+					d.y = -rand( 10, 80 );
 					d.x = Math.random() * w;
 					continue;
 				}
 
 				if ( d.y > hh + 5 ) {
-					d.y = -h.rand( 5, 60 );
+					d.y = -rand( 5, 60 );
 					d.x = Math.random() * w;
 					continue;
 				}
@@ -290,7 +308,7 @@
 			for ( var k = 0; k < state.splashes.length; k++ ) {
 				var sx = state.splashes[ k ];
 				if ( sx.life <= 0 ) continue;
-				sx.life -= 0.08 * dt;
+				sx.life -= 0.08 * motionDt;
 				if ( sx.life <= 0 ) continue;
 				var radius = sx.r * ( 1 + ( 1 - sx.life ) * 1.8 );
 				sp.circle( sx.x, sx.y, radius ).stroke( { color: 0xd8e6f5, alpha: sx.life * 0.55, width: 1.2 } );
@@ -308,20 +326,20 @@
 			for ( var a = 0; a < state.fg.length; a++ ) {
 				var fd = state.fg[ a ];
 				var prevY2 = fd.y;
-				fd.x += fd.vx * dt;
-				fd.y += fd.vy * dt;
+				fd.x += fd.vx * motionDt;
+				fd.y += fd.vy * motionDt;
 				if ( fd.x < -30 ) fd.x += w + 60;
 				else if ( fd.x > w + 30 ) fd.x -= w + 60;
 
 				var hit2 = state.surfaceAt( fd.x, prevY2, fd.y );
 				if ( hit2 ) {
-					state.spawnSplash( fd.x, hit2.y, h.rand( 8, 13 ) );
-					fd.y = -h.rand( 10, 80 );
+					state.spawnSplash( fd.x, hit2.y, rand( 8, 13 ) );
+					fd.y = -rand( 10, 80 );
 					fd.x = Math.random() * w;
 					continue;
 				}
 				if ( fd.y > hh + 8 ) {
-					fd.y = -h.rand( 5, 60 );
+					fd.y = -rand( 5, 60 );
 					fd.x = Math.random() * w;
 					continue;
 				}
@@ -337,7 +355,7 @@
 		onResize: function ( state, env ) {
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
 			state.w = w; state.hh = hh;
-			if ( state.bgRef ) { state.bgRef.width = w; state.bgRef.height = hh; }
+			state.fitBackdrop();
 		},
 
 		onAudio: function ( state, env ) {
@@ -348,11 +366,11 @@
 				for ( var i = 0; i < spawn; i++ ) {
 					state.fg.push( {
 						x: Math.random() * state.w,
-						y: -h.rand( 5, 40 ),
-						vy: h.rand( 14, 20 ),
+						y: -rand( 5, 40 ),
+						vy: rand( 10, 15 ),
 						vx: state.wind * 1.4,
-						len: h.rand( 22, 34 ),
-						alpha: h.rand( 0.65, 0.9 ),
+						len: rand( 22, 34 ),
+						alpha: rand( 0.55, 0.8 ),
 					} );
 				}
 			}
@@ -360,8 +378,10 @@
 
 		stillFrame: function ( state, env ) {
 			// Render one frame with zero movement.
+			var saveDt = env.dt;
 			env.dt = 0;
 			this.tick( state, env );
+			env.dt = saveDt;
 		},
 
 		cleanup: function () {

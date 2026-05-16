@@ -28,12 +28,21 @@
 	'use strict';
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
-	var h = window.__odd.helpers;
+	var h = window.__odd.helpers || {};
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
 	var CRANE_COUNT  = 7;
 	var FOLD_COUNT   = 9;
 	var POLLEN_COUNT = 80;
+
+	function rand( min, max ) {
+		if ( h.rand ) return h.rand( min, max );
+		return min + Math.random() * ( max - min );
+	}
+
+	function tau() {
+		return h.tau || Math.PI * 2;
+	}
 
 	// Paper palette: lighter "face" + darker "shadow" pairs so each
 	// facet has a folded-paper feel without an explicit gradient.
@@ -56,16 +65,16 @@
 	function makeCrane( w, hh ) {
 		var pair = CRANE_PAIRS[ ( Math.random() * CRANE_PAIRS.length ) | 0 ];
 		return {
-			x:  h.rand( -0.2, 1.2 ) * w,
-			y:  h.rand( 0.15, 0.85 ) * hh,
-			vx: h.rand( 0.45, 0.95 ) * ( Math.random() < 0.5 ? -1 : 1 ),
+			x:  rand( -0.08, 1.16 ) * w,
+			y:  rand( 0.12, 0.72 ) * hh,
+			vx: rand( 0.28, 0.62 ) * ( Math.random() < 0.5 ? -1 : 1 ),
 			vy: 0,
-			amp: h.rand( 14, 28 ),
-			freq: h.rand( 0.0009, 0.0018 ),
+			amp: rand( 10, 22 ),
+			freq: rand( 0.0007, 0.0014 ),
 			phase: Math.random() * Math.PI * 2,
-			scale: h.rand( 0.55, 1.05 ),
+			scale: rand( 0.5, 0.92 ),
 			flap: Math.random() * Math.PI * 2,
-			flapSpeed: h.rand( 0.045, 0.085 ),
+			flapSpeed: rand( 0.028, 0.055 ),
 			face: pair.face,
 			shadow: pair.shadow,
 		};
@@ -75,30 +84,36 @@
 		return {
 			x:  Math.random() * w,
 			y:  Math.random() * hh,
-			vx: h.rand( -0.4, 0.4 ),
-			vy: h.rand( -0.18, 0.18 ),
+			vx: rand( -0.18, 0.24 ),
+			vy: rand( -0.08, 0.12 ),
 			rot:  Math.random() * Math.PI * 2,
-			rotV: h.rand( -0.012, 0.012 ),
-			size: h.rand( 6, 16 ),
+			rotV: rand( -0.007, 0.007 ),
+			size: rand( 6, 14 ),
 			tone: 0xe6cfa6,
-			alpha: h.rand( 0.18, 0.42 ),
+			alpha: rand( 0.14, 0.34 ),
 			shape: Math.random() < 0.5 ? 'tri' : 'dia',
 		};
 	}
 
-	function makePollen( w, hh ) {
+	function makePollen( w, hh, count ) {
 		var arr = [];
-		for ( var i = 0; i < POLLEN_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
 			arr.push( {
 				x: Math.random() * w,
 				y: Math.random() * hh,
 				r: 0.6 + Math.random() * 1.4,
 				phase: Math.random() * Math.PI * 2,
-				speed: h.rand( 0.008, 0.022 ),
-				baseAlpha: h.rand( 0.10, 0.35 ),
+				speed: rand( 0.006, 0.016 ),
+				baseAlpha: rand( 0.08, 0.28 ),
 			} );
 		}
 		return arr;
+	}
+
+	function counts( tier ) {
+		return tier === 'low'
+			? { cranes: 4, folds: 5, pollen: 36 }
+			: { cranes: CRANE_COUNT, folds: FOLD_COUNT, pollen: POLLEN_COUNT };
 	}
 
 	// Draw a single crane at (cx, cy) with rotation (rad), scale s.
@@ -176,9 +191,10 @@
 			var craneG   = new PIXI.Graphics(); app.stage.addChild( craneG );
 
 			var w = app.renderer.width, hh = app.renderer.height;
-			var cranes = []; for ( var i = 0; i < CRANE_COUNT; i++ ) cranes.push( makeCrane( w, hh ) );
-			var folds  = []; for ( var j = 0; j < FOLD_COUNT;  j++ ) folds.push( makeFold( w, hh ) );
-			var pollen = makePollen( w, hh );
+			var c = counts( env.perfTier );
+			var cranes = []; for ( var i = 0; i < c.cranes; i++ ) cranes.push( makeCrane( w, hh ) );
+			var folds  = []; for ( var j = 0; j < c.folds;  j++ ) folds.push( makeFold( w, hh ) );
+			var pollen = makePollen( w, hh, c.pollen );
 
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
@@ -191,9 +207,10 @@
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.cranes = []; for ( var i = 0; i < CRANE_COUNT; i++ ) state.cranes.push( makeCrane( w, hh ) );
-			state.folds  = []; for ( var j = 0; j < FOLD_COUNT;  j++ ) state.folds.push( makeFold( w, hh ) );
-			state.pollen = makePollen( w, hh );
+			var c = counts( env.perfTier );
+			state.cranes = []; for ( var i = 0; i < c.cranes; i++ ) state.cranes.push( makeCrane( w, hh ) );
+			state.folds  = []; for ( var j = 0; j < c.folds;  j++ ) state.folds.push( makeFold( w, hh ) );
+			state.pollen = makePollen( w, hh, c.pollen );
 		},
 
 		tick: function ( state, env ) {
@@ -274,13 +291,16 @@
 					else if ( cr.x > w + 120 ) { cr.x = -120; cr.vx = Math.abs( cr.vx ); }
 				}
 				var by = Math.sin( cr.phase + state.time * cr.freq ) * cr.amp;
+				var drawY = cr.y + by;
+				if ( cr.x < w * 0.34 && drawY > hh * 0.54 ) continue;
 				var flapY = ( -10 + Math.sin( cr.flap ) * 14 ) * cr.scale;
-				drawCrane( cg, { face: cr.face, shadow: cr.shadow }, cr.x, cr.y + by, cr.scale, flapY );
+				drawCrane( cg, { face: cr.face, shadow: cr.shadow }, cr.x, drawY, cr.scale, flapY );
 			}
 
 		},
 
 		onAudio: function ( state, env ) {
+			if ( ! env.audio || ! env.audio.enabled ) return;
 			if ( env.audio.high > 0.55 && state.burst < 0.5 ) {
 				state.burst = 1;
 			}

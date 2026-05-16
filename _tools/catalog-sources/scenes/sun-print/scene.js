@@ -13,12 +13,26 @@
 	'use strict';
 	window.__odd = window.__odd || {};
 	window.__odd.scenes = window.__odd.scenes || {};
-	var h = window.__odd.helpers;
+	var h = window.__odd.helpers || {};
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var PRINT_COUNT = 6;
-	var GRASS_SPECKS = 150;
-	var LEAF_COUNT = 5;
+	var PRINT_COUNT = 5;
+	var GRASS_SPECKS = 110;
+	var LEAF_COUNT = 4;
+
+	function rand( min, max ) {
+		if ( h.rand ) return h.rand( min, max );
+		return min + Math.random() * ( max - min );
+	}
+
+	function choose( arr ) {
+		if ( h.choose ) return h.choose( arr );
+		return arr[ ( Math.random() * arr.length ) | 0 ];
+	}
+
+	function tau() {
+		return h.tau || Math.PI * 2;
+	}
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -28,49 +42,55 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makePrints( w, hh ) {
+	function counts( tier ) {
+		return tier === 'low'
+			? { prints: 4, grass: 48, leaves: 2 }
+			: { prints: PRINT_COUNT, grass: GRASS_SPECKS, leaves: LEAF_COUNT };
+	}
+
+	function makePrints( w, hh, count ) {
 		var out = [];
-		var startX = w * 0.32;
+		var startX = w * 0.38;
 		var endX = w * 0.92;
-		for ( var i = 0; i < PRINT_COUNT; i++ ) {
-			var t = i / ( PRINT_COUNT - 1 );
+		for ( var i = 0; i < count; i++ ) {
+			var t = count > 1 ? i / ( count - 1 ) : 0;
 			out.push( {
 				x: startX + ( endX - startX ) * t,
 				y: hh * 0.26,
-				w: h.rand( 70, 92 ),
-				h: h.rand( 95, 120 ),
-				phase: Math.random() * h.tau,
+				w: rand( 66, 86 ),
+				h: rand( 88, 112 ),
+				phase: Math.random() * tau(),
 			} );
 		}
 		return out;
 	}
 
-	function makeGrassSpecks( w, hh ) {
+	function makeGrassSpecks( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < GRASS_SPECKS; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
 			out.push( {
-				x: h.rand( 0, w ),
-				y: h.rand( hh * 0.5, hh ),
-				r: h.rand( 0.4, 1.2 ),
-				phase: Math.random() * h.tau,
-				color: h.choose( [ 0xffffff, 0xe6f0b5, 0xfff2c9 ] ),
-				alpha: h.rand( 0.3, 0.7 ),
+				x: rand( 0, w ),
+				y: rand( hh * 0.5, hh ),
+				r: rand( 0.4, 1.1 ),
+				phase: Math.random() * tau(),
+				color: choose( [ 0xffffff, 0xe6f0b5, 0xfff2c9 ] ),
+				alpha: rand( 0.22, 0.58 ),
 			} );
 		}
 		return out;
 	}
 
-	function makeLeaves( w, hh ) {
+	function makeLeaves( w, hh, count ) {
 		var out = [];
-		for ( var i = 0; i < LEAF_COUNT; i++ ) {
+		for ( var i = 0; i < count; i++ ) {
 			out.push( {
-				x: h.rand( -40, w ),
-				y: h.rand( hh * 0.45, hh * 0.95 ),
-				vx: h.rand( 0.2, 0.5 ),
-				vy: h.rand( 0.04, 0.12 ),
-				size: h.rand( 4, 7 ),
-				phase: Math.random() * h.tau,
-				color: h.choose( [ 0xc4a85a, 0xa9913c, 0x8fb04a ] ),
+				x: rand( w * 0.36, w ),
+				y: rand( hh * 0.42, hh * 0.92 ),
+				vx: rand( 0.12, 0.32 ),
+				vy: rand( 0.02, 0.08 ),
+				size: rand( 4, 6.5 ),
+				phase: Math.random() * tau(),
+				color: choose( [ 0xc4a85a, 0xa9913c, 0x8fb04a ] ),
 			} );
 		}
 		return out;
@@ -95,12 +115,13 @@
 			var prints = new PIXI.Graphics(); app.stage.addChild( prints );
 
 			var w = app.renderer.width, hh = app.renderer.height;
+			var c = counts( env.perfTier );
 			return {
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				grassG: grass, leavesG: leaves, printsG: prints,
-				prints: makePrints( w, hh ),
-				grass: makeGrassSpecks( w, hh ),
-				leaves: makeLeaves( w, hh ),
+				prints: makePrints( w, hh, c.prints ),
+				grass: makeGrassSpecks( w, hh, c.grass ),
+				leaves: makeLeaves( w, hh, c.leaves ),
 				time: 0, pulse: 0,
 			};
 		},
@@ -108,9 +129,10 @@
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.prints = makePrints( w, hh );
-			state.grass = makeGrassSpecks( w, hh );
-			state.leaves = makeLeaves( w, hh );
+			var c = counts( env.perfTier );
+			state.prints = makePrints( w, hh, c.prints );
+			state.grass = makeGrassSpecks( w, hh, c.grass );
+			state.leaves = makeLeaves( w, hh, c.leaves );
 		},
 
 		tick: function ( state, env ) {
@@ -174,8 +196,8 @@
 					L.x += ( L.vx + wind * 0.4 ) * dt;
 					L.y += L.vy * dt;
 					L.phase += 0.1 * dt;
-					if ( L.x > w + 20 ) L.x = -20;
-					if ( L.y > hh + 20 ) { L.y = hh * 0.4; L.x = h.rand( -40, w * 0.5 ); }
+					if ( L.x > w + 20 ) L.x = w * 0.36;
+					if ( L.y > hh + 20 ) { L.y = hh * 0.42; L.x = rand( w * 0.36, w * 0.72 ); }
 				}
 				var rot = Math.sin( L.phase ) * 0.8;
 				var lx = L.x + px * 6, ly = L.y + py * 3;
@@ -189,6 +211,7 @@
 		},
 
 		onAudio: function ( state, env ) {
+			if ( ! env.audio || ! env.audio.enabled ) return;
 			if ( env.audio.bass > 0.5 ) state.pulse = Math.min( 1, state.pulse + 0.12 );
 		},
 

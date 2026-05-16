@@ -1,5 +1,5 @@
 /**
- * ODD scene: Big Sky — v1.0.0
+ * ODD scene: Big Sky - v1.1.0
  * ---------------------------------------------------------------
  * GPT Image 2 painted backdrop (wallpaper.webp) with
  * prairie motion over a towering cumulus sky:
@@ -17,8 +17,8 @@
 	var h = window.__odd.helpers;
 	var scriptUrl = document.currentScript && document.currentScript.src;
 
-	var CLOUD_COUNT_FAR = 6, CLOUD_COUNT_NEAR = 4;
-	var GRASS_BLADES = 220;
+	var CLOUD_COUNT_FAR = 4, CLOUD_COUNT_NEAR = 3;
+	var GRASS_BLADES = 150;
 
 	function backdropUrl() {
 		var cfg = window.odd || {};
@@ -28,32 +28,36 @@
 		return scriptUrl ? new URL( 'wallpaper.webp', scriptUrl ).toString() : '';
 	}
 
-	function makeClouds( w, hh, count, yBand ) {
+	function makeClouds( w, hh, count, yBand, perfLow ) {
 		var out = [];
-		for ( var i = 0; i < count; i++ ) {
+		var total = perfLow ? Math.max( 2, Math.floor( count * 0.6 ) ) : count;
+		for ( var i = 0; i < total; i++ ) {
 			out.push( {
 				x: h.rand( -w * 0.1, w * 1.1 ),
 				y: hh * yBand + h.rand( -hh * 0.05, hh * 0.08 ),
 				r: h.rand( 40, 120 ),
-				speed: h.rand( 0.02, 0.06 ),
+				speed: h.rand( 0.012, 0.035 ),
 				puffs: 3 + ( Math.random() * 3 ) | 0,
-				alpha: h.rand( 0.1, 0.26 ),
+				alpha: h.rand( 0.06, 0.18 ),
 			} );
 		}
 		return out;
 	}
 
-	function makeGrass( w, hh ) {
+	function makeGrass( w, hh, perfLow ) {
 		var out = [];
-		for ( var i = 0; i < GRASS_BLADES; i++ ) {
-			var x = ( i / GRASS_BLADES ) * w + h.rand( -4, 4 );
+		var count = perfLow ? Math.floor( GRASS_BLADES * 0.45 ) : GRASS_BLADES;
+		for ( var i = 0; i < count; i++ ) {
+			var x = ( i / count ) * w + h.rand( -4, 4 );
+			var inIconZone = x < w * 0.36;
 			out.push( {
 				x: x,
 				base: hh - h.rand( 4, 40 ),
-				height: h.rand( 6, 22 ),
-				sway: h.rand( 2, 6 ),
+				height: inIconZone ? h.rand( 3, 9 ) : h.rand( 5, 18 ),
+				sway: inIconZone ? h.rand( 0.8, 2.2 ) : h.rand( 1.5, 4.5 ),
 				phase: Math.random() * h.tau,
 				hue: h.choose( [ 0xc6a14a, 0xb08d34, 0xd8b850, 0x9a7d2e ] ),
+				alpha: inIconZone ? 0.28 : h.rand( 0.55, 0.78 ),
 			} );
 		}
 		return out;
@@ -87,9 +91,9 @@
 				backdrop: backdrop, fitBackdrop: fitBackdrop,
 				cloudsFarG: cloudsFar, cloudsNearG: cloudsNear,
 				grassG: grass, hawkG: hawk,
-				cloudsFar: makeClouds( w, hh, CLOUD_COUNT_FAR, 0.18 ),
-				cloudsNear: makeClouds( w, hh, CLOUD_COUNT_NEAR, 0.3 ),
-				grass: makeGrass( w, hh ),
+				cloudsFar: makeClouds( w, hh, CLOUD_COUNT_FAR, 0.18, env.perfTier === 'low' ),
+				cloudsNear: makeClouds( w, hh, CLOUD_COUNT_NEAR, 0.3, env.perfTier === 'low' ),
+				grass: makeGrass( w, hh, env.perfTier === 'low' ),
 				time: 0, pulse: 0,
 				hawkT: -1, hawkNext: 15,
 			};
@@ -98,9 +102,9 @@
 		onResize: function ( state, env ) {
 			state.fitBackdrop();
 			var w = env.app.renderer.width, hh = env.app.renderer.height;
-			state.cloudsFar = makeClouds( w, hh, CLOUD_COUNT_FAR, 0.18 );
-			state.cloudsNear = makeClouds( w, hh, CLOUD_COUNT_NEAR, 0.3 );
-			state.grass = makeGrass( w, hh );
+			state.cloudsFar = makeClouds( w, hh, CLOUD_COUNT_FAR, 0.18, env.perfTier === 'low' );
+			state.cloudsNear = makeClouds( w, hh, CLOUD_COUNT_NEAR, 0.3, env.perfTier === 'low' );
+			state.grass = makeGrass( w, hh, env.perfTier === 'low' );
 		},
 
 		tick: function ( state, env ) {
@@ -151,12 +155,12 @@
 				var tipX = b.x + sway;
 				gg.moveTo( b.x, b.base )
 					.quadraticCurveTo( b.x + sway * 0.5, b.base - b.height * 0.5, tipX, b.base - b.height )
-					.stroke( { color: b.hue, width: 1.3, alpha: 0.85, cap: 'round' } );
+					.stroke( { color: b.hue, width: 1.1, alpha: b.alpha, cap: 'round' } );
 			}
 
 			var hg = state.hawkG;
 			hg.clear();
-			if ( ! env.reducedMotion ) {
+			if ( ! env.reducedMotion && env.perfTier !== 'low' ) {
 				if ( state.hawkT < 0 ) {
 					state.hawkNext -= dt / 60;
 					if ( state.hawkNext <= 0 ) { state.hawkT = 0; state.hawkNext = h.rand( 45, 120 ); }
