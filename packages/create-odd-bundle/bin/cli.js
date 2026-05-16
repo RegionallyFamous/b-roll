@@ -207,7 +207,7 @@ function buildManifest( { type, slug, name, author, description } ) {
 	} else if ( type === 'icon-set' ) {
 		m.accent = '#6a5cff';
 		m.icons = {};
-		for ( const k of [ 'dashboard','posts','pages','media','comments','appearance','plugins','users','tools','settings','profile','links','recycle-bin','fallback' ] ) {
+		for ( const k of [ 'dashboard','posts','pages','media','comments','appearance','plugins','users','tools','settings','profile','links','recycle-bin','fallback','os-settings','import','classic-admin' ] ) {
 			m.icons[ k ] = `${ k }.webp`;
 		}
 	} else if ( type === 'widget' ) {

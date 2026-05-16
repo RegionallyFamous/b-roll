@@ -62,6 +62,8 @@ FIRST_PARTY_ICON_KEYS = {
 }
 ICON_IMAGE_MAX_BYTES = 768 * 1024
 ICON_IMAGE_EXTENSIONS = {"png": "PNG", "webp": "WEBP"}
+SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$")
 
 
 def sha256_file(path: Path) -> str:
@@ -113,7 +115,7 @@ def check_schema(data: Any, problems: list[str]) -> None:
     if not isinstance(data, dict):
         problems.append("registry must be a JSON object")
         return
-    if data.get("version") != 1:
+    if not isinstance(data.get("version"), int) or data.get("version") != 1:
         problems.append(f"registry.version must be 1 (got {data.get('version')!r})")
     bundles = data.get("bundles")
     if not isinstance(bundles, list):
@@ -127,7 +129,17 @@ def check_bundle_row(
     row: dict, idx: int, problems: list[str]
 ) -> tuple[str | None, str | None]:
     """Returns (type, slug) so starter-pack resolution can cross-check."""
-    required = ("type", "slug", "name", "version", "download_url", "sha256", "card_url")
+    required = (
+        "type",
+        "slug",
+        "name",
+        "version",
+        "icon_url",
+        "download_url",
+        "sha256",
+        "size",
+        "card_url",
+    )
     missing = [k for k in required if k not in row]
     if missing:
         problems.append(f"bundle[{idx}]: missing keys {missing}")
@@ -139,6 +151,10 @@ def check_bundle_row(
 
     if btype not in ("scene", "icon-set", "cursor-set", "widget", "app"):
         problems.append(f"bundle[{idx}] ({slug}): unknown type {btype!r}")
+    if not isinstance(slug, str) or not SLUG_RE.match(slug):
+        problems.append(f"bundle[{idx}] ({slug}): invalid slug")
+    if not isinstance(version, str) or not SEMVER_RE.match(version):
+        problems.append(f"bundle[{idx}] ({slug}): invalid version {version!r}")
 
     sha = row["sha256"]
     if not isinstance(sha, str) or len(sha) != 64:
@@ -152,8 +168,10 @@ def check_bundle_row(
         )
         return btype, slug
 
+    if not isinstance(row.get("size"), int) or row["size"] <= 0:
+        problems.append(f"bundle[{idx}] ({slug}): size must be a positive integer")
     actual_size = disk.stat().st_size
-    if row.get("size") not in (None, actual_size):
+    if row.get("size") != actual_size:
         problems.append(
             f"bundle[{idx}] ({slug}): size {row.get('size')} != on-disk {actual_size}"
         )

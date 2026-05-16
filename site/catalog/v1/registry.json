@@ -10,7 +10,7 @@
       "oddlings"
     ],
     "cursorSets": [
-      "oddlings-cursors"
+      "odd-default-cursors"
     ],
     "widgets": [],
     "apps": []
@@ -462,16 +462,31 @@
       "type": "icon-set",
       "slug": "oddlings",
       "name": "Oddlings",
-      "version": "1.0.1",
+      "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "Clean native-feeling desktop glyphs with just enough ODD shimmer to feel alive.",
+      "description": "Dark plum raster tiles with clean default-style glyphs and just enough ODD shimmer to feel alive.",
       "franchise": "ODD Defaults",
       "accent": "#38e8ff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-oddlings.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/iconset-oddlings.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-oddlings.wp",
-      "sha256": "bf87326ccbc93b2e1065f3e86aa158896b9e19468122680ac91be55fe1a06614",
-      "size": 976481
+      "sha256": "70919bf55704925b26f40ef55359dfb1ec5df6b0aa147c609381467b602ae786",
+      "size": 741517
+    },
+    {
+      "type": "cursor-set",
+      "slug": "odd-default-cursors",
+      "name": "ODD Default",
+      "version": "1.0.0",
+      "author": "Regionally Famous",
+      "description": "Native-feeling cursor shapes with a small cyan ODD accent.",
+      "franchise": "ODD Defaults",
+      "accent": "#38bdf8",
+      "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/cursor-set-odd-default-cursors.svg",
+      "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/cursor-set-odd-default-cursors.webp",
+      "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/cursor-set-odd-default-cursors.wp",
+      "sha256": "755655a7216ffd0c4b0844bbc20e72b3f5eeed2e34c4a53b1379802b572692bd",
+      "size": 5453
     },
     {
       "type": "cursor-set",

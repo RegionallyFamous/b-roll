@@ -43,8 +43,11 @@ my-icons.wp
 
 Paths inside `icons/` can be anything — the manifest maps the
 required semantic keys to paths of your choosing. ODD requires all
-14 keys so Desktop Mode's dock, desktop, taskbar, file shortcut, and
-Recycle Bin surfaces can all resolve through one complete native feed.
+14 core keys so Desktop Mode's dock, desktop, taskbar, file shortcut,
+and Recycle Bin surfaces can all resolve through one complete native
+feed. Sets may also declare optional shell-action keys such as
+`os-settings`, `import`, and `classic-admin` for compact rail actions
+that are not normal WordPress menu rows.
 
 Icon files must be PNG or WebP images. Use PNG when you need crisp
 transparency; use WebP when the art is painted, textured, or otherwise
@@ -93,7 +96,7 @@ benefits from better compression.
 | `accent`      | yes      | `#hex` used for Shop accents and catalog previews.|
 | `description` | no       | Longer copy shown on the detail sheet.                                     |
 | `preview`     | no       | Relative path to a PNG/WebP hero (falls back to the `dashboard` icon).|
-| `icons`       | yes      | Map of all 14 semantic keys to relative PNG/WebP paths. |
+| `icons`       | yes      | Map of all 14 core semantic keys, plus any optional shell-action keys, to relative PNG/WebP paths. |
 
 ### Why these keys?
 
@@ -116,6 +119,9 @@ stable logical keys via `oddout_icons_slug_to_key()`:
 | `profile`     | yes      | Your own profile tile                     |
 | `links`       | yes      | Legacy Links, any URL-browsing tool       |
 | `recycle-bin` | yes      | WP Desktop Mode Recycle Bin (`desktop-mode-recycle-bin`) |
+| `os-settings` | no       | Desktop Mode OS Settings system tile      |
+| `import`      | no       | Import/download-style rail action         |
+| `classic-admin` | no     | Exit/classic-admin rail action            |
 
 If the active set can't provide one of the logical keys, ODD reaches
 for the set's own `fallback`, then for whatever WP Desktop Mode served

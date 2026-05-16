@@ -48,8 +48,18 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
       - name: Install node deps
         run: npm ci --no-audit --no-fund
+
+      - name: Install Python catalog dependencies
+        run: python -m pip install --quiet -r requirements-catalog.txt
+
+      - name: Build fixture catalog from _tools/catalog-sources/
+        run: python3 _tools/build-catalog.py
 
       - name: Install Playwright browsers
         run: |
@@ -91,6 +101,13 @@ jobs:
             --admin_email=e2e@example.com \
             --skip-email
 
+      - name: Stage fixture catalog + MU-plugin
+        run: |
+          mkdir -p /tmp/wp/wp-content/odd-smoke-fixture
+          cp -R "$GITHUB_WORKSPACE/site/catalog/v1/." /tmp/wp/wp-content/odd-smoke-fixture/
+          mkdir -p /tmp/wp/wp-content/mu-plugins
+          cp "$GITHUB_WORKSPACE/ci/smoke/odd-smoke-fixture.php" /tmp/wp/wp-content/mu-plugins/
+
       - name: Install WP Desktop Mode (host plugin)
         working-directory: /tmp/wp
         # Use the mirrored packaged zip (includes compiled assets/js/desktop.min.js
@@ -109,9 +126,8 @@ jobs:
 
       - name: Install starter pack from remote catalog
         working-directory: /tmp/wp
-        # ODD content installs from the remote catalog. Call the
-        # starter installer directly so the starter scene + icon set
-        # land on disk before Playwright boots the browser.
+        # ODD content installs through the catalog path, with the
+        # MU-plugin above serving the built fixture files hermetically.
         run: |
           wp eval '$r = oddout_starter_install_now(); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message() . "\n"); exit(1); } var_export($r);'
 

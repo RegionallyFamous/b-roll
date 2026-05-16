@@ -30,6 +30,81 @@
 		return sp;
 	}
 
+	function activeIconSetIcons() {
+		var cfg = window.oddout || {};
+		var slug = typeof cfg.iconSet === 'string' ? cfg.iconSet : '';
+		var sets = Array.isArray( cfg.iconSets ) ? cfg.iconSets : [];
+		if ( ! slug || ! sets.length ) {
+			return {};
+		}
+		for ( var i = 0; i < sets.length; i++ ) {
+			if ( sets[ i ] && sets[ i ].slug === slug && sets[ i ].icons ) {
+				return sets[ i ].icons;
+			}
+		}
+		return {};
+	}
+
+	function firstIconUrlForKeys( keys ) {
+		var icons = activeIconSetIcons();
+		for ( var i = 0; i < keys.length; i++ ) {
+			if ( icons[ keys[ i ] ] ) {
+				return icons[ keys[ i ] ];
+			}
+		}
+		return '';
+	}
+
+	function iconKeysForItem( icon, item ) {
+		var keys = [];
+		var title = '';
+		var id = '';
+		try {
+			title = String( ( item && ( item.title || item.label ) ) || '' ).toLowerCase();
+			id = String( ( item && item.id ) || '' ).toLowerCase();
+		} catch ( _ ) {}
+
+		if ( id === 'wp-desktop-os-settings' || title.indexOf( 'os settings' ) !== -1 ) {
+			keys.push( 'os-settings', 'settings' );
+		}
+		if (
+			title.indexOf( 'classic' ) !== -1 ||
+			title.indexOf( 'exit' ) !== -1 ||
+			title.indexOf( 'logout' ) !== -1 ||
+			title.indexOf( 'log out' ) !== -1
+		) {
+			keys.push( 'classic-admin', 'fallback' );
+		}
+		if ( title.indexOf( 'import' ) !== -1 || title.indexOf( 'download' ) !== -1 ) {
+			keys.push( 'import', 'tools' );
+		}
+
+		switch ( icon ) {
+			case 'dashicons-desktop':
+			case 'dashicons-admin-site':
+			case 'dashicons-welcome-view-site':
+				keys.push( 'os-settings', 'settings' );
+				break;
+			case 'dashicons-download':
+			case 'dashicons-upload':
+			case 'dashicons-migrate':
+				keys.push( 'import', 'tools' );
+				break;
+			case 'dashicons-admin-plugins':
+				keys.push( 'plugins' );
+				break;
+			case 'dashicons-exit':
+			case 'dashicons-exit-alt':
+			case 'dashicons-arrow-left-alt':
+			case 'dashicons-arrow-left-alt2':
+				keys.push( 'classic-admin', 'fallback' );
+				break;
+			default:
+				break;
+		}
+		return keys;
+	}
+
 	/** True when `src` belongs on `<img>` (absolute URL, proto-relative, site-relative SVG, data URI). */
 	function isIconImgSrc( u ) {
 		if ( typeof u !== 'string' || '' === u ) {
@@ -50,18 +125,26 @@
 		return false;
 	}
 
-	function thumbForItem( icon ) {
+	function imageMarkup( src ) {
+		var img = document.createElement( 'img' );
+		img.loading = 'lazy';
+		img.decoding = 'async';
+		img.src = src;
+		img.alt = '';
+		return img;
+	}
+
+	function thumbForItem( icon, item ) {
 		icon = typeof icon === 'string' ? icon : '';
+		var themed = firstIconUrlForKeys( iconKeysForItem( icon, item ) );
+		if ( themed ) {
+			return imageMarkup( themed );
+		}
 		if ( icon.slice( 0, 12 ) === 'dashicons-' ) {
 			return dashIconMarkup( icon );
 		}
 		if ( isIconImgSrc( icon ) ) {
-			var img = document.createElement( 'img' );
-			img.loading = 'lazy';
-			img.decoding = 'async';
-			img.src = icon;
-			img.alt = '';
-			return img;
+			return imageMarkup( icon );
 		}
 		var fallback = dashIconMarkup( 'dashicons-admin-plugins' );
 		return fallback;
@@ -104,7 +187,7 @@
 				btn.setAttribute( 'data-odd-kind', 'menu' );
 				btn.setAttribute( 'data-odd-ref', dockKeyUrl( item ) );
 				btn.setAttribute( 'aria-label', item.title || '' );
-				btn.appendChild( thumbForItem( item.icon ) );
+				btn.appendChild( thumbForItem( item.icon, item ) );
 				btn.addEventListener( 'click', function () {
 					openMenuTile( deps, item );
 				} );
@@ -177,7 +260,7 @@
 						( item.window ? String( item.window ) : 'App' )
 				);
 
-				btn.appendChild( thumbForItem( item.icon ) );
+				btn.appendChild( thumbForItem( item.icon, item ) );
 				btn.addEventListener(
 					'click',
 					function () {

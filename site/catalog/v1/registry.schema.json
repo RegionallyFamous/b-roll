@@ -62,8 +62,10 @@
           "slug",
           "name",
           "version",
+          "icon_url",
           "download_url",
           "sha256",
+          "size",
           "card_url"
         ],
         "properties": {
@@ -78,13 +80,15 @@
             ]
           },
           "slug": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
           },
           "name": {
             "type": "string"
           },
           "version": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
           },
           "author": {
             "type": "string"
@@ -115,7 +119,8 @@
             "pattern": "^[0-9a-f]{64}$"
           },
           "size": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           },
           "accent": {
             "type": "string"

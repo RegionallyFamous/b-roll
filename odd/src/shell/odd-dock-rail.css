@@ -86,14 +86,16 @@ button.odd-dock-rail-mount__tile:hover {
 
 button.odd-dock-rail-mount__tile img {
 	display: block;
-	width: 24px;
-	height: 24px;
+	width: 100%;
+	height: 100%;
 	object-fit: contain;
 }
 
 button.odd-dock-rail-mount__tile span.dashicons {
-	font-size: 24px;
-	width: 24px;
-	height: 24px;
-	line-height: 24px;
+	display: grid;
+	place-items: center;
+	width: 100%;
+	height: 100%;
+	font-size: 34px;
+	line-height: 1;
 }

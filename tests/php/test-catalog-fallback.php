@@ -20,6 +20,7 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 				'version'      => '1.0.0',
 				'download_url' => $base . 'bundles/widget-' . $slug . '.wp',
 				'sha256'       => str_repeat( 'a', 64 ),
+				'size'         => 12345,
 				'icon_url'     => $base . 'icons/widget-' . $slug . '.svg',
 				'card_url'     => $base . 'cards/widget-' . $slug . '.webp',
 			),
@@ -40,6 +41,7 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		remove_all_filters( 'oddout_catalog_fallback_path' );
 		remove_all_filters( 'oddout_catalog_entry_url_allowed' );
 		remove_all_filters( 'oddout_catalog_max_response_bytes' );
+		remove_all_filters( 'oddout_catalog_allow_empty_remote' );
 		remove_all_filters( 'oddout_catalog_url' );
 		remove_all_filters( 'pre_http_request' );
 		parent::tear_down();
@@ -139,6 +141,107 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		$meta = oddout_catalog_meta();
 		$this->assertSame( 'stale_option', $meta['source'] );
 		$this->assertSame( 'empty_remote', $meta['last_error_code'] );
+	}
+
+	public function test_empty_remote_without_stale_uses_bundled_fallback() {
+		delete_transient( ODDOUT_CATALOG_TRANSIENT );
+		delete_option( ODDOUT_CATALOG_STALE_OPTION );
+		add_filter(
+			'pre_http_request',
+			static function () {
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode(
+						array(
+							'version' => 1,
+							'bundles' => array(),
+						)
+					),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			}
+		);
+
+		$registry = oddout_catalog_load( true );
+		$this->assertNotEmpty( $registry['bundles'] );
+		$meta = oddout_catalog_meta();
+		$this->assertSame( 'fallback_file', $meta['source'] );
+		$this->assertSame( 'empty_remote', $meta['last_error_code'] );
+	}
+
+	public function test_non_empty_remote_can_be_repaired_with_fallback_icon_sets() {
+		$raw = array(
+			'version' => 1,
+			'bundles' => array(
+				$this->catalog_row( 'remote-widget' ),
+			),
+		);
+		add_filter(
+			'pre_http_request',
+			static function () use ( $raw ) {
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode( $raw ),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			}
+		);
+
+		$registry = oddout_catalog_load( true );
+		$slugs    = wp_list_pluck( $registry['bundles'], 'slug' );
+		$this->assertContains( 'remote-widget', $slugs );
+		$this->assertContains( 'oddlings', $slugs, 'Missing remote icon sets should be repaired from the bundled fallback.' );
+
+		$mirror       = get_option( ODDOUT_CATALOG_STALE_OPTION );
+		$mirror_slugs = wp_list_pluck( $mirror['bundles'], 'slug' );
+		$this->assertSame( array( 'remote-widget' ), $mirror_slugs, 'The stale mirror should store the accepted remote payload, not the repaired effective view.' );
+	}
+
+	public function test_private_empty_remote_can_opt_in_without_fallback_repair() {
+		add_filter( 'oddout_catalog_allow_empty_remote', '__return_true' );
+		add_filter(
+			'pre_http_request',
+			static function () {
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode(
+						array(
+							'version' => 1,
+							'bundles' => array(),
+						)
+					),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+				);
+			}
+		);
+
+		$registry = oddout_catalog_load( true );
+		$this->assertSame( array(), $registry['bundles'] );
+		$meta = oddout_catalog_meta();
+		$this->assertSame( 'remote', $meta['source'] );
+		$this->assertFalse( $meta['empty_remote'] );
+
+		remove_all_filters( 'pre_http_request' );
+		add_filter(
+			'pre_http_request',
+			static function () {
+				return new WP_Error( 'offline', 'simulated offline catalog' );
+			}
+		);
+
+		$stale = oddout_catalog_load( true );
+		$this->assertSame( array(), $stale['bundles'] );
+		$meta = oddout_catalog_meta();
+		$this->assertSame( 'stale_option', $meta['source'] );
 	}
 
 	public function test_catalog_rest_redacts_install_fields_for_non_admins() {
@@ -389,6 +492,45 @@ class Test_Catalog_Fallback extends WP_UnitTestCase {
 		$result = oddout_catalog_fetch_remote( ODDOUT_CATALOG_URL );
 		$this->assertWPError( $result );
 		$this->assertSame( 'catalog_duplicate_slug', $result->get_error_code() );
+	}
+
+	public function test_remote_catalog_rejects_bad_version_size_and_starter_refs() {
+		$bad_version = oddout_catalog_validate_remote_registry(
+			array(
+				'version' => 2,
+				'bundles' => array(),
+			),
+			ODDOUT_CATALOG_URL
+		);
+		$this->assertWPError( $bad_version );
+		$this->assertSame( 'catalog_bad_version', $bad_version->get_error_code() );
+
+		$missing_size_row = $this->catalog_row( 'missing-size' );
+		unset( $missing_size_row['size'] );
+		$missing_size = oddout_catalog_validate_remote_registry(
+			array(
+				'version' => 1,
+				'bundles' => array( $missing_size_row ),
+			),
+			ODDOUT_CATALOG_URL
+		);
+		$this->assertWPError( $missing_size );
+		$this->assertSame( 'catalog_bad_size', $missing_size->get_error_code() );
+
+		$bad_starter = oddout_catalog_validate_remote_registry(
+			array(
+				'version'      => 1,
+				'starter_pack' => array(
+					'scenes' => array( 'starter-widget' ),
+				),
+				'bundles'      => array(
+					$this->catalog_row( 'starter-widget' ),
+				),
+			),
+			ODDOUT_CATALOG_URL
+		);
+		$this->assertWPError( $bad_starter );
+		$this->assertSame( 'catalog_bad_starter_pack_slug', $bad_starter->get_error_code() );
 	}
 
 	public function test_remote_catalog_rejects_bad_hash_and_external_urls() {

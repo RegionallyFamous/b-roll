@@ -29,10 +29,10 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.x'
+          python-version: '3.12'
 
       - name: Install Python catalog dependencies
-        run: python -m pip install --quiet Pillow
+        run: python -m pip install --quiet -r requirements-catalog.txt
 
       # Rebuild the remote catalog on every deploy so /catalog/v1/
       # is always in sync with whatever landed on main. The builder
@@ -40,10 +40,12 @@ jobs:
       # bundles + registry, so a no-op content change still produces
       # the same artifact bytes.
       - name: Build remote catalog
+        id: catalog
         run: |
           python3 _tools/build-catalog.py
           ls -la site/catalog/v1/
           echo 'catalog bundles:' && ls site/catalog/v1/bundles/ | wc -l
+          echo "registry_sha256=$(sha256sum site/catalog/v1/registry.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Validate catalog before publishing
         env:
@@ -62,13 +64,18 @@ jobs:
         uses: actions/deploy-pages@v5
 
       - name: Smoke test published catalog artifacts
+        env:
+          EXPECTED_REGISTRY_SHA256: ${{ steps.catalog.outputs.registry_sha256 }}
         run: |
           python3 - <<'PY'
+          import hashlib
           import json
+          import os
           import time
           import urllib.request
 
           registry_url = "https://odd.regionallyfamous.com/catalog/v1/registry.json"
+          expected_registry_sha = os.environ.get("EXPECTED_REGISTRY_SHA256", "")
           required_types = {"scene", "icon-set", "cursor-set", "widget"}
           required_widgets = {"sticky", "eight-ball"}
 
@@ -86,7 +93,20 @@ jobs:
                       time.sleep(2 * (attempt + 1))
               raise SystemExit(f"failed to fetch {url}: {last}")
 
-          registry = json.loads(fetch(registry_url))
+          registry_body = b""
+          for attempt in range(12):
+              registry_body = fetch(registry_url)
+              actual_sha = hashlib.sha256(registry_body).hexdigest()
+              if not expected_registry_sha or actual_sha == expected_registry_sha:
+                  break
+              print(f"published registry not fresh yet on attempt {attempt + 1}: {actual_sha}")
+              time.sleep(5)
+          else:
+              raise SystemExit(
+                  f"published registry sha256 did not match built registry {expected_registry_sha}"
+              )
+
+          registry = json.loads(registry_body)
           bundles = registry.get("bundles", [])
           by_type = {}
           for row in bundles:

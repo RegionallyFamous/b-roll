@@ -4,8 +4,8 @@
   "franchise": "ODD Defaults",
   "accent": "#38e8ff",
   "preview": "dashboard.webp",
-  "description": "Clean native-feeling desktop glyphs with just enough ODD shimmer to feel alive.",
-  "version": "1.0.1",
+  "description": "Dark plum raster tiles with clean default-style glyphs and just enough ODD shimmer to feel alive.",
+  "version": "1.0.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.webp",
@@ -21,6 +21,9 @@
     "profile": "profile.webp",
     "links": "links.webp",
     "fallback": "fallback.webp",
-    "recycle-bin": "recycle-bin.webp"
+    "recycle-bin": "recycle-bin.webp",
+    "os-settings": "os-settings.webp",
+    "import": "import.webp",
+    "classic-admin": "classic-admin.webp"
   }
 }
