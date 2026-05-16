@@ -12,7 +12,7 @@ The Luxe + Weird overhaul is checked at these breakpoints in both light and dark
 
 Acceptance notes:
 
-- Topbar search, rail, hero, editorial strip, cards, Settings, overlays, and preview bar must fit without horizontal overflow.
+- Topbar search, rail, hero, editorial strip, cards, Settings, overlays, and flow toasts must fit without horizontal overflow.
 - Dark mode must flip every chrome and secondary surface while keeping ODD tints as accents.
 - Reduced-motion mode must disable live hero motion, card tilt, chaos cast, and looping hero flourishes.
 - Focus rings must remain visible and unclipped on rail items, cards, buttons, and Settings controls.

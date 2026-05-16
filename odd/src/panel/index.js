@@ -382,16 +382,6 @@
 			active:        'wallpaper',
 			cfg:           clone( window.odd || {} ),
 			posting:       false,
-			// Preview state: when non-null, the user has clicked a
-			// scene, icon-set, or cursor-set card. Scenes/cursors can
-			// preview live; icon sets are applied through Desktop Mode's
-			// native server-side icon data and live menu refresh.
-			//
-			//   { kind: 'wallpaper' | 'iconSet' | 'cursorSet',
-			//     slug:         'aurora',
-			//     originalSlug: 'flux'
-			//   }
-			preview:       null,
 			// Live global search query. Cleared on department switch
 			// unless the caller passes `keepQuery: true` (e.g. the
 			// search field re-rendering its result surface).
@@ -1020,7 +1010,6 @@
 			switch ( kind ) {
 				case 'nav':     return [ { freq: 420, to: 560, length: 0.055, type: 'triangle' } ];
 				case 'search':  return [ { freq: 760, to: 910, length: 0.035, type: 'sine', level: 0.45 } ];
-				case 'preview': return [ { freq: 520, length: 0.055, type: 'sine' }, { freq: 780, delay: 0.045, length: 0.07, type: 'sine', level: 0.55 } ];
 				case 'install': return [ { freq: 260, to: 390, length: 0.12, type: 'triangle' }, { freq: 520, delay: 0.07, length: 0.09, type: 'sine', level: 0.45 } ];
 				case 'success': return [ { freq: 523.25, length: 0.08, type: 'sine' }, { freq: 659.25, delay: 0.07, length: 0.08, type: 'sine' }, { freq: 880, delay: 0.14, length: 0.12, type: 'sine', level: 0.6 } ];
 				case 'error':   return [ { freq: 220, to: 164.81, length: 0.13, type: 'triangle' }, { freq: 185, delay: 0.07, length: 0.11, type: 'triangle', level: 0.5 } ];
@@ -1171,15 +1160,6 @@
 			var stopSectionTimer = diagTime( 'panel.renderSection', { section: id || '' } );
 			opts = opts || {};
 			var scrollSnap = opts.skipScrollPreserve ? null : captureShopScrollTops();
-			// Abandoning a tab with a pending preview reverts the
-			// live swap — no silent commits because the user clicked
-			// "About" to look at stats.
-			if ( state.preview ) {
-				var sameTab = ( id === 'wallpaper' && state.preview.kind === 'wallpaper' ) ||
-					( id === 'icons' && state.preview.kind === 'iconSet' ) ||
-					( id === 'cursors' && state.preview.kind === 'cursorSet' );
-				if ( ! sameTab ) cancelPreview();
-			}
 
 			// Department switch resets the search query so hopping
 			// into Icons after filtering Wallpapers doesn't greet
@@ -1226,9 +1206,6 @@
 					} );
 				} );
 			}
-			// If we re-entered the tab that owns an active preview,
-			// re-draw the sticky confirmation bar.
-			if ( state.preview ) renderPreviewBar();
 
 			// Flash-highlight the just-installed tile, if we owe
 			// the user one from a bundle install that landed on
@@ -4032,7 +4009,7 @@
 			// Hero — the currently-active scene, or the first result
 			// from installed content. Catalog-only rows stay in the
 			// product shelves until installed, so the hero never offers
-			// a Preview action for a scene that does not exist on disk.
+			// an Apply action for a scene that does not exist on disk.
 			var heroScenes = filterByQuery( installedScenes, state.query );
 			if ( heroScenes.length && state.storeView !== 'available' && state.storeView !== 'updates' ) {
 				var featured = pickFeaturedScene( heroScenes );
@@ -4122,21 +4099,21 @@
 			sub.textContent = heroTagline( scene );
 			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
 
-			if ( isActive && ! state.preview ) {
+			if ( isActive ) {
 				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
 				active.textContent = '✓ Living here';
 				actions.appendChild( active );
 			} else {
-				var previewBtn = el( 'button', {
+				var applyBtn = el( 'button', {
 					type: 'button',
 					class: 'odd-shop__hero-btn odd-shop__hero-btn--primary',
 				} );
-				previewBtn.innerHTML = '<span aria-hidden="true">▶</span> Preview';
-				previewBtn.addEventListener( 'click', function ( e ) {
+				applyBtn.innerHTML = '<span aria-hidden="true">✓</span> Apply';
+				applyBtn.addEventListener( 'click', function ( e ) {
 					e.stopPropagation();
-					previewScene( scene.slug );
+					applyScene( scene.slug );
 				} );
-				actions.appendChild( previewBtn );
+				actions.appendChild( applyBtn );
 			}
 
 			inner.appendChild( eyebrow );
@@ -5311,12 +5288,9 @@
 			var row  = normaliseShopRow( scene, 'scene' );
 			if ( ! row ) return el( 'div' );
 			var wrap = renderShopCard( row );
-			// Scene card gets additional preview-state affordances
-			// that the generic renderer doesn't know about — the
-			// active scene gets the Iris "watching" sticker and the
-			// mid-preview tile grows a `is-previewing` class the
-			// preview-bar logic keys off. Layer these on after the
-			// unified render returns its DOM.
+			// Scene cards get one extra active-state flourish that the
+			// generic renderer does not know about: Iris watches from the
+			// currently active wallpaper tile.
 			if ( wrap && row.installed ) decorateSceneCard( wrap, scene );
 			return wrap;
 		}
@@ -5326,12 +5300,7 @@
 			if ( ! card ) return;
 			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
 			var active = scene.slug === currentSlug;
-			var isPreview = state.preview && state.preview.kind === 'wallpaper' && state.preview.slug === scene.slug;
-			if ( isPreview ) {
-				card.classList.add( 'is-previewing' );
-				wrap.classList.add( 'is-previewing' );
-			}
-			if ( active && ! state.preview ) {
+			if ( active ) {
 				var art = wrap.querySelector( '.odd-shop__card-art' );
 				if ( art && ! art.querySelector( '.odd-shop__iris-sticker' ) ) {
 					var iris = el( 'span', { class: 'odd-shop__iris-sticker', 'aria-hidden': 'true', title: 'Iris is watching' } );
@@ -5396,38 +5365,6 @@
 			redecorateSceneGrid();
 		}
 
-		function previewScene( slug ) {
-			if ( state.posting ) return;
-			playShopSound( 'preview' );
-
-			// First click starts a preview; subsequent clicks on other
-			// cards just swap the preview target without changing the
-			// `originalSlug` we'd revert to on cancel.
-			var originalSlug;
-			if ( state.preview && state.preview.kind === 'wallpaper' ) {
-				originalSlug = state.preview.originalSlug;
-			} else if ( state.preview && state.preview.kind === 'iconSet' ) {
-				// Entering a wallpaper preview while an icon preview is
-				// open just leaves the icon preview in place.
-				originalSlug = state.cfg.wallpaper || state.cfg.scene;
-			} else {
-				originalSlug = state.cfg.wallpaper || state.cfg.scene;
-			}
-
-			state.preview = {
-				kind: 'wallpaper',
-				slug: slug,
-				originalSlug: originalSlug,
-			};
-
-			// Live-swap the visible wallpaper without persisting.
-			pickSceneLive( slug );
-
-			// Re-decorate the grid so "is-previewing" highlights move.
-			redecorateSceneGrid();
-			renderPreviewBar();
-		}
-
 		function pickSceneLive( slug ) {
 			if ( window.wp && window.wp.hooks && typeof window.wp.hooks.doAction === 'function' ) {
 				try { window.wp.hooks.doAction( 'odd.pickScene', slug ); } catch ( e ) {}
@@ -5437,29 +5374,24 @@
 		function redecorateSceneGrid() {
 			var cards = content.querySelectorAll( '.odd-card[data-slug]' );
 			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
-			var previewSlug = state.preview && state.preview.kind === 'wallpaper' ? state.preview.slug : null;
 			for ( var i = 0; i < cards.length; i++ ) {
 				var c = cards[ i ];
 				var slug = c.getAttribute( 'data-slug' );
-				c.classList.remove( 'is-active', 'is-previewing' );
-				if ( previewSlug && slug === previewSlug ) c.classList.add( 'is-previewing' );
-				else if ( ! previewSlug && slug === currentSlug ) c.classList.add( 'is-active' );
+				c.classList.remove( 'is-active' );
+				if ( slug === currentSlug ) c.classList.add( 'is-active' );
 				var cardWrap = c.closest ? c.closest( '.odd-shop__card-wrap' ) : null;
 				if ( cardWrap ) {
-					cardWrap.classList.toggle( 'is-active', !! ( ! previewSlug && slug === currentSlug ) );
-					cardWrap.classList.toggle( 'is-previewing', !! ( previewSlug && slug === previewSlug ) );
+					cardWrap.classList.toggle( 'is-active', slug === currentSlug );
 				}
 
-					if ( cardWrap ) {
-						var sceneRow = shopRowByTypeAndSlug( 'scene', slug );
-						if ( sceneRow ) {
-							syncShopCardElement( cardWrap, sceneRow, {
-								isActive: slug === currentSlug,
-								hasPreview: !! previewSlug,
-								isPreviewing: !! ( previewSlug && slug === previewSlug ),
-							} );
-						}
+				if ( cardWrap ) {
+					var sceneRow = shopRowByTypeAndSlug( 'scene', slug );
+					if ( sceneRow ) {
+						syncShopCardElement( cardWrap, sceneRow, {
+							isActive: slug === currentSlug,
+						} );
 					}
+				}
 				// Sync the favorite star's on-state so flipping a
 				// favorite on one tile updates that tile without a
 				// full re-render. The star lives as a *sibling* of
@@ -5479,7 +5411,7 @@
 				var thumb = c.querySelector( '.odd-shop__tile-thumb' );
 				if ( thumb ) {
 					var existingBadge = thumb.querySelector( '.odd-shop__tile-badge' );
-					var shouldBadge   = ! previewSlug && slug === currentSlug;
+					var shouldBadge   = slug === currentSlug;
 					if ( shouldBadge && ! existingBadge ) {
 						var b = document.createElement( 'span' );
 						b.className = 'odd-shop__tile-badge';
@@ -5523,17 +5455,11 @@
 			showShopFlowToast( 'Applied ' + label + '.', opts );
 		}
 
-		function confirmScenePreview( opts ) {
-			opts = opts || {};
-			if ( ! state.preview || state.preview.kind !== 'wallpaper' || state.posting ) return;
+		function applyScene( slug ) {
+			if ( state.posting ) return;
 			state.posting = true;
-			var slug = state.preview.slug;
-			var originalSlug = opts.originalSlug !== undefined ? opts.originalSlug : state.preview.originalSlug;
-			// Re-fire even if Preview already swapped — Pixi hook may have
-			// wired after the preview action, leaving REST committed but
-			// the canvas stale.
+			var originalSlug = state.cfg.wallpaper || state.cfg.scene;
 			pickSceneLive( slug );
-
 			savePrefs( { wallpaper: slug }, function ( data ) {
 				state.posting = false;
 				if ( data && typeof data.wallpaper === 'string' ) {
@@ -5541,42 +5467,10 @@
 					state.cfg.scene    = data.wallpaper;
 					pickSceneLive( data.wallpaper );
 				}
-				state.preview = null;
 				playShopSound( 'success' );
 				redecorateSceneGrid();
-				renderPreviewBar();
-				if ( opts.showToast ) showAppliedUndoToast( 'scene', slug, originalSlug );
+				showAppliedUndoToast( 'scene', slug, originalSlug );
 			} );
-		}
-
-		function applyScene( slug ) {
-			if ( state.posting ) return;
-			var originalSlug = state.cfg.wallpaper || state.cfg.scene;
-			state.preview = {
-				kind: 'wallpaper',
-				slug: slug,
-				originalSlug: originalSlug,
-			};
-			pickSceneLive( slug );
-			confirmScenePreview( { showToast: true, originalSlug: originalSlug } );
-		}
-
-		function cancelPreview() {
-			if ( ! state.preview ) return;
-			playShopSound( 'nav' );
-			if ( state.preview.kind === 'wallpaper' ) {
-				pickSceneLive( state.preview.originalSlug );
-			} else if ( state.preview.kind === 'iconSet' ) {
-				// Icon sets do not patch the live DOM. They feed
-				// Desktop Mode's native icon data through live refresh.
-			} else if ( state.preview.kind === 'cursorSet' ) {
-				setActiveCursorLink( state.preview.originalSlug );
-			}
-			state.preview = null;
-			redecorateSceneGrid();
-			redecorateIconGrid();
-			redecorateCursorGrid();
-			renderPreviewBar();
 		}
 
 		/* --- Icons section --- */
@@ -5642,7 +5536,7 @@
 				} );
 				resetBtn.textContent = 'Reset to default';
 				resetBtn.addEventListener( 'click', function () {
-					previewIconSet( 'none' );
+					applyIconSet( 'none' );
 				} );
 				resetRow.appendChild( resetLeft );
 				resetRow.appendChild( resetBtn );
@@ -5720,21 +5614,21 @@
 			sub.textContent = set.description || 'A themed costume pack for Desktop Mode icon surfaces.';
 			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
 
-			if ( isActive && ! state.preview ) {
+			if ( isActive ) {
 				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
 				active.textContent = '✓ Wearing it';
 				actions.appendChild( active );
 			} else {
-				var previewBtn = el( 'button', {
+				var applyBtn = el( 'button', {
 					type: 'button',
 					class: 'odd-shop__hero-btn odd-shop__hero-btn--primary',
 				} );
-				previewBtn.innerHTML = '<span aria-hidden="true">▶</span> Preview';
-				previewBtn.addEventListener( 'click', function ( e ) {
+				applyBtn.innerHTML = '<span aria-hidden="true">✓</span> Apply';
+				applyBtn.addEventListener( 'click', function ( e ) {
 					e.stopPropagation();
-					previewIconSet( set.slug );
+					applyIconSet( set.slug );
 				} );
-				actions.appendChild( previewBtn );
+				actions.appendChild( applyBtn );
 			}
 
 			inner.appendChild( eyebrow );
@@ -5798,10 +5692,9 @@
 			return hero;
 		}
 
-		// Icon-set card adapter — same unified tile as scenes, with a
-		// mid-preview overlay + an extra `odd-catalog-row--iconset`
-		// marker so `redecorateIconGrid` can still find previously-
-		// built rows to toggle between Preview / Previewing / Active.
+		// Icon-set card adapter — same unified tile as scenes, with an
+		// extra `odd-catalog-row--iconset` marker so `redecorateIconGrid`
+		// can still sync previously-built rows after Apply.
 		function renderIconSetCard( set ) {
 			var row = normaliseShopRow( set, 'icon-set' );
 			if ( ! row ) return el( 'div' );
@@ -5815,11 +5708,6 @@
 					inner.setAttribute( 'data-slug', set.slug );
 				}
 				wrap.classList.add( 'odd-catalog-row--iconset-wrap' );
-				var isPreview = row.installed && state.preview && state.preview.kind === 'iconSet' && state.preview.slug === set.slug;
-				if ( isPreview ) {
-					wrap.classList.add( 'is-previewing' );
-					if ( inner ) inner.classList.add( 'is-previewing' );
-				}
 			}
 			return wrap;
 		}
@@ -5830,7 +5718,7 @@
 			var wrap = el( 'div', { class: 'odd-shop__dept odd-shop__dept--cursors' } );
 			wrap.appendChild( sectionHeader(
 				'Cursors',
-				'Keep the native pointer, then give it a living aura. Preview instantly; Apply lets the effect follow you through Desktop Mode and classic wp-admin.',
+				'Keep the native pointer, then give it a living aura. Apply once and the effect follows you through Desktop Mode and classic wp-admin.',
 				{ eyebrow: 'ODD · Cursor Effects' }
 			) );
 			appendCatalogNotice( wrap, 'cursor-set' );
@@ -5867,7 +5755,7 @@
 				resetLeft.appendChild( resetText );
 				var resetBtn = el( 'button', { type: 'button', class: 'odd-shop__reset-btn' } );
 				resetBtn.textContent = 'Reset to default';
-				resetBtn.addEventListener( 'click', function () { previewCursorSet( 'none' ); } );
+				resetBtn.addEventListener( 'click', function () { applyCursorSet( 'none' ); } );
 				resetRow.appendChild( resetLeft );
 				resetRow.appendChild( resetBtn );
 				wrap.appendChild( resetRow );
@@ -5931,18 +5819,18 @@
 			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
 			sub.textContent = set.description || 'A pointer theme with just enough attitude for Desktop Mode and wp-admin.';
 			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
-			if ( isActive && ! state.preview ) {
+			if ( isActive ) {
 				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
 				active.textContent = '✓ Pointing now';
 				actions.appendChild( active );
 			} else {
-				var previewBtn = el( 'button', { type: 'button', class: 'odd-shop__hero-btn odd-shop__hero-btn--primary' } );
-				previewBtn.innerHTML = '<span aria-hidden="true">▶</span> Preview';
-				previewBtn.addEventListener( 'click', function ( e ) {
+				var applyBtn = el( 'button', { type: 'button', class: 'odd-shop__hero-btn odd-shop__hero-btn--primary' } );
+				applyBtn.innerHTML = '<span aria-hidden="true">✓</span> Apply';
+				applyBtn.addEventListener( 'click', function ( e ) {
 					e.stopPropagation();
-					previewCursorSet( set.slug );
+					applyCursorSet( set.slug );
 				} );
-				actions.appendChild( previewBtn );
+				actions.appendChild( applyBtn );
 			}
 			inner.appendChild( eyebrow );
 			inner.appendChild( title );
@@ -5971,31 +5859,8 @@
 					inner.setAttribute( 'data-cursor-set-slug', set.slug );
 				}
 				wrap.classList.add( 'odd-catalog-row--cursorset-wrap' );
-				var isPreview = row.installed && state.preview && state.preview.kind === 'cursorSet' && state.preview.slug === set.slug;
-				if ( isPreview ) {
-					wrap.classList.add( 'is-previewing' );
-					if ( inner ) inner.classList.add( 'is-previewing' );
-				}
 			}
 			return wrap;
-		}
-
-		function previewCursorSet( slug ) {
-			if ( state.posting ) return;
-			playShopSound( 'preview' );
-			var current = state.cfg.cursorSet || '';
-			if ( ! state.preview || state.preview.kind !== 'cursorSet' ) {
-				state.preview = {
-					kind: 'cursorSet',
-					slug: slug,
-					originalSlug: current,
-				};
-			} else {
-				state.preview.slug = slug;
-			}
-			setActiveCursorLink( slug );
-			redecorateCursorGrid();
-			renderPreviewBar();
 		}
 
 		function cursorStylesheetUrl( slug ) {
@@ -6039,38 +5904,31 @@
 		function redecorateCursorGrid() {
 			var rows = content.querySelectorAll( '.odd-catalog-row--cursorset' );
 			var currentSlug = state.cfg.cursorSet || '';
-			var previewSlug = state.preview && state.preview.kind === 'cursorSet' ? state.preview.slug : null;
 			for ( var i = 0; i < rows.length; i++ ) {
 				var row = rows[ i ];
 				var slug = row.getAttribute( 'data-slug' );
 				var isActive = ( slug === 'none' && ! currentSlug ) || ( slug !== 'none' && slug === currentSlug );
-				var isPreviewing = previewSlug && slug === previewSlug;
-				row.classList.toggle( 'is-active', !! ( isActive && ! previewSlug ) );
-				row.classList.toggle( 'is-previewing', !! isPreviewing );
+				row.classList.toggle( 'is-active', !! isActive );
 				var wrap = row.closest ? row.closest( '.odd-shop__card-wrap' ) : null;
 				if ( wrap ) {
-					wrap.classList.toggle( 'is-active', !! ( isActive && ! previewSlug ) );
-					wrap.classList.toggle( 'is-previewing', !! isPreviewing );
+					wrap.classList.toggle( 'is-active', !! isActive );
 				}
 				if ( wrap ) {
 					var cursorRow = shopRowByTypeAndSlug( 'cursor-set', slug );
 					if ( cursorRow ) {
 						syncShopCardElement( wrap, cursorRow, {
 							isActive: isActive,
-							hasPreview: !! previewSlug,
-							isPreviewing: !! isPreviewing,
 						} );
 					}
 				}
 			}
 		}
 
-		function confirmCursorPreview( opts ) {
-			opts = opts || {};
-			if ( ! state.preview || state.preview.kind !== 'cursorSet' || state.posting ) return;
+		function applyCursorSet( slug ) {
+			if ( state.posting ) return;
 			state.posting = true;
-			var slug = state.preview.slug;
-			var originalSlug = opts.originalSlug !== undefined ? opts.originalSlug : state.preview.originalSlug;
+			var originalSlug = state.cfg.cursorSet || '';
+			setActiveCursorLink( slug );
 			savePrefs( { cursorSet: slug }, function ( data ) {
 				state.posting = false;
 				if ( data && typeof data.cursorSet === 'string' ) {
@@ -6089,61 +5947,23 @@
 						window.__odd.cursors.clear();
 					}
 				}
-				state.preview = null;
 				playShopSound( 'success' );
 				redecorateCursorGrid();
-				renderPreviewBar();
-				if ( opts.showToast ) showAppliedUndoToast( 'cursor-set', slug, originalSlug );
+				showAppliedUndoToast( 'cursor-set', slug, originalSlug );
 			} );
-		}
-
-		function applyCursorSet( slug ) {
-			if ( state.posting ) return;
-			var originalSlug = state.cfg.cursorSet || '';
-			state.preview = {
-				kind: 'cursorSet',
-				slug: slug,
-				originalSlug: originalSlug,
-			};
-			setActiveCursorLink( slug );
-			confirmCursorPreview( { showToast: true, originalSlug: originalSlug } );
-		}
-
-		function previewIconSet( slug ) {
-			if ( state.posting ) return;
-			playShopSound( 'preview' );
-
-			var current = state.cfg.iconSet || '';
-
-			if ( ! state.preview || state.preview.kind !== 'iconSet' ) {
-				state.preview = {
-					kind:         'iconSet',
-					slug:         slug,
-					originalSlug: current,
-				};
-			} else {
-				state.preview.slug = slug;
-			}
-
-			redecorateIconGrid();
-			renderPreviewBar();
 		}
 
 		function redecorateIconGrid() {
 			var rows = content.querySelectorAll( '.odd-catalog-row--iconset' );
 			var currentSlug = state.cfg.iconSet || '';
-			var previewSlug = state.preview && state.preview.kind === 'iconSet' ? state.preview.slug : null;
 			for ( var i = 0; i < rows.length; i++ ) {
 				var row = rows[ i ];
 				var slug = row.getAttribute( 'data-slug' );
 				var isActive     = ( slug === 'none' && ! currentSlug ) || ( slug !== 'none' && slug === currentSlug );
-				var isPreviewing = previewSlug && slug === previewSlug;
-				row.classList.toggle( 'is-active',     !! ( isActive && ! previewSlug ) );
-				row.classList.toggle( 'is-previewing', !! isPreviewing );
+				row.classList.toggle( 'is-active',     !! isActive );
 				var wrap = row.closest ? row.closest( '.odd-shop__card-wrap' ) : null;
 				if ( wrap ) {
-					wrap.classList.toggle( 'is-active',     !! ( isActive && ! previewSlug ) );
-					wrap.classList.toggle( 'is-previewing', !! isPreviewing );
+					wrap.classList.toggle( 'is-active',     !! isActive );
 				}
 
 				if ( wrap ) {
@@ -6151,42 +5971,27 @@
 					if ( iconRow ) {
 						syncShopCardElement( wrap, iconRow, {
 							isActive: isActive,
-							hasPreview: !! previewSlug,
-							isPreviewing: !! isPreviewing,
 						} );
 					}
 				}
 			}
 		}
 
-		function confirmIconPreview() {
-			if ( ! state.preview || state.preview.kind !== 'iconSet' || state.posting ) return;
+		function applyIconSet( slug ) {
+			if ( state.posting ) return;
 			state.posting = true;
-			var slug   = state.preview.slug;
-			var originalSlug = state.preview.originalSlug;
+			var originalSlug = state.cfg.iconSet || '';
 
 			savePrefs( { iconSet: slug }, function ( data ) {
 				state.posting = false;
 				if ( data && typeof data.iconSet === 'string' ) {
 					state.cfg.iconSet = data.iconSet;
 				}
-				state.preview = null;
 				playShopSound( 'success' );
 				redecorateIconGrid();
-				renderPreviewBar();
 				showAppliedUndoToast( 'icon-set', slug, originalSlug );
 				refreshDesktopModeMenu( 'icon-set.apply' );
 			} );
-		}
-
-		function applyIconSet( slug ) {
-			if ( state.posting ) return;
-			state.preview = {
-				kind: 'iconSet',
-				slug: slug,
-				originalSlug: state.cfg.iconSet || '',
-			};
-			confirmIconPreview();
 		}
 
 		/* --- Widgets section ---------------------------------------
@@ -6479,19 +6284,16 @@
 				word.appendChild( sp );
 			} );
 			word.addEventListener( 'click', function () {
-				// Random scene swap — chaos commit, no preview bar.
+				// Random scene swap — direct apply.
 				// Fires through the same live-swap + REST path the
-				// wallpaper grid uses when the user confirms, so the
-					// active card elsewhere stays in sync.
+				// wallpaper grid uses, so the
+				// active card elsewhere stays in sync.
 				if ( state.posting ) return;
 				var scenes = Array.isArray( cfg.scenes ) ? cfg.scenes : [];
 				var current = cfg.wallpaper || cfg.scene;
 				var choices = scenes.filter( function ( s ) { return s && s.slug && s.slug !== current; } );
 				if ( choices.length ) {
 					var next = choices[ Math.floor( Math.random() * choices.length ) ];
-					// If a preview is open, cancel it first so we don't
-					// stack two swaps.
-					if ( state.preview ) cancelPreview();
 					state.posting = true;
 					pickSceneLive( next.slug );
 					savePrefs( { wallpaper: next.slug }, function ( data ) {
@@ -6632,88 +6434,6 @@
 		}
 
 		/* --- shared helpers --- */
-
-		/**
-		 * Sticky confirmation bar for the preview-and-confirm flow.
-		 * Mounted as the last child of the content pane; removed when
-		 * `state.preview` is cleared. Keep / Apply writes the pending
-		 * change through REST; Cancel reverts the live swap.
-		 */
-		function renderPreviewBar() {
-			var existing = content.querySelector( '[data-odd-preview-bar]' );
-			if ( existing && existing.parentNode ) existing.parentNode.removeChild( existing );
-			if ( ! state.preview ) return;
-
-			var kind     = state.preview.kind;
-			var slug     = state.preview.slug;
-			var liveRefresh = state.preview.kind === 'iconSet';
-			var itemName = '';
-			if ( kind === 'wallpaper' ) {
-				var scenes = Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [];
-				for ( var i = 0; i < scenes.length; i++ ) {
-					if ( scenes[ i ] && scenes[ i ].slug === slug ) { itemName = scenes[ i ].label || slug; break; }
-				}
-			} else if ( kind === 'iconSet' ) {
-				if ( slug === 'none' || slug === '' ) {
-					itemName = 'Default icons';
-				} else {
-					var sets = Array.isArray( state.cfg.iconSets ) ? state.cfg.iconSets : [];
-					for ( var j = 0; j < sets.length; j++ ) {
-						if ( sets[ j ] && sets[ j ].slug === slug ) { itemName = sets[ j ].label || slug; break; }
-					}
-				}
-			} else if ( kind === 'cursorSet' ) {
-				if ( slug === 'none' || slug === '' ) {
-					itemName = 'Default cursors';
-				} else {
-					var cursorSets = Array.isArray( state.cfg.cursorSets ) ? state.cfg.cursorSets : [];
-					for ( var k = 0; k < cursorSets.length; k++ ) {
-						if ( cursorSets[ k ] && cursorSets[ k ].slug === slug ) { itemName = cursorSets[ k ].label || slug; break; }
-					}
-				}
-			}
-
-			var bar = el( 'div', { class: 'odd-preview-bar', 'data-odd-preview-bar': '1', role: 'status' } );
-
-			var eye = el( 'div', { class: 'odd-preview-bar__eye', 'aria-hidden': 'true' } );
-			eye.textContent = '👁';
-			bar.appendChild( eye );
-
-			var text = el( 'div', { class: 'odd-preview-bar__text' } );
-			if ( kind === 'wallpaper' ) {
-				text.innerHTML = 'Previewing <em></em>. Keep to save, Cancel to revert.';
-			} else if ( kind === 'cursorSet' ) {
-				text.innerHTML = 'Previewing <em></em> cursors. Apply to save, Cancel to revert.';
-			} else if ( liveRefresh ) {
-				text.innerHTML = 'Applying <em></em> updates the native icon surfaces together.';
-			} else {
-				text.innerHTML = 'Previewing <em></em> icons. Apply to save, Cancel to revert.';
-			}
-			text.querySelector( 'em' ).textContent = itemName || slug;
-			bar.appendChild( text );
-
-			var actions = el( 'div', { class: 'odd-preview-bar__actions' } );
-			var cancel = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill', 'data-testid': 'odd-preview-cancel' } );
-			cancel.textContent = 'Cancel';
-			cancel.addEventListener( 'click', function () { cancelPreview(); } );
-			actions.appendChild( cancel );
-
-			var commit = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-apps-btn--primary', 'data-testid': 'odd-preview-commit' } );
-			if ( kind === 'wallpaper' ) {
-				commit.textContent = 'Keep';
-				commit.addEventListener( 'click', function () { confirmScenePreview(); } );
-			} else if ( kind === 'cursorSet' ) {
-				commit.textContent = 'Apply';
-				commit.addEventListener( 'click', function () { confirmCursorPreview(); } );
-			} else {
-				commit.textContent = 'Apply';
-				commit.addEventListener( 'click', function () { confirmIconPreview(); } );
-			}
-			actions.appendChild( commit );
-
-			bar.appendChild( actions );
-			content.appendChild( bar );
-		}
 
 		function sectionHeader( title, sub, opts ) {
 			opts = opts || {};
@@ -6986,24 +6706,6 @@
 			return false;
 		}
 
-		// One derived state model feeds the visible badge, state line,
-		// button label, and data attributes for every Shop card.
-		function shopPreviewKindForType( type ) {
-			if ( type === 'scene' ) return 'wallpaper';
-			if ( type === 'icon-set' ) return 'iconSet';
-			if ( type === 'cursor-set' ) return 'cursorSet';
-			return '';
-		}
-
-		function shopCardHasPreview( row ) {
-			var kind = row && shopPreviewKindForType( row.type );
-			return !! ( kind && state.preview && state.preview.kind === kind );
-		}
-
-		function shopCardIsPreviewing( row ) {
-			return !! ( shopCardHasPreview( row ) && state.preview.slug === row.slug );
-		}
-
 		function shopCardState( row, opts ) {
 			opts = opts || {};
 			var hasActive = Object.prototype.hasOwnProperty.call( opts, 'isActive' );
@@ -7018,8 +6720,6 @@
 				installMode: shopInstallMode( row ),
 				progress: actionProgressCopy( shopInstallMode( row ) ),
 				pendingReload: state.pendingAdminReload,
-				hasPreview: Object.prototype.hasOwnProperty.call( opts, 'hasPreview' ) ? !! opts.hasPreview : shopCardHasPreview( row ),
-				isPreviewing: Object.prototype.hasOwnProperty.call( opts, 'isPreviewing' ) ? !! opts.isPreviewing : shopCardIsPreviewing( row ),
 				t: __,
 			} );
 		}
@@ -7107,11 +6807,6 @@
 				case 'update':
 					startShopInstall( row, btn, { allowUpdate: true, mode: kind } );
 					break;
-				case 'preview':
-					if ( row.type === 'scene' )    { previewScene( row.slug );    break; }
-					if ( row.type === 'icon-set' ) { previewIconSet( row.slug );  break; }
-					if ( row.type === 'cursor-set' ) { previewCursorSet( row.slug ); break; }
-					break;
 				case 'apply':
 					if ( btn ) { btn.disabled = true; btn.textContent = 'Working…'; }
 					if ( row.type === 'scene' ) { applyScene( row.slug ); break; }
@@ -7155,7 +6850,7 @@
 				case 'scene':
 					return [
 						'Changes the live wallpaper scene on your desktop.',
-						'Can be previewed before you keep it.',
+						'Applies directly through the Desktop Mode wallpaper setting.',
 						'Works with shuffle, favorites, and screensaver settings.',
 					];
 				case 'icon-set':
@@ -7167,7 +6862,7 @@
 				case 'cursor-set':
 					return [
 						'Changes pointer roles across Desktop Mode and wp-admin.',
-						'Can be previewed instantly before committing.',
+						'Applies directly through the cursor registry.',
 						'Uses the cursor registry instead of ad hoc CSS patches.',
 					];
 				case 'widget':
@@ -7309,15 +7004,6 @@
 			secondary.textContent = 'Done';
 			secondary.addEventListener( 'click', closeProductSheet );
 			actions.appendChild( primary );
-			if ( action.kind === 'apply' ) {
-				var preview = el( 'button', { type: 'button', class: 'odd-shop__detail-secondary' } );
-				preview.textContent = 'Preview first';
-				preview.addEventListener( 'click', function () {
-					dispatchShopAction( normalised, 'preview', preview );
-					closeProductSheet();
-				} );
-				actions.appendChild( preview );
-			}
 			actions.appendChild( secondary );
 			bodyWrap.appendChild( actions );
 
@@ -7632,18 +7318,14 @@
 					dispatchShopAction( row, btn.getAttribute( 'data-odd-card-action' ) || kind, btn );
 				} );
 
-			// Whole-card click auditions installed decor, while the pill
-			// performs the durable primary action. Catalog rows still
-			// require an explicit Install click so misplaced hover-clicks
-			// don't trigger a network download.
+			// Whole-card click performs the visible primary action for
+			// installed content. Catalog rows still require an explicit
+			// Install click so misplaced hover-clicks don't trigger a
+			// network download.
 			card.addEventListener( 'click', function ( e ) {
 					if ( e.target && e.target.closest && e.target.closest( '.odd-shop__card-btn' ) ) return;
 					if ( ! row.installed ) return;
 					if ( btn && btn.disabled ) return;
-					if ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) {
-						dispatchShopAction( row, 'preview', btn );
-						return;
-					}
 					dispatchShopAction( row, btn.getAttribute( 'data-odd-card-action' ) || kind, btn );
 				} );
 
@@ -7651,7 +7333,7 @@
 
 			if ( row.installed && ! isActive && ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) ) {
 				var hint = el( 'div', { class: 'odd-shop__card-hint' } );
-				hint.textContent = row.type === 'icon-set' ? 'Apply updates icons together' : 'Click card to preview';
+				hint.textContent = row.type === 'icon-set' ? 'Apply updates icons together' : 'Apply to activate';
 				wrap.appendChild( hint );
 			}
 

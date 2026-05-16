@@ -198,10 +198,27 @@ body.desktop-mode-active .wp-desktop-icon img[data-odd-fun-layer],
 	animation-timing-function: ease-in-out;
 	animation-iteration-count: infinite;
 	animation-direction: alternate;
+	animation-delay: var(--odd-icon-pack-delay, 0s);
 	transform-origin: center;
 	backface-visibility: hidden;
 	transition: filter 150ms ease, transform 150ms ease, opacity 150ms ease;
-	will-change: filter;
+	will-change: transform, filter;
+}
+
+.odd-panel .odd-shop__card-art[data-odd-fun-layer] .odd-shop__card-quartet > img:nth-child(1) {
+	--odd-icon-pack-delay: -0.2s;
+}
+
+.odd-panel .odd-shop__card-art[data-odd-fun-layer] .odd-shop__card-quartet > img:nth-child(2) {
+	--odd-icon-pack-delay: -1.45s;
+}
+
+.odd-panel .odd-shop__card-art[data-odd-fun-layer] .odd-shop__card-quartet > img:nth-child(3) {
+	--odd-icon-pack-delay: -2.7s;
+}
+
+.odd-panel .odd-shop__card-art[data-odd-fun-layer] .odd-shop__card-quartet > img:nth-child(4) {
+	--odd-icon-pack-delay: -3.95s;
 }
 
 body.desktop-mode-active .desktop-mode-dock__item img[src*="/arcade-tokens/"],

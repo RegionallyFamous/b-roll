@@ -9,9 +9,7 @@
  *   - Rail lists the expected departments (Wallpapers, Icon Sets,
  *     Widgets, About).
  *   - Wallpaper department renders category shelves + scene cards.
- *   - Clicking a scene card opens the preview bar.
- *   - Clicking "Keep" POSTs /odd/v1/prefs with { wallpaper: slug }.
- *   - Clicking "Cancel" clears the preview bar.
+ *   - Clicking an inactive scene card applies it directly.
  *   - Widgets department renders a widget shelf with Add/Remove buttons
  *     wired to `wp.desktop.widgetLayer`.
  */
@@ -286,7 +284,7 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'opens a Quick Look product sheet without triggering preview', () => {
+	it( 'opens a Quick Look product sheet without applying decor', () => {
 		const { host, cleanup } = mountPanel();
 		const quick = host.querySelector( '[data-odd-shop-card][data-scene-slug="flux"] .odd-shop__quick-look' );
 		expect( quick ).toBeTruthy();
@@ -297,7 +295,8 @@ describe( 'ODD Shop', () => {
 		expect( sheet ).toBeTruthy();
 		expect( sheet.querySelector( '.odd-shop__detail-title' ).textContent.trim() ).toBe( 'Flux' );
 		expect( sheet.textContent ).toContain( 'What changes' );
-		expect( host.querySelector( '.odd-preview-bar' ) ).toBeNull();
+		expect( sheet.textContent ).not.toContain( 'Preview first' );
+		expect( fetchMock ).not.toHaveBeenCalled();
 
 		sheet.querySelector( '.odd-shop__detail-secondary' )
 			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
@@ -306,7 +305,7 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'selects icon sets without patching live Desktop Mode DOM', () => {
+	it( 'selects icon sets without patching live Desktop Mode DOM', async () => {
 		document.body.innerHTML = [
 			'<div class="desktop-mode-dock__item" data-menu-slug="menu-posts">',
 			'  <button class="desktop-mode-dock__item-primary">',
@@ -340,11 +339,19 @@ describe( 'ODD Shop', () => {
 		const card = host.querySelector( '[data-odd-shop-card][data-set-slug="filament"]' );
 		expect( card ).toBeTruthy();
 		card.querySelector( '.odd-shop__card' ).click();
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
 
 		expect( document.querySelector( '.desktop-mode-dock__item-img' ).getAttribute( 'src' ) ).toBe( 'dock-native.png' );
 		expect( document.querySelector( '.desktop-mode-icon[data-icon-id="posts"] img' ).getAttribute( 'src' ) ).toBe( 'posts-native.png' );
 		expect( document.querySelector( '.desktop-mode-icon[data-icon-id="odd"] img' ).getAttribute( 'src' ) ).toBe( 'odd-native.png' );
-		expect( host.querySelector( '[data-testid="odd-preview-commit"]' ).textContent ).toBe( 'Apply' );
+		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeNull();
+		expect( fetchMock ).toHaveBeenCalledWith(
+			'/wp-json/odd/v1/prefs',
+			expect.objectContaining( {
+				method: 'POST',
+				body:   JSON.stringify( { iconSet: 'filament' } ),
+			} )
+		);
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
@@ -429,30 +436,12 @@ describe( 'ODD Shop', () => {
 		expect( clearSpy ).toHaveBeenCalled();
 	} );
 
-	it( 'clicking a scene card opens the preview bar and highlights the card', () => {
+	it( 'clicking an inactive scene card applies it directly', async () => {
 		const { host, cleanup } = mountPanel();
 
 		const target = host.querySelector( '.odd-card[data-slug="aurora"]' );
 		expect( target ).toBeTruthy();
 		target.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
-
-		const bar = host.querySelector( '[data-odd-preview-bar]' );
-		expect( bar, 'preview bar must appear after clicking a scene card' ).toBeTruthy();
-		expect( target.classList.contains( 'is-previewing' ) ).toBe( true );
-
-		if ( typeof cleanup === 'function' ) cleanup();
-	} );
-
-	it( 'clicking "Keep" posts /odd/v1/prefs with the picked scene and clears the bar', async () => {
-		const { host, cleanup } = mountPanel();
-
-		host.querySelector( '.odd-card[data-slug="aurora"]' )
-			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
-
-		const keep = Array.from( host.querySelectorAll( '.odd-preview-bar__actions button' ) )
-			.find( ( b ) => b.textContent.trim() === 'Keep' );
-		expect( keep, 'Keep button must be present in the preview bar' ).toBeTruthy();
-		keep.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
 		expect( fetchMock ).toHaveBeenCalled();
 		const [ url, opts ] = fetchMock.mock.calls[ 0 ];
@@ -465,22 +454,18 @@ describe( 'ODD Shop', () => {
 		await new Promise( ( r ) => setTimeout( r, 0 ) );
 		await new Promise( ( r ) => setTimeout( r, 0 ) );
 
-		const bar = host.querySelector( '[data-odd-preview-bar]' );
-		expect( bar, 'preview bar should clear after Keep' ).toBeFalsy();
+		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeFalsy();
+		expect( target.classList.contains( 'is-previewing' ) ).toBe( false );
+		expect( target.classList.contains( 'is-active' ) ).toBe( true );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'clicking "Cancel" clears the preview bar without POSTing', () => {
+	it( 'clicking the active scene card does not re-apply', () => {
 		const { host, cleanup } = mountPanel();
 
-		host.querySelector( '.odd-card[data-slug="aurora"]' )
+		host.querySelector( '.odd-card[data-slug="flux"]' )
 			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
-
-		const cancel = Array.from( host.querySelectorAll( '.odd-preview-bar__actions button' ) )
-			.find( ( b ) => b.textContent.trim() === 'Cancel' );
-		expect( cancel ).toBeTruthy();
-		cancel.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
 		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeFalsy();
 		expect( fetchMock ).not.toHaveBeenCalled();

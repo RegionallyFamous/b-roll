@@ -71,7 +71,7 @@ catalog-only changes.
 4. Confirm the starter wallpaper, icon set, and cursor set install or show a
    visible retry state.
 5. Install one app, one widget, one wallpaper, one icon set, and one cursor set.
-6. Open the app, add the widget, preview/apply the visual content, then copy
+6. Open the app, add the widget, apply the visual content, then copy
    diagnostics from About.
 
 ## Security And Privacy Signoff

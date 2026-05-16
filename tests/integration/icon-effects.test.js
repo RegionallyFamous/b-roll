@@ -32,9 +32,20 @@ describe( 'ODD icon effects', () => {
 		expect( css ).toContain( '--odd-icon-pack-motion: odd-icon-outline-drift;' );
 		expect( css ).toContain( 'animation-name: var(--odd-icon-pack-motion);' );
 		expect( css ).toContain( 'animation-duration: var(--odd-icon-pack-duration);' );
+		expect( css ).toContain( 'animation-delay: var(--odd-icon-pack-delay, 0s);' );
+		expect( css ).toContain( 'will-change: transform, filter;' );
 		expect( css ).toContain( '.odd-dock-rail-mount__tile:hover img[src*="/assets/icons/"]' );
 		expect( css ).toContain( '.odd-panel .odd-shop__card:hover .odd-shop__card-quartet > img' );
 		expect( css ).toContain( '.odd-panel .odd-shop__card--icon-set .odd-shop__card-art::after' );
+	} );
+
+	it( 'staggers shop quartet glyph motion so the preview feels alive', () => {
+		const css = readFileSync( EFFECTS_CSS, 'utf8' );
+
+		expect( css ).toContain( '.odd-panel .odd-shop__card-art[data-odd-fun-layer] .odd-shop__card-quartet > img:nth-child(1)' );
+		expect( css ).toContain( '--odd-icon-pack-delay: -0.2s;' );
+		expect( css ).toContain( '.odd-panel .odd-shop__card-art[data-odd-fun-layer] .odd-shop__card-quartet > img:nth-child(4)' );
+		expect( css ).toContain( '--odd-icon-pack-delay: -3.95s;' );
 	} );
 
 	it( 'gives non-default packs distinct motion recipes beyond color swaps', () => {

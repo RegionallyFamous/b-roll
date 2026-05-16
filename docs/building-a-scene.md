@@ -227,7 +227,7 @@ npm run build:previews -- --diff       # only scenes whose scene.js is newer tha
    installing a scene or widget. Consent is remembered on
    `window.__odd.store`.
 4. On success, the Shop jumps to Wallpapers and flashes your new
-   scene's tile. Click **Preview**, then **Keep** to commit.
+   scene's tile. Click **Apply** to activate it.
 
 ## Debugging
 

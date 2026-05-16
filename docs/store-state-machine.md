@@ -13,7 +13,7 @@ Only the primary action changes by content type.
 |-------|---------------------|----------------|---------------|
 | `available` | catalog row exists, `installed: false` | Install | Retry install; copy diagnostics on failure. |
 | `working` | client optimistic only, or pending reload | Working... | Button is disabled until request settles. |
-| `ready` | installed registry row exists for scene/icon/cursor/widget and is not active | Apply or Add | Scene/icon/cursor preview/apply, widget add. |
+| `ready` | installed registry row exists for scene/icon/cursor/widget and is not active | Apply or Add | Scene/icon/cursor apply directly, widget add. |
 | `installed` | installed app row exists | Open | Opens the registered Desktop Mode native window. |
 | `attention` | installed row declares `broken`, `update_available`, `updateAvailable`, or `requiresReload` | Repair, Update, or Reload | Reinstall from catalog with `allow_update=1`, or reload when explicitly required. |
 | `blocked` | catalog or installed row declares `incompatible` or `state: incompatible` | Unavailable | Disabled until a compatible plugin/Desktop Mode version is installed. |
@@ -27,9 +27,9 @@ capabilities, hashes, and manifest fields are never trusted from the browser.
 
 | Type | Installed action | Notes |
 |------|------------------|-------|
-| `scene` | Preview | Preview calls `odd.pickScene` and persists through preferences. |
-| `icon-set` | Preview | Preview opens the bar; applying triggers the server-side icon filter path. |
-| `cursor-set` | Preview | Preview injects a temporary cursor style before apply. |
+| `scene` | Apply | Applies the wallpaper scene through ODD preferences and the Desktop Mode wallpaper hook. |
+| `icon-set` | Apply | Applies the server-side icon filter path and refreshes Desktop Mode surfaces. |
+| `cursor-set` | Apply | Persists the cursor set and refreshes the active cursor stylesheet. |
 | `widget` | Add | Adds the widget to the Desktop Mode widget layer. |
 | `app` | Open | Opens the registered Desktop Mode native window. Surface changes write Desktop Mode `itemVisibility` when available. |
 
@@ -63,7 +63,7 @@ Every card also carries a plain-language trust label:
 - The old app-specific catalog/install REST routes are removed in the 1.0
   baseline. Apps still keep app-specific open/toggle/delete routes because
   those operate on installed app runtime state, not catalog install state.
-- A card must never show `Open`, `Add`, `Preview`, or `Active` until the
+- A card must never show `Open`, `Add`, `Apply`, or `Active` until the
   server says the bundle is installed and usable.
 - Every failed card action must leave a visible message, a retry/repair path,
   or diagnostics guidance.
@@ -77,7 +77,7 @@ Every card also carries a plain-language trust label:
 - attention + broken → Repair
 - attention + updateAvailable → Update
 - attention + requiresReload → Reload
-- ready scene/icon/cursor → Preview from card body, Apply from primary button
+- ready scene/icon/cursor → Apply from card body or primary button
 - installed widget → Add / Active
 - installed app → Open
 

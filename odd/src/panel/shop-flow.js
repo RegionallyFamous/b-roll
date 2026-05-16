@@ -31,7 +31,6 @@
 	function cardState( row, ctx ) {
 		ctx = ctx || {};
 		var isActive = !! ctx.isActive;
-		var hasPreview = !! ctx.hasPreview;
 		if ( row && row.incompatible ) {
 			return makeState(
 				ctx,
@@ -116,18 +115,6 @@
 				'warning',
 				{ label: text( ctx, 'Reload' ), kind: 'reload', disabled: false },
 				isActive
-			);
-		}
-		if ( hasPreview && ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) ) {
-			return makeState(
-				ctx,
-				'ready',
-				'ready',
-				text( ctx, 'Ready' ),
-				text( ctx, 'Installed' ),
-				'installed',
-				{ label: text( ctx, 'Apply' ), kind: 'apply', disabled: false },
-				false
 			);
 		}
 		if ( isActive ) {

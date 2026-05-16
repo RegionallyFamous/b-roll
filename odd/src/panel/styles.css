@@ -149,23 +149,6 @@
 .odd-panel .odd-catalog-row--iconset{cursor:pointer}
 .odd-panel .odd-catalog-row--iconset.is-active{border-color:#2271b1;box-shadow:0 0 0 1px #2271b1 inset}
 .odd-panel .odd-catalog-row--iconset.is-active .odd-catalog-row__icon{box-shadow:0 0 0 2px #2271b1}
-.odd-panel .odd-catalog-row--iconset.is-previewing{border-color:#d97706;box-shadow:0 0 0 2px #f59e0b inset;background:#fffbeb}
-.odd-panel .odd-catalog-row--iconset.is-previewing .odd-catalog-row__icon{box-shadow:0 0 0 2px #f59e0b}
-/* Click-to-preview affordances for scene cards. Amber so
-* the state is distinct from the committed blue `is-active`. */
-.odd-panel .odd-card.is-previewing{border-color:#d97706;box-shadow:0 0 0 2px #f59e0b inset}
-.odd-panel .odd-card.is-previewing::after{content:"👁";position:absolute;top:6px;right:8px;width:22px;height:22px;border-radius:50%;background:#f59e0b;color:#fff;font-size:12px;line-height:22px;text-align:center;font-weight:700}
-/* Preview confirmation bar — sticky at the bottom of the
-* scrollable content pane. Uses a slight lift + amber tint
-* so it reads as a decision, not a toolbar. */
-.odd-panel .odd-preview-bar{position:sticky;bottom:-24px;margin:16px -28px -24px;padding:14px 28px;background:#fff;border-top:1px solid #f59e0b;box-shadow:0 -12px 28px -18px rgba(20,14,40,.18);display:flex;align-items:center;gap:16px;z-index:5;animation:odd-preview-slide .22s cubic-bezier(.2,.8,.2,1)}
-.odd-panel .odd-preview-bar__eye{width:28px;height:28px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.odd-panel .odd-preview-bar__text{flex:1 1 auto;min-width:0;font-size:13px;color:#1d2327;line-height:1.4}
-.odd-panel .odd-preview-bar__text strong{font-weight:700}
-.odd-panel .odd-preview-bar__text em{font-style:normal;color:#92400e;font-weight:600}
-.odd-panel .odd-preview-bar__actions{display:flex;gap:8px;flex-shrink:0}
-@keyframes odd-preview-slide{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
-@media (prefers-reduced-motion: reduce){.odd-panel .odd-preview-bar{animation:none}}
 .odd-panel .odd-setting-preview{min-height:46px;padding-inline:26px!important;background:#111827!important;color:#fff!important;border-color:#111827!important;box-shadow:0 14px 24px -16px rgba(17,24,39,.8);margin-left:auto}
 .odd-panel .odd-setting-preview:hover{background:#1f2937!important;border-color:#1f2937!important;color:#fff!important}
 .odd-panel .odd-select{min-height:46px;min-width:230px;padding:7px 38px 7px 14px;border:1px solid #d2d2d7;border-radius:14px;font:inherit;font-size:15px;font-weight:650;background:#fff;color:#1d2327}
@@ -181,8 +164,8 @@
 *
 * Scopes under `.odd-shop` so the redesign never leaks into
 * other windows or into callers who style `.odd-panel` alone.
-* Overrides a handful of base tokens (rail width, spacing
-* shelf grids, preview bar) without touching the semantic
+* Overrides a handful of base tokens (rail width, spacing,
+* shelf grids) without touching the semantic
 * markup — cards, switches and the About hero all inherit.
 * ------------------------------------------------------------ */
 /* Tokens. ink-3 was #6e6e73 (Apple secondary label) but at
@@ -430,7 +413,6 @@
 .odd-panel.odd-shop .odd-shop__tile:hover{transform:translateY(-2px);border-color:var(--odd-shop-border-strong);box-shadow:0 18px 36px -24px rgba(20,14,40,.4)}
 .odd-panel.odd-shop .odd-shop__tile:focus-visible{outline:3px solid var(--odd-shop-accent);outline-offset:2px}
 .odd-panel.odd-shop .odd-shop__tile.is-active{border-color:var(--odd-shop-accent);box-shadow:0 0 0 2px var(--odd-shop-accent) inset}
-.odd-panel.odd-shop .odd-shop__tile.is-previewing{border-color:#d97706;box-shadow:0 0 0 2px #f59e0b inset}
 .odd-panel.odd-shop .odd-shop__tile-thumb{position:relative;aspect-ratio:16/10;width:100%;background:#1d1d1f;overflow:hidden}
 .odd-panel.odd-shop .odd-shop__tile-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .odd-panel.odd-shop .odd-shop__tile-badge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.94);color:var(--odd-shop-accent);font-size:10px;font-weight:700;letter-spacing:.04em;box-shadow:0 4px 10px -4px rgba(0,0,0,.4)}
@@ -509,24 +491,10 @@
 .odd-panel.odd-shop .odd-catalog-row:hover{transform:translateY(-1px);border-color:var(--odd-shop-border-strong);box-shadow:0 14px 28px -22px rgba(20,14,40,.35)}
 .odd-panel.odd-shop .odd-catalog-row--iconset.is-active{border-color:var(--odd-shop-accent);box-shadow:0 0 0 1px var(--odd-shop-accent) inset,0 14px 28px -22px rgba(0,113,227,.3)}
 
-/* Primary pills use the shop blue. "Preview" stays amber-styled
-* so the amber preview state still reads as "staging", not "live". */
+/* Primary pills use the shop blue. */
 .odd-panel.odd-shop .odd-apps-btn--primary{background:var(--odd-shop-accent);border-color:var(--odd-shop-accent)}
 .odd-panel.odd-shop .odd-apps-btn--primary:hover{background:#0a66cf;border-color:#0a66cf}
 .odd-panel.odd-shop .odd-apps-btn--pill{border-radius:999px;font-weight:600}
-
-/* Preview bar — floating pill anchored to the bottom-right
-* of the content pane. Compact, rounded, with the eye
-* glyph + message text + two pill buttons. Replaces the
-* full-width sticky toolbar look. */
-.odd-panel.odd-shop .odd-preview-bar{position:sticky;bottom:16px;margin:16px 0 0 auto;padding:10px 14px 10px 16px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);border:1px solid var(--odd-shop-border-strong);border-radius:999px;box-shadow:0 18px 40px -22px rgba(20,14,40,.4),0 2px 4px rgba(0,0,0,.04);display:flex;align-items:center;gap:12px;width:fit-content;max-width:min(640px,calc(100% - 16px));z-index:5;animation:odd-shop-preview-in .22s cubic-bezier(.2,.8,.2,1)}
-.odd-panel.odd-shop .odd-preview-bar__eye{width:24px;height:24px;border-radius:999px;background:var(--odd-shop-accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
-.odd-panel.odd-shop .odd-preview-bar__text{font-size:12px;color:var(--odd-shop-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.odd-panel.odd-shop .odd-preview-bar__text em{font-style:normal;font-weight:700;color:var(--odd-shop-ink)}
-.odd-panel.odd-shop .odd-preview-bar__actions{gap:6px}
-.odd-panel.odd-shop .odd-preview-bar .odd-apps-btn{padding:5px 14px;font-size:12px}
-@keyframes odd-shop-preview-in{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
-@media (prefers-reduced-motion: reduce){.odd-panel.odd-shop .odd-preview-bar{animation:none}}
 
 /* About hero gets a bit more breathing room against the new
 * content padding. Negative margins stay wired through. */
@@ -683,7 +651,7 @@
  * squircle that mirrors the app icons themselves, so the Shop reads
  * like a uniform app grid regardless of what's inside each tile.
  * The pill button below the tile is the single CTA whose label
- * drives the card's state (Install / Preview / Add / Open / Active).
+ * drives the card's state (Install / Apply / Add / Open / Active).
  *
  * These rules are the post-v3.1 visual treatment; they intentionally
  * override several of the base `.odd-card` + `.odd-shop__tile`
@@ -789,9 +757,7 @@
 .odd-panel.odd-shop .odd-shop__card-btn:focus-visible{outline:3px solid var(--odd-shop-focus-ring,#005fcc);outline-offset:2px;box-shadow:0 0 0 5px var(--odd-shop-focus-shadow,rgba(0,95,204,.28))}
 .odd-panel.odd-shop .odd-shop__card-btn--install{background:linear-gradient(135deg,#0071e3 0%,#2bb0ff 100%)}
 .odd-panel.odd-shop .odd-shop__card-btn--install:hover{background:linear-gradient(135deg,#005bb5 0%,#1f9ce6 100%)}
-.odd-panel.odd-shop .odd-shop__card-btn--preview,.odd-panel.odd-shop .odd-shop__card-btn--add,.odd-panel.odd-shop .odd-shop__card-btn--open{background:#f5f5f7;color:#1d1d1f;border:1px solid #d2d2d7;box-shadow:0 1px 0 rgba(255,255,255,.6) inset}
-.odd-panel.odd-shop .odd-shop__card-btn--preview{background:#fff;color:#1d1d1f;border-color:#d8d8de}
-.odd-panel.odd-shop .odd-shop__card-btn--preview:hover{background:linear-gradient(180deg,#fffaf2 0%,#fff2d9 100%);border-color:#f59e0b;color:#7c2d12;box-shadow:0 8px 18px -12px rgba(245,158,11,.8),0 1px 0 rgba(255,255,255,.75) inset}
+.odd-panel.odd-shop .odd-shop__card-btn--add,.odd-panel.odd-shop .odd-shop__card-btn--open{background:#f5f5f7;color:#1d1d1f;border:1px solid #d2d2d7;box-shadow:0 1px 0 rgba(255,255,255,.6) inset}
 .odd-panel.odd-shop .odd-shop__card-btn--add:hover,.odd-panel.odd-shop .odd-shop__card-btn--open:hover{background:#ebebf0;border-color:#b4b4b8;color:#000}
 .odd-panel.odd-shop .odd-shop__card-btn--active,.odd-panel.odd-shop .odd-shop__card-btn.is-disabled{background:#f1f1f4;color:#3f3f46;cursor:default;box-shadow:none;border:1px solid #c6c6cf}
 .odd-panel.odd-shop .odd-shop__card-btn--active:hover,.odd-panel.odd-shop .odd-shop__card-btn.is-disabled:hover{transform:none;box-shadow:none;background:#f1f1f4;color:#3f3f46}
@@ -810,9 +776,8 @@
 .odd-panel .odd-shop__card-manage-actions .odd-apps-btn{box-sizing:border-box;min-height:34px;padding:7px 13px;border-radius:10px;font-size:12px;font-weight:700}
 .odd-panel .odd-shop__card-manage .odd-card__surface{padding:8px 9px;border-radius:12px;background:#f5f5f7}
 .odd-panel .odd-shop__card-manage .odd-card__surface input[type="checkbox"]{accent-color:#0071e3}
-.odd-panel .odd-shop__card-wrap.is-previewing,.odd-panel .odd-shop__card-wrap.is-active{box-shadow:0 2px 4px rgba(12,10,29,.06),0 18px 36px -24px rgba(12,10,29,.48)}
-.odd-panel .odd-shop__card.is-previewing::after,.odd-panel .odd-shop__card.is-active::after{content:none}
-.odd-panel .odd-shop__card-wrap.is-previewing{border-color:#f59e0b;box-shadow:0 0 0 2px #f59e0b,0 18px 36px -24px rgba(245,158,11,.55)}
+.odd-panel .odd-shop__card-wrap.is-active{box-shadow:0 2px 4px rgba(12,10,29,.06),0 18px 36px -24px rgba(12,10,29,.48)}
+.odd-panel .odd-shop__card.is-active::after{content:none}
 .odd-panel .odd-shop__card-wrap.is-active .odd-shop__card-art{box-shadow:0 14px 30px -18px rgba(52,199,89,.55),0 2px 4px rgba(12,10,29,.12),inset 0 0 0 3px #34c759}
 .odd-panel .odd-shop__card-wrap.is-installing .odd-shop__card{pointer-events:none;filter:saturate(.82);opacity:.9}
 .odd-panel .odd-shop__card-wrap.is-installing .odd-shop__card-art::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,rgba(255,255,255,0) 18%,rgba(255,255,255,.28) 42%,rgba(255,255,255,0) 66%);transform:translateX(-120%);animation:odd-shop-card-sheen 1.25s ease-in-out infinite;pointer-events:none}
@@ -857,7 +822,6 @@
 .odd-panel.odd-shop .odd-shop__detail-primary,.odd-panel.odd-shop .odd-shop__detail-secondary{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:850;cursor:pointer}
 .odd-panel.odd-shop .odd-shop__detail-primary{background:var(--odd-shop-accent);color:#fff;box-shadow:0 14px 26px -18px rgba(0,113,227,.9)}
 .odd-panel.odd-shop .odd-shop__detail-primary.odd-shop__card-btn--install{background:linear-gradient(135deg,#0071e3 0%,#2bb0ff 100%)}
-.odd-panel.odd-shop .odd-shop__detail-primary.odd-shop__card-btn--preview{background:#fff;color:#1d1d1f;border:1px solid #d8d8de;box-shadow:0 1px 0 rgba(255,255,255,.6) inset}
 .odd-panel.odd-shop .odd-shop__detail-primary:disabled{background:#e8e8ed;color:#8e8e93;border:1px solid #e0e0e5;box-shadow:none;cursor:default}
 .odd-panel.odd-shop .odd-shop__detail-secondary{background:rgba(60,60,67,.08);color:var(--odd-shop-ink);border:1px solid rgba(60,60,67,.1)}
 .odd-panel.odd-shop .odd-shop__flow-toast{position:absolute;right:clamp(18px,4cqw,38px);bottom:clamp(16px,3cqw,30px);z-index:90;display:flex;align-items:center;gap:12px;max-width:min(440px,calc(100% - 36px));padding:12px 14px 12px 16px;border-radius:999px;background:color-mix(in srgb,var(--odd-shop-surface) 92%,transparent);border:1px solid var(--odd-shop-border-strong);color:var(--odd-shop-ink);box-shadow:0 22px 52px -24px rgba(0,0,0,.58),0 1px 0 rgba(255,255,255,.38) inset;-webkit-backdrop-filter:blur(18px) saturate(1.18);backdrop-filter:blur(18px) saturate(1.18);animation:odd-shop-toast-in .18s var(--odd-shop-ease-out)}
@@ -871,12 +835,10 @@
 
 /* High-specificity cleanup for the unified cards. Each card also
  * carries base `.odd-card` / `.odd-shop__tile` classes for tests
- * and third-party hooks; these rules make sure the old bordered-tile
- * preview state cannot draw an inset outline through the metadata. */
+ * and third-party hooks; these rules keep older bordered-tile styles
+ * from drawing an inset outline through the metadata. */
 .odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile{overflow:hidden;border-radius:0;background:transparent;border:0;box-shadow:none}
 .odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile:hover{border-color:transparent;box-shadow:none}
-.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile.is-previewing{border-color:transparent;box-shadow:none}
-.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile.is-previewing::after{content:none}
 .odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile .odd-shop__card-art{border-radius:22.5%}
 .odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile.odd-shop__card--scene .odd-shop__card-art{border-radius:0}
 .odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile .odd-shop__card-meta{min-height:86px;padding:13px 14px 8px;background:var(--odd-shop-surface)}
@@ -939,17 +901,17 @@
 .odd-panel.odd-shop .odd-shop__card,.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile,.odd-panel.odd-shop .odd-card,.odd-panel.odd-shop .odd-catalog-row,.odd-panel.odd-shop .odd-setting-card,.odd-panel.odd-shop .odd-shop__install-type{background:var(--odd-shop-surface);border-color:var(--odd-shop-border);color:var(--odd-shop-ink);box-shadow:var(--odd-shop-e-1)}
 .odd-panel.odd-shop .odd-shop__card-wrap{background:var(--odd-shop-surface);border-color:var(--odd-shop-border);color:var(--odd-shop-ink);box-shadow:var(--odd-shop-e-1)}
 .odd-panel.odd-shop .odd-shop__card-wrap:focus-within{border-color:var(--odd-shop-focus-ring);box-shadow:0 0 0 3px var(--odd-shop-focus-shadow),0 16px 34px -24px color-mix(in srgb,var(--odd-shop-focus-ring) 65%,#000)}
-.odd-panel.odd-shop .odd-shop__card,.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile,.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile:hover,.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile.is-previewing{background:transparent;border-color:transparent;box-shadow:none;color:var(--odd-shop-ink)}
+.odd-panel.odd-shop .odd-shop__card,.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile,.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile:hover{background:transparent;border-color:transparent;box-shadow:none;color:var(--odd-shop-ink)}
 .odd-panel.odd-shop .odd-shop__card-actions{background:var(--odd-shop-surface)}
 .odd-panel.odd-shop .odd-shop__card-meta,.odd-panel.odd-shop .odd-shop__card.odd-card.odd-shop__tile .odd-shop__card-meta{background:var(--odd-shop-surface)}
 .odd-panel.odd-shop .odd-shop__card-title,.odd-panel.odd-shop .odd-shop__card-sub,.odd-panel.odd-shop .odd-shop__tile-title,.odd-panel.odd-shop .odd-shop__tile-sub,.odd-panel.odd-shop .odd-catalog-row__name,.odd-panel.odd-shop .odd-setting-card__text strong{color:var(--odd-shop-ink)}
 .odd-panel.odd-shop .odd-shop__card-sub,.odd-panel.odd-shop .odd-shop__tile-sub,.odd-panel.odd-shop .odd-catalog-row__desc,.odd-panel.odd-shop .odd-setting-card__text span{color:var(--odd-shop-muted-strong)}
 .odd-panel.odd-shop .odd-shop__card-state{color:var(--odd-shop-status-ink)}
 .odd-panel.odd-shop .odd-shop__card-btn{background:var(--odd-shop-accent);color:#fff}
-.odd-panel.odd-shop .odd-shop__card-btn--preview,.odd-panel.odd-shop .odd-shop__card-btn--add,.odd-panel.odd-shop .odd-shop__card-btn--open,.odd-panel.odd-shop .odd-shop__quick-look,.odd-panel.odd-shop .odd-shop__tile-btn--ghost,.odd-panel.odd-shop .odd-shop__dropzone-btn,.odd-panel.odd-shop .odd-shop__js-confirm-btn{background:var(--odd-shop-surface-2);border-color:var(--odd-shop-border-strong);color:var(--odd-shop-ink)}
+.odd-panel.odd-shop .odd-shop__card-btn--add,.odd-panel.odd-shop .odd-shop__card-btn--open,.odd-panel.odd-shop .odd-shop__quick-look,.odd-panel.odd-shop .odd-shop__tile-btn--ghost,.odd-panel.odd-shop .odd-shop__dropzone-btn,.odd-panel.odd-shop .odd-shop__js-confirm-btn{background:var(--odd-shop-surface-2);border-color:var(--odd-shop-border-strong);color:var(--odd-shop-ink)}
 .odd-panel.odd-shop .odd-shop__card-btn--active,.odd-panel.odd-shop .odd-shop__card-btn.is-disabled,.odd-panel.odd-shop .odd-shop__card-btn--installing,.odd-panel.odd-shop .odd-shop__card-btn--installing:hover{background:var(--odd-shop-surface-2);border-color:var(--odd-shop-border-strong);color:var(--odd-shop-muted-strong);box-shadow:none}
 .odd-panel.odd-shop .odd-shop__card-btn:focus-visible,.odd-panel.odd-shop .odd-shop__quick-look:focus-visible,.odd-panel.odd-shop .odd-shop__tile-btn:focus-visible,.odd-panel.odd-shop .odd-shop__rail-item:focus-visible,.odd-panel.odd-shop .odd-shop__card-fav:focus-visible{outline:3px solid var(--odd-shop-focus-ring);outline-offset:3px;box-shadow:0 0 0 5px var(--odd-shop-focus-shadow)}
-.odd-panel.odd-shop .odd-shop__health,.odd-panel.odd-shop .odd-shop__reset-row,.odd-panel.odd-shop .odd-preview-bar,.odd-panel.odd-shop .odd-shop__empty,.odd-panel.odd-shop .odd-shop__tip,.odd-panel.odd-shop .odd-shop__js-confirm,.odd-panel.odd-shop .odd-shop__dropzone,.odd-panel.odd-shop .odd-apps-upload{background:var(--odd-shop-surface);border-color:var(--odd-shop-border);color:var(--odd-shop-ink)}
+.odd-panel.odd-shop .odd-shop__health,.odd-panel.odd-shop .odd-shop__reset-row,.odd-panel.odd-shop .odd-shop__empty,.odd-panel.odd-shop .odd-shop__tip,.odd-panel.odd-shop .odd-shop__js-confirm,.odd-panel.odd-shop .odd-shop__dropzone,.odd-panel.odd-shop .odd-apps-upload{background:var(--odd-shop-surface);border-color:var(--odd-shop-border);color:var(--odd-shop-ink)}
 .odd-panel.odd-shop .odd-shop__health-body strong{color:var(--odd-shop-ink)}
 .odd-panel.odd-shop .odd-shop__health-body span{color:var(--odd-shop-ink-1)}
 .odd-panel.odd-shop .odd-shop__dropzone,.odd-panel.odd-shop .odd-shop__tip,.odd-panel.odd-shop .odd-shop__health.is-warning,.odd-panel.odd-shop .odd-shop__js-confirm{background:linear-gradient(180deg,color-mix(in srgb,var(--odd-shop-active-tint,var(--odd-shop-accent)) 8%,var(--odd-shop-surface)),var(--odd-shop-surface))}
@@ -974,7 +936,7 @@
 @media (max-width:960px){.odd-panel.odd-shop{grid-template-columns:64px minmax(0,1fr)!important}.odd-panel.odd-shop .odd-shop__brand-text{display:none}.odd-panel.odd-shop .odd-shop__rail{padding:14px 6px}.odd-panel.odd-shop .odd-shop__rail-heading,.odd-panel.odd-shop .odd-shop__rail-group-heading,.odd-panel.odd-shop .odd-shop__rail-label,.odd-panel.odd-shop .odd-shop__rail-foot{display:none}.odd-panel.odd-shop .odd-shop__rail-item{grid-template-columns:1fr;justify-items:center;padding:10px 8px}.odd-panel.odd-shop .odd-shop__hero{grid-template-columns:minmax(0,1fr);align-items:end}.odd-panel.odd-shop .odd-shop__hero-body{max-width:78%}.odd-panel.odd-shop .odd-shop__hero-thumb{display:none}}
 
 /* Collapse at XS: keep the rail vertical so hidden native scrollbars never become horizontal drift. */
-@media (max-width:520px){.odd-panel.odd-shop{grid-template-rows:auto minmax(0,1fr);grid-template-columns:64px minmax(0,1fr)!important}.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;grid-row:1;grid-template-columns:1fr;grid-template-areas:"brand" "command";gap:10px}.odd-panel.odd-shop .odd-shop__command{justify-self:stretch;width:100%}.odd-panel.odd-shop .odd-shop__search{justify-self:stretch;max-width:none}.odd-panel.odd-shop .odd-shop__search-tools{justify-content:flex-start}.odd-panel.odd-shop .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;overflow-x:hidden;overflow-y:auto;border-right:1px solid var(--odd-shop-border);border-bottom:0;padding:14px 6px}.odd-panel.odd-shop .odd-shop__rail-group{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}.odd-panel.odd-shop .odd-shop__rail-item{width:auto}.odd-panel.odd-shop .odd-shop__content{grid-column:2;grid-row:2;padding:18px 18px 0}.odd-panel.odd-shop .odd-shop__hero{min-height:0;padding:18px;border-radius:var(--odd-shop-r-l)}.odd-panel.odd-shop .odd-shop__hero-body{max-width:none}.odd-panel.odd-shop .odd-shop__hero-title{font-size:clamp(26px,8vw,32px)}.odd-panel.odd-shop .odd-shop__install-types{grid-template-columns:repeat(2,minmax(0,1fr))}.odd-panel.odd-shop .odd-preview-bar{width:auto;max-width:none;border-radius:var(--odd-shop-r-l);align-items:flex-start;white-space:normal}.odd-panel.odd-shop .odd-preview-bar__text{white-space:normal}.odd-panel.odd-shop .odd-preview-bar__actions{flex-wrap:wrap}}
+@media (max-width:520px){.odd-panel.odd-shop{grid-template-rows:auto minmax(0,1fr);grid-template-columns:64px minmax(0,1fr)!important}.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;grid-row:1;grid-template-columns:1fr;grid-template-areas:"brand" "command";gap:10px}.odd-panel.odd-shop .odd-shop__command{justify-self:stretch;width:100%}.odd-panel.odd-shop .odd-shop__search{justify-self:stretch;max-width:none}.odd-panel.odd-shop .odd-shop__search-tools{justify-content:flex-start}.odd-panel.odd-shop .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;overflow-x:hidden;overflow-y:auto;border-right:1px solid var(--odd-shop-border);border-bottom:0;padding:14px 6px}.odd-panel.odd-shop .odd-shop__rail-group{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}.odd-panel.odd-shop .odd-shop__rail-item{width:auto}.odd-panel.odd-shop .odd-shop__content{grid-column:2;grid-row:2;padding:18px 18px 0}.odd-panel.odd-shop .odd-shop__hero{min-height:0;padding:18px;border-radius:var(--odd-shop-r-l)}.odd-panel.odd-shop .odd-shop__hero-body{max-width:none}.odd-panel.odd-shop .odd-shop__hero-title{font-size:clamp(26px,8vw,32px)}.odd-panel.odd-shop .odd-shop__install-types{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* Collapse by native-window width: Desktop Mode windows can be narrow while the browser viewport remains wide. */
 .odd-panel.odd-shop[data-odd-size="xs"],.odd-panel.odd-shop[data-odd-size="s"],.odd-panel.odd-shop[data-odd-size="m"]{grid-template-columns:64px minmax(0,1fr)!important}
@@ -998,9 +960,6 @@
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero-body{max-width:none}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero-title{font-size:clamp(26px,8vw,32px)}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__install-types{grid-template-columns:repeat(2,minmax(0,1fr))}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-preview-bar{width:auto;max-width:none;border-radius:var(--odd-shop-r-l);align-items:flex-start;white-space:normal}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-preview-bar__text{white-space:normal}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-preview-bar__actions{flex-wrap:wrap}
 
 /* Native-window mobile: a phone-sized Shop can still be wider than the
  * browser viewport media query because Desktop Mode is nested in the page.
@@ -1031,9 +990,6 @@
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__install-type,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__install-type{min-height:0;padding:22px 18px 24px;gap:14px}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__install-type-body,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__install-type-body{flex:0 1 auto}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__install-type-desc,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__install-type-desc{max-width:22ch}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-preview-bar,.odd-panel.odd-shop[data-odd-size="s"] .odd-preview-bar{width:auto;max-width:none;border-radius:var(--odd-shop-r-l);align-items:flex-start;white-space:normal}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-preview-bar__text,.odd-panel.odd-shop[data-odd-size="s"] .odd-preview-bar__text{white-space:normal}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-preview-bar__actions,.odd-panel.odd-shop[data-odd-size="s"] .odd-preview-bar__actions{flex-wrap:wrap}
 
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__storebar{grid-template-columns:minmax(0,1fr);align-items:stretch}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__storebar-controls{grid-template-columns:minmax(0,1fr);justify-items:start}

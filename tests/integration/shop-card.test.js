@@ -11,7 +11,7 @@
  *   updateAvailable? → "Update"
  *   requiresReload?  → "Reload" (escape hatch; pending reload → "Working…")
  *   active?          → "Active" (disabled)
- *   type=scene/icon/cursor → "Apply" (card body still previews)
+ *   type=scene/icon/cursor → "Apply"
  *   type=widget      → "Add"
  *   type=app         → "Open"
  *
@@ -347,10 +347,10 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( card.querySelector( '.odd-shop__card-state' )?.textContent.trim() ).toBe( 'Ready' );
 		expect( card.querySelector( '.odd-shop__card-trust' ) ).toBeNull();
 		expect( card.querySelector( '#odd-shop-card-terrazzo-trust' )?.textContent.trim() ).toBe( 'Runs locally' );
-		expect( card.querySelector( '.odd-shop__card-hint' )?.textContent ).toBe( 'Click card to preview' );
+		expect( card.querySelector( '.odd-shop__card-hint' )?.textContent ).toBe( 'Apply to activate' );
 	} );
 
-	it( 'scene Apply posts prefs directly while card body still previews', async () => {
+	it( 'scene Apply posts prefs directly without staging controls', async () => {
 		const picked = [];
 		window.wp.hooks.addAction( 'odd.pickScene', 'test', ( slug ) => picked.push( slug ) );
 		globalThis.fetch = vi.fn( () => Promise.resolve( {
@@ -369,12 +369,10 @@ describe( 'ODD Shop · unified card state machine', () => {
 		const { host } = mount();
 
 		const card = host.querySelector( '[data-odd-shop-card][data-scene-slug="terrazzo"]' );
-		const button = card.querySelector( '.odd-shop__card-btn' );
+		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeNull();
+
 		card.querySelector( '.odd-shop__card' )
 			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
-		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeTruthy();
-
-		button.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 		await flush();
 
 		expect( picked ).toContain( 'terrazzo' );
@@ -387,12 +385,13 @@ describe( 'ODD Shop · unified card state machine', () => {
 		);
 		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Applied Terrazzo' );
 		expect( host.querySelector( '.odd-shop__flow-toast-action' )?.textContent.trim() ).toBe( 'Undo' );
+		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeNull();
 	} );
 
-	it( 'preview refresh keeps visible action and click handler in sync', async () => {
+	it( 'active scene remains disabled while inactive scenes stay directly applicable', async () => {
 		globalThis.fetch = vi.fn( () => Promise.resolve( {
 			ok:   true,
-			json: () => Promise.resolve( { wallpaper: 'gusts' } ),
+			json: () => Promise.resolve( { wallpaper: 'terrazzo' } ),
 		} ) );
 		seed( {
 			wallpaper: 'gusts',
@@ -405,25 +404,24 @@ describe( 'ODD Shop · unified card state machine', () => {
 		loadPanel();
 		const { host } = mount();
 
-		host.querySelector( '[data-odd-shop-card][data-scene-slug="terrazzo"] .odd-shop__card' )
-			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
-
 		const activeCard = host.querySelector( '[data-odd-shop-card][data-scene-slug="gusts"]' );
 		const activeBtn = activeCard.querySelector( '.odd-shop__card-btn' );
-		expect( activeBtn.textContent.trim() ).toBe( 'Apply' );
-		expect( activeBtn.disabled ).toBe( false );
-		expect( activeBtn.getAttribute( 'data-odd-card-action' ) ).toBe( 'apply' );
-		expect( activeCard.getAttribute( 'data-odd-card-action' ) ).toBe( 'apply' );
-		expect( activeCard.getAttribute( 'data-odd-card-state' ) ).toBe( 'ready' );
+		expect( activeBtn.textContent.trim() ).toBe( 'Active' );
+		expect( activeBtn.disabled ).toBe( true );
+		expect( activeBtn.getAttribute( 'data-odd-card-action' ) ).toBe( 'active' );
+		expect( activeCard.getAttribute( 'data-odd-card-action' ) ).toBe( 'active' );
+		expect( activeCard.getAttribute( 'data-odd-card-state' ) ).toBe( 'active' );
 
-		activeBtn.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+		const inactiveBtn = host.querySelector( '[data-odd-shop-card][data-scene-slug="terrazzo"] .odd-shop__card-btn' );
+		expect( inactiveBtn.textContent.trim() ).toBe( 'Apply' );
+		inactiveBtn.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 		await flush();
 
 		expect( globalThis.fetch ).toHaveBeenCalledWith(
 			'/wp-json/odd/v1/prefs',
 			expect.objectContaining( {
 				method: 'POST',
-				body:   JSON.stringify( { wallpaper: 'gusts' } ),
+				body:   JSON.stringify( { wallpaper: 'terrazzo' } ),
 			} )
 		);
 	} );

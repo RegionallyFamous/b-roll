@@ -246,7 +246,7 @@ the `dashboard` icon stands in. A preview image usually works best as:
    publishes it to `https://odd.regionallyfamous.com/catalog/v1/`
    where every ODD install can install it from Discover.
 3. The Shop jumps to Icon Sets and flashes your new set's tile.
-   Click **Preview** on the tile, then **Apply & reload** to commit.
+   Click **Apply** on the tile to activate it.
    ODD saves the preference and lets Desktop Mode rebuild every native
    icon surface from its own server-side payload.
 
