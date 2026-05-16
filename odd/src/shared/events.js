@@ -30,16 +30,18 @@
  *     odd.shuffle-tick        { slug }
  *
  *   Shell reactivity (re-emitted from WP Desktop Mode):
-	 *     odd.window-opened       { id, bounds }
-	 *     odd.window-reopened     { id, windowId }
-	 *     odd.window-closing      { id, windowId }
-	 *     odd.window-closed       { id }
-	 *     odd.window-focused      { id, bounds }
-	 *     odd.window-blurred      { id, focusedTo }
-	 *     odd.window-changed      { id, windowId }
-	 *     odd.window-detached     { id, url }
-	 *     odd.window-bounds-changed { id, windowId, bounds }
-	 *     odd.window-body-resized { id, windowId, width, height }
+ *     odd.window-opened       { id, bounds }
+ *     odd.window-reopened     { id, windowId }
+ *     odd.window-closing      { id, windowId }
+ *     odd.window-closed       { id }
+ *     odd.window-focused      { id, bounds }
+ *     odd.window-blurred      { id, focusedTo }
+ *     odd.window-changed      { id, windowId }
+ *     odd.window-detached     { id, url }
+ *     odd.window-bounds-changed { id, windowId, bounds }
+ *     odd.window-body-resized { id, windowId, width, height }
+ *     odd.native-window-after-render { id, windowId, body }
+ *     odd.native-window-before-close { id, windowId }
  *     odd.shell-error         { message, err }
  *     odd.iframe-error        { message, err }
  *     odd.visibility-changed  { state: 'hidden' | 'visible' }
@@ -93,6 +95,8 @@
 		WINDOW_DETACHED:      'odd.window-detached',
 		WINDOW_BOUNDS_CHANGED: 'odd.window-bounds-changed',
 		WINDOW_BODY_RESIZED:  'odd.window-body-resized',
+		NATIVE_WINDOW_AFTER_RENDER: 'odd.native-window-after-render',
+		NATIVE_WINDOW_BEFORE_CLOSE: 'odd.native-window-before-close',
 		SHELL_ERROR:          'odd.shell-error',
 		IFRAME_ERROR:         'odd.iframe-error',
 		VISIBILITY_CHANGED:   'odd.visibility-changed',

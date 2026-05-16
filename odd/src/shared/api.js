@@ -511,7 +511,37 @@
 		}, 'api.mountWidget' );
 	}
 
-	function tidyWidgets( opts ) {
+	function widgetRedockApi() {
+		var d = window.wp && window.wp.desktop;
+		if ( ! d ) return null;
+		if ( d.widgets && typeof d.widgets.redock === 'function' ) {
+			return { owner: d.widgets, fn: d.widgets.redock };
+		}
+		if ( d.widgetLayer && typeof d.widgetLayer.redock === 'function' ) {
+			return { owner: d.widgetLayer, fn: d.widgetLayer.redock };
+		}
+		if ( d.widgetLayer && typeof d.widgetLayer.redockWidget === 'function' ) {
+			return { owner: d.widgetLayer, fn: d.widgetLayer.redockWidget };
+		}
+		return null;
+	}
+
+	function redockOddWidgetsViaHost() {
+		var api = widgetRedockApi();
+		var widgets = installedWidgets();
+		if ( ! api || ! widgets.length ) return null;
+		var count = 0;
+		widgets.forEach( function ( widget ) {
+			if ( ! widget || ! widget.id ) return;
+			var result = safeCall( function () {
+				return api.fn.call( api.owner, widget.id );
+			}, 'api.redockWidget' );
+			if ( result !== false ) count++;
+		} );
+		return count;
+	}
+
+	function redockOddWidgetsViaDom() {
 		var count = 0;
 		if ( document && document.querySelectorAll ) {
 			var redock = document.querySelectorAll( '.desktop-mode-widgets__card[data-widget-id^="odd/"].desktop-mode-widgets__card--floating .desktop-mode-widgets__card-redock' );
@@ -522,6 +552,13 @@
 				} catch ( e ) {}
 			}
 		}
+		return count;
+	}
+
+	function tidyWidgets( opts ) {
+		var count = 0;
+		var hostRedockCount = redockOddWidgetsViaHost();
+		count += hostRedockCount === null ? redockOddWidgetsViaDom() : hostRedockCount;
 		installedWidgets().forEach( function ( widget ) {
 			if ( widget && widget.id && mountWidget( widget.id, { quiet: true } ) ) count++;
 		} );

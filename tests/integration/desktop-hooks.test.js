@@ -311,6 +311,35 @@ describe( 'Desktop Mode hook bridge', () => {
 		expect( file.querySelector( 'wpd-context-menu-item' ).getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
 	} );
 
+	it( 'maps desktop icon and file tile render hooks to cursor semantics', () => {
+		window.wp.desktop = {
+			ready: ( cb ) => cb(),
+			HOOKS: {
+				DESKTOP_ICONS_RENDERED: 'desktop-mode.desktop-icons.rendered',
+			},
+		};
+		const icons = document.createElement( 'div' );
+		icons.className = 'desktop-mode-icons';
+		const icon = document.createElement( 'button' );
+		icon.className = 'desktop-mode-icon';
+		icons.appendChild( icon );
+		document.body.appendChild( icons );
+		const tile = document.createElement( 'button' );
+		tile.className = 'desktop-mode-files__tile';
+
+		loadDesktopHooks();
+		window.wp.hooks.doAction( 'desktop-mode.desktop-icons.rendered', { ids: [ 'odd' ] } );
+		window.wp.hooks.doAction( 'desktop-mode.files.tile-rendered', {
+			tile,
+			placement: { id: 'notes' },
+		} );
+
+		expect( icons.getAttribute( 'data-odd-cursor-root' ) ).toBe( 'true' );
+		expect( icon.getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
+		expect( tile.getAttribute( 'data-odd-cursor-root' ) ).toBe( 'true' );
+		expect( tile.getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
+	} );
+
 	it( 'records Desktop Mode 0.8.5 file, presence, heartbeat, and arrange surfaces', () => {
 		window.wp.desktop = {
 			ready:          ( cb ) => cb(),

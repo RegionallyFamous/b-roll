@@ -394,7 +394,7 @@
 
 	function elementFromPayload( payload ) {
 		if ( ! payload || typeof payload !== 'object' ) return null;
-		return payload.element || payload.el || payload.node || payload.host || payload.body || payload.root || null;
+		return payload.element || payload.el || payload.node || payload.tile || payload.container || payload.host || payload.body || payload.root || null;
 	}
 
 	function cssEscape( value ) {
@@ -536,7 +536,7 @@
 	function markDesktopChrome( root ) {
 		if ( ! root || ! root.querySelectorAll ) return 0;
 		var count = markWindowChrome( root ) + markWidgetChrome( root );
-		var pointers = root.querySelectorAll( '.wp-desktop-icon, .wp-desktop-dock__item, .wp-desktop-dock__item-primary, .wp-desktop-dock__item-new, .wp-desktop-widgets__card-redock, .wp-desktop-widgets__card-close, .wp-desktop-widgets__add' );
+		var pointers = root.querySelectorAll( '.desktop-mode-icon, .desktop-mode-dock__item, .desktop-mode-dock__button, .desktop-mode-widgets__card-redock, .desktop-mode-widgets__card-close, .desktop-mode-widgets__add, .wp-desktop-icon, .wp-desktop-dock__item, .wp-desktop-dock__item-primary, .wp-desktop-dock__item-new, .wp-desktop-widgets__card-redock, .wp-desktop-widgets__card-close, .wp-desktop-widgets__add' );
 		for ( var i = 0; i < pointers.length; i++ ) {
 			markCursor( pointers[ i ], 'pointer' );
 			count++;
@@ -888,6 +888,29 @@
 	}
 
 	function setupCursorSurfaceMapping() {
+		function markDesktopIconSurface( root ) {
+			if ( ! root || root.nodeType !== 1 ) return 0;
+			markCursorRoot( root );
+			return markDesktopChrome( root ) + markCursorDescendants( root );
+		}
+		function mapDesktopIconSurfaces( payload ) {
+			var count = 0;
+			var el = elementFromPayload( payload );
+			if ( el ) {
+				count += markDesktopIconSurface( el );
+			}
+			if ( ! el && typeof document !== 'undefined' && document.querySelectorAll ) {
+				var roots = document.querySelectorAll( '.desktop-mode-icons, #desktop-mode-icons, .wp-desktop-icons, #wp-desktop-icons' );
+				for ( var i = 0; i < roots.length; i++ ) {
+					count += markDesktopIconSurface( roots[ i ] );
+				}
+			}
+			record( 'info', 'odd.cursor.desktop-icons-mapped', {
+				count: count,
+				ids:   payload && payload.ids || [],
+			} );
+			return count > 0;
+		}
 		function mapWindowSurface( payload ) {
 			var el = windowElementFromPayload( payload );
 			if ( ! el ) return false;
@@ -917,9 +940,10 @@
 				addAction( hookName, mapWindowSurface );
 			} );
 		} );
+		addActionFor( 'DESKTOP_ICONS_RENDERED', 'desktop-mode.desktop-icons.rendered', mapDesktopIconSurfaces );
 		if ( typeof document !== 'undefined' ) {
 			ready( function () {
-				var roots = document.querySelectorAll ? document.querySelectorAll( '#desktop-mode-shell, .desktop-mode, .desktop-mode-shell, #wp-desktop-shell, .wp-desktop-shell, .wp-desktop-shell__body, #wp-desktop-area, .wp-desktop-area, #wp-desktop-wallpaper, .wp-desktop-wallpaper, #wp-desktop-dock, .wp-desktop-dock, #wp-desktop-widgets, .wp-desktop-widgets, .wp-desktop-widgets__list, .wp-desktop-window, .wp-desktop-icons, [data-window-id], [data-windowid], [data-desktop-window-id], [data-native-window-id]' ) : [];
+				var roots = document.querySelectorAll ? document.querySelectorAll( '#desktop-mode-shell, .desktop-mode, .desktop-mode-shell, #desktop-mode-icons, .desktop-mode-icons, #wp-desktop-shell, .wp-desktop-shell, .wp-desktop-shell__body, #wp-desktop-area, .wp-desktop-area, #wp-desktop-wallpaper, .wp-desktop-wallpaper, #wp-desktop-dock, .wp-desktop-dock, #wp-desktop-widgets, .wp-desktop-widgets, .wp-desktop-widgets__list, .wp-desktop-window, .wp-desktop-icons, [data-window-id], [data-windowid], [data-desktop-window-id], [data-native-window-id]' ) : [];
 				for ( var i = 0; i < roots.length; i++ ) {
 					markCursorRoot( roots[ i ] );
 					markDesktopChrome( roots[ i ] );
@@ -1117,6 +1141,7 @@
 			'desktop-mode.file.removed',
 			'desktop-mode.file.opened',
 			'desktop-mode.file.context-menu',
+			'desktop-mode.files.tile-rendered',
 			'desktop-mode.folder.created',
 			'desktop-mode.folder.updated',
 			'desktop-mode.folder.deleted',
@@ -1129,9 +1154,12 @@
 			'desktop-mode.arrange-menu.opened',
 		].forEach( function ( hookName ) {
 			addAction( hookName, function ( payload ) {
-				var el = payload && ( payload.element || payload.el || payload.node );
+				var el = elementFromPayload( payload );
 				if ( el && el.nodeType === 1 ) {
 					markCursorRoot( el );
+					if ( hookName === 'desktop-mode.files.tile-rendered' ) {
+						markCursor( el, 'pointer' );
+					}
 					markCursorDescendants( el );
 				}
 				record( 'info', hookName, payload || {} );

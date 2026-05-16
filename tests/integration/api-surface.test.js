@@ -194,4 +194,38 @@ describe( 'window.__odd.api surface', () => {
 			height: 600,
 		} ) );
 	} );
+
+	it( 'tidies widgets through a host redock API before falling back to DOM clicks', () => {
+		loadFoundation( {
+			config: {
+				installedWidgets: [ { id: 'odd/weather' } ],
+			},
+		} );
+		const redock = vi.fn( () => true );
+		const ensureMounted = vi.fn( () => true );
+		const mountIfEnabled = vi.fn();
+		const card = document.createElement( 'div' );
+		const button = document.createElement( 'button' );
+		button.click = vi.fn();
+		card.className = 'desktop-mode-widgets__card desktop-mode-widgets__card--floating';
+		card.setAttribute( 'data-widget-id', 'odd/weather' );
+		button.className = 'desktop-mode-widgets__card-redock';
+		card.appendChild( button );
+		document.body.appendChild( card );
+		window.wp.desktop = {
+			widgetLayer: {
+				redock,
+				ensureMounted,
+				mountIfEnabled,
+			},
+		};
+		execShared( 'api.js' );
+
+		expect( window.__odd.api.tidyWidgets( { quiet: true } ) ).toBe( true );
+
+		expect( redock ).toHaveBeenCalledWith( 'odd/weather' );
+		expect( button.click ).not.toHaveBeenCalled();
+		expect( ensureMounted ).toHaveBeenCalledWith( 'odd/weather' );
+		expect( mountIfEnabled ).toHaveBeenCalledWith( 'odd/weather' );
+	} );
 } );

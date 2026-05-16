@@ -139,6 +139,44 @@ describe( 'ODD app window host', () => {
 		expect( appOpened ).toEqual( [ { slug: 'demo', windowId: 'odd-app-demo' } ] );
 	} );
 
+	it( 'mounts from the Desktop Mode native-window after-render hook without the bridge', () => {
+		window.wp.desktop = {
+			HOOKS: {
+				NATIVE_WINDOW_AFTER_RENDER: 'desktop-mode.native-window.after-render',
+			},
+		};
+		loadWindowHost();
+		const body = document.createElement( 'div' );
+		document.body.appendChild( body );
+		const appOpened = [];
+		window.__odd.events.on( 'odd.app-opened', ( payload ) => appOpened.push( payload ) );
+
+		window.wp.hooks.doAction( 'desktop-mode.native-window.after-render', {
+			windowId: 'odd-app-demo',
+			body,
+		} );
+
+		const frame = body.querySelector( 'iframe.odd-app-frame' );
+		expect( frame ).toBeTruthy();
+		expect( frame.getAttribute( 'src' ) ).toBe( '/odd-app/demo/' );
+		expect( appOpened ).toEqual( [ { slug: 'demo', windowId: 'odd-app-demo' } ] );
+	} );
+
+	it( 'mounts from the normalized ODD native-window after-render event', () => {
+		loadWindowHost();
+		const body = document.createElement( 'div' );
+		document.body.appendChild( body );
+
+		window.__odd.events.emit( window.__odd.events.NAMES.NATIVE_WINDOW_AFTER_RENDER, {
+			id: 'odd-app-demo',
+			body,
+		} );
+
+		const frame = body.querySelector( 'iframe.odd-app-frame' );
+		expect( frame ).toBeTruthy();
+		expect( frame.getAttribute( 'src' ) ).toBe( '/odd-app/demo/' );
+	} );
+
 	it( 'hydrates app hosts added to shadow roots after boot', async () => {
 		loadWindowHost();
 		const shell = document.createElement( 'div' );

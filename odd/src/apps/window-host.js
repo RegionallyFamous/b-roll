@@ -680,8 +680,34 @@
 		} );
 	}
 
+	function hostHookNames( key, fallbacks ) {
+		var out = [];
+		var d = window.wp && window.wp.desktop;
+		function add( name ) {
+			if ( name && out.indexOf( name ) === -1 ) out.push( name );
+		}
+		if ( key && d && d.HOOKS && d.HOOKS[ key ] ) add( d.HOOKS[ key ] );
+		( fallbacks || [] ).forEach( add );
+		return out;
+	}
+
+	function bindNativeWindowRenderHooks() {
+		var h = window.wp && window.wp.hooks;
+		if ( ! h || typeof h.addAction !== 'function' ) return;
+		hostHookNames( 'NATIVE_WINDOW_AFTER_RENDER', [
+			'desktop-mode.native-window.after-render',
+			'wp-desktop.native-window.after-render',
+		] ).forEach( function ( name, index ) {
+			try {
+				h.addAction( name, 'odd.apps.native-window-after-render-' + index, handleWindowShown );
+			} catch ( _ ) {}
+		} );
+	}
+
 	events.on( events.NAMES.WINDOW_OPENED, handleWindowShown );
 	events.on( events.NAMES.WINDOW_REOPENED, handleWindowShown );
+	events.on( events.NAMES.NATIVE_WINDOW_AFTER_RENDER || 'odd.native-window-after-render', handleWindowShown );
+	bindNativeWindowRenderHooks();
 
 	events.on( events.NAMES.WINDOW_CLOSED, function ( payload ) {
 		if ( ! payload || typeof payload !== 'object' ) return;
@@ -699,13 +725,12 @@
 	} );
 
 	/**
-	 * Defensive fallback. Not every WPDM build fires
-	 * `desktop-mode.window.opened` for server-templated windows — e.g.
-	 * a window that was restored from a persisted session at page
-	 * load may just be dropped into the DOM with no hook call. To
-	 * keep installed apps from appearing "dead", we also watch the
-	 * DOM for any `.odd-app-host[data-odd-app]` node that lacks an
-	 * iframe and install one as soon as it appears.
+	 * Defensive fallback. Current Desktop Mode builds expose native-
+	 * window render hooks, and ODD binds those directly above. Older
+	 * or unusual host orderings can still restore server-templated
+	 * windows before hooks/scripts attach, so we also watch the DOM
+	 * for any `.odd-app-host[data-odd-app]` node that lacks an iframe
+	 * and install one as soon as it appears.
 	 *
 	 * This mirrors the event-driven path and dedupes on the
 	 * iframe-already-present check inside installFrame, so a window
