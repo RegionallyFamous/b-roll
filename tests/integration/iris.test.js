@@ -152,10 +152,7 @@ describe( 'iris — shell error reactivity', () => {
 
 		window.wp.hooks.doAction( 'desktop-mode.shell.error', { message: 'desktop.min.js 404' } );
 
-		expect( log ).toHaveBeenCalledWith( '[ODD] Shell issue', {
-			source:  'desktop-mode.shell.error',
-			payload: { message: 'desktop.min.js 404' },
-		} );
+		expect( log ).toHaveBeenCalledWith( '[ODD] Shell issue: desktop-mode.shell.error {"message":"desktop.min.js 404"}' );
 		expect( toast ).not.toHaveBeenCalled();
 		expect( said ).toEqual( [] );
 		expect( motions ).toEqual( [] );
@@ -170,11 +167,21 @@ describe( 'iris — shell error reactivity', () => {
 
 		window.__odd.events.emit( 'odd.iframe-error', { slug: 'demo', message: 'iframe load failed' } );
 
-		expect( log ).toHaveBeenCalledWith( '[ODD] Shell issue', {
-			source:  'odd.iframe-error',
-			payload: { slug: 'demo', message: 'iframe load failed' },
-		} );
+		expect( log ).toHaveBeenCalledWith( '[ODD] Shell issue: odd.iframe-error {"slug":"demo","message":"iframe load failed"}' );
 		expect( motions ).toEqual( [] );
+
+		log.mockRestore();
+	} );
+
+	it( 'prints Error payloads readably for console bridges', () => {
+		const log = vi.spyOn( window.console, 'log' ).mockImplementation( () => {} );
+		const err = new Error( 'Request timed out' );
+
+		window.wp.hooks.doAction( 'desktop-mode.shell.error', { scope: 'session-save', error: err } );
+
+		expect( log.mock.calls[ 0 ][ 0 ] ).toContain( '[ODD] Shell issue: desktop-mode.shell.error ' );
+		expect( log.mock.calls[ 0 ][ 0 ] ).toContain( '"scope":"session-save"' );
+		expect( log.mock.calls[ 0 ][ 0 ] ).toContain( '"message":"Request timed out"' );
 
 		log.mockRestore();
 	} );

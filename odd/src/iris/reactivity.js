@@ -42,10 +42,33 @@
 		var iris = window.__odd.iris;
 		if ( iris && typeof iris.say === 'function' ) iris.say( bucket );
 	}
+	function stringifyShellIssuePayload( payload ) {
+		var seen = [];
+		try {
+			return JSON.stringify( payload || {}, function ( key, value ) {
+				if ( value instanceof Error ) {
+					return {
+						name:    value.name || 'Error',
+						message: value.message || '',
+						stack:   value.stack || '',
+					};
+				}
+				if ( value && typeof value === 'object' ) {
+					if ( seen.indexOf( value ) !== -1 ) {
+						return '[Circular]';
+					}
+					seen.push( value );
+				}
+				return value;
+			} );
+		} catch ( e ) {
+			return String( payload || '' );
+		}
+	}
 	function logShellIssue( source, payload ) {
 		var c = window.console;
 		if ( ! c || typeof c.log !== 'function' ) return;
-		c.log( '[ODD] Shell issue', { source: source, payload: payload || {} } );
+		c.log( '[ODD] Shell issue: ' + source + ' ' + stringifyShellIssuePayload( payload ) );
 	}
 
 	function centerOf( bounds ) {
