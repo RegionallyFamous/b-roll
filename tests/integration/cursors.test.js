@@ -339,6 +339,8 @@ describe( 'ODD cursor runtime', () => {
 		expect( layer.style.getPropertyValue( '--odd-cursor-x' ) ).toBe( '130px' );
 		expect( style.textContent ).toContain( 'width:42px' );
 		expect( style.textContent ).toContain( 'opacity:.22' );
+		expect( style.textContent ).toContain( 'overflow:visible' );
+		expect( style.textContent ).not.toContain( 'contain:layout style paint' );
 		expect( window.__odd.cursors.status().layer.visible ).toBe( true );
 		expect( window.__odd.cursors.status().layer.coalesced ).toBe( 1 );
 		expect( window.__odd.cursors.status().layer.predicted ).toBe( 1 );
