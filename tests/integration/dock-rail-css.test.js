@@ -21,8 +21,8 @@ describe( 'Desktop Mode dock rail CSS contract', () => {
 		expect( css ).toContain( 'scrollbar-gutter: auto;' );
 		expect( css ).toContain( 'body.desktop-mode-active .desktop-mode-dock[ data-desktop-mode-dock-placement="right" ]::-webkit-scrollbar {' );
 		expect( css ).toContain( 'body.desktop-mode-active .desktop-mode-dock__item-primary > img.desktop-mode-dock__item-img[data-odd-skinned-system-icon],' );
-		expect( css ).toContain( 'width: 100%;' );
-		expect( css ).toContain( 'height: 100%;' );
+		expect( css ).toContain( 'width: calc(100% - 8px);' );
+		expect( css ).toContain( 'height: calc(100% - 8px);' );
 		expect( css ).not.toContain( 'scrollbar-gutter: stable;' );
 		expect( css ).not.toContain( '--odd-dock-tile-size' );
 		expect( css ).not.toContain( 'drop-shadow' );
@@ -39,6 +39,9 @@ describe( 'Desktop Mode dock rail CSS contract', () => {
 		expect( css ).toContain( 'touch-action: pan-y;' );
 		expect( css ).toContain( '.desktop-mode-dock.desktop-mode-shell__dock--orientation-left .odd-dock-rail-mount__menu,' );
 		expect( css ).toContain( 'align-items: center;' );
+		expect( css ).toContain( 'button.odd-dock-rail-mount__tile img {' );
+		expect( css ).toContain( 'width: calc(100% - 8px);' );
+		expect( css ).toContain( 'height: calc(100% - 8px);' );
 		expect( css ).not.toContain( 'transform: translateY' );
 		expect( css ).not.toContain( 'box-shadow' );
 		expect( css ).not.toContain( 'rgba(106, 92, 255' );
