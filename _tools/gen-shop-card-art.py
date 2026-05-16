@@ -518,10 +518,10 @@ def render_iconset_card(src_dir: Path) -> Image.Image:
     base = plate(accent, secondary, spark, layer_recipe=recipe)
     icons = meta.get("icons") or {}
     placements = [
-        ("dashboard", 118, 116, 330, -3),
-        ("posts", 576, 116, 330, 3),
-        ("pages", 118, 574, 330, 3),
-        ("media", 576, 574, 330, -3),
+        ("dashboard", 72, 72, 392, -3),
+        ("posts", 560, 72, 392, 3),
+        ("pages", 72, 560, 392, 3),
+        ("media", 560, 560, 392, -3),
     ]
     for key, x, y, size, rot in placements:
         rel = icons.get(key) or icons.get("fallback") or icons.get("dashboard")

@@ -712,10 +712,10 @@ def iconset_tile(
     draw_fun_layer(img, recipe, accent, secondary, spark)
 
     placements = [
-        ("dashboard", 98, 98, 348, -3),
-        ("posts", 578, 98, 348, 3),
-        ("pages", 98, 578, 348, 3),
-        ("media", 578, 578, 348, -3),
+        ("dashboard", 72, 72, 392, -3),
+        ("posts", 560, 72, 392, 3),
+        ("pages", 72, 560, 392, 3),
+        ("media", 560, 560, 392, -3),
     ]
     for key, x, y, size, rot in placements:
         rel = icons.get(key) or icons.get("dashboard") or next(iter(icons.values()))

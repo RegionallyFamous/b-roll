@@ -7249,11 +7249,9 @@
 						return art;
 					}
 				}
-				// `preview` is the installed combined preview image; the remote
-				// catalog usually uses `icon_url`/`card_url`.
-				// Prefer live quartet art when installed; catalog-only
-				// rows can fall back to the generated card.
-				var iconSetUrl = row.preview || row.iconUrl || row.cardUrl;
+				// Catalog icon-set rows ship generated card art, while installed
+				// rows with real icon maps return above as a live quartet.
+				var iconSetUrl = row.cardUrl || row.iconUrl || row.preview;
 				if ( iconSetUrl ) {
 					art.appendChild( artImg( iconSetUrl, 'odd-shop__card-art-fill' ) );
 					return art;

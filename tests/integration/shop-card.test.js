@@ -595,13 +595,13 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( css ).toMatch( /\.odd-panel \.odd-shop__card--app \.odd-shop__card-art > img:not\(\.odd-shop__card-art-fill\)\{[^}]*padding:10%[^}]*object-fit:contain/ );
 		expect( css ).toMatch( /\.odd-panel \.odd-shop__card--app \.odd-shop__card-art > img\.odd-shop__card-art-fill\{[^}]*padding:0[^}]*object-fit:cover/ );
 		expect( css ).toMatch( /\.odd-panel\.odd-shop \.odd-shop__card\.odd-card\.odd-shop__tile \.odd-shop__card-art\{[^}]*border-radius:22\.5%/ );
-		expect( css ).toMatch( /\.odd-panel \.odd-shop__card--icon-set \.odd-shop__card-art > img\.odd-shop__card-art-fill\{[^}]*padding:12%[^}]*object-fit:contain/ );
+		expect( css ).toMatch( /\.odd-panel \.odd-shop__card--icon-set \.odd-shop__card-art > img\.odd-shop__card-art-fill\{[^}]*padding:0[^}]*object-fit:cover/ );
 		expect( css ).toContain( '.odd-panel .odd-shop__card-art[data-odd-fun-layer]' );
 		expect( css ).toContain( '.odd-panel .odd-shop__icon-fun-layer' );
 		expect( css ).toContain( '[data-odd-fun-layer="blueprint-grid"]' );
 		expect( css ).toContain( '[data-odd-fun-layer="stitch-cross"]' );
-		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-art--quartet\{[^}]*padding:clamp\(18px,13%,28px\)[^}]*overflow:visible/ );
-		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-art--quartet \.odd-shop__card-quartet\{[^}]*width:100%[^}]*gap:clamp\(12px,12%,20px\)/ );
+		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-art--quartet\{[^}]*padding:clamp\(10px,8%,18px\)[^}]*overflow:visible/ );
+		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-art--quartet \.odd-shop__card-quartet\{[^}]*width:100%[^}]*gap:clamp\(8px,8%,14px\)/ );
 		expect( css ).toMatch( /\.odd-panel\.odd-shop \.odd-shop__shelf\{[^}]*content-visibility:auto/ );
 		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-wrap\{[^}]*content-visibility:auto/ );
 	} );
@@ -610,7 +610,16 @@ describe( 'ODD Shop · unified card state machine', () => {
 		seed( {
 			bundleCatalog: {
 				scene: [],
-				iconSet: [ { slug: 'filament', label: 'Filament', category: 'Filament', installed: false } ],
+				iconSet: [
+					{
+						slug: 'filament',
+						label: 'Filament',
+						category: 'Filament',
+						card_url: 'https://example.test/cards/iconset-filament.webp',
+						icon_url: 'https://example.test/icons/iconset-filament.webp',
+						installed: false,
+					},
+				],
 				cursorSet: [],
 				widget: [],
 			},
@@ -621,6 +630,8 @@ describe( 'ODD Shop · unified card state machine', () => {
 
 		const cards = host.querySelectorAll( '[data-odd-shop-card][data-catalog-slug="filament"]' );
 		expect( cards.length ).toBe( 1 );
+		expect( cards[ 0 ].querySelector( '.odd-shop__card-art--icon-set img.odd-shop__card-art-fill' ).getAttribute( 'src' ) )
+			.toBe( 'https://example.test/cards/iconset-filament.webp' );
 		expect( cards[ 0 ].querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
 	} );
 
