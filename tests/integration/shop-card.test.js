@@ -577,7 +577,10 @@ describe( 'ODD Shop · unified card state machine', () => {
 		const btn = card.querySelector( '.odd-shop__card-btn' );
 		expect( btn.textContent.trim() ).toBe( 'Apply' );
 		expect( card.getAttribute( 'data-odd-trust' ) ).toBe( 'static-images' );
-		expect( card.querySelector( '.odd-shop__card-trust' )?.textContent.trim() ).toBe( 'Static images' );
+		expect( card.querySelector( '.odd-shop__card-trust' ) ).toBeNull();
+		const hiddenTrust = card.querySelector( '#odd-shop-card-filament-trust' );
+		expect( hiddenTrust?.classList.contains( 'odd-sr-only' ) ).toBe( true );
+		expect( hiddenTrust?.textContent.trim() ).toBe( 'Static images' );
 	} );
 
 	it( 'installed icon set card prefers live quartet art over catalog splash art', () => {
@@ -665,7 +668,7 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( css ).toContain( '--odd-shop-muted-strong:#3f3f46' );
 		expect( css ).toContain( '.odd-panel .odd-sr-only' );
 		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-state\{[^}]*font:800 11px\/1\.25[^}]*color:#333336/ );
-		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-trust\{[^}]*padding:4px 8px[^}]*border:1px solid rgba\(60,60,67,\.14\)[^}]*font:800 11px\/1\.1/ );
+		expect( css ).not.toContain( '.odd-shop__card-trust' );
 		expect( css ).toMatch( /\.odd-panel \.odd-shop__card-btn--active,\.odd-panel \.odd-shop__card-btn\.is-disabled\{[^}]*color:#3f3f46/ );
 		expect( css ).toContain( '.odd-panel .odd-shop__card-fav:focus-visible' );
 		expect( css ).toMatch( /\.odd-panel\.odd-shop \.odd-shop__card-btn:focus-visible,[^{}]*\.odd-panel\.odd-shop \.odd-shop__card-fav:focus-visible\{[^}]*outline:3px solid var\(--odd-shop-focus-ring\)/ );

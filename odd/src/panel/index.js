@@ -7464,9 +7464,8 @@
 			sub.textContent = subtitleText;
 			var stateLine = el( 'div', { class: 'odd-shop__card-state odd-shop__card-state--' + cardState.id, id: statusId } );
 			stateLine.textContent = cardState.statusLabel;
-			var showTrustLine = trust.id !== 'local-code';
-			var trustLine = el( showTrustLine ? 'div' : 'span', {
-				class: showTrustLine ? 'odd-shop__card-trust odd-shop__card-trust--' + trust.id : 'odd-sr-only',
+			var trustLine = el( 'span', {
+				class: 'odd-sr-only',
 				id: trustId,
 			} );
 			trustLine.textContent = trust.label;
