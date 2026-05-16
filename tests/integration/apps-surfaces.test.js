@@ -1,20 +1,20 @@
 /**
  * apps-surfaces.test.js — Shop UI contract for the per-app
- * `surfaces` preference (Desktop icon + Taskbar icon checkboxes).
+ * `surfaces` preference (desktop + taskbar placement switches).
  *
  * Mirrors panel.test.js: we load the panel module against a seeded
  * `window.odd` + stubbed `fetch`, switch to the Apps department,
- * then exercise the two checkboxes inside each app card.
+ * then exercise the two placement switches inside each app card.
  *
  * Desktop Mode owns visible placement via its `itemVisibility` OS
  * setting. These tests only care that:
  *
- *   1. The checkboxes initialize from app.surfaces.
+ *   1. The switches initialize from app.surfaces.
  *   2. A toggle writes the canonical `odd-app-{slug}` itemVisibility
  *      placement through `wp.desktop.updateOsSettings()`.
  *   3. The older `/apps/{slug}/toggle` surfaces route remains a fallback
  *      only when the host does not expose Desktop Mode OS settings.
- *   4. Toggles are disabled when app.enabled === false.
+ *   4. Switches are disabled when app.enabled === false.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -196,19 +196,20 @@ describe( 'ODD Shop · App surfaces', () => {
 		await new Promise( ( r ) => setTimeout( r, ms ) );
 	};
 
-	it( 'renders a Desktop icon + Taskbar icon checkbox per installed app', async () => {
+	it( 'renders native placement switches per installed app', async () => {
 		const { host, cleanup } = mountPanel();
 		await gotoAppsDepartment( host );
 
 		const card = host.querySelector( '.odd-card--app[data-app-slug="demo-app"]' );
 		expect( card, 'demo-app card must render' ).toBeTruthy();
 
-		const checks = card.querySelectorAll( '.odd-card__surfaces input[type="checkbox"]' );
-		expect( checks.length ).toBe( 2 );
+		const switches = card.querySelectorAll( '.odd-card__surface-switch' );
+		expect( switches.length ).toBe( 2 );
 
 		// Initial state mirrors the seeded surfaces object.
-		expect( checks[ 0 ].checked ).toBe( true );   // Desktop icon on
-		expect( checks[ 1 ].checked ).toBe( false );  // Taskbar icon off
+		expect( switches[ 0 ].getAttribute( 'aria-checked' ) ).toBe( 'true' );   // Desktop on
+		expect( switches[ 1 ].getAttribute( 'aria-checked' ) ).toBe( 'false' );  // Taskbar off
+		expect( card.querySelector( '.odd-card__surfaces-state' ).textContent ).toBe( 'Desktop' );
 
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
@@ -219,9 +220,10 @@ describe( 'ODD Shop · App surfaces', () => {
 		await gotoAppsDepartment( host );
 
 		const card = host.querySelector( '.odd-card--app[data-app-slug="demo-app"]' );
-		const checks = card.querySelectorAll( '.odd-card__surfaces input[type="checkbox"]' );
-		expect( checks[ 0 ].checked ).toBe( true );
-		expect( checks[ 1 ].checked ).toBe( true );
+		const switches = card.querySelectorAll( '.odd-card__surface-switch' );
+		expect( switches[ 0 ].getAttribute( 'aria-checked' ) ).toBe( 'true' );
+		expect( switches[ 1 ].getAttribute( 'aria-checked' ) ).toBe( 'true' );
+		expect( card.querySelector( '.odd-card__surfaces-state' ).textContent ).toBe( 'Both' );
 		expect( updateOsSettingsSpy ).not.toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();
@@ -232,12 +234,11 @@ describe( 'ODD Shop · App surfaces', () => {
 		await gotoAppsDepartment( host );
 
 		const card   = host.querySelector( '.odd-card--app[data-app-slug="demo-app"]' );
-		const labels = card.querySelectorAll( '.odd-card__surface' );
-		expect( labels.length ).toBe( 2 );
-		const taskbarBox = labels[ 1 ].querySelector( 'input[type="checkbox"]' );
-		taskbarBox.checked = true;
-		taskbarBox.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		const taskbar = card.querySelector( '.odd-card__surface-switch[data-surface-key="taskbar"]' );
+		expect( taskbar ).toBeTruthy();
+		taskbar.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
+		await tick( 0 );
 		await tick( 0 );
 		await tick( 0 );
 
@@ -249,7 +250,7 @@ describe( 'ODD Shop · App surfaces', () => {
 		} );
 
 		await tick( 0 );
-		expect( refreshMenuSpy ).not.toHaveBeenCalled();
+		expect( refreshMenuSpy ).toHaveBeenCalledTimes( 1 );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();
@@ -260,10 +261,10 @@ describe( 'ODD Shop · App surfaces', () => {
 		await gotoAppsDepartment( host );
 
 		const card       = host.querySelector( '.odd-card--app[data-app-slug="demo-app"]' );
-		const desktopBox = card.querySelector( '.odd-card__surfaces input[type="checkbox"]' );
-		desktopBox.checked = false;
-		desktopBox.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		const desktop = card.querySelector( '.odd-card__surface-switch[data-surface-key="desktop"]' );
+		desktop.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
+		await tick( 0 );
 		await tick( 0 );
 		await tick( 0 );
 
@@ -275,7 +276,7 @@ describe( 'ODD Shop · App surfaces', () => {
 		} );
 
 		await tick( 0 );
-		expect( refreshMenuSpy ).not.toHaveBeenCalled();
+		expect( refreshMenuSpy ).toHaveBeenCalledTimes( 1 );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();
@@ -288,10 +289,8 @@ describe( 'ODD Shop · App surfaces', () => {
 		await gotoAppsDepartment( host );
 
 		const card   = host.querySelector( '.odd-card--app[data-app-slug="demo-app"]' );
-		const labels = card.querySelectorAll( '.odd-card__surface' );
-		const taskbarBox = labels[ 1 ].querySelector( 'input[type="checkbox"]' );
-		taskbarBox.checked = true;
-		taskbarBox.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		const taskbar = card.querySelector( '.odd-card__surface-switch[data-surface-key="taskbar"]' );
+		taskbar.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 
 		await tick( 0 );
 		await tick( 0 );
@@ -310,19 +309,19 @@ describe( 'ODD Shop · App surfaces', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'disabled apps render their checkboxes as disabled controls', async () => {
+	it( 'disabled apps render their placement switches as disabled controls', async () => {
 		const { host, cleanup } = mountPanel();
 		await gotoAppsDepartment( host );
 
 		const card = host.querySelector( '.odd-card--app[data-app-slug="disabled-app"]' );
 		expect( card ).toBeTruthy();
 
-		const boxes = card.querySelectorAll( '.odd-card__surfaces input[type="checkbox"]' );
-		expect( boxes.length ).toBe( 2 );
-		boxes.forEach( ( b ) => expect( b.disabled ).toBe( true ) );
+		const switches = card.querySelectorAll( '.odd-card__surface-switch' );
+		expect( switches.length ).toBe( 2 );
+		switches.forEach( ( b ) => expect( b.disabled ).toBe( true ) );
 
 		// And a change event must be a no-op — no POST.
-		boxes[ 1 ].dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		switches[ 1 ].dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 		await tick( 0 );
 		const postCall = fetchMock.mock.calls.find( ( c ) => c[ 1 ] && c[ 1 ].method === 'POST' );
 		expect( postCall ).toBeFalsy();

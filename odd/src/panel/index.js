@@ -642,6 +642,14 @@
 			} );
 		}
 
+			function appSurfaceSummary( surfaces ) {
+				surfaces = normalizeAppSurfaces( surfaces );
+				if ( surfaces.desktop && surfaces.taskbar ) return __( 'Both' );
+				if ( surfaces.taskbar ) return __( 'Taskbar' );
+				if ( surfaces.desktop ) return __( 'Desktop' );
+				return __( 'Hidden' );
+			}
+
 		function removeCoreAppSurfaceState( slug ) {
 			removeCoreItemVisibilityPlacement( appSurfaceItemId( slug ), 'desktop.itemVisibility.app.remove' );
 		}
@@ -1327,6 +1335,131 @@
 		// / Enable / Delete) below the tile so the Apps department
 		// keeps its full manageability without double-rendering
 		// between an "Installed" gallery and a "Catalog" list.
+		function renderAppSurfaceControls( app, wrap, extraClass ) {
+			var rowSurfaces = readAppSurfaceState( app );
+			var isEnabled = app.enabled !== false;
+			var buttons = {};
+			var pending = false;
+			var surfacesRow = el( 'div', {
+				class: 'odd-card__surfaces' + ( extraClass ? ' ' + extraClass : '' ),
+				'aria-label': __( 'App launcher placement' ),
+			} );
+			if ( ! isEnabled ) {
+				surfacesRow.setAttribute( 'aria-disabled', 'true' );
+				surfacesRow.classList.add( 'is-disabled' );
+			}
+
+			var head = el( 'div', { class: 'odd-card__surfaces-head' } );
+			var title = el( 'div', { class: 'odd-card__surfaces-title' } );
+			title.textContent = __( 'Launcher' );
+			var stateText = el( 'div', { class: 'odd-card__surfaces-state' } );
+			head.appendChild( title );
+			head.appendChild( stateText );
+			surfacesRow.appendChild( head );
+
+			var grid = el( 'div', { class: 'odd-card__surface-grid' } );
+
+			function syncSwitches() {
+				stateText.textContent = appSurfaceSummary( rowSurfaces );
+				[ 'desktop', 'taskbar' ].forEach( function ( key ) {
+					var btn = buttons[ key ];
+					if ( ! btn ) return;
+					var on = !! rowSurfaces[ key ];
+					btn.classList.toggle( 'is-on', on );
+					btn.setAttribute( 'aria-checked', on ? 'true' : 'false' );
+					btn.disabled = pending || ! isEnabled;
+				} );
+			}
+
+			function setPending( nextPending ) {
+				pending = !! nextPending;
+				surfacesRow.classList.toggle( 'is-saving', pending );
+				syncSwitches();
+			}
+
+			function makeSurfaceSwitch( key, label, hint, glyph ) {
+				var btn = el( 'button', {
+					type: 'button',
+					class: 'odd-card__surface-switch',
+					role: 'switch',
+					'data-surface-key': key,
+					'aria-label': label + '. ' + hint,
+				} );
+				var icon = el( 'span', { class: 'odd-card__surface-icon', 'aria-hidden': 'true' } );
+				icon.textContent = glyph;
+				var copy = el( 'span', { class: 'odd-card__surface-copy' } );
+				var name = el( 'strong' );
+				name.textContent = label;
+				var tail = el( 'span', { class: 'odd-card__surface-hint' } );
+				tail.textContent = hint;
+				copy.appendChild( name );
+				copy.appendChild( tail );
+				btn.appendChild( icon );
+				btn.appendChild( copy );
+				btn.addEventListener( 'click', function () {
+					if ( ! isEnabled || pending ) return;
+					var previous = Object.assign( {}, rowSurfaces );
+					var payload = {};
+					payload[ key ] = ! rowSurfaces[ key ];
+					rowSurfaces = Object.assign( {}, rowSurfaces, payload );
+					setPending( true );
+					saveAppSurfaceState( app.slug, rowSurfaces, payload ).then( function ( res ) {
+						setPending( false );
+						if ( res && res.surfaces ) {
+							rowSurfaces = normalizeAppSurfaces( res.surfaces );
+							mirrorAppSurfacesInCfg( app.slug, rowSurfaces );
+							syncSwitches();
+							if ( res.native ) {
+								setAppsStatus( wrap, __( 'App placement updated.' ), 'ok' );
+							} else {
+								refreshAppsNativeSurfaces(
+									wrap,
+									'app.surfaces',
+									__( 'App placement updated.' ),
+									{
+										scheduleReload: true,
+										slug: app.slug,
+										type: 'app',
+										name: app.name || app.slug,
+									}
+								);
+							}
+							return;
+						}
+						rowSurfaces = previous;
+						syncSwitches();
+						setAppsStatus(
+							wrap,
+							__( 'Could not update app placement.' ),
+							'error'
+						);
+					} );
+				} );
+				buttons[ key ] = btn;
+				return btn;
+			}
+
+			grid.appendChild(
+				makeSurfaceSwitch(
+					'desktop',
+					__( 'Desktop' ),
+					__( 'Adds a shortcut to the wallpaper.' ),
+					'⌂'
+				)
+			);
+			grid.appendChild(
+				makeSurfaceSwitch(
+					'taskbar',
+					__( 'Taskbar' ),
+					__( 'Keeps a launcher in the dock.' ),
+					'⌞'
+				)
+			);
+			surfacesRow.appendChild( grid );
+			syncSwitches();
+			return surfacesRow;
+		}
+
 		function renderCatalogCard( row, wrap ) {
 			var normalised = normaliseShopRow( row, 'app' );
 			if ( ! normalised ) return el( 'div' );
@@ -1348,69 +1481,7 @@
 		function renderAppCardManagement( app, wrap ) {
 			var manage = el( 'div', { class: 'odd-shop__card-manage' } );
 
-			var rowSurfaces = readAppSurfaceState( app );
-			var surfacesRow = el( 'div', {
-				class: 'odd-card__surfaces odd-shop__card-surfaces',
-				'aria-label': __( 'App surfaces' ),
-			} );
-			if ( ! app.enabled ) {
-				surfacesRow.setAttribute( 'aria-disabled', 'true' );
-				surfacesRow.classList.add( 'is-disabled' );
-			}
-
-			function makeSurfaceToggle( key, label, hint ) {
-				var wrapLbl = el( 'label', { class: 'odd-card__surface' } );
-				var box     = el( 'input', { type: 'checkbox' } );
-				box.checked = !! rowSurfaces[ key ];
-				box.disabled = ! app.enabled;
-				var text = el( 'span', { class: 'odd-card__surface-text' } );
-				var name = el( 'strong' );
-				name.textContent = label;
-				var tail = el( 'span', { class: 'odd-card__surface-hint' } );
-				tail.textContent = hint;
-				text.appendChild( name );
-				text.appendChild( tail );
-				wrapLbl.appendChild( box );
-				wrapLbl.appendChild( text );
-				box.addEventListener( 'change', function () {
-					if ( ! app.enabled ) return;
-					var previous = Object.assign( {}, rowSurfaces );
-					var payload  = {};
-					payload[ key ] = !! box.checked;
-					rowSurfaces = Object.assign( {}, rowSurfaces, payload );
-					box.disabled = true;
-					saveAppSurfaceState( app.slug, rowSurfaces, payload ).then( function ( res ) {
-						box.disabled = false;
-						if ( res && res.surfaces ) {
-							rowSurfaces = normalizeAppSurfaces( res.surfaces );
-							mirrorAppSurfacesInCfg( app.slug, rowSurfaces );
-							if ( res.native ) {
-								setAppsStatus( wrap, __( 'App surfaces updated.' ), 'ok' );
-							} else {
-								refreshAppsNativeSurfaces(
-									wrap,
-									'app.surfaces',
-									__( 'App surfaces updated.' ),
-									{
-										scheduleReload: true,
-										slug: app.slug,
-										type: 'app',
-										name: app.name || app.slug,
-									}
-								);
-							}
-							return;
-						}
-						rowSurfaces = previous;
-						box.checked = !! rowSurfaces[ key ];
-						setAppsStatus( wrap, __( 'Could not update surfaces.' ), 'error' );
-					} );
-				} );
-				return wrapLbl;
-			}
-			surfacesRow.appendChild( makeSurfaceToggle( 'desktop', __( 'Desktop icon' ), __( 'Show a shortcut on the desktop.' ) ) );
-			surfacesRow.appendChild( makeSurfaceToggle( 'taskbar', __( 'Taskbar icon' ), __( 'Pin a launcher to the bottom taskbar.' ) ) );
-			manage.appendChild( surfacesRow );
+			manage.appendChild( renderAppSurfaceControls( app, wrap, 'odd-shop__card-surfaces' ) );
 
 			var actions = el( 'div', { class: 'odd-shop__card-manage-actions' } );
 			var toggle = el( 'button', { type: 'button', class: 'odd-apps-btn' } );
@@ -1715,90 +1786,7 @@
 			meta.appendChild( sub );
 			card.appendChild( meta );
 
-			// Surface toggles: Desktop icon + Taskbar icon. Desktop Mode's
-			// native itemVisibility setting owns the visible placement.
-			var rowSurfaces = readAppSurfaceState( app );
-			var surfacesRow = el( 'div', {
-				class: 'odd-card__surfaces',
-				'aria-label': __( 'App surfaces' ),
-			} );
-			if ( ! app.enabled ) {
-				surfacesRow.setAttribute( 'aria-disabled', 'true' );
-				surfacesRow.classList.add( 'is-disabled' );
-			}
-
-			function makeSurfaceToggle( key, label, hint ) {
-				var wrapLbl = el( 'label', { class: 'odd-card__surface' } );
-				var box     = el( 'input', { type: 'checkbox' } );
-				box.checked = !! rowSurfaces[ key ];
-				box.disabled = ! app.enabled;
-				var text = el( 'span', { class: 'odd-card__surface-text' } );
-				var name = el( 'strong' );
-				name.textContent = label;
-				var tail = el( 'span', { class: 'odd-card__surface-hint' } );
-				tail.textContent = hint;
-				text.appendChild( name );
-				text.appendChild( tail );
-				wrapLbl.appendChild( box );
-				wrapLbl.appendChild( text );
-
-				box.addEventListener( 'change', function () {
-					if ( ! app.enabled ) return;
-					var previous = Object.assign( {}, rowSurfaces );
-					var payload  = {};
-					payload[ key ] = !! box.checked;
-					rowSurfaces = Object.assign( {}, rowSurfaces, payload );
-					box.disabled = true;
-					saveAppSurfaceState( app.slug, rowSurfaces, payload ).then( function ( res ) {
-						box.disabled = false;
-						if ( res && res.surfaces ) {
-							rowSurfaces = normalizeAppSurfaces( res.surfaces );
-							mirrorAppSurfacesInCfg( app.slug, rowSurfaces );
-							if ( res.native ) {
-								setAppsStatus( wrap, __( 'App surfaces updated.' ), 'ok' );
-							} else {
-								refreshAppsNativeSurfaces(
-									wrap,
-									'app.surfaces',
-									__( 'App surfaces updated.' ),
-									{
-										scheduleReload: true,
-										slug: app.slug,
-										type: 'app',
-										name: app.name || app.slug,
-									}
-								);
-							}
-							return;
-						}
-						rowSurfaces = previous;
-						box.checked = !! rowSurfaces[ key ];
-						setAppsStatus(
-							wrap,
-							__( 'Could not update surfaces.' ),
-							'error'
-						);
-					} );
-				} );
-
-				return wrapLbl;
-			}
-
-			surfacesRow.appendChild(
-				makeSurfaceToggle(
-					'desktop',
-					__( 'Desktop icon' ),
-					__( 'Show a shortcut on the desktop.' )
-				)
-			);
-			surfacesRow.appendChild(
-				makeSurfaceToggle(
-					'taskbar',
-					__( 'Taskbar icon' ),
-					__( 'Pin a launcher to the bottom taskbar.' )
-				)
-			);
-			card.appendChild( surfacesRow );
+			card.appendChild( renderAppSurfaceControls( app, wrap, '' ) );
 
 			var actions = el( 'div', { class: 'odd-card__actions' } );
 
@@ -2216,6 +2204,7 @@
 				var reloadDelayMs = typeof reloadOpts.delayMs === 'number' ? reloadOpts.delayMs : ODD_RELOAD_DELAY_MS_DEFAULT;
 				var row          = data && data.row;
 				var appSurfaces  = null;
+				var appSurfaceWrite = null;
 				clearInstallFlow( type, slug );
 				if ( 'app' === type ) {
 					appSurfaces = ( row && row.surfaces ) || ( data && data.manifest && data.manifest.surfaces ) || null;
@@ -2233,7 +2222,7 @@
 				}
 				spliceInstalledRow( type, slug, row, data && data.manifest );
 				if ( 'app' === type ) {
-					writeCoreAppSurfaceState( slug, appSurfaces || { desktop: true, taskbar: false } );
+					appSurfaceWrite = writeCoreAppSurfaceState( slug, appSurfaces || { desktop: true, taskbar: false } );
 				}
 				if ( 'app' === type && data && data.serve_url ) {
 					syncWindowOddAfterAppInstall( slug, data.serve_url );
@@ -2255,7 +2244,9 @@
 					{ duration: 4200 }
 				);
 				if ( 'app' === type ) {
-					refreshDesktopModeMenu( 'app.install' );
+					Promise.resolve( appSurfaceWrite ).then( function () {
+						refreshDesktopModeMenu( 'app.install' );
+					} );
 				}
 			}
 			renderSection( DEPT_FOR_TYPE[ type ] || state.active, { keepQuery: true } );
@@ -3919,7 +3910,9 @@
 		function saveAppSurfaceState( slug, fullSurfaces, partialSurfaces ) {
 			return writeCoreAppSurfaceState( slug, fullSurfaces ).then( function ( coreSurfaces ) {
 				if ( coreSurfaces ) {
-					return { native: true, surfaces: coreSurfaces };
+					return refreshDesktopModeMenu( 'app.surfaces.native' ).then( function ( refreshed ) {
+						return { native: true, refreshed: refreshed, surfaces: coreSurfaces };
+					} );
 				}
 				return setAppSurfaces( slug, partialSurfaces ).then( function ( res ) {
 					if ( res && res.surfaces ) {

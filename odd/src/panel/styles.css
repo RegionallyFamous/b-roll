@@ -117,13 +117,23 @@
 .odd-panel .odd-card--app:hover{transform:none}
 .odd-panel .odd-card--app.is-disabled{opacity:.55}
 .odd-panel .odd-card__thumb--badge{font-size:24px;font-weight:700;color:#2271b1;background:linear-gradient(135deg,#e9f2fb,#fff)}
-.odd-panel .odd-card__surfaces{display:grid;gap:8px;margin:0;padding:0}
-.odd-panel .odd-card__surfaces.is-disabled{opacity:.58}
-.odd-panel .odd-card__surface{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:start;margin:0;color:#1d2327;cursor:pointer;line-height:1.35}
-.odd-panel .odd-card__surface input[type="checkbox"]{width:18px;height:18px;margin:1px 0 0;flex:0 0 auto}
-.odd-panel .odd-card__surface-text{display:flex;flex-direction:column;gap:1px;min-width:0}
-.odd-panel .odd-card__surface-text strong{font-size:12px;font-weight:700;line-height:1.25;color:#1d2327}
-.odd-panel .odd-card__surface-hint{display:block;font-size:11px;font-weight:400;line-height:1.35;color:#646970}
+.odd-panel .odd-card__surfaces{box-sizing:border-box;display:grid;gap:7px;margin:0;padding:8px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));color:var(--odd-shop-ink,#f7f4ff);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.odd-panel .odd-card__surfaces.is-disabled{opacity:.56}
+.odd-panel .odd-card__surfaces.is-saving{cursor:progress}
+.odd-panel .odd-card__surfaces-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.odd-panel .odd-card__surfaces-title{font:850 9.5px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-transform:uppercase;letter-spacing:.07em;color:rgba(247,244,255,.68)}
+.odd-panel .odd-card__surfaces-state{max-width:50%;padding:3px 7px;border-radius:999px;background:rgba(116,163,255,.14);color:#a9c8ff;font:850 9.5px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.odd-panel .odd-card__surface-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.odd-panel .odd-card__surface-switch{all:unset;box-sizing:border-box;display:grid;grid-template-columns:20px minmax(0,1fr);gap:6px;align-items:center;min-width:0;min-height:34px;padding:6px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(10,8,24,.46);color:#f7f4ff;cursor:pointer;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease}
+.odd-panel .odd-card__surface-switch:hover{border-color:rgba(116,163,255,.34);background:rgba(20,17,40,.68)}
+.odd-panel .odd-card__surface-switch:focus-visible{outline:3px solid var(--odd-shop-focus-ring,#69a7ff);outline-offset:2px;box-shadow:0 0 0 5px var(--odd-shop-focus-shadow,rgba(105,167,255,.22))}
+.odd-panel .odd-card__surface-switch.is-on{border-color:rgba(105,167,255,.62);background:linear-gradient(180deg,rgba(105,167,255,.24),rgba(139,96,255,.14));box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 10px 22px -18px rgba(105,167,255,.85)}
+.odd-panel .odd-card__surface-switch:disabled{cursor:default;opacity:.6}
+.odd-panel .odd-card__surface-icon{display:grid;place-items:center;width:20px;height:20px;border-radius:7px;background:rgba(255,255,255,.08);color:rgba(247,244,255,.7);font:800 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.odd-panel .odd-card__surface-switch.is-on .odd-card__surface-icon{background:rgba(105,167,255,.2);color:#cfe1ff}
+.odd-panel .odd-card__surface-copy{display:flex;min-width:0}
+.odd-panel .odd-card__surface-copy strong{font:850 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.odd-panel .odd-card__surface-hint{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .odd-panel .odd-card__actions{display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap}
 .odd-panel .odd-apps-subhead{margin:24px 0 10px;font-size:13px;font-weight:600;color:#1d2327;text-transform:uppercase;letter-spacing:.06em}
 .odd-panel .odd-apps-subhead--catalog{margin-top:32px}
@@ -771,12 +781,13 @@
 .odd-panel.odd-shop .odd-shop__quick-look:focus-visible{opacity:1;transform:none}
 .odd-panel.odd-shop .odd-shop__quick-look:hover{background:#fff;border-color:rgba(60,60,67,.28)}
 .odd-panel.odd-shop .odd-shop__quick-look:focus-visible{outline:3px solid var(--odd-shop-focus-ring,#005fcc);outline-offset:2px;box-shadow:0 0 0 5px var(--odd-shop-focus-shadow,rgba(0,95,204,.28))}
-.odd-panel .odd-shop__card-manage{display:flex;flex-direction:column;gap:12px;margin:12px 0 0;padding:12px;border:1px solid rgba(60,60,67,.12);border-radius:18px;background:rgba(255,255,255,.76);box-shadow:0 1px 2px rgba(12,10,29,.04)}
-.odd-panel .odd-shop__card-surfaces{gap:10px}
-.odd-panel .odd-shop__card-manage-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:2px}
-.odd-panel .odd-shop__card-manage-actions .odd-apps-btn{box-sizing:border-box;min-height:34px;padding:7px 13px;border-radius:10px;font-size:12px;font-weight:700}
-.odd-panel .odd-shop__card-manage .odd-card__surface{padding:8px 9px;border-radius:12px;background:#f5f5f7}
-.odd-panel .odd-shop__card-manage .odd-card__surface input[type="checkbox"]{accent-color:#0071e3}
+.odd-panel .odd-shop__card-manage{display:flex;flex-direction:column;gap:8px;margin:8px 0 0;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:linear-gradient(180deg,rgba(15,12,30,.92),rgba(10,8,24,.86));box-shadow:0 18px 34px -28px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.08)}
+.odd-panel .odd-shop__card-surfaces{gap:7px;padding:0;border:0;background:transparent;box-shadow:none}
+.odd-panel .odd-shop__card-manage-actions{display:grid;grid-template-columns:1fr auto;gap:6px;padding-top:0}
+.odd-panel .odd-shop__card-manage-actions .odd-apps-btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:7px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#f7f4ff;font:850 11px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-shadow:none}
+.odd-panel .odd-shop__card-manage-actions .odd-apps-btn:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24);color:#fff}
+.odd-panel .odd-shop__card-manage-actions .odd-apps-btn--danger{color:#ffb3bc;border-color:rgba(255,104,122,.44);background:rgba(255,104,122,.08)}
+.odd-panel .odd-shop__card-manage-actions .odd-apps-btn--danger:hover{background:rgba(255,104,122,.16);color:#ffdce1;border-color:rgba(255,104,122,.64)}
 .odd-panel .odd-shop__card-wrap.is-active{box-shadow:0 2px 4px rgba(12,10,29,.06),0 18px 36px -24px rgba(12,10,29,.48)}
 .odd-panel .odd-shop__card.is-active::after{content:none}
 .odd-panel .odd-shop__card-wrap.is-active .odd-shop__card-art{box-shadow:0 14px 30px -18px rgba(52,199,89,.55),0 2px 4px rgba(12,10,29,.12),inset 0 0 0 3px #34c759}
