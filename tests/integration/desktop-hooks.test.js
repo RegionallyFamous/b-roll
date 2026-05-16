@@ -372,6 +372,8 @@ describe( 'Desktop Mode hook bridge', () => {
 				ARRANGE_CUSTOM_ACTION:       'wp-desktop.arrange.custom-action',
 				COMMAND_ERROR:               'wp-desktop.command.error',
 				DESKTOP_ICON_CLICKED:        'wp-desktop.desktop-icon.clicked',
+				DESKTOP_ICON_MENU_ITEMS:     'wp-desktop.desktop-icon.menu-items',
+				DESKTOP_ICON_MENU_OPENED:    'wp-desktop.desktop-icon.menu.opened',
 			},
 		};
 		const iframeErrors = [];
@@ -402,12 +404,18 @@ describe( 'Desktop Mode hook bridge', () => {
 			{ id: 'dock:edge', x: 0, y: 0, width: 48, height: 600 },
 		] );
 		const openItems = window.wp.hooks.applyFilters( 'wp-desktop.open-command.items', [] );
+		const desktopIconItems = window.wp.hooks.applyFilters(
+			'wp-desktop.desktop-icon.menu-items',
+			[ { id: 'open', label: 'Open', onSelect: vi.fn() } ],
+			{ icon: { id: 'odd' }, open: vi.fn(), close: vi.fn(), event: new MouseEvent( 'contextmenu' ) },
+		);
 		window.wp.hooks.doAction( 'wp-desktop.arrange.custom-action', { id: 'oddout-shuffle-wallpaper' } );
 		window.wp.hooks.doAction( 'wp-desktop.command.error', {
 			slug: 'odd-panel',
 			error: new Error( 'nope' ),
 		} );
 		window.wp.hooks.doAction( 'wp-desktop.desktop-icon.clicked', { id: 'odd', target: 'window' } );
+		window.wp.hooks.doAction( 'wp-desktop.desktop-icon.menu.opened', { id: 'odd', target: 'window' } );
 
 		expect( window.__odd.desktopState.windows.focusedId ).toBe( 'odd-app-demo' );
 		expect( iframeErrors ).toHaveLength( 1 );
@@ -418,8 +426,68 @@ describe( 'Desktop Mode hook bridge', () => {
 		expect( surfaces ).toHaveLength( 1 );
 		expect( window.__odd.desktopState.surfaces.count ).toBe( 1 );
 		expect( openItems.map( ( item ) => item.id ) ).toContain( 'odd' );
+		expect( desktopIconItems.map( ( item ) => item.id ) ).toEqual( [
+			'oddout-open-shop',
+			'oddout-shuffle-wallpaper',
+			'oddout-tidy-widgets',
+			'oddout-reset-decorations',
+			'open',
+		] );
 		expect( window.__odd.api.shuffle ).toHaveBeenCalledTimes( 1 );
 		expect( iconClicks ).toEqual( [ { id: 'odd', target: 'window' } ] );
+		expect(
+			window.__odd.diagnostics.recent().some( ( row ) => row.message.includes( 'desktop-mode.desktop-icon.menu.opened' ) ),
+		).toBe( true );
+	} );
+
+	it( 'contributes ODD desktop icon menu actions through Desktop Mode hooks', () => {
+		const shuffle = vi.fn();
+		const tidyWidgets = vi.fn();
+		const openPanel = vi.fn();
+		const resetDecorations = vi.fn();
+		const defaultOpen = vi.fn();
+		window.wp.desktop = {
+			ready: ( cb ) => cb(),
+			HOOKS: {
+				DESKTOP_ICON_MENU_ITEMS: 'desktop-mode.desktop-icon.menu-items',
+			},
+		};
+		loadDesktopHooks();
+		window.__odd.api = {
+			shuffle,
+			tidyWidgets,
+			openPanel,
+			resetDecorations,
+		};
+
+		const otherIconItems = [];
+		expect(
+			window.wp.hooks.applyFilters(
+				'desktop-mode.desktop-icon.menu-items',
+				otherIconItems,
+				{ icon: { id: 'plugins' } },
+			),
+		).toBe( otherIconItems );
+
+		const items = window.wp.hooks.applyFilters(
+			'desktop-mode.desktop-icon.menu-items',
+			[ { id: 'open', label: 'Open', onSelect: defaultOpen } ],
+			{ icon: { id: 'odd' }, open: defaultOpen, close: vi.fn(), event: new MouseEvent( 'contextmenu' ) },
+		);
+		const itemById = Object.fromEntries( items.map( ( item ) => [ item.id, item ] ) );
+
+		expect( itemById[ 'oddout-open-shop' ].disabled ).toBe( false );
+		expect( itemById[ 'oddout-shuffle-wallpaper' ].disabled ).toBe( false );
+		itemById[ 'oddout-open-shop' ].onSelect( { open: defaultOpen } );
+		itemById[ 'oddout-shuffle-wallpaper' ].onSelect();
+		itemById[ 'oddout-tidy-widgets' ].onSelect();
+		itemById[ 'oddout-reset-decorations' ].onSelect();
+
+		expect( openPanel ).toHaveBeenCalledTimes( 1 );
+		expect( shuffle ).toHaveBeenCalledTimes( 1 );
+		expect( tidyWidgets ).toHaveBeenCalledTimes( 1 );
+		expect( resetDecorations ).toHaveBeenCalledTimes( 1 );
+		expect( defaultOpen ).not.toHaveBeenCalled();
 	} );
 
 	it( 'handles ODD custom Arrange menu actions', () => {

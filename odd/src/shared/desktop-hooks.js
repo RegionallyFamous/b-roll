@@ -1170,25 +1170,70 @@
 	function setupArrangeActions() {
 		addActionFor( 'ARRANGE_CUSTOM_ACTION', 'desktop-mode.arrange.custom-action', function ( payload ) {
 			var id = payload && payload.id ? String( payload.id ) : '';
-			var api = window.__odd && window.__odd.api;
-			if ( ! api ) {
-				record( 'warning', 'desktop-mode.arrange.custom-action', { id: id, ready: false } );
-				return;
-			}
-			var handled = true;
-			if ( id === 'oddout-shuffle-wallpaper' && typeof api.shuffle === 'function' ) {
-				api.shuffle();
-			} else if ( id === 'oddout-tidy-widgets' && typeof api.tidyWidgets === 'function' ) {
-				api.tidyWidgets();
-			} else if ( id === 'oddout-open-shop' && typeof api.openPanel === 'function' ) {
-				api.openPanel();
-			} else if ( id === 'oddout-reset-decorations' && typeof api.resetDecorations === 'function' ) {
-				api.resetDecorations();
-			} else {
-				handled = false;
-			}
-			record( handled ? 'info' : 'warning', 'desktop-mode.arrange.custom-action', { id: id, handled: handled } );
+			runOddSurfaceAction( id, 'desktop-mode.arrange.custom-action' );
 		} );
+	}
+
+	function setupDesktopIconMenuActions() {
+		addFilterFor( 'DESKTOP_ICON_MENU_ITEMS', 'desktop-mode.desktop-icon.menu-items', function ( items, context ) {
+			var icon = context && context.icon;
+			if ( ! icon || icon.id !== 'odd' ) {
+				return items;
+			}
+			var api = window.__odd && window.__odd.api || {};
+			var actions = [];
+			var next = Array.isArray( items ) ? items.slice() : [];
+			function actionItem( id, label, method, fallbackOpen ) {
+				var enabled = api && typeof api[ method ] === 'function';
+				actions.push( {
+					id:       id,
+					label:    label,
+					disabled: ! enabled && ! fallbackOpen,
+					onSelect: function ( ctx ) {
+						if ( runOddSurfaceAction( id, 'desktop-mode.desktop-icon.menu' ) ) {
+							return;
+						}
+						if ( fallbackOpen && ctx && typeof ctx.open === 'function' ) {
+							ctx.open();
+						}
+					},
+				} );
+			}
+			actionItem( 'oddout-open-shop', 'Open ODD Shop', 'openPanel', true );
+			actionItem( 'oddout-shuffle-wallpaper', 'Shuffle wallpaper', 'shuffle', false );
+			actionItem( 'oddout-tidy-widgets', 'Tidy widgets', 'tidyWidgets', false );
+			actionItem( 'oddout-reset-decorations', 'Reset decorations', 'resetDecorations', false );
+			return actions.concat( next );
+		} );
+		addActionFor( 'DESKTOP_ICON_MENU_OPENED', 'desktop-mode.desktop-icon.menu.opened', function ( payload ) {
+			if ( payload && payload.id === 'odd' ) {
+				record( 'info', 'desktop-mode.desktop-icon.menu.opened', payload );
+			}
+		} );
+	}
+
+	function runOddSurfaceAction( id, source ) {
+		id = String( id || '' );
+		source = source || 'odd.surface-action';
+		var api = window.__odd && window.__odd.api;
+		if ( ! api ) {
+			record( 'warning', source, { id: id, ready: false } );
+			return false;
+		}
+		var handled = true;
+		if ( id === 'oddout-shuffle-wallpaper' && typeof api.shuffle === 'function' ) {
+			api.shuffle();
+		} else if ( id === 'oddout-tidy-widgets' && typeof api.tidyWidgets === 'function' ) {
+			api.tidyWidgets();
+		} else if ( id === 'oddout-open-shop' && typeof api.openPanel === 'function' ) {
+			api.openPanel();
+		} else if ( id === 'oddout-reset-decorations' && typeof api.resetDecorations === 'function' ) {
+			api.resetDecorations();
+		} else {
+			handled = false;
+		}
+		record( handled ? 'info' : 'warning', source, { id: id, handled: handled } );
+		return handled;
 	}
 
 	function renderSettingsTab( body ) {
@@ -1315,6 +1360,7 @@
 	setupActivityDiagnostics();
 	setupSettingsTab();
 	setupArrangeActions();
+	setupDesktopIconMenuActions();
 	setupTitlebarButton();
 	setupDevtoolsDiagnostics();
 	setupBroadSurfaceDiagnostics();

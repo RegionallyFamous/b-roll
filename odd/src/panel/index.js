@@ -3314,7 +3314,7 @@
 			var pinLbl = el( 'strong' );
 			pinLbl.textContent = __( 'Pin ODD to desktop wallpaper' );
 			var pinHint = el( 'span' );
-			pinHint.textContent = __( 'Keep the ODD Shop shortcut in Desktop Mode\'s pinned row with My WordPress (Desktop Mode files layer).' );
+			pinHint.textContent = __( 'Keep the ODD Shop shortcut near the top of Desktop Mode\'s icon grid.' );
 			pinText.appendChild( pinLbl );
 			pinText.appendChild( pinHint );
 			pinRow.appendChild( pinBox );

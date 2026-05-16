@@ -86,7 +86,10 @@ add_action(
 				'icon'     => $icon_url,
 				'window'   => 'odd',
 				'position' => oddout_shop_desktop_pinned_position( $uid ),
-				'pinned'   => oddout_shop_desktop_pinned( $uid ),
+				// Desktop Mode `pinned` means a system-owned shortcut that
+				// skips user context menus. ODD's preference only controls
+				// whether the shop shortcut is promoted near the top.
+				'pinned'   => false,
 			)
 		);
 	}

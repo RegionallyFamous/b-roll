@@ -208,6 +208,14 @@ describe( 'Desktop Mode integration source contracts', () => {
 		expect( src ).toContain( 'requestMaximize' );
 	} );
 
+	it( 'keeps the ODD Shop icon eligible for Desktop Mode context menus', () => {
+		const src = readRel( 'odd/includes/native-window.php' );
+
+		expect( src ).toMatch( /desktop_mode_register_icon\(\s*'odd'/ );
+		expect( src ).toMatch( /'pinned'\s*=>\s*false/ );
+		expect( src ).toContain( 'oddout_shop_desktop_pinned_position' );
+	} );
+
 	it( 'keeps Shop chrome theme-aware instead of hard-coding the host accent', () => {
 		const css = readRel( 'odd/src/panel/styles.css' );
 
