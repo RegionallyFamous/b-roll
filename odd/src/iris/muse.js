@@ -35,7 +35,6 @@
 		},
 		iconChange:   [ 'New costumes for the icons.', 'The dock is dressed.', 'Fresh uniforms.' ],
 		shuffle:      [ 'Consulting the dice.', 'Fate engine warm.', 'I pick for you.' ],
-		shellError:   [ 'Something blinked.', 'A small thing broke politely.', 'Brief static.' ],
 		idle:         [ 'The desktop dreams of rectangles.', 'No hands. Just light.', 'Unattended and unbothered.' ],
 		festival:     [ 'Festival.', 'Someone knew the combination.', 'The old code still works.' ],
 		ritual7:      [ 'Seven. You saw me.' ],

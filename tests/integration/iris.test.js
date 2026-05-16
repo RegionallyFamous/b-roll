@@ -8,7 +8,7 @@
  * for the primary buckets, and quiet mode suppresses say() while
  * leaving motion intact.
  */
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -132,5 +132,34 @@ describe( 'iris — motion primitives', () => {
 		window.__odd.iris.motion.glance( { x: 0, y: 0 } );
 
 		expect( called ).toEqual( [ 'glance' ] );
+	} );
+} );
+
+describe( 'iris — shell error reactivity', () => {
+	beforeEach( () => {
+		loadFoundation();
+		loadIris( [ 'muse.js', 'motion.js', 'reactivity.js' ] );
+	} );
+
+	it( 'logs shell problems instead of showing Iris copy', () => {
+		const log = vi.spyOn( window.console, 'log' ).mockImplementation( () => {} );
+		const toast = vi.fn();
+		const said = [];
+		const motions = [];
+		window.__odd.api = { toast };
+		window.__odd.events.on( 'odd.iris-said', ( payload ) => said.push( payload ) );
+		window.__odd.events.on( 'odd.motion.glitch', ( payload ) => motions.push( payload ) );
+
+		window.wp.hooks.doAction( 'desktop-mode.shell.error', { message: 'desktop.min.js 404' } );
+
+		expect( log ).toHaveBeenCalledWith( '[ODD] Shell issue', {
+			source:  'desktop-mode.shell.error',
+			payload: { message: 'desktop.min.js 404' },
+		} );
+		expect( toast ).not.toHaveBeenCalled();
+		expect( said ).toEqual( [] );
+		expect( motions ).toHaveLength( 1 );
+
+		log.mockRestore();
 	} );
 } );

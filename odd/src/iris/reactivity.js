@@ -42,6 +42,11 @@
 		var iris = window.__odd.iris;
 		if ( iris && typeof iris.say === 'function' ) iris.say( bucket );
 	}
+	function logShellIssue( source, payload ) {
+		var c = window.console;
+		if ( ! c || typeof c.log !== 'function' ) return;
+		c.log( '[ODD] Shell issue', { source: source, payload: payload || {} } );
+	}
 
 	function centerOf( bounds ) {
 		if ( ! bounds || typeof bounds !== 'object' ) return null;
@@ -77,11 +82,11 @@
 	on( 'desktop-mode.shell.error', function ( payload ) {
 		emit( 'odd.shell-error', payload || {} );
 		motion( 'glitch', { ms: 220 } );
-		throttleShellErr( function () { say( 'shellError' ); } );
+		throttleShellErr( function () { logShellIssue( 'desktop-mode.shell.error', payload ); } );
 	} );
-	onOdd( 'odd.iframe-error', function () {
+	onOdd( 'odd.iframe-error', function ( payload ) {
 		motion( 'glitch', { ms: 220 } );
-		throttleShellErr( function () { say( 'shellError' ); } );
+		throttleShellErr( function () { logShellIssue( 'odd.iframe-error', payload ); } );
 	} );
 	on( 'desktop-mode.dock.item-appended', function ( payload ) {
 		var c = centerOf( payload && payload.bounds );
