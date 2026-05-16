@@ -205,7 +205,7 @@ async function installFirstCatalogSceneIfNeeded( pane: ReturnType<Page['locator'
 		return;
 	}
 	await installBtn.click();
-	await expect( pane.locator( '.odd-shop__card-btn', { hasText: /^Preview$/ } ).first() ).toBeVisible( {
+	await expect( catalogTile.locator( '.odd-shop__card-btn', { hasText: /^(Apply|Active)$/ } ).first() ).toBeVisible( {
 		timeout: 120_000,
 	} );
 }
@@ -242,9 +242,9 @@ export async function exerciseOddShopInteractions( page: Page ) {
 	const pane = shop.getByTestId( 'odd-shop-content' );
 	await installFirstCatalogSceneIfNeeded( pane );
 
-	const previewBtn = pane.locator( '.odd-shop__card-btn', { hasText: /^Preview$/ } ).first();
-	await expect( previewBtn ).toBeVisible( { timeout: 20_000 } );
-	await previewBtn.click();
+	const sceneCard = pane.locator( '[data-odd-shop-card][data-odd-card-type="scene"] .odd-shop__card.is-installed' ).first();
+	await expect( sceneCard ).toBeVisible( { timeout: 20_000 } );
+	await sceneCard.click();
 
 	await expect( shop.getByTestId( 'odd-preview-cancel' ) ).toBeVisible( { timeout: 15_000 } );
 	await expect( shop.getByTestId( 'odd-preview-commit' ) ).toBeVisible();

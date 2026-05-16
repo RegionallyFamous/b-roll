@@ -56,7 +56,7 @@ REGISTRY = CATALOG_DIR / "registry.json"
 REGISTRY_SIG = CATALOG_DIR / "registry.json.sig"
 SCHEMA = CATALOG_DIR / "registry.schema.json"
 FALLBACK_REGISTRY = REPO_ROOT / "odd" / "data" / "fallback-registry.json"
-DEFAULT_CATALOG_PUBLIC_KEY = "BPO20QYLeo+NK796j8vse4zWx0jKz/UhlU+3fWrmW64="
+DEFAULT_CATALOG_PUBLIC_KEY = "2aIvGPQMF//a9ciDvQ8GST7Q8QhfVsM6h1HB3/Td5Gk="
 
 # If a bundle's icon_url / download_url starts with this prefix, strip
 # it to resolve against the on-disk catalog.

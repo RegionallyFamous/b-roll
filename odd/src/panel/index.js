@@ -1264,6 +1264,168 @@
 			} );
 		}
 
+		function catalogInstallErrorCode( res ) {
+			var data = ( res && res.data ) || {};
+			return data.code || ( data.data && data.data.code ) || '';
+		}
+
+		function catalogDownloadUrl( row ) {
+			var raw = row && row.raw && typeof row.raw === 'object' ? row.raw : {};
+			var url = ( row && ( row.downloadUrl || row.download_url ) ) || raw.download_url || raw.downloadUrl || '';
+			return typeof url === 'string' ? url : '';
+		}
+
+		function catalogExpectedSha( row ) {
+			var raw = row && row.raw && typeof row.raw === 'object' ? row.raw : {};
+			var sha = ( row && row.sha256 ) || raw.sha256 || '';
+			sha = typeof sha === 'string' ? sha.toLowerCase() : '';
+			return /^[a-f0-9]{64}$/.test( sha ) ? sha : '';
+		}
+
+		function catalogExpectedSize( row ) {
+			var raw = row && row.raw && typeof row.raw === 'object' ? row.raw : {};
+			var size = Number( ( row && row.size ) || raw.size || 0 );
+			return Number.isFinite( size ) && size > 0 ? size : 0;
+		}
+
+		function catalogBundleFilename( row, url ) {
+			var path = '';
+			try { path = new URL( url, window.location.href ).pathname || ''; } catch ( e ) {}
+			var fromUrl = path ? path.split( '/' ).pop() : '';
+			if ( fromUrl && /\.wp$/i.test( fromUrl ) ) return fromUrl;
+			return ( ( row && row.slug ) || 'catalog-bundle' ) + '.wp';
+		}
+
+		function browserCatalogError( code, message, status ) {
+			return {
+				ok: false,
+				status: status || 0,
+				data: {
+					code: code,
+					message: message,
+					data: { status: status || 0 },
+				},
+			};
+		}
+
+		function shouldBrowserInstallCatalogBundle( row, res, opts ) {
+			opts = opts || {};
+			if ( opts.allowUpdate ) return false;
+			if ( ! row || ! row.slug || ! catalogDownloadUrl( row ) ) return false;
+			var code = catalogInstallErrorCode( res );
+			var dataStatus = res && res.data && res.data.data && res.data.data.status;
+			var status = ( res && res.status ) || dataStatus || 0;
+			var retryable = {
+				download_failed: true,
+				not_a_zip:       true,
+				size_mismatch:   true,
+				sha256_mismatch: true,
+			};
+			return Number( status ) === 502 || !! retryable[ code ];
+		}
+
+		function sha256HexForBlob( blob ) {
+			if (
+				! window.crypto ||
+				! window.crypto.subtle ||
+				typeof window.crypto.subtle.digest !== 'function' ||
+				! blob ||
+				typeof blob.arrayBuffer !== 'function'
+			) {
+				return Promise.reject( browserCatalogError( 'browser_sha_unavailable', 'Could not verify the catalog bundle in this browser.' ) );
+			}
+			return blob.arrayBuffer().then( function ( buffer ) {
+				return window.crypto.subtle.digest( 'SHA-256', buffer );
+			} ).then( function ( digest ) {
+				var bytes = new Uint8Array( digest );
+				var out = '';
+				for ( var i = 0; i < bytes.length; i++ ) {
+					out += bytes[ i ].toString( 16 ).padStart( 2, '0' );
+				}
+				return out;
+			} );
+		}
+
+		function verifyCatalogBundleBlob( row, blob ) {
+			var expectedSize = catalogExpectedSize( row );
+			if ( expectedSize && blob && typeof blob.size === 'number' && blob.size !== expectedSize ) {
+				return Promise.reject( browserCatalogError(
+					'browser_size_mismatch',
+					'Catalog bundle size mismatch. Try refreshing the catalog and installing again.',
+					502
+				) );
+			}
+			var expectedSha = catalogExpectedSha( row );
+			if ( ! expectedSha ) return Promise.resolve();
+			return sha256HexForBlob( blob ).then( function ( actualSha ) {
+				if ( actualSha !== expectedSha ) {
+					return Promise.reject( browserCatalogError(
+						'browser_sha256_mismatch',
+						'Catalog bundle sha256 mismatch. Try refreshing the catalog and installing again.',
+						502
+					) );
+				}
+			} );
+		}
+
+		function fetchCatalogBundleInBrowser( row ) {
+			var url = catalogDownloadUrl( row );
+			var parsed;
+			try {
+				parsed = new URL( url, window.location.href );
+			} catch ( e ) {
+				return Promise.reject( browserCatalogError( 'invalid_download_url', 'Catalog entry has an invalid download URL.' ) );
+			}
+			if ( parsed.protocol !== 'https:' && parsed.origin !== window.location.origin ) {
+				return Promise.reject( browserCatalogError( 'insecure_download', 'Catalog downloads must use HTTPS.' ) );
+			}
+			return fetch( parsed.href, {
+				credentials: parsed.origin === window.location.origin ? 'same-origin' : 'omit',
+			} ).then( function ( r ) {
+				if ( ! r.ok ) {
+					return Promise.reject( browserCatalogError( 'browser_download_failed', 'Could not download bundle in the browser. HTTP ' + r.status + '.', r.status ) );
+				}
+				if ( typeof r.blob !== 'function' ) {
+					return Promise.reject( browserCatalogError( 'browser_download_failed', 'Browser download did not return a bundle file.' ) );
+				}
+				return r.blob().then( function ( blob ) {
+					return verifyCatalogBundleBlob( row, blob ).then( function () {
+						return {
+							blob: blob,
+							url:  parsed.href,
+						};
+					} );
+				} );
+			} );
+		}
+
+		function installCatalogBundleViaBrowser( row ) {
+			diagCount( 'catalog.install.browserFallback' );
+			toast( 'Server download hiccuped. Retrying from your browser...' );
+			return fetchCatalogBundleInBrowser( row ).then( function ( bundle ) {
+				return uploadBundleBlob( bundle.blob, catalogBundleFilename( row, bundle.url ) );
+			} ).then( function ( res ) {
+				if ( res && res.ok && res.data && res.data.installed ) {
+					return res.data;
+				}
+				throw res;
+			} );
+		}
+
+		function installCatalogRowData( row, opts ) {
+			row = row || {};
+			opts = opts || {};
+			return installFromCatalog( row.slug, opts ).then( function ( res ) {
+				if ( res && res.ok && res.data && res.data.installed ) {
+					return res.data;
+				}
+				if ( shouldBrowserInstallCatalogBundle( row, res, opts ) ) {
+					return installCatalogBundleViaBrowser( row );
+				}
+				throw res;
+			} );
+		}
+
 		function renderAppsGallery( gallery, apps, wrap ) {
 			gallery.innerHTML = '';
 			if ( ! apps || ! apps.length ) {
@@ -1966,9 +2128,9 @@
 			}, 80 );
 		}
 
-		function uploadBundle( file ) {
+		function uploadBundleBlob( blob, filename ) {
 			var fd = new FormData();
-			fd.append( 'file', file, file.name );
+			fd.append( 'file', blob, filename || ( blob && blob.name ) || 'bundle.wp' );
 			return fetch( bundlesUploadUrl(), {
 				method:      'POST',
 				credentials: 'same-origin',
@@ -1983,6 +2145,10 @@
 			} ).catch( function () {
 				return { ok: false, status: 0, data: null };
 			} );
+		}
+
+		function uploadBundle( file ) {
+			return uploadBundleBlob( file, file && file.name );
 		}
 
 		function isWorkspaceFile( file ) {
@@ -2167,11 +2333,15 @@
 		}
 
 		function hasCatalogWorkspaceContent( type, slug ) {
+			return !! catalogWorkspaceRow( type, slug );
+		}
+
+		function catalogWorkspaceRow( type, slug ) {
 			var rows = catalogRowsFor( type );
 			for ( var i = 0; i < rows.length; i++ ) {
-				if ( rows[ i ] && rows[ i ].slug === slug ) return true;
+				if ( rows[ i ] && rows[ i ].slug === slug ) return rows[ i ];
 			}
-			return false;
+			return null;
 		}
 
 		function saveWorkspacePrefs( patch ) {
@@ -2282,7 +2452,7 @@
 			missing.forEach( function ( item ) {
 				chain = chain.then( function () {
 					setWorkspaceStatus( statusNode, 'Installing ' + workspaceTypeLabel( item.type ) + ' "' + item.slug + '"...', false );
-					return installCatalogSlug( item.slug ).then( function ( data ) {
+					return installCatalogRowData( catalogWorkspaceRow( item.type, item.slug ) || { slug: item.slug } ).then( function ( data ) {
 						installed++;
 						handleInstallSuccess( data );
 					} );
@@ -2573,37 +2743,6 @@
 			return renderShopCard( row );
 		}
 
-		/**
-		 * POST to /odd/v1/bundles/install-from-catalog and funnel
-		 * through the same success / failure handlers that the file-
-		 * upload path uses, so the UX (highlight, toast, soft reload
-		 * for icon sets) is identical regardless of install source.
-		 */
-		function installCatalogSlug( slug ) {
-			var url = ( state.cfg.bundleInstallUrl || '' ) ||
-				( ( state.cfg.restUrl || '' ).replace( /\/prefs\/?$/, '' ) + '/bundles/install-from-catalog' );
-			return fetch( url, {
-				method: 'POST',
-				credentials: 'same-origin',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce':   state.cfg.restNonce || '',
-				},
-				body: JSON.stringify( { slug: slug } ),
-			} ).then( function ( r ) {
-				return r.json().then( function ( data ) {
-					return { ok: r.ok, status: r.status, data: data };
-				} ).catch( function () {
-					return { ok: false, status: r.status, message: 'HTTP ' + r.status };
-				} );
-			} ).then( function ( res ) {
-				if ( res.ok && res.data && res.data.installed ) {
-					return res.data;
-				}
-				throw res;
-			} );
-		}
-
 		function installFromBundleCatalog( row, btn ) {
 			playShopSound( 'install' );
 			if ( btn ) {
@@ -2611,7 +2750,7 @@
 				btn.textContent = 'Installing…';
 			}
 			toast( 'Installing ' + ( row.name || row.slug ) + '…' );
-			installCatalogSlug( row.slug ).then( function ( data ) {
+			installCatalogRowData( row ).then( function ( data ) {
 				handleInstallSuccess( data );
 			} ).catch( function ( err ) {
 				if ( err && err.data ) {
@@ -5949,6 +6088,9 @@
 				raw.card_url || raw.cardUrl || '',
 				raw.icon_url || raw.icon || '',
 				raw.previewUrl || raw.preview_url || raw.preview || '',
+				raw.download_url || raw.downloadUrl || '',
+				raw.sha256 || '',
+				raw.size || '',
 			].join( '|' );
 			if ( shopRowCache[ cacheKey ] ) {
 				diagCount( 'panel.normalise.cacheHit' );
@@ -5982,6 +6124,9 @@
 				wallpaperUrl:  normaliseCatalogAssetUrl( raw.wallpaperUrl || raw.wallpaper_url || raw.wallpaper || '', type, slug ),
 				iconUrl:       normaliseCatalogAssetUrl( raw.icon_url || raw.icon || '', type, slug ),
 				cardUrl:       normaliseCatalogAssetUrl( raw.card_url || raw.cardUrl || '', type, slug ),
+				downloadUrl:   raw.download_url || raw.downloadUrl || '',
+				sha256:        raw.sha256 || '',
+				size:          raw.size || 0,
 				icons:         raw.icons && typeof raw.icons === 'object' ? raw.icons : null,
 				cursors:       raw.cursors && typeof raw.cursors === 'object' ? raw.cursors : null,
 				preview:       raw.preview || '',
@@ -6210,13 +6355,11 @@
 						if ( btn ) { btn.disabled = true; btn.textContent = 'Installing…'; }
 						playShopSound( 'install' );
 						toast( 'Installing ' + row.name + '…' );
-						installFromCatalog( row.slug ).then( function ( res ) {
-							if ( res && res.ok && res.data && res.data.installed ) {
-								handleInstallSuccess( res.data );
-								return;
-							}
+						installCatalogRowData( row ).then( function ( data ) {
+							handleInstallSuccess( data );
+						} ).catch( function ( err ) {
 							if ( btn ) { btn.disabled = false; btn.textContent = originalLabel; }
-							onInstallFailure( res );
+							onInstallFailure( err );
 						} );
 					} else {
 						installFromBundleCatalog( row.raw || row, btn );

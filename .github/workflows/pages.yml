@@ -73,7 +73,7 @@ jobs:
         env:
           EXPECTED_REGISTRY_SHA256: ${{ steps.catalog.outputs.registry_sha256 }}
           EXPECTED_REGISTRY_SIGNATURE_SHA256: ${{ steps.catalog.outputs.registry_signature_sha256 }}
-          ODD_CATALOG_PUBLIC_KEY: 'BPO20QYLeo+NK796j8vse4zWx0jKz/UhlU+3fWrmW64='
+          ODD_CATALOG_PUBLIC_KEY: '2aIvGPQMF//a9ciDvQ8GST7Q8QhfVsM6h1HB3/Td5Gk='
         run: |
           python3 - <<'PY'
           import base64

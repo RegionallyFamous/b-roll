@@ -63,7 +63,7 @@ if ( ! defined( 'ODDOUT_CATALOG_ROLLBACK_LIMIT' ) ) {
 	define( 'ODDOUT_CATALOG_ROLLBACK_LIMIT', 3 );
 }
 if ( ! defined( 'ODDOUT_CATALOG_PUBLIC_KEY' ) ) {
-	define( 'ODDOUT_CATALOG_PUBLIC_KEY', 'BPO20QYLeo+NK796j8vse4zWx0jKz/UhlU+3fWrmW64=' );
+	define( 'ODDOUT_CATALOG_PUBLIC_KEY', '2aIvGPQMF//a9ciDvQ8GST7Q8QhfVsM6h1HB3/Td5Gk=' );
 }
 if ( ! defined( 'ODDOUT_CATALOG_API_VERSION' ) ) {
 	define( 'ODDOUT_CATALOG_API_VERSION', '2.3.0' );
@@ -1048,6 +1048,7 @@ function oddout_catalog_load( $force = false ) {
 	if ( ! $force && null !== $runtime ) {
 		return $runtime;
 	}
+	$failure_meta = null;
 
 	if ( ! $force ) {
 		$fresh = get_transient( ODDOUT_CATALOG_TRANSIENT );
@@ -1116,6 +1117,7 @@ function oddout_catalog_load( $force = false ) {
 		}
 	} else {
 		oddout_catalog_record_failure( $registry, $url );
+		$failure_meta = oddout_catalog_meta();
 	}
 
 	// Remote failed. Fall back to the stale mirror so the Shop can
@@ -1126,13 +1128,23 @@ function oddout_catalog_load( $force = false ) {
 		&& isset( $stale['bundles'] )
 		&& ( ! empty( $stale['bundles'] ) || oddout_catalog_should_accept_empty_remote( $stale, $stale ) )
 	) {
-		$runtime = oddout_catalog_effective_registry( $stale );
+		$runtime           = oddout_catalog_effective_registry( $stale );
+		$failure_signature = is_array( $failure_meta )
+			? array(
+				'signature_status' => $failure_meta['signature_status'],
+				'signature_key'    => $failure_meta['signature_key'],
+				'signature_url'    => $failure_meta['signature_url'],
+			)
+			: array();
 		oddout_catalog_record_source(
 			'stale_option',
 			$stale,
-			array(
-				'raw_bundle_count'       => oddout_catalog_registry_bundle_count( $stale ),
-				'effective_bundle_count' => oddout_catalog_registry_bundle_count( $runtime ),
+			array_merge(
+				array(
+					'raw_bundle_count'       => oddout_catalog_registry_bundle_count( $stale ),
+					'effective_bundle_count' => oddout_catalog_registry_bundle_count( $runtime ),
+				),
+				$failure_signature
 			)
 		);
 		return $runtime;
@@ -1146,13 +1158,23 @@ function oddout_catalog_load( $force = false ) {
 	if ( function_exists( 'oddout_catalog_fallback_load' ) ) {
 		$fallback = oddout_catalog_fallback_load();
 		if ( ! empty( $fallback['bundles'] ) ) {
-			$runtime = oddout_catalog_effective_registry( $fallback );
+			$runtime           = oddout_catalog_effective_registry( $fallback );
+			$failure_signature = is_array( $failure_meta )
+				? array(
+					'signature_status' => $failure_meta['signature_status'],
+					'signature_key'    => $failure_meta['signature_key'],
+					'signature_url'    => $failure_meta['signature_url'],
+				)
+				: array();
 			oddout_catalog_record_source(
 				'fallback_file',
 				$fallback,
-				array(
-					'raw_bundle_count'       => oddout_catalog_registry_bundle_count( $fallback ),
-					'effective_bundle_count' => oddout_catalog_registry_bundle_count( $runtime ),
+				array_merge(
+					array(
+						'raw_bundle_count'       => oddout_catalog_registry_bundle_count( $fallback ),
+						'effective_bundle_count' => oddout_catalog_registry_bundle_count( $runtime ),
+					),
+					$failure_signature
 				)
 			);
 			return $runtime;
