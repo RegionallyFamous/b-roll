@@ -24,3 +24,36 @@
 	line-height: 1.45;
 	color: inherit;
 }
+
+wpd-context-menu.odd-dock-context-menu:not(:defined) {
+	position: fixed;
+	z-index: 100000;
+	display: grid;
+	gap: 3px;
+	min-width: 210px;
+	padding: 6px;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-radius: 10px;
+	background: rgba(24, 24, 31, 0.96);
+	box-shadow: 0 18px 46px rgba(0, 0, 0, 0.34);
+	color: #f7f7fb;
+	font: 500 13px/1.25 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+wpd-context-menu.odd-dock-context-menu:not(:defined) wpd-context-menu-option {
+	display: block;
+	padding: 8px 10px;
+	border-radius: 7px;
+	cursor: default;
+}
+
+wpd-context-menu.odd-dock-context-menu:not(:defined) wpd-context-menu-option:hover,
+wpd-context-menu.odd-dock-context-menu:not(:defined) wpd-context-menu-option:focus {
+	background: rgba(106, 92, 255, 0.28);
+	outline: none;
+}
+
+wpd-context-menu.odd-dock-context-menu:not(:defined) wpd-context-menu-option[disabled] {
+	color: rgba(247, 247, 251, 0.48);
+	pointer-events: none;
+}

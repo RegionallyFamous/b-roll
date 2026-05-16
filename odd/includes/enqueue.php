@@ -2,6 +2,8 @@
 /**
  * ODD — script + style enqueues.
  *
+ * @package ODD
+ *
  * All handles share a single localized `window.oddout` config blob.
  *
  * Foundation modules — no user-visible behavior, but every feature
@@ -279,7 +281,7 @@ add_action(
 			wp_enqueue_script(
 				'odd-dock-rail',
 				ODDOUT_URL . '/src/shell/odd-dock-rail.js',
-				array( 'desktop-mode', 'wp-i18n' ),
+				array( 'desktop-mode', 'odd-desktop-hooks', 'wp-i18n' ),
 				$asset_version( 'src/shell/odd-dock-rail.js' ),
 				true
 			);

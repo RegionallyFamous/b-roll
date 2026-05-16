@@ -469,6 +469,77 @@
 		} catch ( _ ) {}
 	}
 
+	function oddDockMenuBridge() {
+		return window.__odd && window.__odd.desktopHooks || null;
+	}
+
+	function itemId( item ) {
+		if ( ! item || typeof item !== 'object' ) {
+			return '';
+		}
+		return String( item.id || item.windowId || item.baseId || item.slug || '' );
+	}
+
+	function isOddDockItem( item ) {
+		var id = itemId( item );
+		if ( id === 'odd' || id.indexOf( 'odd-app-' ) === 0 || id.indexOf( 'odd/' ) === 0 ) {
+			return true;
+		}
+		return !! ( item && typeof item.title === 'string' && item.title.indexOf( 'ODD' ) === 0 );
+	}
+
+	function keyboardMenuPoint( tile ) {
+		if ( ! tile || typeof tile.getBoundingClientRect !== 'function' ) {
+			return { x: 16, y: 16 };
+		}
+		var rect = tile.getBoundingClientRect();
+		return {
+			x: rect.left + Math.max( 12, Math.min( rect.width - 8, 28 ) ),
+			y: rect.top + Math.max( 12, Math.min( rect.height - 8, 28 ) ),
+		};
+	}
+
+	function openOddDockMenu( eventOrPoint, item ) {
+		if ( ! isOddDockItem( item ) ) {
+			return false;
+		}
+		var bridge = oddDockMenuBridge();
+		if ( ! bridge || typeof bridge.openDockTileMenu !== 'function' ) {
+			return false;
+		}
+		var point = eventOrPoint || {};
+		bridge.openDockTileMenu( {
+			x:      point.clientX != null ? point.clientX : point.x,
+			y:      point.clientY != null ? point.clientY : point.y,
+			item:   item,
+			source: 'desktop-mode.dock-rail.context-menu',
+		} );
+		return true;
+	}
+
+	function attachOddDockMenu( tile, item ) {
+		if ( ! tile || ! isOddDockItem( item ) || typeof tile.addEventListener !== 'function' ) {
+			return;
+		}
+		tile.setAttribute( 'aria-haspopup', 'menu' );
+		tile.addEventListener( 'contextmenu', function ( ev ) {
+			if ( ev.defaultPrevented ) return;
+			if ( openOddDockMenu( ev, item ) ) {
+				ev.preventDefault();
+				ev.stopPropagation();
+			}
+		} );
+		tile.addEventListener( 'keydown', function ( ev ) {
+			if ( ev.key !== 'ContextMenu' && ! ( ev.shiftKey && ev.key === 'F10' ) ) {
+				return;
+			}
+			var point = keyboardMenuPoint( tile );
+			if ( openOddDockMenu( point, item ) ) {
+				ev.preventDefault();
+			}
+		} );
+	}
+
 	function rebuildMenuTiles( deps, menuRow ) {
 		var frag = document.createDocumentFragment();
 		( deps.items || [] ).forEach(
@@ -483,6 +554,7 @@
 				btn.addEventListener( 'click', function () {
 					openMenuTile( deps, item );
 				} );
+				attachOddDockMenu( btn, item );
 				frag.appendChild( btn );
 			}
 		);
@@ -565,6 +637,7 @@
 						} catch ( _ ) {}
 					}
 				);
+				attachOddDockMenu( btn, item );
 				return btn;
 			}
 

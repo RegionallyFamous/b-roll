@@ -184,6 +184,8 @@
 	var desktopState = window.__odd.desktopState || makeDesktopState();
 	var windowStateById = {};
 	var activityTimers = {};
+	var activeOddDockMenu = null;
+	var oddDockTileObserver = null;
 	var warnedShopFullscreen = false;
 	var SHOP_TOP_Y = 16;
 	var SHOP_TOP_MAX_Y = 24;
@@ -722,6 +724,296 @@
 		return !! ( api && typeof api[ action.method ] === 'function' );
 	}
 
+	function closeOddDockMenu() {
+		if ( ! activeOddDockMenu ) return;
+		var current = activeOddDockMenu;
+		activeOddDockMenu = null;
+		try {
+			document.removeEventListener( 'pointerdown', current.onPointerDown, true );
+			document.removeEventListener( 'keydown', current.onKeyDown, true );
+			window.removeEventListener( 'blur', current.onBlur );
+		} catch ( _ ) {}
+		if ( current.menu && current.menu.parentNode ) {
+			current.menu.parentNode.removeChild( current.menu );
+		}
+	}
+
+	function optionIsDisabled( action ) {
+		return ! canRunOddAction( action ) && ! action.fallbackOpen;
+	}
+
+	function positionDockMenu( menu, x, y ) {
+		var pad = 10;
+		function writePosition( nextX, nextY ) {
+			menu.style.cssText = 'left:' + Math.max( pad, Number( nextX ) || pad ) + 'px;top:' + Math.max( pad, Number( nextY ) || pad ) + 'px;';
+		}
+		writePosition( x, y );
+		( window.requestAnimationFrame || function ( cb ) { return setTimeout( cb, 0 ); } )( function () {
+			if ( ! menu.parentNode || typeof menu.getBoundingClientRect !== 'function' ) return;
+			var rect = menu.getBoundingClientRect();
+			var maxX = Math.max( pad, ( window.innerWidth || document.documentElement.clientWidth || 0 ) - rect.width - pad );
+			var maxY = Math.max( pad, ( window.innerHeight || document.documentElement.clientHeight || 0 ) - rect.height - pad );
+			if ( rect.left > maxX || rect.top > maxY ) {
+				writePosition(
+					rect.left > maxX ? maxX : rect.left,
+					rect.top > maxY ? maxY : rect.top
+				);
+			}
+		} );
+	}
+
+	function activateDockMenuAction( id, source ) {
+		var action = oddActionById( id );
+		if ( ! action || optionIsDisabled( action ) ) return false;
+		closeOddDockMenu();
+		return runOddSurfaceAction( id, source || 'desktop-mode.dock.context-menu' );
+	}
+
+	function openOddDockTileMenu( opts ) {
+		opts = opts || {};
+		closeOddDockMenu();
+
+		if ( typeof document === 'undefined' || ! document.body ) return false;
+
+		var menu = document.createElement( 'wpd-context-menu' );
+		menu.className = 'odd-dock-context-menu';
+		menu.setAttribute( 'open', '' );
+		menu.setAttribute( 'role', 'menu' );
+		menu.setAttribute( 'aria-label', 'ODD dock actions' );
+		menu.setAttribute( 'data-odd-dock-context-menu', 'true' );
+
+		oddActions().forEach( function ( action ) {
+			var opt = document.createElement( 'wpd-context-menu-option' );
+			opt.dataset.menuItemId = action.id;
+			opt.setAttribute( 'value', action.id );
+			opt.setAttribute( 'role', 'menuitem' );
+			opt.setAttribute( 'tabindex', '0' );
+			if ( action.icon ) opt.setAttribute( 'icon', action.icon );
+			if ( optionIsDisabled( action ) ) opt.setAttribute( 'disabled', '' );
+			opt.textContent = action.label;
+			opt.addEventListener( 'click', function () {
+				if ( window.customElements && typeof window.customElements.get === 'function' && window.customElements.get( 'wpd-context-menu-option' ) ) {
+					return;
+				}
+				activateDockMenuAction( action.id, opts.source );
+			} );
+			opt.addEventListener( 'keydown', function ( ev ) {
+				if ( window.customElements && typeof window.customElements.get === 'function' && window.customElements.get( 'wpd-context-menu-option' ) ) {
+					return;
+				}
+				if ( ev.key !== 'Enter' && ev.key !== ' ' ) return;
+				ev.preventDefault();
+				activateDockMenuAction( action.id, opts.source );
+			} );
+			menu.appendChild( opt );
+		} );
+
+		menu.addEventListener( 'wpd-context-menu-pick', function ( ev ) {
+			var detail = ev && ev.detail || {};
+			var id = detail.id || detail.value || '';
+			activateDockMenuAction( id, opts.source );
+		} );
+
+		document.body.appendChild( menu );
+		positionDockMenu( menu, opts.x, opts.y );
+
+		var onPointerDown = function ( ev ) {
+			var target = ev && ev.target;
+			if ( target && menu.contains && menu.contains( target ) ) return;
+			closeOddDockMenu();
+		};
+		var onKeyDown = function ( ev ) {
+			if ( ev.key === 'Escape' ) closeOddDockMenu();
+		};
+		var onBlur = function () {
+			closeOddDockMenu();
+		};
+		activeOddDockMenu = {
+			menu:          menu,
+			onPointerDown: onPointerDown,
+			onKeyDown:    onKeyDown,
+			onBlur:       onBlur,
+		};
+		setTimeout( function () {
+			if ( ! activeOddDockMenu || activeOddDockMenu.menu !== menu ) return;
+			document.addEventListener( 'pointerdown', onPointerDown, true );
+			document.addEventListener( 'keydown', onKeyDown, true );
+			window.addEventListener( 'blur', onBlur );
+		}, 0 );
+
+		record( 'info', 'desktop-mode.dock.context-menu', {
+			id: itemId( opts.item ) || 'odd',
+			actions: ODD_ACTIONS.length,
+		} );
+		return true;
+	}
+
+	function contextMenuPointForTile( tile ) {
+		if ( ! tile || typeof tile.getBoundingClientRect !== 'function' ) {
+			return { x: 16, y: 16 };
+		}
+		var rect = tile.getBoundingClientRect();
+		return {
+			x: rect.left + Math.max( 12, Math.min( rect.width - 8, 28 ) ),
+			y: rect.top + Math.max( 12, Math.min( rect.height - 8, 28 ) ),
+		};
+	}
+
+	function attachOddDockTileContextMenu( el, ctx ) {
+		if ( ! el || ! ctx || ! isOddDockItem( ctx.item ) || typeof el.addEventListener !== 'function' ) return el;
+		if ( el.getAttribute && el.getAttribute( 'data-odd-dock-menu-bound' ) === 'true' ) return el;
+		try {
+			el.setAttribute( 'data-odd-dock-menu-bound', 'true' );
+			el.setAttribute( 'aria-haspopup', 'menu' );
+		} catch ( _ ) {}
+		el.addEventListener( 'contextmenu', function ( ev ) {
+			if ( ev.defaultPrevented ) return;
+			ev.preventDefault();
+			ev.stopPropagation();
+			openOddDockTileMenu( {
+				x:      ev.clientX,
+				y:      ev.clientY,
+				item:   ctx.item,
+				source: 'desktop-mode.dock.tile-context-menu',
+			} );
+		} );
+		el.addEventListener( 'keydown', function ( ev ) {
+			if ( ev.key !== 'ContextMenu' && ! ( ev.shiftKey && ev.key === 'F10' ) ) return;
+			ev.preventDefault();
+			var point = contextMenuPointForTile( el );
+			openOddDockTileMenu( {
+				x:      point.x,
+				y:      point.y,
+				item:   ctx.item,
+				source: 'desktop-mode.dock.tile-keyboard-menu',
+			} );
+		} );
+		return el;
+	}
+
+	function systemTileIdForElement( el ) {
+		if ( ! el || typeof el.getAttribute !== 'function' ) return '';
+		return el.getAttribute( 'data-odd-dock-tile' ) ||
+			el.getAttribute( 'data-system-id' ) ||
+			el.getAttribute( 'data-desktop-mode-system-id' ) ||
+			el.getAttribute( 'data-wp-desktop-system-id' ) ||
+			el.getAttribute( 'data-odd-system-id' ) ||
+			el.getAttribute( 'data-menu-slug' ) ||
+			el.getAttribute( 'data-wp-desktop-menu-slug' ) ||
+			'';
+	}
+
+	function labelForDockTileElement( el ) {
+		if ( ! el ) return '';
+		var primary = el.querySelector && el.querySelector( '.desktop-mode-dock__item-primary, .wp-desktop-dock__item-primary, button, [role="button"]' );
+		if ( primary && typeof primary.getAttribute === 'function' ) {
+			return primary.getAttribute( 'aria-label' ) ||
+				primary.getAttribute( 'title' ) ||
+				primary.textContent ||
+				'';
+		}
+		if ( typeof el.getAttribute === 'function' ) {
+			return el.getAttribute( 'aria-label' ) ||
+				el.getAttribute( 'title' ) ||
+				el.textContent ||
+				'';
+		}
+		return '';
+	}
+
+	function registeredDockItemForElement( el ) {
+		var id = systemTileIdForElement( el );
+		var d = desktop();
+		if ( d && id && typeof d.getSystemTile === 'function' ) {
+			try {
+				var item = d.getSystemTile( id );
+				if ( item ) return item;
+			} catch ( _ ) {}
+		}
+		return {
+			id:    id,
+			title: labelForDockTileElement( el ),
+		};
+	}
+
+	function attachExistingOddDockTile( el ) {
+		if ( ! el || ! el.matches ) return false;
+		var item = registeredDockItemForElement( el );
+		if ( ! isOddDockItem( item ) ) return false;
+		attachOddDockTileContextMenu( el, {
+			item:     item,
+			isSystem: true,
+			rail:     'dock',
+		} );
+		try { el.setAttribute( 'data-odd-dock-tile', itemId( item ) || 'odd' ); } catch ( _ ) {}
+		return true;
+	}
+
+	function oddDockTileCandidates( root ) {
+		var selectors = [
+			'[data-odd-dock-tile]',
+			'.desktop-mode-dock__item[data-system-id]',
+			'.desktop-mode-dock__item[data-menu-slug]',
+			'.wp-desktop-dock__item[data-system-id]',
+			'.wp-desktop-dock__item[data-wp-desktop-system-id]',
+			'.wp-desktop-dock__item[data-wp-desktop-menu-slug]',
+			'.odd-dock-rail-mount__tile[data-odd-system-id]',
+			'.odd-dock-rail-mount__tile[data-odd-ref]',
+		].join( ',' );
+		var scope = root && ( root.nodeType === 1 || root.nodeType === 9 || root.nodeType === 11 ) ? root : document;
+		var out = [];
+		if ( scope.matches && scope.matches( selectors ) ) {
+			out.push( scope );
+		}
+		if ( scope.querySelectorAll ) {
+			out = out.concat( Array.prototype.slice.call( scope.querySelectorAll( selectors ) ) );
+		}
+		return out;
+	}
+
+	function bindExistingOddDockTiles( root ) {
+		if ( typeof document === 'undefined' ) return 0;
+		var count = 0;
+		oddDockTileCandidates( root || document ).forEach( function ( el ) {
+			if ( attachExistingOddDockTile( el ) ) count++;
+		} );
+		return count;
+	}
+
+	function observeOddDockTiles() {
+		if ( oddDockTileObserver || typeof MutationObserver === 'undefined' || typeof document === 'undefined' ) return;
+		var root = document.body || document.documentElement;
+		if ( ! root ) return;
+		oddDockTileObserver = new MutationObserver( function ( mutations ) {
+			mutations.forEach( function ( mutation ) {
+				Array.prototype.forEach.call( mutation.addedNodes || [], function ( node ) {
+					bindExistingOddDockTiles( node );
+				} );
+			} );
+		} );
+		oddDockTileObserver.observe( root, { childList: true, subtree: true } );
+		INSTALLED.push( function () {
+			try { oddDockTileObserver.disconnect(); } catch ( _ ) {}
+			oddDockTileObserver = null;
+		} );
+	}
+
+	function scheduleOddDockTileSweep( source ) {
+		ready( function () {
+			var count = bindExistingOddDockTiles( document );
+			if ( count ) {
+				record( 'info', 'desktop-mode.dock.context-menu-bound', {
+					source: source || 'ready',
+					count:  count,
+				} );
+			}
+			observeOddDockTiles();
+			( window.requestAnimationFrame || function ( cb ) { return setTimeout( cb, 0 ); } )( function () {
+				bindExistingOddDockTiles( document );
+			} );
+		} );
+	}
+
 	function windowIdFromWindow( win ) {
 		if ( ! win || typeof win !== 'object' ) return '';
 		if ( win.id ) return String( win.id );
@@ -965,6 +1257,7 @@
 				if ( isOddDockItem( ctx.item ) ) {
 					try { el.setAttribute( 'data-odd-dock-tile', itemId( ctx.item ) || 'odd' ); } catch ( _ ) {}
 				}
+				attachOddDockTileContextMenu( el, ctx );
 			}
 			return el;
 		} );
@@ -977,7 +1270,10 @@
 		addActionFor( 'DOCK_ITEM_APPENDED', 'desktop-mode.dock.item-appended', function ( payload ) {
 			pulseActivity( 'dock' );
 			var el = elementFromPayload( payload );
-			if ( el ) markCursor( el, 'pointer' );
+			if ( el ) {
+				markCursor( el, 'pointer' );
+				attachExistingOddDockTile( el );
+			}
 			record( 'info', 'desktop-mode.dock.item-appended', payload || {} );
 		} );
 		[
@@ -989,10 +1285,18 @@
 				pulseActivity( 'dock' );
 				if ( hookName.indexOf( 'tile' ) !== -1 && payload && ! isOddDockItem( payload.item ) ) return;
 				var el = elementFromPayload( payload );
-				if ( el ) markCursor( el, 'pointer' );
+				if ( el ) {
+					markCursor( el, 'pointer' );
+					if ( payload && payload.item ) {
+						attachOddDockTileContextMenu( el, payload );
+					} else {
+						attachExistingOddDockTile( el );
+					}
+				}
 				record( 'info', hookName, payload || {} );
 			} );
 		} );
+		scheduleOddDockTileSweep( 'setup-dock-diagnostics' );
 	}
 
 	function setupCursorSurfaceMapping() {
@@ -1330,17 +1634,32 @@
 		}
 		var api = window.__odd && window.__odd.api;
 		if ( ! api ) {
-			record( 'warning', source, { id: id, ready: false } );
-			return false;
+			var fallbackOpened = !! ( action && action.fallbackOpen && openShopWindowFallback() );
+			record( fallbackOpened ? 'info' : 'warning', source, { id: id, ready: false, fallback: fallbackOpened } );
+			return fallbackOpened;
 		}
 		var handled = true;
 		if ( action && action.method && typeof api[ action.method ] === 'function' ) {
 			api[ action.method ]();
 		} else {
-			handled = false;
+			handled = !! ( action && action.fallbackOpen && openShopWindowFallback() );
 		}
 		record( handled ? 'info' : 'warning', source, { id: id, handled: handled } );
 		return handled;
+	}
+
+	function openShopWindowFallback() {
+		if ( adapter && typeof adapter.openWindow === 'function' && adapter.openWindow( 'odd' ) ) {
+			return true;
+		}
+		var d = desktop();
+		if ( d && typeof d.openWindow === 'function' ) {
+			try {
+				d.openWindow( 'odd' );
+				return true;
+			} catch ( _ ) {}
+		}
+		return false;
 	}
 
 	function escHtml( value ) {
@@ -1811,9 +2130,12 @@
 	window.__odd.desktopHooks = {
 		actions: oddActions,
 		runAction: runOddSurfaceAction,
+		openDockTileMenu: openOddDockTileMenu,
+		attachDockTileContextMenu: attachOddDockTileContextMenu,
 		openDesktopFile: openOddDesktopFile,
 		renderSettingsTab: renderSettingsTab,
 		uninstall: function () {
+			closeOddDockMenu();
 			Object.keys( activityTimers ).forEach( function ( key ) {
 				try { clearTimeout( activityTimers[ key ] ); } catch ( _ ) {}
 				delete activityTimers[ key ];

@@ -146,4 +146,53 @@ describe( 'ODD dock rail system icon skinning', () => {
 		expect( img.getAttribute( 'data-odd-icon-set' ) ).toBe( 'filament' );
 		expect( img.getAttribute( 'data-odd-fun-layer' ) ).toBe( 'filament-wire' );
 	} );
+
+	it( 'forwards right-clicks on ODD compact rail launchers to the ODD dock menu bridge', () => {
+		const openDockTileMenu = vi.fn();
+		window.__odd = {
+			desktopHooks: {
+				openDockTileMenu,
+			},
+		};
+		window.wp = {
+			i18n:  { __: ( text ) => text },
+			hooks: { addAction: vi.fn() },
+			desktop: {
+				ready:                    ( cb ) => cb(),
+				registerDockRailRenderer: vi.fn(),
+			},
+		};
+
+		execRail();
+
+		const renderer = window.wp.desktop.registerDockRailRenderer.mock.calls[0][0];
+		const container = document.createElement( 'div' );
+		const mounted = renderer.mount( {
+			container,
+			items:       [],
+			orientation: 'left',
+		} );
+		mounted.appendSystemItem( {
+			id:     'odd',
+			title:  'ODD Shop',
+			icon:   'https://example.test/odd.svg',
+			onOpen: vi.fn(),
+		} );
+
+		const tile = container.querySelector( '.odd-dock-rail-mount__tile--system' );
+		const canceled = ! tile.dispatchEvent( new MouseEvent( 'contextmenu', {
+			bubbles:    true,
+			cancelable: true,
+			clientX:    30,
+			clientY:    40,
+		} ) );
+
+		expect( canceled ).toBe( true );
+		expect( openDockTileMenu ).toHaveBeenCalledWith( expect.objectContaining( {
+			x:      30,
+			y:      40,
+			source: 'desktop-mode.dock-rail.context-menu',
+		} ) );
+		expect( openDockTileMenu.mock.calls[0][0].item.id ).toBe( 'odd' );
+	} );
 } );

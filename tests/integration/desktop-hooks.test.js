@@ -340,6 +340,14 @@ describe( 'Desktop Mode hook bridge', () => {
 	it( 'decorates ODD dock tiles without replacing the tile element', () => {
 		window.wp.desktop = { ready: ( cb ) => cb() };
 		loadDesktopHooks();
+		const openPanel = vi.fn( () => true );
+		window.__odd.api = {
+			openPanel,
+			shuffle: vi.fn( () => true ),
+			tidyWidgets: vi.fn( () => true ),
+			resetDecorations: vi.fn( () => true ),
+			openOsSettings: vi.fn( () => true ),
+		};
 
 		const classes = window.wp.hooks.applyFilters(
 			'desktop-mode.dock.tile-class',
@@ -357,6 +365,56 @@ describe( 'Desktop Mode hook bridge', () => {
 		expect( next ).toBe( tile );
 		expect( tile.getAttribute( 'data-odd-dock-tile' ) ).toBe( 'odd' );
 		expect( tile.getAttribute( 'data-odd-cursor' ) ).toBe( 'pointer' );
+		expect( tile.getAttribute( 'data-odd-dock-menu-bound' ) ).toBe( 'true' );
+
+		const canceled = ! tile.dispatchEvent( new MouseEvent( 'contextmenu', {
+			bubbles:    true,
+			cancelable: true,
+			clientX:    44,
+			clientY:    66,
+		} ) );
+		expect( canceled ).toBe( true );
+
+		const menu = document.querySelector( '[data-odd-dock-context-menu]' );
+		expect( menu ).toBeTruthy();
+		expect( Array.from( menu.querySelectorAll( 'wpd-context-menu-option' ) ).map( ( item ) => item.dataset.menuItemId ) ).toContain( 'oddout-open-shop' );
+
+		menu.querySelector( '[data-menu-item-id="oddout-open-shop"]' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( openPanel ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'binds ODD dock menus to already-rendered native window system tiles', () => {
+		const tile = document.createElement( 'div' );
+		tile.className = 'desktop-mode-dock__item desktop-mode-dock__item--system';
+		tile.setAttribute( 'data-system-id', 'odd' );
+		tile.innerHTML = '<button class="desktop-mode-dock__item-primary" aria-label="ODD Shop" type="button"></button>';
+		document.body.appendChild( tile );
+
+		window.wp.desktop = {
+			ready: ( cb ) => cb(),
+			getSystemTile: ( id ) => id === 'odd' ? { id: 'odd', title: 'ODD Shop' } : null,
+		};
+		window.__odd.api = {
+			openPanel: vi.fn( () => true ),
+			shuffle: vi.fn( () => true ),
+			tidyWidgets: vi.fn( () => true ),
+			resetDecorations: vi.fn( () => true ),
+			openOsSettings: vi.fn( () => true ),
+		};
+
+		loadDesktopHooks();
+
+		expect( tile.getAttribute( 'data-odd-dock-menu-bound' ) ).toBe( 'true' );
+		expect( tile.getAttribute( 'data-odd-dock-tile' ) ).toBe( 'odd' );
+
+		const canceled = ! tile.querySelector( 'button' ).dispatchEvent( new MouseEvent( 'contextmenu', {
+			bubbles:    true,
+			cancelable: true,
+			clientX:    24,
+			clientY:    36,
+		} ) );
+		expect( canceled ).toBe( true );
+		expect( document.querySelector( '[data-odd-dock-context-menu]' ) ).toBeTruthy();
 	} );
 
 	it( 'maps window and widget hook payload elements to semantic cursor roots', () => {
