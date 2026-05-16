@@ -351,11 +351,26 @@
 			query:         '',
 			franchiseFilter: '',
 			searchScope:   'all',
+			storeView:     'all',
+			sortMode:      'featured',
 			shopSounds:    loadShopSoundsSetting(),
 			// When set, the Shop scheduled a full admin reload (desktop / taskbar /
 			// script-fallback). Catalog tiles show "Applying…" for the matching slug.
 			pendingAdminReload: null,
 		};
+		var STORE_VIEWS = [
+			{ id: 'all',       label: 'All' },
+			{ id: 'installed', label: 'Installed' },
+			{ id: 'available', label: 'Available' },
+			{ id: 'updates',   label: 'Updates' },
+			{ id: 'active',    label: 'Active' },
+		];
+		var STORE_SORTS = [
+			{ id: 'featured', label: 'Featured' },
+			{ id: 'newest',   label: 'Newest' },
+			{ id: 'updated',  label: 'Recently updated' },
+			{ id: 'az',       label: 'A-Z' },
+		];
 		state.cfg.shopV2 = state.cfg.shopV2 !== false;
 		body.setAttribute( 'data-odd-shop-v2', state.cfg.shopV2 ? '1' : '0' );
 		state.cfg.theme = normaliseShopTheme( state.cfg.theme );
@@ -363,6 +378,10 @@
 		body.setAttribute( 'data-odd-chaos', state.cfg.chaosMode ? '1' : '0' );
 		var shopRowCache = {};
 		var buttons = {};
+		var productSheetClose = null;
+		cleanupFns.push( function () {
+			if ( productSheetClose ) productSheetClose();
+		} );
 		var shopSfx = { ctx: null, last: {} };
 		var pendingAdminReloadTimer = null;
 
@@ -956,7 +975,9 @@
 			) );
 
 			wrap.appendChild( renderAppsHero() );
-			var appsEditorial = renderEditorialStrip( shopRowsFor( 'app' ), 'apps' );
+			var appRows = shopRowsFor( 'app' );
+			wrap.appendChild( renderStoreControls( 'app', appRows, applyStoreControls( appRows, 'app' ) ) );
+			var appsEditorial = renderEditorialStrip( appRows, 'apps' );
 			if ( appsEditorial ) wrap.appendChild( appsEditorial );
 
 			// Status rail. Populated by installBundle() / deletions.
@@ -1010,10 +1031,15 @@
 					for ( var k in bySlug ) {
 						if ( Object.prototype.hasOwnProperty.call( bySlug, k ) ) rows.push( bySlug[ k ] );
 					}
-					rows.sort( function ( a, b ) {
-						if ( !! a.installed !== !! b.installed ) return a.installed ? -1 : 1;
-						return ( a.name || a.slug || '' ).localeCompare( b.name || b.slug || '' );
-					} );
+					rows = rows.map( function ( row ) {
+						var normalised = normaliseShopRow( row, 'app' );
+						if ( normalised ) {
+							normalised.installed = !! row.installed;
+							normalised.raw = row;
+						}
+						return normalised;
+					} ).filter( Boolean );
+					rows = applyStoreControls( rows, 'app' );
 
 					if ( ! rows.length ) {
 						var empty = el( 'div', { class: 'odd-apps-empty' } );
@@ -3351,14 +3377,16 @@
 			// the same card lane they turn into after install.
 			var installedScenes = ( Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [] )
 				.filter( function ( s ) { return s && s.slug && s.slug !== 'odd-pending'; } );
-			var rows = filterByQuery( shopRowsFor( 'scene' ), state.query );
+			var allRows = shopRowsFor( 'scene' );
+			var rows = applyStoreControls( allRows, 'scene' );
+			wrap.appendChild( renderStoreControls( 'scene', allRows, rows ) );
 
 			// Hero — the currently-active scene, or the first result
 			// from installed content. Catalog-only rows stay in the
 			// product shelves until installed, so the hero never offers
 			// a Preview action for a scene that does not exist on disk.
 			var heroScenes = filterByQuery( installedScenes, state.query );
-			if ( heroScenes.length ) {
+			if ( heroScenes.length && state.storeView !== 'available' && state.storeView !== 'updates' ) {
 				var featured = pickFeaturedScene( heroScenes );
 				if ( featured ) wrap.appendChild( renderWallpaperHero( featured ) );
 			}
@@ -3637,7 +3665,8 @@
 			) );
 
 			var allRows = collectSearchRows();
-			var matches = filterByQuery( allRows, query );
+			var matches = applyStoreControls( allRows, 'all' );
+			wrap.appendChild( renderStoreControls( 'all', allRows, matches ) );
 
 			if ( ! matches.length ) {
 				wrap.appendChild( renderEmptyResults( 'No Shop results match "' + query + '" yet.' ) );
@@ -3748,6 +3777,160 @@
 
 		function activeFilterLabel() {
 			return String( state.query || state.franchiseFilter || '' ).trim();
+		}
+
+		function rowTypeLabel( type, plural ) {
+			var map = {
+				scene:      [ 'wallpaper', 'wallpapers' ],
+				'icon-set': [ 'icon set', 'icon sets' ],
+				'cursor-set': [ 'cursor set', 'cursor sets' ],
+				widget:     [ 'widget', 'widgets' ],
+				app:        [ 'app', 'apps' ],
+				all:        [ 'item', 'items' ],
+			};
+			var pair = map[ type ] || map.all;
+			return plural ? pair[ 1 ] : pair[ 0 ];
+		}
+
+		function rowTimestamp( row, mode ) {
+			var raw = ( row && row.raw ) || {};
+			var keys = mode === 'newest'
+				? [ 'published_at', 'created_at', 'createdAt', 'date', 'installed_at', 'installed' ]
+				: [ 'updated_at', 'updatedAt', 'modified_at', 'modified', 'last_updated', 'version_date', 'installed_at', 'installed' ];
+			for ( var i = 0; i < keys.length; i++ ) {
+				var value = raw[ keys[ i ] ];
+				if ( value === undefined || value === null || value === false || value === true || value === '' ) continue;
+				if ( typeof value === 'number' ) return value > 100000000000 ? value : value * 1000;
+				var parsed = Date.parse( String( value ) );
+				if ( ! Number.isNaN( parsed ) ) return parsed;
+			}
+			return 0;
+		}
+
+		function storeViewAllows( row ) {
+			var view = state.storeView || 'all';
+			if ( view === 'installed' ) return !! ( row && row.installed );
+			if ( view === 'available' ) return !! ( row && ! row.installed );
+			if ( view === 'updates' ) return !! ( row && row.updateAvailable );
+			if ( view === 'active' ) return !! shopCardIsActive( row );
+			return true;
+		}
+
+		function compareShopRows( a, b ) {
+			var mode = state.sortMode || 'featured';
+			if ( mode === 'az' ) return ( a.name || a.slug || '' ).localeCompare( b.name || b.slug || '' );
+			if ( mode === 'newest' || mode === 'updated' ) {
+				var at = rowTimestamp( a, mode );
+				var bt = rowTimestamp( b, mode );
+				if ( at !== bt ) return bt - at;
+				return ( a.name || a.slug || '' ).localeCompare( b.name || b.slug || '' );
+			}
+			var aActive = shopCardIsActive( a );
+			var bActive = shopCardIsActive( b );
+			if ( aActive !== bActive ) return aActive ? -1 : 1;
+			if ( !! a.updateAvailable !== !! b.updateAvailable ) return a.updateAvailable ? -1 : 1;
+			if ( !! a.featured !== !! b.featured ) return a.featured ? -1 : 1;
+			if ( !! a.installed !== !! b.installed ) return a.installed ? -1 : 1;
+			return ( a.name || a.slug || '' ).localeCompare( b.name || b.slug || '' );
+		}
+
+		function applyStoreControls( rows, type ) {
+			var list = filterByQuery( rows || [], state.query );
+			list = list.filter( storeViewAllows );
+			list.sort( compareShopRows );
+			return list;
+		}
+
+		function storeCounts( rows ) {
+			var counts = { total: 0, installed: 0, available: 0, updates: 0, active: 0 };
+			( rows || [] ).forEach( function ( row ) {
+				if ( ! row ) return;
+				counts.total++;
+				if ( row.installed ) counts.installed++;
+				else counts.available++;
+				if ( row.updateAvailable ) counts.updates++;
+				if ( shopCardIsActive( row ) ) counts.active++;
+			} );
+			return counts;
+		}
+
+		function renderStoreControls( type, baseRows, shownRows ) {
+			var counts = storeCounts( baseRows || [] );
+			var shown = shownRows || applyStoreControls( baseRows || [], type );
+			var wrap = el( 'div', {
+				class: 'odd-shop__storebar',
+				'data-odd-storebar': '1',
+			} );
+			var summary = el( 'div', { class: 'odd-shop__storebar-summary', role: 'status' } );
+			var totalLabel = counts.total + ' ' + rowTypeLabel( type, counts.total !== 1 );
+			var bits = [
+				totalLabel,
+				counts.installed + ' installed',
+			];
+			if ( counts.available ) bits.push( counts.available + ' available' );
+			if ( counts.updates ) bits.push( counts.updates + ' update' + ( counts.updates === 1 ? '' : 's' ) );
+			if ( counts.active ) bits.push( counts.active + ' active' );
+			if ( shown.length !== counts.total ) bits.unshift( shown.length + ' showing' );
+			summary.textContent = bits.join( ' · ' );
+			wrap.appendChild( summary );
+
+			var controls = el( 'div', { class: 'odd-shop__storebar-controls' } );
+			var views = el( 'div', {
+				class: 'odd-shop__store-views',
+				role: 'group',
+				'aria-label': 'Filter items',
+			} );
+			STORE_VIEWS.forEach( function ( view ) {
+				var btn = el( 'button', {
+					type: 'button',
+					class: 'odd-shop__store-view' + ( ( state.storeView || 'all' ) === view.id ? ' is-active' : '' ),
+					'aria-pressed': ( state.storeView || 'all' ) === view.id ? 'true' : 'false',
+					'data-odd-store-view': view.id,
+				} );
+				btn.textContent = view.label;
+				btn.addEventListener( 'click', function () {
+					state.storeView = view.id;
+					renderSection( state.active, { keepQuery: true } );
+				} );
+				views.appendChild( btn );
+			} );
+			controls.appendChild( views );
+
+			var sortLabel = el( 'label', { class: 'odd-shop__sort' } );
+			var sortText = el( 'span' );
+			sortText.textContent = 'Sort';
+			var sort = el( 'select', { class: 'odd-shop__sort-select', 'data-odd-store-sort': '1' } );
+			STORE_SORTS.forEach( function ( option ) {
+				var opt = el( 'option', { value: option.id } );
+				opt.textContent = option.label;
+				if ( ( state.sortMode || 'featured' ) === option.id ) opt.selected = true;
+				sort.appendChild( opt );
+			} );
+			sort.addEventListener( 'change', function () {
+				state.sortMode = sort.value || 'featured';
+				renderSection( state.active, { keepQuery: true } );
+			} );
+			sortLabel.appendChild( sortText );
+			sortLabel.appendChild( sort );
+			controls.appendChild( sortLabel );
+
+			if ( state.query || state.franchiseFilter || state.storeView !== 'all' || state.sortMode !== 'featured' ) {
+				var clear = el( 'button', { type: 'button', class: 'odd-shop__clear-filters' } );
+				clear.textContent = 'Clear';
+				clear.addEventListener( 'click', function () {
+					state.query = '';
+					state.franchiseFilter = '';
+					state.storeView = 'all';
+					state.sortMode = 'featured';
+					searchInput.value = '';
+					updateSearchToolState();
+					renderSection( state.active, { keepQuery: true } );
+				} );
+				controls.appendChild( clear );
+			}
+
+			wrap.appendChild( controls );
+			return wrap;
 		}
 
 		/**
@@ -4502,9 +4685,10 @@
 				? [ defaultSet ].concat( realSets )
 				: realSets;
 
-			var filtered = filterByQuery( rows, state.query );
+			var filtered = applyStoreControls( rows, 'icon-set' );
+			wrap.appendChild( renderStoreControls( 'icon-set', rows, filtered ) );
 
-			if ( heroPool.length ) {
+			if ( heroPool.length && state.storeView !== 'available' && state.storeView !== 'updates' ) {
 				var featuredSet = pickFeaturedSet( heroPool );
 				if ( featuredSet ) wrap.appendChild( renderIconHero( featuredSet ) );
 			}
@@ -4736,9 +4920,10 @@
 				cursors: {},
 			};
 			var heroPool = state.cfg.cursorSet === 'none' ? [ defaultSet ].concat( realSets ) : realSets;
-			var filtered = filterByQuery( rows, state.query );
+			var filtered = applyStoreControls( rows, 'cursor-set' );
+			wrap.appendChild( renderStoreControls( 'cursor-set', rows, filtered ) );
 
-			if ( heroPool.length ) {
+			if ( heroPool.length && state.storeView !== 'available' && state.storeView !== 'updates' ) {
 				var featured = pickFeaturedCursorSet( heroPool );
 				if ( featured ) wrap.appendChild( renderCursorHero( featured ) );
 			}
@@ -5198,7 +5383,9 @@
 				{ eyebrow: 'ODD · Desktop Companions' }
 			) );
 
-			var rows = filterByQuery( shopRowsFor( 'widget' ), state.query );
+			var allRows = shopRowsFor( 'widget' );
+			var rows = applyStoreControls( allRows, 'widget' );
+			wrap.appendChild( renderStoreControls( 'widget', allRows, rows ) );
 
 			// Hero: whichever widget is currently on the desktop wins.
 			// Falls back to the first installed row so the department
@@ -5212,7 +5399,7 @@
 					if ( rows[ j ] && rows[ j ].installed ) { hero = rows[ j ]; break; }
 				}
 			}
-			if ( hero && ! state.query ) {
+			if ( hero && ! state.query && state.storeView !== 'available' && state.storeView !== 'updates' ) {
 				wrap.appendChild( renderWidgetsHero(
 					{
 						id:          'odd/' + hero.slug,
@@ -5959,6 +6146,180 @@
 			}
 		}
 
+		function shopStatusBadges( row, isActive ) {
+			var badges = [];
+			if ( row && row.updateAvailable ) badges.push( { label: 'Update', mod: 'update' } );
+			if ( row && row.incompatible ) badges.push( { label: 'Requires newer host', mod: 'warning' } );
+			if ( row && row.broken ) badges.push( { label: 'Needs repair', mod: 'warning' } );
+			if ( isActive ) badges.push( { label: 'Active', mod: 'active' } );
+			else if ( row && row.installed ) badges.push( { label: 'Installed', mod: 'installed' } );
+			else badges.push( { label: 'Catalog', mod: 'catalog' } );
+			if ( row && row.featured ) badges.push( { label: 'Featured', mod: 'featured' } );
+			return badges;
+		}
+
+		function detailBulletsFor( row ) {
+			switch ( row && row.type ) {
+				case 'scene':
+					return [
+						'Changes the live wallpaper scene on your desktop.',
+						'Can be previewed before you keep it.',
+						'Works with shuffle, favorites, and screensaver settings.',
+					];
+				case 'icon-set':
+					return [
+						'Updates Desktop Mode icons through the native icon system.',
+						'Keeps dock, desktop shortcuts, taskbar, and file surfaces aligned.',
+						'Applies as one coherent set instead of patching individual DOM nodes.',
+					];
+				case 'cursor-set':
+					return [
+						'Changes pointer roles across Desktop Mode and wp-admin.',
+						'Can be previewed instantly before committing.',
+						'Uses the cursor registry instead of ad hoc CSS patches.',
+					];
+				case 'widget':
+					return [
+						'Adds a movable widget directly to the desktop.',
+						'Keeps widget state owned by Desktop Mode.',
+						'Can be removed later from the desktop widget layer.',
+					];
+				case 'app':
+					return [
+						'Installs a tiny desktop app with its own native window.',
+						'Can appear on desktop or taskbar surfaces when enabled.',
+						'Opens through Desktop Mode instead of a separate browser tab.',
+					];
+				default:
+					return [ 'Adds another piece to your WordPress desktop.' ];
+			}
+		}
+
+		function closeProductSheet() {
+			if ( productSheetClose ) productSheetClose();
+		}
+
+		function openProductSheet( row ) {
+			if ( ! row ) return;
+			closeProductSheet();
+			var normalised = normaliseShopRow( row.raw || row, row.type );
+			if ( ! normalised ) normalised = row;
+			normalised.installed = row.installed;
+			normalised.updateAvailable = row.updateAvailable;
+			normalised.featured = row.featured;
+			var isActive = shopCardIsActive( normalised );
+			var action = shopCardAction( normalised );
+
+			var overlay = el( 'div', {
+				class: 'odd-shop__detail-overlay',
+				'data-odd-product-sheet': '1',
+			} );
+			var sheet = el( 'section', {
+				class: 'odd-shop__detail-sheet',
+				role: 'dialog',
+				'aria-modal': 'true',
+				'aria-label': normalised.name + ' details',
+			} );
+			var close = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__detail-close',
+				'aria-label': 'Close details',
+			} );
+			close.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+			sheet.appendChild( close );
+
+			var artWrap = el( 'div', { class: 'odd-shop__detail-art' } );
+			artWrap.appendChild( renderShopCardArt( normalised ) );
+			sheet.appendChild( artWrap );
+
+			var bodyWrap = el( 'div', { class: 'odd-shop__detail-body' } );
+			var badges = el( 'div', { class: 'odd-shop__detail-badges' } );
+			shopStatusBadges( normalised, isActive ).forEach( function ( badge ) {
+				var chip = el( 'span', { class: 'odd-shop__status odd-shop__status--' + badge.mod } );
+				chip.textContent = badge.label;
+				badges.appendChild( chip );
+			} );
+			bodyWrap.appendChild( badges );
+
+			var title = el( 'h2', { class: 'odd-shop__detail-title' } );
+			title.textContent = normalised.name;
+			var sub = el( 'p', { class: 'odd-shop__detail-sub' } );
+			sub.textContent = normalised.subtitle || rowTypeLabel( normalised.type, false );
+			var desc = el( 'p', { class: 'odd-shop__detail-desc' } );
+			desc.textContent = normalised.description || 'A little piece of desktop personality for your WordPress workspace.';
+			bodyWrap.appendChild( title );
+			bodyWrap.appendChild( sub );
+			bodyWrap.appendChild( desc );
+
+			var facts = el( 'div', { class: 'odd-shop__detail-facts' } );
+			[
+				[ 'Type', rowTypeLabel( normalised.type, false ) ],
+				[ 'Style', normalised.franchise || 'ODD' ],
+				[ 'Version', normalised.version || 'Catalog' ],
+			].forEach( function ( pair ) {
+				var fact = el( 'div', { class: 'odd-shop__detail-fact' } );
+				var key = el( 'span' );
+				key.textContent = pair[ 0 ];
+				var value = el( 'strong' );
+				value.textContent = pair[ 1 ];
+				fact.appendChild( key );
+				fact.appendChild( value );
+				facts.appendChild( fact );
+			} );
+			bodyWrap.appendChild( facts );
+
+			var changes = el( 'div', { class: 'odd-shop__detail-changes' } );
+			var changesTitle = el( 'h3' );
+			changesTitle.textContent = 'What changes';
+			var list = el( 'ul' );
+			detailBulletsFor( normalised ).forEach( function ( text ) {
+				var item = el( 'li' );
+				item.textContent = text;
+				list.appendChild( item );
+			} );
+			changes.appendChild( changesTitle );
+			changes.appendChild( list );
+			bodyWrap.appendChild( changes );
+
+			var actions = el( 'div', { class: 'odd-shop__detail-actions' } );
+			var primary = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__detail-primary odd-shop__card-btn--' + action.kind,
+			} );
+			primary.textContent = action.label;
+			if ( action.disabled ) primary.disabled = true;
+			primary.addEventListener( 'click', function () {
+				if ( primary.disabled ) return;
+				dispatchShopAction( normalised, action.kind, primary );
+			} );
+			var secondary = el( 'button', { type: 'button', class: 'odd-shop__detail-secondary' } );
+			secondary.textContent = 'Done';
+			secondary.addEventListener( 'click', closeProductSheet );
+			actions.appendChild( primary );
+			actions.appendChild( secondary );
+			bodyWrap.appendChild( actions );
+
+			sheet.appendChild( bodyWrap );
+			overlay.appendChild( sheet );
+			body.appendChild( overlay );
+
+			function onKey( ev ) {
+				if ( ev.key === 'Escape' ) closeProductSheet();
+			}
+			function cleanupSheet() {
+				document.removeEventListener( 'keydown', onKey );
+				if ( overlay.parentNode ) overlay.parentNode.removeChild( overlay );
+				productSheetClose = null;
+			}
+			productSheetClose = cleanupSheet;
+			overlay.addEventListener( 'click', function ( ev ) {
+				if ( ev.target === overlay ) closeProductSheet();
+			} );
+			close.addEventListener( 'click', closeProductSheet );
+			document.addEventListener( 'keydown', onKey );
+			try { close.focus(); } catch ( e ) {}
+		}
+
 		// Artwork region of the tile. Shape changes by type:
 		//
 		//  - scene    → full-bleed preview.webp
@@ -6131,10 +6492,14 @@
 				card.appendChild( pin );
 			}
 
-			if ( ! row.installed ) {
-				var catalogBadge = el( 'span', { class: 'odd-shop__card-badge odd-shop__card-badge--catalog' } );
-				catalogBadge.textContent = 'Catalog';
-				card.appendChild( catalogBadge );
+			var stateBadges = shopStatusBadges( row, isActive );
+			if ( stateBadges.length ) {
+				var primaryBadge = stateBadges[ 0 ];
+				var statusBadge = el( 'span', {
+					class: 'odd-shop__card-badge odd-shop__card-badge--' + primaryBadge.mod,
+				} );
+				statusBadge.textContent = primaryBadge.label;
+				card.appendChild( statusBadge );
 			}
 
 			var meta = el( 'div', { class: 'odd-shop__card-meta' } );
@@ -6176,6 +6541,19 @@
 
 			wrap.appendChild( card );
 			wrap.appendChild( btn );
+
+			var quick = el( 'button', {
+				type: 'button',
+				class: 'odd-shop__quick-look',
+				'aria-label': 'Quick look ' + row.name,
+				'data-odd-cursor': 'pointer',
+			} );
+			quick.textContent = 'Details';
+			quick.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+				openProductSheet( row );
+			} );
+			wrap.appendChild( quick );
 
 			// Favorites star on scenes (the only type with a persisted
 			// favorites list today). Stays outside the button shell so

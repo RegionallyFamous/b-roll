@@ -236,6 +236,48 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
+	it( 'renders store controls and filters rows without changing departments', () => {
+		const { host, cleanup } = mountPanel();
+
+		const storebar = host.querySelector( '[data-odd-storebar]' );
+		expect( storebar ).toBeTruthy();
+		expect( storebar.textContent ).toContain( '3 wallpapers' );
+		expect( storebar.textContent ).toContain( '3 installed' );
+
+		const available = host.querySelector( '[data-odd-store-view="available"]' );
+		available.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		expect( host.querySelector( '[data-odd-store-view="available"]' ).classList.contains( 'is-active' ) ).toBe( true );
+		expect( host.querySelectorAll( '.odd-card[data-slug]' ).length ).toBe( 0 );
+		expect( host.querySelector( '.odd-shop__empty' ).textContent ).toContain( 'No scenes' );
+
+		const clear = host.querySelector( '.odd-shop__clear-filters' );
+		clear.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+		expect( host.querySelectorAll( '.odd-card[data-slug]' ).length ).toBe( 3 );
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
+	it( 'opens a Quick Look product sheet without triggering preview', () => {
+		const { host, cleanup } = mountPanel();
+		const quick = host.querySelector( '[data-odd-shop-card][data-scene-slug="flux"] .odd-shop__quick-look' );
+		expect( quick ).toBeTruthy();
+
+		quick.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		const sheet = host.querySelector( '.odd-shop__detail-sheet' );
+		expect( sheet ).toBeTruthy();
+		expect( sheet.querySelector( '.odd-shop__detail-title' ).textContent.trim() ).toBe( 'Flux' );
+		expect( sheet.textContent ).toContain( 'What changes' );
+		expect( host.querySelector( '.odd-preview-bar' ) ).toBeNull();
+
+		sheet.querySelector( '.odd-shop__detail-secondary' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+		expect( host.querySelector( '.odd-shop__detail-sheet' ) ).toBeNull();
+
+		if ( typeof cleanup === 'function' ) cleanup();
+	} );
+
 	it( 'selects icon sets without patching live Desktop Mode DOM', () => {
 		document.body.innerHTML = [
 			'<div class="desktop-mode-dock__item" data-menu-slug="menu-posts">',
