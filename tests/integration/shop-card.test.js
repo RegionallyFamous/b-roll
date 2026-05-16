@@ -176,6 +176,47 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( btn.textContent.trim() ).toBe( 'Install' );
 	} );
 
+	it( 'catalog install enters an inline installing state immediately', async () => {
+		let resolveInstall;
+		seed( {
+			bundleCatalog: {
+				scene: [ { slug: 'gusts', label: 'Gusts', installed: false } ],
+				iconSet: [],
+				widget: [],
+			},
+		} );
+		globalThis.fetch = vi.fn( () => new Promise( ( resolve ) => {
+			resolveInstall = () => resolve( {
+				ok:   true,
+				json: () => Promise.resolve( {
+					installed: true,
+					slug:      'gusts',
+					type:      'scene',
+					manifest:  { slug: 'gusts', label: 'Gusts' },
+					entry_url: null,
+					row:       { slug: 'gusts', label: 'Gusts', installed: true },
+				} ),
+			} );
+		} ) );
+		loadPanel();
+		const { host } = mount();
+
+		host.querySelector( '[data-odd-shop-card][data-catalog-slug="gusts"] .odd-shop__card-btn' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		const installingCard = host.querySelector( '[data-odd-shop-card][data-catalog-slug="gusts"]' );
+		const btn = installingCard.querySelector( '.odd-shop__card-btn' );
+		expect( installingCard.classList.contains( 'is-installing' ) ).toBe( true );
+		expect( btn.textContent.trim() ).toBe( 'Installing…' );
+		expect( btn.disabled ).toBe( true );
+		expect( btn.getAttribute( 'aria-busy' ) ).toBe( 'true' );
+		expect( btn.querySelector( '.odd-shop__btn-spinner' ) ).toBeTruthy();
+		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Installing Gusts' );
+
+		resolveInstall();
+		await flush();
+	} );
+
 	it( 'catalog-only scene is canonical and not duplicated by Discover', () => {
 		seed( {
 			bundleCatalog: {
@@ -242,6 +283,7 @@ describe( 'ODD Shop · unified card state machine', () => {
 		const btn = card.querySelector( '.odd-shop__card-btn' );
 		expect( btn.textContent.trim() ).toBe( 'Apply' );
 		expect( btn.disabled ).toBe( false );
+		expect( card.querySelector( '.odd-shop__card-hint' )?.textContent ).toBe( 'Click card to preview' );
 	} );
 
 	it( 'scene Apply posts prefs directly while card body still previews', async () => {
@@ -269,8 +311,7 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( host.querySelector( '[data-odd-preview-bar]' ) ).toBeTruthy();
 
 		button.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
-		await Promise.resolve();
-		await Promise.resolve();
+		await flush();
 
 		expect( picked ).toContain( 'terrazzo' );
 		expect( globalThis.fetch ).toHaveBeenCalledWith(
@@ -280,6 +321,8 @@ describe( 'ODD Shop · unified card state machine', () => {
 				body:   JSON.stringify( { wallpaper: 'terrazzo' } ),
 			} )
 		);
+		expect( host.querySelector( '.odd-shop__flow-toast' )?.textContent ).toContain( 'Applied Terrazzo' );
+		expect( host.querySelector( '.odd-shop__flow-toast-action' )?.textContent.trim() ).toBe( 'Undo' );
 	} );
 
 	it( 'active scene renders a disabled Active button', () => {

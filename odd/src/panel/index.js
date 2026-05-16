@@ -105,6 +105,8 @@
 		var CATALOG_BASE_URL = 'https://odd.regionallyfamous.com/catalog/v1';
 		var cleanupFns = [];
 		var sectionCleanupFns = [];
+		var flowToastTimer = 0;
+		var flowToastNode = null;
 
 		function addSectionCleanup( clean ) {
 			if ( typeof clean === 'function' ) sectionCleanupFns.push( clean );
@@ -357,6 +359,7 @@
 			// When set, the Shop scheduled a full admin reload (desktop / taskbar /
 			// script-fallback). Catalog tiles show "Applying…" for the matching slug.
 			pendingAdminReload: null,
+			installing: Object.create( null ),
 		};
 		var STORE_VIEWS = [
 			{ id: 'all',       label: 'All' },
@@ -873,6 +876,7 @@
 
 		return function teardown() {
 			clearPendingAdminReload();
+			clearShopFlowToast();
 			body.classList.remove( 'odd-panel', 'odd-shop' );
 			cleanupSection();
 			while ( cleanupFns.length ) {
@@ -1653,6 +1657,72 @@
 			} catch ( e2 ) {}
 		}
 
+		function clearShopFlowToast() {
+			if ( flowToastTimer ) {
+				clearTimeout( flowToastTimer );
+				flowToastTimer = 0;
+			}
+			if ( flowToastNode && flowToastNode.parentNode ) {
+				flowToastNode.parentNode.removeChild( flowToastNode );
+			}
+			flowToastNode = null;
+		}
+
+		function showShopFlowToast( message, opts ) {
+			opts = opts || {};
+			clearShopFlowToast();
+			var node = el( 'div', {
+				class: 'odd-shop__flow-toast',
+				role: 'status',
+				'aria-live': 'polite',
+			} );
+			var text = el( 'span', { class: 'odd-shop__flow-toast-text' } );
+			text.textContent = message || '';
+			node.appendChild( text );
+			if ( opts.actionLabel && typeof opts.onAction === 'function' ) {
+				var action = el( 'button', {
+					type: 'button',
+					class: 'odd-shop__flow-toast-action',
+					'data-odd-cursor': 'pointer',
+				} );
+				action.textContent = opts.actionLabel;
+				action.addEventListener( 'click', function () {
+					clearShopFlowToast();
+					opts.onAction();
+				} );
+				node.appendChild( action );
+			}
+			body.appendChild( node );
+			flowToastNode = node;
+			flowToastTimer = setTimeout( clearShopFlowToast, opts.duration || 5200 );
+		}
+
+		function shopInstallKey( row ) {
+			if ( ! row || ! row.slug ) return '';
+			return ( row.type || 'bundle' ) + ':' + row.slug;
+		}
+
+		function isShopInstalling( row ) {
+			var key = shopInstallKey( row );
+			return !! ( key && state.installing && state.installing[ key ] );
+		}
+
+		function setShopInstalling( row, installing ) {
+			var key = shopInstallKey( row );
+			if ( ! key ) return;
+			if ( installing ) state.installing[ key ] = true;
+			else delete state.installing[ key ];
+		}
+
+		function clearInstallFlow( type, slug ) {
+			if ( ! type || ! slug ) return;
+			delete state.installing[ type + ':' + slug ];
+		}
+
+		function itemDisplayName( row, fallback ) {
+			return ( row && ( row.name || row.label || row.slug ) ) || fallback || 'item';
+		}
+
 		function errorCopy( code, fallback ) {
 			switch ( code ) {
 				case 'invalid_extension':    return __( 'That file isn\u2019t a .wp bundle.' );
@@ -1855,6 +1925,7 @@
 			var reloadDelayMs = typeof reloadOpts.delayMs === 'number' ? reloadOpts.delayMs : ODD_RELOAD_DELAY_MS_DEFAULT;
 			var noun         = NOUN_FOR_TYPE[ type ] || 'bundle';
 			var row          = data && data.row;
+			clearInstallFlow( type, slug );
 			if ( 'app' === type ) {
 				row = Object.assign(
 					{},
@@ -1892,7 +1963,10 @@
 						( 'Installed ' + noun + ' "' + name + '". Refreshing admin…' ),
 				} );
 			} else {
-				toast( message || ( 'Installed ' + noun + ' "' + name + '".' ) );
+				showShopFlowToast(
+					message || ( 'Installed ' + noun + ' "' + name + '".' ),
+					{ duration: 4200 }
+				);
 			}
 			renderSection( DEPT_FOR_TYPE[ type ] || state.active, { keepQuery: true } );
 		}
@@ -1923,10 +1997,11 @@
 			if ( ! entryUrl ) { fallback(); return; }
 
 			loadBundleScript( 'widget', slug, entryUrl ).then( function () {
+				clearInstallFlow( 'widget', slug );
 				spliceInstalledRow( 'widget', slug, row || { id: 'odd/' + slug, slug: slug, label: name, installed: true }, data && data.manifest );
 				state.justInstalled = { type: 'widget', slug: slug, name: name, at: Date.now() };
 				playShopSound( 'success' );
-				toast( 'Installed widget "' + name + '". Added to your widget shelf.' );
+				showShopFlowToast( 'Installed widget "' + name + '". Ready to add.', { duration: 4200 } );
 				renderSection( 'widgets', { keepQuery: true } );
 			} ).catch( function () {
 				fallback();
@@ -2744,15 +2819,30 @@
 		}
 
 		function installFromBundleCatalog( row, btn ) {
+			return startShopInstall( row, btn );
+		}
+
+		function startShopInstall( row, btn, opts ) {
+			opts = opts || {};
+			row = row || {};
+			if ( ! row.slug ) return Promise.resolve( null );
+			if ( isShopInstalling( row ) ) return Promise.resolve( null );
 			playShopSound( 'install' );
+			setShopInstalling( row, true );
 			if ( btn ) {
 				btn.disabled = true;
+				btn.classList.add( 'odd-shop__card-btn--installing', 'is-disabled' );
+				btn.setAttribute( 'aria-busy', 'true' );
 				btn.textContent = 'Installing…';
 			}
-			toast( 'Installing ' + ( row.name || row.slug ) + '…' );
-			installCatalogRowData( row ).then( function ( data ) {
+			showShopFlowToast( 'Installing ' + itemDisplayName( row ) + '…', { duration: 2400 } );
+			renderSection( state.active, { keepQuery: true } );
+			return installCatalogRowData( row.raw || row, opts ).then( function ( data ) {
 				handleInstallSuccess( data );
+				return data;
 			} ).catch( function ( err ) {
+				setShopInstalling( row, false );
+				renderSection( state.active, { keepQuery: true } );
 				if ( err && err.data ) {
 					onInstallFailure( err );
 				} else {
@@ -2760,10 +2850,7 @@
 					playShopSound( 'error' );
 					toast( ( err && err.message ) || 'Network error while installing.' );
 				}
-				if ( btn ) {
-					btn.disabled = false;
-					btn.textContent = 'Install';
-				}
+				return null;
 			} );
 		}
 
@@ -4825,10 +4912,42 @@
 			}
 		}
 
-		function confirmScenePreview() {
+		function labelForInstalledRow( type, slug ) {
+			if ( ! slug || slug === 'none' ) return 'Default';
+			var rows;
+			if ( type === 'scene' ) rows = state.cfg.scenes;
+			else if ( type === 'icon-set' ) rows = state.cfg.iconSets;
+			else if ( type === 'cursor-set' ) rows = state.cfg.cursorSets;
+			else rows = [];
+			rows = Array.isArray( rows ) ? rows : [];
+			for ( var i = 0; i < rows.length; i++ ) {
+				if ( rows[ i ] && rows[ i ].slug === slug ) {
+					return rows[ i ].label || rows[ i ].name || slug;
+				}
+			}
+			return slug || 'Default';
+		}
+
+		function showAppliedUndoToast( type, slug, originalSlug ) {
+			var label = labelForInstalledRow( type, slug );
+			var canUndo = originalSlug !== undefined && originalSlug !== null && originalSlug !== slug;
+			var opts = { duration: canUndo ? 7600 : 4200 };
+			if ( canUndo && ( type === 'scene' || type === 'cursor-set' ) ) {
+				opts.actionLabel = 'Undo';
+				opts.onAction = function () {
+					if ( type === 'scene' ) applyScene( originalSlug || '' );
+					else if ( type === 'cursor-set' ) applyCursorSet( originalSlug || 'none' );
+				};
+			}
+			showShopFlowToast( 'Applied ' + label + '.', opts );
+		}
+
+		function confirmScenePreview( opts ) {
+			opts = opts || {};
 			if ( ! state.preview || state.preview.kind !== 'wallpaper' || state.posting ) return;
 			state.posting = true;
 			var slug = state.preview.slug;
+			var originalSlug = opts.originalSlug !== undefined ? opts.originalSlug : state.preview.originalSlug;
 			// Re-fire even if Preview already swapped — Pixi hook may have
 			// wired after the preview action, leaving REST committed but
 			// the canvas stale.
@@ -4845,18 +4964,20 @@
 				playShopSound( 'success' );
 				redecorateSceneGrid();
 				renderPreviewBar();
+				if ( opts.showToast ) showAppliedUndoToast( 'scene', slug, originalSlug );
 			} );
 		}
 
 		function applyScene( slug ) {
 			if ( state.posting ) return;
+			var originalSlug = state.cfg.wallpaper || state.cfg.scene;
 			state.preview = {
 				kind: 'wallpaper',
 				slug: slug,
-				originalSlug: state.cfg.wallpaper || state.cfg.scene,
+				originalSlug: originalSlug,
 			};
 			pickSceneLive( slug );
-			confirmScenePreview();
+			confirmScenePreview( { showToast: true, originalSlug: originalSlug } );
 		}
 
 		function cancelPreview() {
@@ -5375,10 +5496,12 @@
 			}
 		}
 
-		function confirmCursorPreview() {
+		function confirmCursorPreview( opts ) {
+			opts = opts || {};
 			if ( ! state.preview || state.preview.kind !== 'cursorSet' || state.posting ) return;
 			state.posting = true;
 			var slug = state.preview.slug;
+			var originalSlug = opts.originalSlug !== undefined ? opts.originalSlug : state.preview.originalSlug;
 			savePrefs( { cursorSet: slug }, function ( data ) {
 				state.posting = false;
 				if ( data && typeof data.cursorSet === 'string' ) {
@@ -5401,18 +5524,20 @@
 				playShopSound( 'success' );
 				redecorateCursorGrid();
 				renderPreviewBar();
+				if ( opts.showToast ) showAppliedUndoToast( 'cursor-set', slug, originalSlug );
 			} );
 		}
 
 		function applyCursorSet( slug ) {
 			if ( state.posting ) return;
+			var originalSlug = state.cfg.cursorSet || '';
 			state.preview = {
 				kind: 'cursorSet',
 				slug: slug,
-				originalSlug: state.cfg.cursorSet || '',
+				originalSlug: originalSlug,
 			};
 			setActiveCursorLink( slug );
-			confirmCursorPreview();
+			confirmCursorPreview( { showToast: true, originalSlug: originalSlug } );
 		}
 
 		function previewIconSet( slug ) {
@@ -6312,6 +6437,9 @@
 			if ( row && row.incompatible ) {
 				return { label: 'Incompatible', kind: 'incompatible', disabled: true };
 			}
+			if ( isShopInstalling( row ) ) {
+				return { label: 'Installing…', kind: 'installing', disabled: true, progress: true };
+			}
 			if ( ! row || ! row.installed ) {
 				return { label: 'Install', kind: 'install', disabled: false };
 			}
@@ -6347,23 +6475,7 @@
 		function dispatchShopAction( row, kind, btn ) {
 			switch ( kind ) {
 				case 'install':
-					if ( row.type === 'app' ) {
-						// Apps install through the same bundle endpoint
-						// as every other content type, while keeping the
-						// Apps status rail + toast copy.
-						var originalLabel = btn ? btn.textContent : 'Install';
-						if ( btn ) { btn.disabled = true; btn.textContent = 'Installing…'; }
-						playShopSound( 'install' );
-						toast( 'Installing ' + row.name + '…' );
-						installCatalogRowData( row ).then( function ( data ) {
-							handleInstallSuccess( data );
-						} ).catch( function ( err ) {
-							if ( btn ) { btn.disabled = false; btn.textContent = originalLabel; }
-							onInstallFailure( err );
-						} );
-					} else {
-						installFromBundleCatalog( row.raw || row, btn );
-					}
+					startShopInstall( row, btn );
 					break;
 				case 'repair':
 				case 'update':
@@ -6399,6 +6511,7 @@
 					onEscapeHatchReload( row );
 					break;
 				case 'pending_reload':
+				case 'installing':
 				case 'active':
 				case 'incompatible':
 				default:
@@ -6546,7 +6659,15 @@
 				type: 'button',
 				class: 'odd-shop__detail-primary odd-shop__card-btn--' + action.kind,
 			} );
-			primary.textContent = action.label;
+			if ( action.progress ) {
+				primary.appendChild( el( 'span', { class: 'odd-shop__btn-spinner', 'aria-hidden': 'true' } ) );
+				var primaryLabel = el( 'span', { class: 'odd-shop__btn-label' } );
+				primaryLabel.textContent = action.label;
+				primary.appendChild( primaryLabel );
+				primary.setAttribute( 'aria-busy', 'true' );
+			} else {
+				primary.textContent = action.label;
+			}
 			if ( action.disabled ) primary.disabled = true;
 			primary.addEventListener( 'click', function () {
 				if ( primary.disabled ) return;
@@ -6716,11 +6837,13 @@
 			var isActive = shopCardIsActive( row );
 			var action   = shopCardAction( row );
 			var kind     = action.kind;
+			var installing = !! action.progress;
 
 			var wrap = el( 'div', {
 				class: 'odd-shop__card-wrap'
 					+ ( row.installed ? ' is-installed' : ' is-catalog' )
 					+ ( isActive ? ' is-active' : '' )
+					+ ( installing ? ' is-installing' : '' )
 					+ ( opts.variant ? ' odd-shop__card-wrap--' + opts.variant : '' ),
 				'data-odd-shop-card': '1',
 				'data-odd-card-type': row.type,
@@ -6788,7 +6911,15 @@
 				'aria-pressed': isActive ? 'true' : 'false',
 				'data-odd-cursor': action.disabled ? 'not-allowed' : 'pointer',
 			} );
-			btn.textContent = action.label;
+			if ( action.progress ) {
+				btn.appendChild( el( 'span', { class: 'odd-shop__btn-spinner', 'aria-hidden': 'true' } ) );
+				var btnLabel = el( 'span', { class: 'odd-shop__btn-label' } );
+				btnLabel.textContent = action.label;
+				btn.appendChild( btnLabel );
+				btn.setAttribute( 'aria-busy', 'true' );
+			} else {
+				btn.textContent = action.label;
+			}
 			if ( row.incompatibilityReason ) {
 				btn.title = row.incompatibilityReason;
 			}
@@ -6816,6 +6947,12 @@
 
 			wrap.appendChild( card );
 			wrap.appendChild( btn );
+
+			if ( row.installed && ! isActive && ( row.type === 'scene' || row.type === 'icon-set' || row.type === 'cursor-set' ) ) {
+				var hint = el( 'div', { class: 'odd-shop__card-hint' } );
+				hint.textContent = row.type === 'icon-set' ? 'Apply reloads icons together' : 'Click card to preview';
+				wrap.appendChild( hint );
+			}
 
 			var quick = el( 'button', {
 				type: 'button',
