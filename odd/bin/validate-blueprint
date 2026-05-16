@@ -56,7 +56,9 @@ Checks (all emit bullets; any failure → exit code 1):
   8. Public blueprints install Desktop Mode and ODD from
      `resource: "wordpress.org/plugins"` with slugs `desktop-mode` and
      `odd-outlandish-desktop-decorator`, and deterministic folder names.
-  9. Dev blueprints: Desktop Mode from the pinned release zip matching
+  9. Every blueprint requests a Playground PHP runtime that satisfies
+     the plugin header's `Requires PHP` value.
+ 10. Dev blueprints: Desktop Mode from the pinned release zip matching
      `ODDOUT_DESKTOP_MODE_PLAYGROUND_VERSION` (targetFolderName desktop-mode);
      ODD from `git:directory` **branch** `main` on
      `RegionallyFamous/odd` with `path` `odd`.
@@ -85,6 +87,7 @@ ODD_CONST_RE = re.compile(
 )
 
 ODD_GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+REQUIRES_PHP_RE = re.compile(r"^\s*\*\s*Requires PHP:\s*([0-9]+(?:\.[0-9]+)*)\s*$", re.MULTILINE)
 
 # Dev Playground: pinned current shell from WordPress.org + ODD trunk.
 
@@ -120,8 +123,8 @@ def desktop_mode_zip_url(dm_min: str) -> str:
     )
 
 
-def odd_php_constants() -> tuple[str, str, str]:
-    """Return (ODDOUT_VERSION, Desktop Mode minimum, Playground pin)."""
+def odd_php_constants() -> tuple[str, str, str, str]:
+    """Return (ODDOUT_VERSION, Desktop Mode minimum, Playground pin, Requires PHP)."""
     text = PLUGIN_MAIN.read_text(encoding="utf-8")
     found: dict[str, str] = {}
     for m in ODD_CONST_RE.finditer(text):
@@ -134,12 +137,45 @@ def odd_php_constants() -> tuple[str, str, str]:
             found["desktop_playground"] = m.group(2)
     version = found.get("version")
     dm_min = found.get("desktop")
-    if version is None or dm_min is None:
+    requires_php_match = REQUIRES_PHP_RE.search(text)
+    requires_php = requires_php_match.group(1) if requires_php_match else None
+    if version is None or dm_min is None or requires_php is None:
         raise SystemExit(
             f"error: could not read ODDOUT_VERSION and "
-            f"ODDOUT_DESKTOP_MODE_MIN_VERSION from {PLUGIN_MAIN}"
+            f"ODDOUT_DESKTOP_MODE_MIN_VERSION and Requires PHP from {PLUGIN_MAIN}"
         )
-    return version, dm_min, found.get("desktop_playground", dm_min)
+    return version, dm_min, found.get("desktop_playground", dm_min), requires_php
+
+
+def version_tuple(version: str) -> tuple[int, ...]:
+    """Turn a dotted version into comparable integer parts."""
+    return tuple(int(part) for part in version.split("."))
+
+
+def validate_preferred_versions(data: dict, path: Path, requires_php: str) -> list[str]:
+    """Ensure Playground starts a runtime compatible with the plugin header."""
+    problems: list[str] = []
+    rel = path.relative_to(REPO_ROOT)
+    preferred = data.get("preferredVersions")
+    if not isinstance(preferred, dict):
+        return [f"{rel}: missing preferredVersions; set php to {requires_php} or newer"]
+
+    php = preferred.get("php")
+    if not isinstance(php, str) or not php:
+        return [f"{rel}: preferredVersions.php must be {requires_php} or newer"]
+
+    try:
+        actual = version_tuple(php)
+        minimum = version_tuple(requires_php)
+    except ValueError:
+        return [f"{rel}: preferredVersions.php is not a dotted numeric version: {php!r}"]
+
+    if actual < minimum:
+        problems.append(
+            f"{rel}: preferredVersions.php must satisfy plugin Requires PHP "
+            f"{requires_php}; got {php}"
+        )
+    return problems
 
 
 def fail(problems: list[str]) -> None:
@@ -149,7 +185,7 @@ def fail(problems: list[str]) -> None:
     sys.exit(1)
 
 
-def validate_file(path: Path, odd_version: str, dm_min: str) -> tuple[list[str], int]:
+def validate_file(path: Path, odd_version: str, dm_min: str, requires_php: str) -> tuple[list[str], int]:
     problems: list[str] = []
 
     if not path.exists():
@@ -163,6 +199,7 @@ def validate_file(path: Path, odd_version: str, dm_min: str) -> tuple[list[str],
     steps = data.get("steps")
     if not isinstance(steps, list) or not steps:
         problems.append("blueprint has no steps array")
+    problems.extend(validate_preferred_versions(data, path, requires_php))
 
     allowed_ref_types = {"tag", "branch", "commit", "refname"}
     expected_odd_ref = "v" + odd_version
@@ -305,7 +342,7 @@ def validate_file(path: Path, odd_version: str, dm_min: str) -> tuple[list[str],
     return problems, len(steps or [])
 
 
-def validate_dev_file(path: Path, dm_min: str) -> tuple[list[str], int]:
+def validate_dev_file(path: Path, dm_min: str, requires_php: str) -> tuple[list[str], int]:
     """Lint the trunk / pinned-Desktop-Mode dev blueprint."""
 
     problems: list[str] = []
@@ -321,6 +358,7 @@ def validate_dev_file(path: Path, dm_min: str) -> tuple[list[str], int]:
     steps = data.get("steps")
     if not isinstance(steps, list) or not steps:
         problems.append("blueprint has no steps array")
+    problems.extend(validate_preferred_versions(data, path, requires_php))
 
     allowed_ref_types = {"tag", "branch", "commit", "refname"}
     pinned_dm_release = False
@@ -425,16 +463,16 @@ def main() -> int:
     if not PLUGIN_MAIN.is_file():
         print(f"error: missing {PLUGIN_MAIN}", file=sys.stderr)
         return 1
-    odd_version, _dm_min, dm_pin = odd_php_constants()
+    odd_version, _dm_min, dm_pin, requires_php = odd_php_constants()
     problems: list[str] = []
     total_steps = 0
     for path in (BLUEPRINT, SITE_BLUEPRINT):
-        file_problems, step_count = validate_file(path, odd_version, dm_pin)
+        file_problems, step_count = validate_file(path, odd_version, dm_pin, requires_php)
         problems.extend(file_problems)
         total_steps += step_count
 
     for path in (BLUEPRINT_DEV, SITE_BLUEPRINT_DEV):
-        file_problems, step_count = validate_dev_file(path, dm_pin)
+        file_problems, step_count = validate_dev_file(path, dm_pin, requires_php)
         problems.extend(file_problems)
         total_steps += step_count
 
