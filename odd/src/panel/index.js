@@ -4683,7 +4683,27 @@
 			if ( counts.updates ) bits.push( counts.updates + ' update' + ( counts.updates === 1 ? '' : 's' ) );
 			if ( counts.active ) bits.push( counts.active + ' active' );
 			if ( shown.length !== counts.total ) bits.unshift( shown.length + ' showing' );
-			summary.textContent = bits.join( ' · ' );
+			var statusText = el( 'span', { class: 'odd-sr-only' } );
+			statusText.textContent = bits.join( ' · ' );
+			summary.appendChild( statusText );
+			var metrics = el( 'div', { class: 'odd-shop__storebar-metrics', 'aria-hidden': 'true' } );
+			function addMetric( value, label, kind ) {
+				var metric = el( 'span', { class: 'odd-shop__storebar-metric odd-shop__storebar-metric--' + kind } );
+				var number = el( 'b', { class: 'odd-shop__storebar-metric-value' } );
+				number.textContent = String( value );
+				var text = el( 'span', { class: 'odd-shop__storebar-metric-label' } );
+				text.textContent = label;
+				metric.appendChild( number );
+				metric.appendChild( text );
+				metrics.appendChild( metric );
+			}
+			if ( shown.length !== counts.total ) addMetric( shown.length, 'showing', 'showing' );
+			addMetric( counts.total, rowTypeLabel( type, counts.total !== 1 ), 'total' );
+			addMetric( counts.installed, 'installed', 'installed' );
+			if ( counts.available ) addMetric( counts.available, 'available', 'available' );
+			if ( counts.updates ) addMetric( counts.updates, counts.updates === 1 ? 'update' : 'updates', 'updates' );
+			if ( counts.active ) addMetric( counts.active, 'active', 'active' );
+			summary.appendChild( metrics );
 			wrap.appendChild( summary );
 
 			var controls = el( 'div', { class: 'odd-shop__storebar-controls' } );
