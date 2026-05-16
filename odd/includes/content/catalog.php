@@ -573,7 +573,7 @@ function oddout_catalog_load( $force = false ) {
 	$registry = oddout_catalog_fetch_remote( $url );
 
 	if ( ! is_wp_error( $registry ) ) {
-		$normalised = oddout_catalog_merge_fallback_icon_sets( oddout_catalog_normalise( $registry ) );
+		$normalised = oddout_catalog_normalise( $registry );
 		if ( ! oddout_catalog_should_accept_empty_remote( $normalised, $registry ) ) {
 			oddout_catalog_update_meta(
 				array(
@@ -592,6 +592,7 @@ function oddout_catalog_load( $force = false ) {
 				)
 			);
 		} else {
+			$normalised = oddout_catalog_merge_fallback_icon_sets( $normalised );
 			set_transient( ODDOUT_CATALOG_TRANSIENT, $normalised, ODDOUT_CATALOG_CACHE_TTL );
 			update_option( ODDOUT_CATALOG_STALE_OPTION, $normalised, false );
 			$runtime = $normalised;
