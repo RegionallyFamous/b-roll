@@ -97,6 +97,10 @@ function goToDepartment( host, label ) {
 	btn.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 }
 
+async function flush() {
+	for ( let i = 0; i < 10; i++ ) await Promise.resolve();
+}
+
 describe( 'ODD Shop · unified card state machine', () => {
 	let reloadSpy;
 
@@ -524,5 +528,91 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( url ).toContain( '/bundles/install-from-catalog' );
 		expect( opts.method ).toBe( 'POST' );
 		expect( JSON.parse( opts.body ) ).toEqual( { slug: 'gusts' } );
+	} );
+
+	it( 'catalog install falls back to browser download and bundle upload after a server download 502', async () => {
+		const downloadUrl = 'https://example.com/catalog/v1/bundles/iconset-filament.wp';
+		seed( {
+			bundleCatalog: {
+				scene: [],
+				iconSet: [
+					{
+						slug:         'filament',
+						label:        'Filament',
+						installed:    false,
+						download_url: downloadUrl,
+					},
+				],
+				cursorSet: [],
+				widget: [],
+			},
+		} );
+
+		const bundleBlob = new Blob( [ 'bundle bytes' ], { type: 'application/octet-stream' } );
+		globalThis.fetch = vi.fn( ( url, opts = {} ) => {
+			const href = String( url );
+			if ( opts.method === 'POST' && /\/bundles\/install-from-catalog$/.test( href ) ) {
+				return Promise.resolve( {
+					ok:     false,
+					status: 502,
+					json:   () => Promise.resolve( {
+						code:    'download_failed',
+						message: 'Could not download bundle.',
+						data:    { status: 502 },
+					} ),
+				} );
+			}
+			if ( href === downloadUrl ) {
+				return Promise.resolve( {
+					ok:     true,
+					status: 200,
+					blob:   () => Promise.resolve( bundleBlob ),
+				} );
+			}
+			if ( opts.method === 'POST' && /\/bundles\/upload$/.test( href ) ) {
+				return Promise.resolve( {
+					ok:     true,
+					status: 200,
+					json:   () => Promise.resolve( {
+						installed: true,
+						slug:      'filament',
+						type:      'icon-set',
+						manifest:  { slug: 'filament', label: 'Filament' },
+						row:       { slug: 'filament', label: 'Filament', installed: true },
+					} ),
+				} );
+			}
+			return Promise.resolve( {
+				ok:   true,
+				json: () => Promise.resolve( {} ),
+			} );
+		} );
+
+		loadPanel();
+		const { host } = mount();
+		goToDepartment( host, 'Icon Sets' );
+
+		const card = host.querySelector( '[data-odd-shop-card][data-catalog-slug="filament"]' );
+		card.querySelector( '.odd-shop__card-btn' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
+
+		await flush();
+		await new Promise( ( r ) => setTimeout( r, 0 ) );
+		await flush();
+
+		const installCall = globalThis.fetch.mock.calls.find( ( [ url, opts = {} ] ) => (
+			opts.method === 'POST' && /\/bundles\/install-from-catalog$/.test( String( url ) )
+		) );
+		const downloadCall = globalThis.fetch.mock.calls.find( ( [ url, opts = {} ] ) => (
+			String( url ) === downloadUrl && ! opts.method
+		) );
+		const uploadCall = globalThis.fetch.mock.calls.find( ( [ url, opts = {} ] ) => (
+			opts.method === 'POST' && /\/bundles\/upload$/.test( String( url ) )
+		) );
+		expect( installCall ).toBeTruthy();
+		expect( downloadCall ).toBeTruthy();
+		expect( uploadCall ).toBeTruthy();
+		expect( uploadCall[ 1 ].body.get( 'file' ).name ).toBe( 'iconset-filament.wp' );
+		expect( host.querySelector( '[data-odd-shop-card][data-set-slug="filament"]' ) ).toBeTruthy();
 	} );
 } );
