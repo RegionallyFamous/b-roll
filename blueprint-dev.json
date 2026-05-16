@@ -13,8 +13,10 @@
     {
       "step": "installPlugin",
       "pluginData": {
-        "resource": "url",
-        "url": "https://downloads.wordpress.org/plugin/desktop-mode.0.8.5.zip"
+        "resource": "git:directory",
+        "url": "https://github.com/WordPress/desktop-mode",
+        "ref": "trunk",
+        "refType": "branch"
       },
       "options": { "activate": true, "targetFolderName": "desktop-mode" }
     },
