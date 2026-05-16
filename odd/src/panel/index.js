@@ -1215,7 +1215,6 @@
 			) );
 			appendCatalogNotice( wrap, 'app' );
 
-			wrap.appendChild( renderAppsHero() );
 			var appRows = shopRowsFor( 'app' );
 			wrap.appendChild( renderStoreControls( 'app', appRows, applyStoreControls( appRows, 'app' ) ) );
 
@@ -3995,26 +3994,11 @@
 			) );
 			appendCatalogNotice( wrap, 'scene' );
 
-			// Scenes on disk come from installed bundles (plus
-			// the built-in "pending" fallback exposed by the runtime
-			// for first-boot safety). The main product shelves below
-			// use shopRowsFor('scene') so catalog-only scenes appear in
-			// the same card lane they turn into after install.
 			var installedScenes = ( Array.isArray( state.cfg.scenes ) ? state.cfg.scenes : [] )
 				.filter( function ( s ) { return s && s.slug && s.slug !== 'odd-pending'; } );
 			var allRows = shopRowsFor( 'scene' );
 			var rows = applyStoreControls( allRows, 'scene' );
 			wrap.appendChild( renderStoreControls( 'scene', allRows, rows ) );
-
-			// Hero — the currently-active scene, or the first result
-			// from installed content. Catalog-only rows stay in the
-			// product shelves until installed, so the hero never offers
-			// an Apply action for a scene that does not exist on disk.
-			var heroScenes = filterByQuery( installedScenes, state.query );
-			if ( heroScenes.length && state.storeView !== 'available' && state.storeView !== 'updates' ) {
-				var featured = pickFeaturedScene( heroScenes );
-				if ( featured ) wrap.appendChild( renderWallpaperHero( featured ) );
-			}
 
 			// Category quilt — gradient category tiles that jump
 			// to their shelf when clicked. Hidden while searching so
@@ -4039,7 +4023,7 @@
 			// Personal shelves — "Recents" (last 12 scenes the user
 			// switched to) and "Favorites" (starred by the user).
 			// Rendered above Discover so the most-personal content
-			// sits closest to the hero. Hidden while searching so the
+			// stays near the top. Hidden while searching so the
 			// result-focused view stays tight.
 			if ( ! state.query ) {
 				var recentsShelf = renderPersonalShelf( 'Recents', state.cfg.recents, installedScenes, 'wallpaper' );
@@ -4054,169 +4038,6 @@
 			} );
 
 			return wrap;
-		}
-
-		/**
-		 * Pick the scene to feature in the department hero.
-		 * Prefers the committed-active scene when it's still in the
-		 * filtered pool; otherwise falls back to the first result so
-		 * search queries always show a hero even when the active
-		 * scene was filtered out.
-		 */
-		function pickFeaturedScene( scenes ) {
-			var current = state.cfg.wallpaper || state.cfg.scene;
-			for ( var i = 0; i < scenes.length; i++ ) {
-				if ( scenes[ i ] && scenes[ i ].heroSafe !== false && scenes[ i ].slug === current ) return scenes[ i ];
-			}
-			for ( var j = 0; j < scenes.length; j++ ) {
-				if ( scenes[ j ] && scenes[ j ].heroSafe !== false ) return scenes[ j ];
-			}
-			return null;
-		}
-
-		function renderWallpaperHero( scene ) {
-			var currentSlug = state.cfg.wallpaper || state.cfg.scene;
-			var isActive    = scene.slug === currentSlug;
-			var previewUrl  = scene.previewUrl || scene.iconUrl || '';
-
-			var hero = el( 'div', {
-				class: 'odd-shop__hero',
-				'data-hero-slug': scene.slug,
-				style: 'background-color:' + ( scene.fallbackColor || '#1d1d1f' ),
-			} );
-			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
-			if ( previewUrl ) bg.style.backgroundImage = 'url("' + previewUrl + '")';
-			hero.appendChild( bg );
-			mountWallpaperHeroScene( bg, scene, previewUrl );
-			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
-
-			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
-			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
-			eyebrow.textContent = isActive ? 'Currently haunting your desktop' : 'Featured scene';
-			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
-			title.textContent = scene.label || scene.slug;
-			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = heroTagline( scene );
-			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
-
-			if ( isActive ) {
-				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
-				active.textContent = '✓ Living here';
-				actions.appendChild( active );
-			} else {
-				var applyBtn = el( 'button', {
-					type: 'button',
-					class: 'odd-shop__hero-btn odd-shop__hero-btn--primary',
-				} );
-				applyBtn.innerHTML = '<span aria-hidden="true">✓</span> Apply';
-				applyBtn.addEventListener( 'click', function ( e ) {
-					e.stopPropagation();
-					applyScene( scene.slug );
-				} );
-				actions.appendChild( applyBtn );
-			}
-
-			inner.appendChild( eyebrow );
-			inner.appendChild( title );
-			inner.appendChild( sub );
-			inner.appendChild( actions );
-			hero.appendChild( inner );
-
-			var thumb = el( 'div', { class: 'odd-shop__hero-thumb', 'aria-hidden': 'true' } );
-			var thumbImg = el( 'img', { src: previewUrl, alt: '', loading: 'lazy' } );
-			thumb.appendChild( thumbImg );
-			hero.appendChild( thumb );
-
-			return hero;
-		}
-
-		function mountWallpaperHeroScene( bg, scene, previewUrl ) {
-			if ( ! bg || ! scene || scene.heroSafe === false ) return;
-			var reduced = window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
-			if ( reduced || ! window.WebGLRenderingContext || ! window.__odd || typeof window.__odd.mountSceneInto !== 'function' ) return;
-			var live = el( 'div', { class: 'odd-shop__hero-live', 'aria-hidden': 'true' } );
-			bg.appendChild( live );
-			var handle = null;
-			var destroyed = false;
-			var pausedByVisibility = false;
-			var perfTimer = 0;
-			var mountPromise;
-			try {
-				mountPromise = window.__odd.mountSceneInto( live, scene.slug, {
-					lowPower: true,
-					maxFPS: 30,
-					resolution: 1,
-					heroMode: true,
-					desktopStub: { supports: {}, wallpaper: { visible: true, state: 'visible', id: 'odd-shop-hero' }, windows: { all: [], count: 0 }, surfaces: { all: [], count: 0 } },
-				} );
-			} catch ( err ) {
-				reportError( 'panel.hero-scene', err );
-				if ( live.parentNode ) live.parentNode.removeChild( live );
-				if ( previewUrl ) bg.style.backgroundImage = 'url("' + previewUrl + '")';
-				return;
-			}
-			if ( ! mountPromise || typeof mountPromise.then !== 'function' ) return;
-			mountPromise.then( function ( mounted ) {
-				if ( destroyed ) {
-					if ( mounted && typeof mounted.destroy === 'function' ) mounted.destroy();
-					return;
-				}
-				handle = mounted;
-				if ( handle && handle.env && handle.env.perfTier === 'low' ) {
-					destroyHero();
-				}
-				perfTimer = window.setInterval( function () {
-					if ( handle && handle.env && handle.env.perfTier === 'low' ) destroyHero();
-				}, 1000 );
-			} ).catch( function ( err ) {
-				if ( destroyed ) return;
-				reportError( 'panel.hero-scene', err );
-				if ( live.parentNode ) live.parentNode.removeChild( live );
-				if ( previewUrl ) bg.style.backgroundImage = 'url("' + previewUrl + '")';
-			} );
-			function setPaused( paused ) {
-				pausedByVisibility = !! paused;
-				if ( handle && handle.app && handle.app.ticker ) {
-					if ( pausedByVisibility ) handle.app.ticker.stop();
-					else handle.app.ticker.start();
-				}
-			}
-			function onVisibility() {
-				setPaused( document.visibilityState === 'hidden' );
-			}
-			function destroyHero() {
-				destroyed = true;
-				if ( perfTimer ) {
-					window.clearInterval( perfTimer );
-					perfTimer = 0;
-				}
-				if ( handle && typeof handle.destroy === 'function' ) handle.destroy();
-				handle = null;
-				if ( live.parentNode ) live.parentNode.removeChild( live );
-			}
-			document.addEventListener( 'visibilitychange', onVisibility );
-			addSectionCleanup( function () {
-				document.removeEventListener( 'visibilitychange', onVisibility );
-				destroyHero();
-			} );
-		}
-
-		/**
-		 * Tagline copy for the hero. Uses the scene's tags where
-		 * available so each category hero reads as distinct; falls
-		 * back to a category-flavoured line otherwise.
-		 */
-		function heroTagline( scene ) {
-			if ( scene.tagline && typeof scene.tagline === 'string' ) return scene.tagline;
-			if ( Array.isArray( scene.tags ) && scene.tags.length ) {
-				return scene.tags.slice( 0, 3 ).join( ' · ' );
-			}
-			switch ( scene.category ) {
-				case 'Atmosphere':    return 'Painterly weather and ambient light.';
-				case 'Paper':         return 'Folded forms drifting through negative space.';
-				case 'ODD Originals': return 'House specials from the ODD studio, gently misbehaving.';
-				default:              return 'A generative scene that lives, loops, and loiters on your desktop.';
-			}
 		}
 
 		function renderEmptyResults( message ) {
@@ -5514,41 +5335,6 @@
 			return wrap;
 		}
 
-		/**
-		 * Apps hero — editorial banner for the whole department.
-		 * The Apps tab doesn't have a "currently active" item the way
-		 * Wallpapers + Icon Sets do, so the hero is purely a brand
-		 * masthead: backdrop art + eyebrow + headline + tagline. No
-		 * action buttons on the hero itself; install + manage actions
-		 * live in the rows below.
-		 */
-		function renderAppsHero() {
-			var bannerUrl = ( state.cfg.pluginUrl || '' ) + '/assets/shop/apps-hero.webp';
-			var hero = el( 'div', {
-				class: 'odd-shop__hero odd-shop__hero--apps',
-				'data-hero-slug': 'apps',
-				style: 'background-color:#f4d4c5',
-			} );
-			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
-			bg.style.backgroundImage = 'url("' + bannerUrl + '")';
-			hero.appendChild( bg );
-			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
-
-			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
-			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
-			eyebrow.textContent = 'Mini Apps';
-			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
-			title.textContent = 'Tiny apps. Real windows. Zero fuss.';
-			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = 'Standalone little programs that live on your WordPress desktop. They do not need WordPress to babysit them; they just open, do the thing, and behave.';
-			inner.appendChild( eyebrow );
-			inner.appendChild( title );
-			inner.appendChild( sub );
-			hero.appendChild( inner );
-
-			return hero;
-		}
-
 		// Icon-set card adapter — same unified tile as scenes, with an
 		// extra `odd-catalog-row--iconset` marker so `redecorateIconGrid`
 		// can still sync previously-built rows after Apply.
@@ -5580,26 +5366,9 @@
 			) );
 			appendCatalogNotice( wrap, 'cursor-set' );
 
-			var sets = Array.isArray( state.cfg.cursorSets ) ? state.cfg.cursorSets.slice() : [];
 			var rows = shopRowsFor( 'cursor-set' ).filter( function ( s ) { return s && s.slug && s.slug !== 'none'; } );
-			var realSets = sets.filter( function ( s ) { return s && s.slug && s.slug !== 'none'; } );
-			var defaultSet = {
-				slug: 'none',
-				label: 'Default',
-				category: 'Browser',
-				description: 'Use the stock browser and operating-system cursor without an ODD aura.',
-				preview: '',
-				effects: {},
-				cursors: {},
-			};
-			var heroPool = state.cfg.cursorSet === 'none' ? [ defaultSet ].concat( realSets ) : realSets;
 			var filtered = applyStoreControls( rows, 'cursor-set' );
 			wrap.appendChild( renderStoreControls( 'cursor-set', rows, filtered ) );
-
-			if ( heroPool.length && state.storeView !== 'available' && state.storeView !== 'updates' ) {
-				var featured = pickFeaturedCursorSet( heroPool );
-				if ( featured ) wrap.appendChild( renderCursorHero( featured ) );
-			}
 
 			if ( state.cfg.cursorSet && state.cfg.cursorSet !== 'none' && ! state.query ) {
 				var resetRow = el( 'div', { class: 'odd-shop__reset-row' } );
@@ -5640,68 +5409,6 @@
 				wrap.appendChild( renderShelf( shelf.category, shelf.items, renderCursorSetCard, { scope: 'cursors' } ) );
 			} );
 			return wrap;
-		}
-
-		function pickFeaturedCursorSet( sets ) {
-			var current = state.cfg.cursorSet;
-			if ( typeof current === 'string' && current !== '' ) {
-				for ( var i = 0; i < sets.length; i++ ) {
-					if ( sets[ i ] && sets[ i ].slug === current ) return sets[ i ];
-				}
-			}
-			for ( var j = 0; j < sets.length; j++ ) {
-				if ( sets[ j ] && sets[ j ].slug !== 'none' ) return sets[ j ];
-			}
-			return sets[ 0 ] || null;
-		}
-
-		function renderCursorHero( set ) {
-			var currentSlug = state.cfg.cursorSet || '';
-			var isActive = ( set.slug === 'none' && ! currentSlug ) || ( set.slug !== 'none' && set.slug === currentSlug );
-			var hero = el( 'div', {
-				class: 'odd-shop__hero odd-shop__hero--cursors',
-				'data-hero-slug': set.slug,
-				style: 'background-color:#14111f',
-			} );
-			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
-			bg.style.background = 'radial-gradient(circle at 72% 24%, rgba(56,232,255,.38), transparent 34%), linear-gradient(135deg,#241033,#111827)';
-			hero.appendChild( bg );
-			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
-
-			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
-			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
-			eyebrow.textContent = isActive ? 'Current pointer mood' : 'Featured pointer mood';
-			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
-			title.textContent = set.label || set.slug;
-			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = set.description || 'A pointer theme with just enough attitude for Desktop Mode and wp-admin.';
-			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
-			if ( isActive ) {
-				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
-				active.textContent = '✓ Pointing now';
-				actions.appendChild( active );
-			} else {
-				var applyBtn = el( 'button', { type: 'button', class: 'odd-shop__hero-btn odd-shop__hero-btn--primary' } );
-				applyBtn.innerHTML = '<span aria-hidden="true">✓</span> Apply';
-				applyBtn.addEventListener( 'click', function ( e ) {
-					e.stopPropagation();
-					applyCursorSet( set.slug );
-				} );
-				actions.appendChild( applyBtn );
-			}
-			inner.appendChild( eyebrow );
-			inner.appendChild( title );
-			inner.appendChild( sub );
-			inner.appendChild( actions );
-			hero.appendChild( inner );
-
-			var thumbUrl = set.preview || '';
-			if ( thumbUrl ) {
-				var thumb = el( 'div', { class: 'odd-shop__hero-thumb odd-shop__hero-thumb--cursors', 'aria-hidden': 'true' } );
-				thumb.appendChild( el( 'img', { src: thumbUrl, alt: '', loading: 'lazy' } ) );
-				hero.appendChild( thumb );
-			}
-			return hero;
 		}
 
 		function renderCursorSetCard( set ) {
@@ -5967,34 +5674,6 @@
 			var rows = applyStoreControls( allRows, 'widget' );
 			wrap.appendChild( renderStoreControls( 'widget', allRows, rows ) );
 
-			// Hero: whichever widget is currently on the desktop wins.
-			// Falls back to the first installed row so the department
-			// always has a masthead (catalog-only rows skip the hero).
-			var hero = null;
-			for ( var i = 0; i < rows.length; i++ ) {
-				if ( rows[ i ] && rows[ i ].installed && shopCardIsActive( rows[ i ] ) ) { hero = rows[ i ]; break; }
-			}
-			if ( ! hero ) {
-				for ( var j = 0; j < rows.length; j++ ) {
-					if ( rows[ j ] && rows[ j ].installed ) { hero = rows[ j ]; break; }
-				}
-			}
-			if ( hero && ! state.query && state.storeView !== 'available' && state.storeView !== 'updates' ) {
-				wrap.appendChild( renderWidgetsHero(
-					{
-						id:          'odd/' + hero.slug,
-						label:       hero.name,
-						iconUrl:     hero.iconUrl || '',
-						glyph:       hero.raw && hero.raw.glyph ? hero.raw.glyph : '',
-						gradient:    hero.raw && hero.raw.gradient
-							? hero.raw.gradient
-							: 'linear-gradient(135deg,#3b3b52 0%,#6d6d8a 55%,#b5b5cc 100%)',
-						description: hero.description || 'A desktop widget.',
-					},
-					shopCardIsActive( hero )
-				) );
-			}
-
 			if ( ! rows.length ) {
 				wrap.appendChild( renderEmptyDept(
 					'widgets',
@@ -6025,69 +5704,6 @@
 			}
 
 			return wrap;
-		}
-
-		function renderWidgetsHero( widget, isEnabled ) {
-			var hero = el( 'div', {
-				class: 'odd-shop__hero odd-shop__hero--widgets',
-				'data-hero-slug': widget.id,
-				style: 'background:' + widget.gradient,
-			} );
-			// Giant translucent glyph floats to the right as the hero's
-			// visual anchor — no painted artwork to ship, and the
-			// gradient + emoji combo reads instantly across locales.
-			// `aria-hidden` keeps screen readers from narrating an
-			// emoji that's purely decorative.
-			var art = el( 'div', {
-				class: 'odd-shop__hero-glyph',
-				'aria-hidden': 'true',
-			} );
-			if ( widget.iconUrl ) {
-				art.appendChild( el( 'img', {
-					class:   'odd-shop__hero-icon-img',
-					src:     widget.iconUrl,
-					alt:     '',
-					loading: 'lazy',
-				} ) );
-			} else if ( widget.glyph ) {
-				art.textContent = widget.glyph;
-			} else {
-				art.classList.add( 'odd-shop__hero-glyph--initials' );
-				art.textContent = ( widget.label || '' ).slice( 0, 2 ).toUpperCase();
-			}
-			hero.appendChild( art );
-			hero.appendChild( el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } ) );
-
-			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
-			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
-			eyebrow.textContent = isEnabled ? 'On your desktop' : 'Featured widget';
-			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
-			title.textContent = widget.label;
-			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = widget.description;
-
-			// Use the shared hero-actions/hero-btn pattern so the CTA
-			// visually matches anything else we might drop in other
-			// departments later. Primary = white pill for "Add";
-			// ghost = translucent bordered pill for "Remove from
-			// desktop" (the destructive-ish inverse).
-			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
-			var cta = el( 'button', {
-				type: 'button',
-				class: 'odd-shop__hero-btn ' + ( isEnabled ? 'odd-shop__hero-btn--ghost' : 'odd-shop__hero-btn--primary' ),
-			} );
-			cta.textContent = isEnabled ? 'Remove from desktop' : 'Add to desktop';
-			cta.addEventListener( 'click', function () {
-				toggleWidget( widget.id, ! isEnabled );
-			} );
-			actions.appendChild( cta );
-
-			inner.appendChild( eyebrow );
-			inner.appendChild( title );
-			inner.appendChild( sub );
-			inner.appendChild( actions );
-			hero.appendChild( inner );
-			return hero;
 		}
 
 		/* --- About section ---------------------------------------

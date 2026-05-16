@@ -305,62 +305,6 @@
 .odd-panel.odd-shop .odd-section-header h2{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:.98;color:var(--odd-shop-ink);margin:0 0 10px}
 .odd-panel.odd-shop .odd-section-header p{color:var(--odd-shop-ink-2);font-size:clamp(14px,1.7cqi,17px);line-height:1.52;max-width:56ch;margin:0}
 
-/* Hero — the department\'s featured item. Full-bleed card
-* with a scene preview as background, a dark left-side
-* scrim for text legibility, and a floating thumbnail at
-* the bottom-right that echoes the App Store\'s preview. */
-.odd-panel.odd-shop .odd-shop__hero{position:relative;overflow:hidden;margin:0 0 32px;min-height:248px;border-radius:var(--odd-shop-radius-lg);color:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:24px;padding:32px 36px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 52px -28px rgba(20,14,40,.35);isolation:isolate;background-color:#1d1d1f}
-.odd-panel.odd-shop .odd-shop__hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:saturate(1.05);z-index:-2}
-.odd-panel.odd-shop .odd-shop__hero-live{position:absolute;inset:0;opacity:.82;mix-blend-mode:screen}
-.odd-panel.odd-shop .odd-shop__hero-live canvas{display:block;width:100%;height:100%}
-/* Scrim is asymmetric: heavy on the left where text lives
-* fully transparent on the right where the artwork sits.
-* Tuned for both bright (Aurora, Origami) and dark scenes;
-* the title also carries its own text-shadow as belt + braces. */
-/* Hero scrim is the linchpin of hero readability. Earlier
-* passes used a gentle gradient that worked on dark
-* backdrops but fell apart on bright editorial art (icons
-* apps banners). This pass anchors the left ~half at near-
-* solid black, keeps the title block in solid territory
-* and only releases to transparent past the body content
-* so the right edge of the hero still shows the artwork.
-* Two stacked layers: a hard left ink panel + a soft
-* vertical haze along the bottom for thumbnail bleed. */
-.odd-panel.odd-shop .odd-shop__hero-scrim{position:absolute;inset:0;background:linear-gradient(98deg,rgba(0,0,0,.94) 0%,rgba(0,0,0,.92) 36%,rgba(0,0,0,.72) 50%,rgba(0,0,0,.32) 66%,rgba(0,0,0,0) 84%),linear-gradient(180deg,rgba(0,0,0,0) 60%,rgba(0,0,0,.35) 100%);z-index:-1}
-.odd-panel.odd-shop .odd-shop__hero--apps .odd-shop__hero-scrim{background:linear-gradient(98deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.88) 36%,rgba(0,0,0,.62) 52%,rgba(0,0,0,.22) 70%,rgba(0,0,0,0) 88%),linear-gradient(180deg,rgba(0,0,0,0) 65%,rgba(0,0,0,.35) 100%)}
-/* Apps banner is a pastel sunrise; soften the white text by
-* giving it a warm-dark scrim instead of pure black. */
-.odd-panel.odd-shop .odd-shop__hero--apps .odd-shop__hero-scrim{background:linear-gradient(95deg,rgba(40,8,28,.7) 0%,rgba(40,8,28,.42) 32%,rgba(40,8,28,.06) 60%,rgba(40,8,28,0) 90%)}
-.odd-panel.odd-shop .odd-shop__hero-body{display:flex;flex-direction:column;gap:10px;max-width:58%;min-width:0;position:relative;z-index:1}
-.odd-panel.odd-shop .odd-shop__hero-eyebrow{display:inline-block;align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.28);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
-/* Hero title + subtitle ride a stacked text-shadow that
-* doubles as a soft halo: a tight 1px shadow nails the
-* letterforms; a longer 14px shadow softens the edge so
-* we still get separation from any pixel that bleeds
-* past the scrim on a really bright preview. */
-.odd-panel.odd-shop .odd-shop__hero-title{margin:6px 0 0;font-size:40px;font-weight:800;letter-spacing:-.022em;line-height:1.04;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.85),0 2px 14px rgba(0,0,0,.55)}
-.odd-panel.odd-shop .odd-shop__hero-sub{margin:0;font-size:15px;line-height:1.5;color:#fff;max-width:48ch;text-shadow:0 1px 2px rgba(0,0,0,.7),0 1px 8px rgba(0,0,0,.45)}
-.odd-panel.odd-shop .odd-shop__hero-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
-.odd-panel.odd-shop .odd-shop__hero-btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.01em;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,background .16s ease,border-color .16s ease}
-.odd-panel.odd-shop .odd-shop__hero-btn--primary{background:#fff;color:#1d1d1f;box-shadow:0 8px 20px -14px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.5) inset}
-.odd-panel.odd-shop .odd-shop__hero-btn--primary:hover{background:#fff;color:#1d1d1f;transform:translateY(-1px);box-shadow:0 14px 28px -14px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.75) inset}
-.odd-panel.odd-shop .odd-shop__hero-btn--primary:active{transform:translateY(0)}
-.odd-panel.odd-shop .odd-shop__hero-btn--ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.38);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-.odd-panel.odd-shop .odd-shop__hero-btn--ghost:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.55);transform:translateY(-1px)}
-.odd-panel.odd-shop .odd-shop__hero-btn--ghost:active{transform:translateY(0)}
-.odd-panel.odd-shop .odd-shop__hero-btn:focus-visible{outline:3px solid rgba(255,255,255,.82);outline-offset:3px}
-.odd-panel.odd-shop .odd-shop__hero-btn span{font-size:10px;line-height:1}
-.odd-panel.odd-shop .odd-shop__hero-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-size:12px;font-weight:700;letter-spacing:.02em;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.odd-panel.odd-shop .odd-shop__hero-thumb{width:150px;height:96px;border-radius:12px;overflow:hidden;box-shadow:0 18px 36px -18px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.22);justify-self:end;align-self:end;background:#222}
-.odd-panel.odd-shop .odd-shop__hero-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.odd-panel.odd-shop .odd-shop__hero--cursors::before{content:"";position:absolute;right:8%;top:22%;width:min(42%,320px);height:48%;border-radius:999px;background:radial-gradient(circle at 10% 60%,rgba(255,255,255,.9) 0 3px,transparent 4px),linear-gradient(100deg,rgba(255,255,255,.72),rgba(255,255,255,0));opacity:.5;filter:blur(.2px);transform:rotate(-10deg);animation:odd-shop-cursor-trail 6s ease-in-out infinite;z-index:0}
-.odd-panel.odd-shop .odd-shop__hero--apps::before{content:"";position:absolute;right:8%;top:18%;width:min(38%,260px);aspect-ratio:1;border-radius:26%;background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(255,255,255,.34));box-shadow:54px 28px 0 -10px rgba(255,255,255,.35),-44px 78px 0 -12px rgba(255,255,255,.22),22px 128px 0 -8px rgba(255,255,255,.28);opacity:.42;animation:odd-shop-app-grid 7s ease-in-out infinite;z-index:0}
-.odd-panel.odd-shop .odd-shop__hero--widgets .odd-shop__hero-glyph{animation:odd-shop-widget-pop 6s var(--odd-shop-ease-spring) infinite}
-@keyframes odd-shop-cursor-trail{0%,100%{transform:translateX(0) rotate(-10deg);opacity:.35}50%{transform:translateX(-18px) rotate(-6deg);opacity:.7}}
-@keyframes odd-shop-app-grid{0%,100%{transform:translate3d(0,0,0) rotate(-3deg)}50%{transform:translate3d(-8px,-4px,0) rotate(2deg)}}
-@keyframes odd-shop-widget-pop{0%,100%{transform:translateY(-50%) scale(1)}45%{transform:translateY(calc(-50% - 12px)) scale(1.05)}55%{transform:translateY(calc(-50% - 8px)) scale(.98)}}
-@media (prefers-reduced-motion:reduce){.odd-panel.odd-shop .odd-shop__hero--cursors::before,.odd-panel.odd-shop .odd-shop__hero--apps::before,.odd-panel.odd-shop .odd-shop__hero--widgets .odd-shop__hero-glyph{animation:none}}
-
 /* Category quilt — gradient category tiles that jump
 * to their shelf. Two columns on wide, single on narrow. */
 .odd-panel.odd-shop .odd-shop__quilt{margin:0 0 32px}
@@ -539,18 +483,6 @@
 .odd-panel.odd-shop .odd-apps-upload{border-radius:var(--odd-shop-radius);border-color:var(--odd-shop-border-strong);background:#fff}
 .odd-panel.odd-shop .odd-apps-upload.is-dragover{border-color:var(--odd-shop-accent);background:#eef5ff}
 
-/* Widgets department — masthead prefers the catalog thumbnail
-   (icon_url on each registry row, surfaced as iconUrl) merged onto
-   installed widget rows. Fallback: two-letter initials. Hero uses the
-   same icon or initials with a gentle bob; reduced-motion drops it. */
-.odd-panel.odd-shop .odd-shop__hero--widgets{background:linear-gradient(135deg,#1f1f2d 0%,#3b2fa0 100%)}
-.odd-panel.odd-shop .odd-shop__hero--widgets .odd-shop__hero-scrim{background:linear-gradient(98deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.58) 36%,rgba(0,0,0,.3) 58%,rgba(0,0,0,0) 82%),linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.32) 100%)}
-.odd-panel.odd-shop .odd-shop__hero-glyph{position:absolute;top:50%;right:6%;transform:translateY(-50%);font-size:clamp(130px,26vw,240px);line-height:1;opacity:.58;filter:drop-shadow(0 16px 34px rgba(0,0,0,.38));pointer-events:none;z-index:0;animation:odd-shop-bob 7s ease-in-out infinite;will-change:transform}
-.odd-panel.odd-shop .odd-shop__hero-glyph .odd-shop__hero-icon-img{display:block;width:clamp(112px,20vw,200px);height:clamp(112px,20vw,200px);object-fit:contain;opacity:.88}
-.odd-panel.odd-shop .odd-shop__hero-glyph--initials{font-size:clamp(72px,14vw,150px);font-weight:800;letter-spacing:-.035em;line-height:.95;opacity:.52}
-@keyframes odd-shop-bob{0%,100%{transform:translateY(-50%)}50%{transform:translateY(calc(-50% - 10px))}}
-@media (prefers-reduced-motion: reduce){.odd-panel.odd-shop .odd-shop__hero-glyph{animation:none}}
-
 /* Widget cards — tile shell with a gradient top panel and
 * a stacked meta+action layout. Override the shared tile
 * meta grid so the action pill sits on its own row. The
@@ -568,10 +500,9 @@
 .odd-panel.odd-shop .odd-shop__tile--widget .odd-shop__tile-sub{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.45;color:var(--odd-shop-ink-3)}
 .odd-panel.odd-shop .odd-shop__tile-actions{padding:4px 16px 16px;display:flex;justify-content:flex-start}
 
-/* Tile buttons — shared primary / ghost pill language with
-* the hero buttons so the two layouts feel like one
-* interaction system. Primary = accent fill, ghost = white
-* w/ border to signal the inverse (remove) action. */
+/* Tile buttons — shared primary / ghost pill language. Primary
+* = accent fill, ghost = white w/ border to signal the inverse
+* (remove) action. */
 .odd-panel.odd-shop .odd-shop__tile-btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:999px;border:1px solid transparent;font-size:12px;font-weight:600;letter-spacing:.01em;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .16s ease,border-color .16s ease,box-shadow .16s ease}
 .odd-panel.odd-shop .odd-shop__tile-btn--primary{background:var(--odd-shop-accent);color:#fff;box-shadow:0 6px 14px -8px rgba(0,113,227,.7)}
 .odd-panel.odd-shop .odd-shop__tile-btn--primary:hover{background:#0a66cf;transform:translateY(-1px);box-shadow:0 10px 20px -10px rgba(0,113,227,.7)}
@@ -879,9 +810,6 @@
 .odd-panel.odd-shop .odd-shop__dept-eyebrow{color:color-mix(in srgb,var(--odd-shop-active-tint,var(--odd-shop-accent)) 74%,var(--odd-shop-ink))}
 .odd-panel.odd-shop .odd-section-header h2{font-size:var(--odd-shop-t-2xl);color:var(--odd-shop-ink)}
 .odd-panel.odd-shop .odd-section-header p{color:var(--odd-shop-ink-2)}
-.odd-panel.odd-shop .odd-shop__hero{min-height:clamp(220px,38cqw,330px);padding:clamp(24px,4cqw,40px);border-radius:var(--odd-shop-r-xl);box-shadow:var(--odd-shop-e-2);filter:saturate(var(--odd-shop-chaos-saturation))}
-.odd-panel.odd-shop .odd-shop__hero-title{font-size:var(--odd-shop-t-2xl)}
-.odd-panel.odd-shop .odd-shop__hero-thumb{width:clamp(120px,22cqw,220px);height:auto;aspect-ratio:16/10}
 .odd-panel.odd-shop .odd-shop__quilt-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:clamp(10px,2cqw,16px)}
 .odd-panel.odd-shop .odd-shop__shelf-track--tiles > .odd-shop__tile,.odd-panel.odd-shop .odd-shop__shelf-track--tiles > .odd-shop__tile-wrap,.odd-panel.odd-shop .odd-shop__shelf-track--tiles > .odd-shop__card-wrap,.odd-panel.odd-shop .odd-shop__shelf-track--list > .odd-catalog-row,.odd-panel.odd-shop .odd-shop__shelf-track--list > .odd-shop__card-wrap{flex:0 0 clamp(168px,22cqw,240px)}
 .odd-panel.odd-shop .odd-shop__grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,clamp(156px,23cqw,220px)),1fr))}
@@ -915,13 +843,13 @@
 @keyframes odd-shop-rainbow{to{background-position:200% 0}}
 
 /* Collapse at XL: shelves become grid-like when enough room exists. */
-@container (min-width:1280px){.odd-panel.odd-shop .odd-shop__dept{max-width:1280px;margin-inline:auto}.odd-panel.odd-shop .odd-shop__shelf-track{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));overflow:visible}.odd-panel.odd-shop .odd-shop__slider-btn{display:none!important}.odd-panel.odd-shop .odd-shop__hero{grid-template-columns:minmax(0,.42fr) minmax(360px,.58fr)}.odd-panel.odd-shop .odd-shop__hero-body{max-width:none}}
+@container (min-width:1280px){.odd-panel.odd-shop .odd-shop__dept{max-width:1280px;margin-inline:auto}.odd-panel.odd-shop .odd-shop__shelf-track{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));overflow:visible}.odd-panel.odd-shop .odd-shop__slider-btn{display:none!important}}
 
-/* Collapse at S/M: keep the two-pane shop, but compress the rail and hero. */
-@media (max-width:960px){.odd-panel.odd-shop{grid-template-columns:64px minmax(0,1fr)!important}.odd-panel.odd-shop .odd-shop__brand-text{display:none}.odd-panel.odd-shop .odd-shop__rail{padding:14px 6px}.odd-panel.odd-shop .odd-shop__rail-heading,.odd-panel.odd-shop .odd-shop__rail-group-heading,.odd-panel.odd-shop .odd-shop__rail-label,.odd-panel.odd-shop .odd-shop__rail-foot{display:none}.odd-panel.odd-shop .odd-shop__rail-item{grid-template-columns:1fr;justify-items:center;padding:10px 8px}.odd-panel.odd-shop .odd-shop__hero{grid-template-columns:minmax(0,1fr);align-items:end}.odd-panel.odd-shop .odd-shop__hero-body{max-width:78%}.odd-panel.odd-shop .odd-shop__hero-thumb{display:none}}
+/* Collapse at S/M: keep the two-pane shop, but compress the rail. */
+@media (max-width:960px){.odd-panel.odd-shop{grid-template-columns:64px minmax(0,1fr)!important}.odd-panel.odd-shop .odd-shop__brand-text{display:none}.odd-panel.odd-shop .odd-shop__rail{padding:14px 6px}.odd-panel.odd-shop .odd-shop__rail-heading,.odd-panel.odd-shop .odd-shop__rail-group-heading,.odd-panel.odd-shop .odd-shop__rail-label,.odd-panel.odd-shop .odd-shop__rail-foot{display:none}.odd-panel.odd-shop .odd-shop__rail-item{grid-template-columns:1fr;justify-items:center;padding:10px 8px}}
 
 /* Collapse at XS: keep the rail vertical so hidden native scrollbars never become horizontal drift. */
-@media (max-width:520px){.odd-panel.odd-shop{grid-template-rows:auto minmax(0,1fr);grid-template-columns:64px minmax(0,1fr)!important}.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;grid-row:1;grid-template-columns:1fr;grid-template-areas:"brand" "command";gap:10px}.odd-panel.odd-shop .odd-shop__command{justify-self:stretch;width:100%}.odd-panel.odd-shop .odd-shop__search{justify-self:stretch;max-width:none}.odd-panel.odd-shop .odd-shop__search-tools{justify-content:flex-start}.odd-panel.odd-shop .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;overflow-x:hidden;overflow-y:auto;border-right:1px solid var(--odd-shop-border);border-bottom:0;padding:14px 6px}.odd-panel.odd-shop .odd-shop__rail-group{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}.odd-panel.odd-shop .odd-shop__rail-item{width:auto}.odd-panel.odd-shop .odd-shop__content{grid-column:2;grid-row:2;padding:18px 18px 0}.odd-panel.odd-shop .odd-shop__hero{min-height:0;padding:18px;border-radius:var(--odd-shop-r-l)}.odd-panel.odd-shop .odd-shop__hero-body{max-width:none}.odd-panel.odd-shop .odd-shop__hero-title{font-size:clamp(26px,8vw,32px)}.odd-panel.odd-shop .odd-shop__install-types{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.odd-panel.odd-shop{grid-template-rows:auto minmax(0,1fr);grid-template-columns:64px minmax(0,1fr)!important}.odd-panel.odd-shop .odd-shop__topbar{grid-column:1/-1;grid-row:1;grid-template-columns:1fr;grid-template-areas:"brand" "command";gap:10px}.odd-panel.odd-shop .odd-shop__command{justify-self:stretch;width:100%}.odd-panel.odd-shop .odd-shop__search{justify-self:stretch;max-width:none}.odd-panel.odd-shop .odd-shop__search-tools{justify-content:flex-start}.odd-panel.odd-shop .odd-shop__rail{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;overflow-x:hidden;overflow-y:auto;border-right:1px solid var(--odd-shop-border);border-bottom:0;padding:14px 6px}.odd-panel.odd-shop .odd-shop__rail-group{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}.odd-panel.odd-shop .odd-shop__rail-item{width:auto}.odd-panel.odd-shop .odd-shop__content{grid-column:2;grid-row:2;padding:18px 18px 0}.odd-panel.odd-shop .odd-shop__install-types{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* Collapse by native-window width: Desktop Mode windows can be narrow while the browser viewport remains wide. */
 .odd-panel.odd-shop[data-odd-size="xs"],.odd-panel.odd-shop[data-odd-size="s"],.odd-panel.odd-shop[data-odd-size="m"]{grid-template-columns:64px minmax(0,1fr)!important}
@@ -929,9 +857,6 @@
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__rail{padding:14px 6px}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-heading,.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-group-heading,.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-label,.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-foot,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail-heading,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail-group-heading,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail-label,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail-foot,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__rail-heading,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__rail-group-heading,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__rail-label,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__rail-foot{display:none}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-item,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail-item,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__rail-item{grid-template-columns:1fr;justify-items:center;padding:10px 8px}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__hero,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__hero{grid-template-columns:minmax(0,1fr);align-items:end}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero-body,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__hero-body,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__hero-body{max-width:78%}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero-thumb,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__hero-thumb,.odd-panel.odd-shop[data-odd-size="m"] .odd-shop__hero-thumb{display:none}
 .odd-panel.odd-shop[data-odd-size="xs"]{grid-template-rows:auto minmax(0,1fr)!important;grid-template-columns:64px minmax(0,1fr)!important}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__topbar{grid-column:1/-1;grid-row:1;grid-template-columns:1fr;grid-template-areas:"brand" "command";gap:10px}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__command{justify-self:stretch;width:100%}
@@ -941,9 +866,6 @@
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-group{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-item{width:auto}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__content{grid-column:2;grid-row:2;padding:18px 18px 0}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero{min-height:0;padding:18px;border-radius:var(--odd-shop-r-l)}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero-body{max-width:none}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero-title{font-size:clamp(26px,8vw,32px)}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__install-types{grid-template-columns:repeat(2,minmax(0,1fr))}
 
 /* Native-window mobile: a phone-sized Shop can still be wider than the
@@ -962,9 +884,6 @@
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__rail-item,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__rail-item{width:auto;min-width:44px;padding:9px 10px}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__content,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__content{grid-column:2;grid-row:2;padding:16px 14px 0}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__dept-header,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__dept-header{padding:16px 16px 18px;margin-bottom:18px;border-radius:var(--odd-shop-r-l)}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__hero{min-height:0;padding:18px;border-radius:var(--odd-shop-r-l)}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero-body,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__hero-body{max-width:none}
-.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__hero-title,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__hero-title{font-size:clamp(26px,8vw,34px)}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__grid,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:16px 12px}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__shelf-track--tiles > .odd-shop__tile,.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__shelf-track--tiles > .odd-shop__tile-wrap,.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__shelf-track--tiles > .odd-shop__card-wrap,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__shelf-track--tiles > .odd-shop__tile,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__shelf-track--tiles > .odd-shop__tile-wrap,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__shelf-track--tiles > .odd-shop__card-wrap{flex-basis:168px}
 .odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__card-meta,.odd-panel.odd-shop[data-odd-size="xs"] .odd-shop__card.odd-card.odd-shop__tile .odd-shop__card-meta,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__card-meta,.odd-panel.odd-shop[data-odd-size="s"] .odd-shop__card.odd-card.odd-shop__tile .odd-shop__card-meta{padding:11px 14px 8px;min-height:82px}
@@ -995,7 +914,7 @@
  * no hover-only affordances. Applies regardless of viewport size so
  * even a chromebook/tablet in landscape gets touch-friendly chrome. */
 .odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__rail-item{min-height:48px}
-.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__card-btn,.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__quick-look,.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__hero-btn,.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__install-type-cta{min-height:44px;padding-inline:18px}
+.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__card-btn,.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__quick-look,.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__install-type-cta{min-height:44px;padding-inline:18px}
 .odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__card-wrap:hover,.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__card:hover,.odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__tile:hover{transform:none}
 .odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__slider-btn{display:none!important}
 .odd-panel.odd-shop[data-odd-pointer="coarse"] .odd-shop__iris-sticker{animation:none}
@@ -1008,9 +927,6 @@
 .odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__brand-text,.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-heading,.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-group-heading,.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-label,.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-foot{display:none}
 .odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail{padding:14px 6px}
 .odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__rail-item{grid-template-columns:1fr;justify-items:center;padding:10px 8px}
-.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__hero{grid-template-columns:minmax(0,1fr);align-items:end}
-.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__hero-body{max-width:78%}
-.odd-panel.odd-shop[data-odd-layout="compact"] .odd-shop__hero-thumb{display:none}
 .odd-panel.odd-shop[data-odd-layout="mobile"]{grid-template-rows:auto minmax(0,1fr)!important;grid-template-columns:64px minmax(0,1fr)!important;width:100%;max-width:100%;max-inline-size:100vw;inline-size:min(100%,100vw);min-width:0;overflow:hidden;overflow-x:hidden;overflow:clip}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__topbar{grid-column:1/-1;grid-row:1;grid-template-columns:minmax(0,1fr);grid-template-areas:"brand" "command";gap:9px;min-width:0;min-height:0;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));position:sticky;top:0;z-index:4;border-radius:0;background:var(--odd-shop-topbar-bg,var(--odd-shop-surface));box-shadow:0 1px 0 var(--odd-shop-border)}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__brand{min-width:0}
@@ -1050,16 +966,9 @@
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__workspace-actions .odd-apps-btn{flex:1 1 140px;justify-content:center}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__install-types{grid-template-columns:1fr}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__install-type{min-height:0;padding:20px 18px 22px;gap:14px}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__dept-header::before,.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-live,.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-thumb,.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-glyph,.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero--cursors::before,.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero--apps::before{display:none}
+.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__dept-header::before{display:none}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-section-header h2{font-size:clamp(22px,6vw,28px);line-height:1.08}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-section-header p{font-size:13px;line-height:1.45}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero{grid-template-columns:minmax(0,1fr);min-height:0;margin-bottom:18px;padding:18px;border-radius:var(--odd-shop-r-l);box-shadow:var(--odd-shop-e-1);filter:none}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-body{max-width:none;gap:8px}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-eyebrow{font-size:9px;padding:4px 10px}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-title{font-size:clamp(25px,7vw,34px);line-height:1.06;margin-top:2px}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-sub{font-size:13px;line-height:1.42}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-actions{margin-top:10px}
-.odd-panel.odd-shop[data-odd-layout="mobile"] .odd-shop__hero-btn{min-height:40px;padding:9px 16px}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-about{margin:-16px -14px 0;padding:24px 14px 28px}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-about::before{opacity:.18;filter:blur(64px)}
 .odd-panel.odd-shop[data-odd-layout="mobile"] .odd-about__hero{padding:6px 4px 18px}

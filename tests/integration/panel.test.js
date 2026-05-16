@@ -113,16 +113,6 @@ function installWidgetLayer() {
 	return calls;
 }
 
-function deferred() {
-	let resolvePromise;
-	let rejectPromise;
-	const promise = new Promise( ( resolve, reject ) => {
-		resolvePromise = resolve;
-		rejectPromise = reject;
-	} );
-	return { promise, resolve: resolvePromise, reject: rejectPromise };
-}
-
 function loadPanel() {
 	const flowSrc = readFileSync( SHOP_FLOW_JS, 'utf8' );
 	const flowFn = new Function( `${ flowSrc }\n//# sourceURL=panel/shop-flow.js` );
@@ -359,84 +349,19 @@ describe( 'ODD Shop', () => {
 		if ( typeof cleanup === 'function' ) cleanup();
 	} );
 
-	it( 'keeps heroSafe:false scenes out of the live wallpaper hero', () => {
-		window.odd.wallpaper = 'aurora';
-		window.odd.scene = 'aurora';
-		window.odd.scenes = [
-			{ slug: 'flux', label: 'Flux', category: 'Generative', tags: [], fallbackColor: '#222233' },
-			{ slug: 'aurora', label: 'Aurora', category: 'Atmosphere', tags: [], fallbackColor: '#112233', heroSafe: false },
-		];
+	it( 'does not render department hero banners', () => {
 		const { host, cleanup } = mountPanel();
 
-		expect( host.querySelector( '.odd-shop__hero' )?.getAttribute( 'data-hero-slug' ) ).toBe( 'flux' );
+		expect( host.querySelector( '.odd-shop__hero' ) ).toBeNull();
+		[ 'icons', 'cursors', 'widgets', 'apps' ].forEach( ( section ) => {
+			const button = host.querySelector( `[data-section="${ section }"]` );
+			if ( button ) {
+				button.click();
+				expect( host.querySelector( '.odd-shop__hero' ) ).toBeNull();
+			}
+		} );
 
 		if ( typeof cleanup === 'function' ) cleanup();
-	} );
-
-	it( 'keeps rendering when a live wallpaper hero scene is missing', () => {
-		const emit = vi.fn();
-		window.WebGLRenderingContext = function WebGLRenderingContext() {};
-		window.__odd = {
-			events: { emit },
-			mountSceneInto: vi.fn( () => {
-				throw new Error( 'Installed scene did not self-register: flux' );
-			} ),
-		};
-		delete window.desktopModeNativeWindows;
-		loadPanel();
-
-		const { host, cleanup } = mountPanel();
-
-		expect( host.querySelector( '.odd-shop__hero' )?.getAttribute( 'data-hero-slug' ) ).toBe( 'flux' );
-		expect( host.textContent ).toContain( 'Wallpapers' );
-		expect( host.textContent ).not.toContain( "ODD panel didn't load" );
-		expect( emit ).toHaveBeenCalledWith( 'odd.error', expect.objectContaining( {
-			source: 'panel.hero-scene',
-		} ) );
-
-		if ( typeof cleanup === 'function' ) cleanup();
-	} );
-
-	it( 'destroys late-resolving live wallpaper hero scenes after panel cleanup', async () => {
-		const pending = deferred();
-		const destroy = vi.fn();
-		window.WebGLRenderingContext = function WebGLRenderingContext() {};
-		window.__odd = {
-			events: { emit: vi.fn() },
-			mountSceneInto: vi.fn( () => pending.promise ),
-		};
-		const removeSpy = vi.spyOn( document, 'removeEventListener' );
-		delete window.desktopModeNativeWindows;
-		loadPanel();
-
-		const { cleanup } = mountPanel();
-		expect( window.__odd.mountSceneInto ).toHaveBeenCalled();
-
-		cleanup();
-		pending.resolve( { destroy, env: { perfTier: 'normal' } } );
-		await new Promise( ( resolveTick ) => setTimeout( resolveTick, 0 ) );
-
-		expect( destroy ).toHaveBeenCalledTimes( 1 );
-		expect( removeSpy ).toHaveBeenCalledWith( 'visibilitychange', expect.any( Function ) );
-	} );
-
-	it( 'clears live wallpaper hero perf timers on panel cleanup after mount', async () => {
-		const destroy = vi.fn();
-		const clearSpy = vi.spyOn( window, 'clearInterval' );
-		window.WebGLRenderingContext = function WebGLRenderingContext() {};
-		window.__odd = {
-			events: { emit: vi.fn() },
-			mountSceneInto: vi.fn( () => Promise.resolve( { destroy, env: { perfTier: 'normal' } } ) ),
-		};
-		delete window.desktopModeNativeWindows;
-		loadPanel();
-
-		const { cleanup } = mountPanel();
-		await new Promise( ( resolveTick ) => setTimeout( resolveTick, 0 ) );
-		cleanup();
-
-		expect( destroy ).toHaveBeenCalledTimes( 1 );
-		expect( clearSpy ).toHaveBeenCalled();
 	} );
 
 	it( 'clicking an inactive scene card applies it directly', async () => {
