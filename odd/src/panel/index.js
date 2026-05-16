@@ -101,26 +101,6 @@
 			'widget':   'widgets',
 		};
 		var CATALOG_BASE_URL = 'https://odd.regionallyfamous.com/catalog/v1';
-		var ICON_SET_FUN_LAYERS = {
-			'arcade-tokens':     { recipe: 'coin-spark',     accent: '#f4c45f', secondary: '#8a4a1b', spark: '#fff36a' },
-			'arctic':            { recipe: 'frost-rim',      accent: '#9eeaff', secondary: '#d7f7ff', spark: '#6aaefc' },
-			'blueprint':         { recipe: 'blueprint-grid', accent: '#4da3ff', secondary: '#cfe6ff', spark: '#7df7ff' },
-			'botanical-plate':   { recipe: 'leaf-vein',      accent: '#88b957', secondary: '#d5ef8c', spark: '#fff0a6' },
-			'brutalist-stencil': { recipe: 'stencil-spray',  accent: '#ff5f4f', secondary: '#f0e4d2', spark: '#24212a' },
-			'circuit-bend':      { recipe: 'circuit-trace',  accent: '#2fb37a', secondary: '#8dffcf', spark: '#ffe66b' },
-			'claymation':        { recipe: 'clay-smudge',    accent: '#ffb84d', secondary: '#ff7c6d', spark: '#ffe9a6' },
-			'cross-stitch':      { recipe: 'stitch-cross',   accent: '#e87ca7', secondary: '#ffe1ef', spark: '#8ee7ff' },
-			'eyeball-avenue':    { recipe: 'blink-ring',     accent: '#b35cff', secondary: '#f36bff', spark: '#7df7ff' },
-			'filament':          { recipe: 'filament-wire',  accent: '#ffb000', secondary: '#ff6bd6', spark: '#50f2ff' },
-			'fold':              { recipe: 'paper-fold',     accent: '#7c5cff', secondary: '#c7b8ff', spark: '#fff0a8' },
-			'hologram':          { recipe: 'hologram-scan',  accent: '#9fd0ff', secondary: '#8efff1', spark: '#f0a7ff' },
-			'lemonade-stand':    { recipe: 'citrus-pop',     accent: '#ffd64b', secondary: '#b6ff66', spark: '#ff8b4c' },
-			'monoline':          { recipe: 'line-loop',      accent: '#00c2ff', secondary: '#dff8ff', spark: '#a66bff' },
-			'odd-default-icons': { recipe: 'chroma-halo',    accent: '#38e8ff', secondary: '#ff44b5', spark: '#9556ff' },
-			'risograph':         { recipe: 'misprint-dot',   accent: '#ff4fa8', secondary: '#2ed3ff', spark: '#ffdf57' },
-			'stadium':           { recipe: 'pennant-stripe', accent: '#d73a3a', secondary: '#2e7eea', spark: '#fff06a' },
-			'tiki':              { recipe: 'carved-spark',   accent: '#c47a3c', secondary: '#ffcf70', spark: '#49e2a4' },
-		};
 		var cleanupFns = [];
 		var sectionCleanupFns = [];
 		var flowToastTimer = 0;
@@ -3750,50 +3730,30 @@
 			var effectiveCount = catalog.effective_bundle_count || catalog.bundle_count || 0;
 			var rawCount = catalog.raw_bundle_count || effectiveCount;
 
-			var strip = el( 'div', { class: 'odd-shop__health odd-shop__catalog-dashboard' + ( warning ? ' is-warning' : ' is-ok' ) } );
+			var strip = el( 'section', {
+				class: 'odd-shop__health odd-shop__catalog-dashboard' + ( warning ? ' is-warning' : ' is-ok' ),
+				'aria-label': __( 'Catalog integrity status' ),
+			} );
 			var body = el( 'div', { class: 'odd-shop__health-body' } );
-			var title = el( 'strong' );
+			var header = el( 'div', { class: 'odd-shop__health-header' } );
+			var copy = el( 'div', { class: 'odd-shop__health-copy' } );
+			var eyebrow = el( 'span', { class: 'odd-shop__health-eyebrow' } );
+			eyebrow.textContent = warning ? __( 'Catalog check' ) : __( 'Catalog integrity' );
+			var title = el( 'strong', { class: 'odd-shop__health-title' } );
 			title.textContent = ! warning
 				? __( 'Signed catalog dashboard' )
 				: __( 'Catalog needs attention' );
-			var detail = el( 'span' );
+			var detail = el( 'span', { class: 'odd-shop__health-detail' } );
 			detail.textContent = warning
 				? __( 'ODD keeps a local fallback and previous snapshots so the Shop can fail closed instead of going blank.' )
 				: __( 'Remote catalog rows are signed, cached, hashed, and checked again before install.' );
-			body.appendChild( title );
-			body.appendChild( detail );
-
-			var metrics = el( 'div', { class: 'odd-shop__health-grid', 'aria-label': __( 'Catalog security details' ) } );
-			[
-				[ 'Source', catalogSourceLabel( source ) ],
-				[ 'Signature', catalogSignatureLabel( sig ) ],
-				[ 'Bundles', effectiveCount + ' effective / ' + rawCount + ' raw' ],
-				[ 'Registry hash', formatShortHash( catalog.registry_sha256 ) ],
-				[ 'Registry size', formatBytes( catalog.registry_bytes ) ],
-				[ 'Stale age', formatAge( catalog.stale_age ) ],
-				[ 'Starter', starter.status || 'unknown' ],
-				[ 'Apps', apps.installed || 0 ],
-			].forEach( function ( pair ) {
-				var metric = el( 'span', { class: 'odd-shop__health-metric' } );
-				var key = el( 'b' );
-				key.textContent = pair[ 0 ];
-				var value = el( 'span' );
-				value.textContent = String( pair[ 1 ] );
-				metric.appendChild( key );
-				metric.appendChild( value );
-				metrics.appendChild( metric );
-			} );
-			body.appendChild( metrics );
-
-			if ( catalog.last_error_message ) {
-				var error = el( 'span', { class: 'odd-shop__health-error' } );
-				error.textContent = 'Last error: ' + catalog.last_error_message;
-				body.appendChild( error );
-			}
-			strip.appendChild( body );
+			copy.appendChild( eyebrow );
+			copy.appendChild( title );
+			copy.appendChild( detail );
+			header.appendChild( copy );
 
 			var actions = el( 'div', { class: 'odd-shop__health-actions' } );
-			var refreshBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+			var refreshBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-shop__health-action odd-shop__health-action--secondary' } );
 			refreshBtn.textContent = __( 'Refresh catalog' );
 			refreshBtn.addEventListener( 'click', function () {
 				refreshCatalog( refreshBtn, function () {
@@ -3803,7 +3763,7 @@
 			actions.appendChild( refreshBtn );
 
 			if ( catalog.rollback_available ) {
-				var rollbackBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill' } );
+				var rollbackBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--pill odd-shop__health-action odd-shop__health-action--secondary' } );
 				rollbackBtn.textContent = __( 'Restore previous' );
 				rollbackBtn.addEventListener( 'click', function () {
 					rollbackBtn.disabled = true;
@@ -3838,7 +3798,7 @@
 				actions.appendChild( rollbackBtn );
 			}
 
-			var copyBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill' } );
+			var copyBtn = el( 'button', { type: 'button', class: 'odd-apps-btn odd-apps-btn--primary odd-apps-btn--pill odd-shop__health-action odd-shop__health-action--primary' } );
 			copyBtn.textContent = __( 'Copy diagnostics' );
 			copyBtn.addEventListener( 'click', function () {
 				var d = window.__odd && window.__odd.diagnostics;
@@ -3854,7 +3814,54 @@
 				}
 			} );
 			actions.appendChild( copyBtn );
-			strip.appendChild( actions );
+			header.appendChild( actions );
+			body.appendChild( header );
+
+			var layout = el( 'div', { class: 'odd-shop__health-layout' } );
+			var signals = el( 'div', { class: 'odd-shop__health-signals', 'aria-label': __( 'Primary catalog checks' ) } );
+			var metrics = el( 'div', { class: 'odd-shop__health-grid', 'aria-label': __( 'Catalog security details' ) } );
+			function addMetric( target, label, value, modifier ) {
+				var metric = el( 'span', { class: 'odd-shop__health-metric odd-shop__health-metric--' + modifier } );
+				var key = el( 'b' );
+				key.textContent = label;
+				var val = el( 'span' );
+				val.textContent = String( value );
+				metric.appendChild( key );
+				metric.appendChild( val );
+				target.appendChild( metric );
+				return metric;
+			}
+			[
+				[ 'Source', catalogSourceLabel( source ), source === 'remote' || source === 'transient' ? 'ok' : 'watch' ],
+				[ 'Signature', catalogSignatureLabel( sig ), badSig ? 'watch' : 'ok' ],
+				[ 'Bundles', effectiveCount + ' effective / ' + rawCount + ' raw', effectiveCount ? 'ok' : 'watch' ],
+			].forEach( function ( pair ) {
+				addMetric( signals, pair[ 0 ], pair[ 1 ], pair[ 2 ] );
+			} );
+			[
+				[ 'Registry hash', formatShortHash( catalog.registry_sha256 ), 'hash' ],
+				[ 'Registry size', formatBytes( catalog.registry_bytes ), 'neutral' ],
+				[ 'Stale age', formatAge( catalog.stale_age ), 'neutral' ],
+				[ 'Starter', starter.status || 'unknown', starter.status === 'installed' ? 'ok' : 'neutral' ],
+				[ 'Apps', apps.installed || 0, 'neutral' ],
+			].forEach( function ( pair ) {
+				addMetric( metrics, pair[ 0 ], pair[ 1 ], pair[ 2 ] );
+			} );
+			var orbit = el( 'div', { class: 'odd-shop__health-orbit', 'aria-hidden': 'true' } );
+			orbit.appendChild( el( 'span', { class: 'odd-shop__health-orbit-ring' } ) );
+			orbit.appendChild( el( 'span', { class: 'odd-shop__health-orbit-core' } ) );
+			orbit.appendChild( el( 'span', { class: 'odd-shop__health-orbit-dot' } ) );
+			layout.appendChild( signals );
+			layout.appendChild( metrics );
+			layout.appendChild( orbit );
+			body.appendChild( layout );
+
+			if ( catalog.last_error_message ) {
+				var error = el( 'span', { class: 'odd-shop__health-error' } );
+				error.textContent = 'Last error: ' + catalog.last_error_message;
+				body.appendChild( error );
+			}
+			strip.appendChild( body );
 			return strip;
 		}
 
@@ -5479,59 +5486,8 @@
 				return s && s.slug && s.slug !== 'none';
 			} );
 
-			// Quilt + shelves only feature real, themed sets so each
-			// category has actual siblings instead of a 1-item shelf.
-			// The "Default" pseudo-set is reachable via the dedicated
-			// reset pill below — and via the hero, when no custom set
-			// has been committed yet.
-			var realSets = sets.filter( function ( s ) {
-				return s && s.slug && s.slug !== 'none';
-			} );
-
-			var defaultSet = {
-				slug:        'none',
-				label:       'Default',
-				category:   'WP Desktop Mode',
-				description: 'Bring back the stock Dashicons and WP Desktop Mode icons.',
-				preview:     '',
-				icons:       {},
-			};
-			var heroPool = state.cfg.iconSet === 'none'
-				? [ defaultSet ].concat( realSets )
-				: realSets;
-
 			var filtered = applyStoreControls( rows, 'icon-set' );
 			wrap.appendChild( renderStoreControls( 'icon-set', rows, filtered ) );
-
-			if ( heroPool.length && state.storeView !== 'available' && state.storeView !== 'updates' ) {
-				var featuredSet = pickFeaturedSet( heroPool );
-				if ( featuredSet ) wrap.appendChild( renderIconHero( featuredSet ) );
-			}
-
-			// "Reset to default" pill — only shown when a custom set is
-			// committed. Gives users an obvious way back without
-			// cluttering the catalog with a singleton "Default" shelf.
-			if ( state.cfg.iconSet && state.cfg.iconSet !== 'none' && ! state.query ) {
-				var resetRow = el( 'div', { class: 'odd-shop__reset-row' } );
-				var resetLeft = el( 'div', { class: 'odd-shop__reset-left' } );
-				var resetIcon = el( 'span', { class: 'odd-shop__reset-icon', 'aria-hidden': 'true' } );
-				resetIcon.textContent = '↺';
-				var resetText = el( 'span', { class: 'odd-shop__reset-text' } );
-				resetText.textContent = 'Missing the stock WordPress icon wardrobe?';
-				resetLeft.appendChild( resetIcon );
-				resetLeft.appendChild( resetText );
-				var resetBtn = el( 'button', {
-					type: 'button',
-					class: 'odd-shop__reset-btn',
-				} );
-				resetBtn.textContent = 'Reset to default';
-				resetBtn.addEventListener( 'click', function () {
-					applyIconSet( 'none' );
-				} );
-				resetRow.appendChild( resetLeft );
-				resetRow.appendChild( resetBtn );
-				wrap.appendChild( resetRow );
-			}
 
 			if ( ! state.query ) {
 				wrap.appendChild( renderCategoryQuilt( rows, 'icons' ) );
@@ -5556,95 +5512,6 @@
 			} );
 
 			return wrap;
-		}
-
-		function pickFeaturedSet( sets ) {
-			// Only honor a current selection if the user has explicitly
-			// picked something; an empty/missing iconSet pref means
-			// "fresh user", and the hero should show off a real pack
-			// rather than advertise "ship stock WP icons as-is".
-			var current = state.cfg.iconSet;
-			if ( typeof current === 'string' && current !== '' ) {
-				for ( var i = 0; i < sets.length; i++ ) {
-					if ( sets[ i ] && sets[ i ].slug === current ) return sets[ i ];
-				}
-			}
-			for ( var j = 0; j < sets.length; j++ ) {
-				if ( sets[ j ] && sets[ j ].slug !== 'none' ) return sets[ j ];
-			}
-			return sets[ 0 ] || null;
-		}
-
-		function renderIconHero( set ) {
-			var currentSlug = state.cfg.iconSet || '';
-			var isActive    = ( set.slug === 'none' && ! currentSlug ) || ( set.slug !== 'none' && set.slug === currentSlug );
-			var accent      = set.accent && /^#[0-9a-f]{3,8}$/i.test( set.accent ) ? set.accent : '#0071e3';
-			var bannerUrl   = ( state.cfg.pluginUrl || '' ) + '/assets/shop/icons-hero.webp';
-
-			var hero = el( 'div', {
-				class: 'odd-shop__hero odd-shop__hero--icons',
-				'data-hero-slug': set.slug,
-				style: 'background-color:#1d1640',
-			} );
-			// Editorial banner backdrop — a constellation of pastel
-			// app-icon stickers on a deep galactic gradient. Empty
-			// left third is intentional headline real estate.
-			var bg = el( 'div', { class: 'odd-shop__hero-bg', 'aria-hidden': 'true' } );
-			bg.style.backgroundImage = 'url("' + bannerUrl + '")';
-			hero.appendChild( bg );
-			var scrim = el( 'div', { class: 'odd-shop__hero-scrim', 'aria-hidden': 'true' } );
-			hero.appendChild( scrim );
-
-			var inner = el( 'div', { class: 'odd-shop__hero-body' } );
-			var eyebrow = el( 'div', { class: 'odd-shop__hero-eyebrow' } );
-			eyebrow.textContent = isActive ? 'Current costume' : 'Featured costume';
-			var title = el( 'h3', { class: 'odd-shop__hero-title' } );
-			title.textContent = set.label || set.slug;
-			var sub = el( 'p', { class: 'odd-shop__hero-sub' } );
-			sub.textContent = set.description || 'A themed costume pack for Desktop Mode icon surfaces.';
-			var actions = el( 'div', { class: 'odd-shop__hero-actions' } );
-
-			if ( isActive ) {
-				var active = el( 'span', { class: 'odd-shop__hero-badge' } );
-				active.textContent = '✓ Wearing it';
-				actions.appendChild( active );
-			} else {
-				var applyBtn = el( 'button', {
-					type: 'button',
-					class: 'odd-shop__hero-btn odd-shop__hero-btn--primary',
-				} );
-				applyBtn.innerHTML = '<span aria-hidden="true">✓</span> Apply';
-				applyBtn.addEventListener( 'click', function ( e ) {
-					e.stopPropagation();
-					applyIconSet( set.slug );
-				} );
-				actions.appendChild( applyBtn );
-			}
-
-			inner.appendChild( eyebrow );
-			inner.appendChild( title );
-			inner.appendChild( sub );
-			inner.appendChild( actions );
-			hero.appendChild( inner );
-
-			// Icon quartet floating bottom-right, mirroring the
-			// scene hero's preview thumbnail.
-			if ( set.icons && typeof set.icons === 'object' ) {
-				var thumb = el( 'div', { class: 'odd-shop__hero-thumb odd-shop__hero-thumb--icons', 'aria-hidden': 'true' } );
-				if ( accent ) thumb.style.background = accent;
-				var quartet = el( 'div', { class: 'odd-shop__hero-quartet' } );
-				[ 'dashboard', 'posts', 'pages', 'media' ].forEach( function ( k ) {
-					if ( set.icons[ k ] ) {
-						quartet.appendChild( el( 'img', { src: set.icons[ k ], alt: '', loading: 'lazy' } ) );
-					}
-				} );
-				if ( quartet.children.length ) {
-					thumb.appendChild( quartet );
-					hero.appendChild( thumb );
-				}
-			}
-
-			return hero;
 		}
 
 		/**
@@ -6473,7 +6340,6 @@
 				raw.icons && typeof raw.icons === 'object' ? JSON.stringify( raw.icons ) : '',
 				raw.cursors && typeof raw.cursors === 'object' ? JSON.stringify( raw.cursors ) : '',
 				raw.effects && typeof raw.effects === 'object' ? JSON.stringify( raw.effects ) : '',
-				raw.funLayer && typeof raw.funLayer === 'object' ? JSON.stringify( raw.funLayer ) : '',
 			].join( '|' );
 			if ( shopRowCache[ cacheKey ] ) {
 				diagCount( 'panel.normalise.cacheHit' );
@@ -6513,7 +6379,6 @@
 				icons:         raw.icons && typeof raw.icons === 'object' ? raw.icons : null,
 				cursors:       raw.cursors && typeof raw.cursors === 'object' ? raw.cursors : null,
 				effects:       raw.effects && typeof raw.effects === 'object' ? raw.effects : null,
-				funLayer:      raw.funLayer && typeof raw.funLayer === 'object' ? raw.funLayer : null,
 				preview:       raw.preview || '',
 				accent:        raw.accent || '',
 				fallbackColor: raw.fallbackColor || '',
@@ -6619,9 +6484,6 @@
 			}
 			if ( cat.effects && typeof cat.effects === 'object' && ! isEmptyIcons( cat.effects ) && isEmptyIcons( ins.effects ) ) {
 				ins.effects = cat.effects;
-			}
-			if ( cat.funLayer && typeof cat.funLayer === 'object' && ! isEmptyIcons( cat.funLayer ) && isEmptyIcons( ins.funLayer ) ) {
-				ins.funLayer = cat.funLayer;
 			}
 			if ( cat.description && ! ins.description ) ins.description = cat.description;
 
@@ -7027,38 +6889,6 @@
 		//  - cursor-set → full-bleed preview tile, falling back to a glyph plate
 		//  - widget   → gradient plate with the widget's glyph
 		//  - app      → generated square card art, falling back to its app icon
-		function cleanFunLayerRecipe( value ) {
-			value = String( value || '' ).toLowerCase().replace( /[^a-z0-9-]/g, '' );
-			return value || 'chroma-halo';
-		}
-
-		function cleanFunLayerColor( value, fallback ) {
-			value = String( value || '' ).trim();
-			return /^#[0-9A-Fa-f]{3,8}$/.test( value ) ? value : fallback;
-		}
-
-		function iconSetFunLayer( row ) {
-			var layer = row && row.funLayer && typeof row.funLayer === 'object' ? row.funLayer : null;
-			var fallback = row && ICON_SET_FUN_LAYERS[ row.slug ] ? ICON_SET_FUN_LAYERS[ row.slug ] : ICON_SET_FUN_LAYERS[ 'odd-default-icons' ];
-			layer = layer || fallback || {};
-			return {
-				recipe:    cleanFunLayerRecipe( layer.recipe || ( fallback && fallback.recipe ) ),
-				accent:    cleanFunLayerColor( layer.accent || row.accent || ( fallback && fallback.accent ), '#38e8ff' ),
-				secondary: cleanFunLayerColor( layer.secondary || ( fallback && fallback.secondary ), '#ff44b5' ),
-				spark:     cleanFunLayerColor( layer.spark || ( fallback && fallback.spark ), '#9556ff' ),
-			};
-		}
-
-		function applyIconSetFunLayer( art, row ) {
-			var layer = iconSetFunLayer( row );
-			art.setAttribute( 'data-odd-fun-layer', layer.recipe );
-			art.setAttribute( 'data-odd-icon-set', row.slug );
-			art.style.setProperty( '--odd-icon-card-accent', layer.accent );
-			art.style.setProperty( '--odd-icon-card-secondary', layer.secondary );
-			art.style.setProperty( '--odd-icon-card-spark', layer.spark );
-			art.appendChild( el( 'span', { class: 'odd-shop__icon-fun-layer', 'aria-hidden': 'true' } ) );
-		}
-
 		function renderShopCardArt( row ) {
 			var art = el( 'div', { class: 'odd-shop__card-art odd-shop__card-art--' + row.type, 'aria-hidden': 'true' } );
 			function artImg( src, className ) {
@@ -7092,7 +6922,6 @@
 			}
 
 			if ( row.type === 'icon-set' ) {
-				applyIconSetFunLayer( art, row );
 				if ( row.icons ) {
 					var quartet = el( 'div', { class: 'odd-shop__card-quartet' } );
 					var keys = [ 'dashboard', 'posts', 'pages', 'media' ].filter( function ( k ) { return row.icons[ k ]; } );

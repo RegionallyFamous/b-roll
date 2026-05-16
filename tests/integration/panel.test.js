@@ -778,8 +778,16 @@ describe( 'ODD Shop', () => {
 		expect( health.textContent ).toContain( 'Missing signature' );
 		expect( health.textContent ).toContain( 'Registry hash' );
 		expect( health.textContent ).toContain( 'Starterpartial' );
+		expect( health.tagName ).toBe( 'SECTION' );
+		expect( health.getAttribute( 'aria-label' ) ).toBe( 'Catalog integrity status' );
+		expect( health.querySelectorAll( '.odd-shop__health-signals .odd-shop__health-metric' ) ).toHaveLength( 3 );
+		expect( health.querySelector( '.odd-shop__health-orbit' ) ).toBeTruthy();
+		const css = readFileSync( resolve( __dirname, '../../odd/src/panel/styles.css' ), 'utf8' );
+		expect( css ).toContain( '.odd-panel.odd-shop .odd-shop__dept--settings{width:100%;max-width:none}' );
+		expect( css ).toContain( '.odd-panel.odd-shop .odd-shop__health{position:relative;display:block;width:100%;max-width:none;' );
 		const copy = Array.from( health.querySelectorAll( 'button' ) )
 			.find( ( b ) => b.textContent.trim() === 'Copy diagnostics' );
+		expect( copy.classList.contains( 'odd-shop__health-action--primary' ) ).toBe( true );
 		copy.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );
 		expect( window.__odd.diagnostics.copy ).toHaveBeenCalled();
 
