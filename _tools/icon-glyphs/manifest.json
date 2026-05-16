@@ -22,7 +22,7 @@
     "import",
     "classic-admin"
   ],
-  "contract": "shared-mask-plus-material-layer",
+  "contract": "default-dashicon-raster-source",
   "glyphs": {
     "dashboard": {
       "mask": "base/dashboard.png",

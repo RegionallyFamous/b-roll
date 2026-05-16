@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Compose first-party ODD icon sets from canonical raster glyph masks.
 
-ODD icon sets should share the same semantic glyph silhouettes and vary the
-material layer around them. Each set's manifest.funLayer tokens select that
-material. This tool keeps that authoring contract explicit:
+ODD icon sets now share the exact same semantic raster glyph files and vary
+through their manifest.funLayer runtime/card treatment. The default set is
+rendered from Dashicons; every other first-party set copies those default
+rasters byte-for-byte. This tool keeps that authoring contract explicit:
 
     python3 _tools/compose-icon-set.py --extract-base
     python3 _tools/compose-icon-set.py --all
@@ -421,7 +422,7 @@ def extract_base(source_slug: str) -> None:
         "size": SIZE,
         "source": source_slug,
         "requiredKeys": list(ICON_KEYS),
-        "contract": "shared-mask-plus-material-layer",
+        "contract": "default-dashicon-raster-source",
         "glyphs": glyphs,
     }
     (GLYPHS / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -432,6 +433,19 @@ def render_set(slug: str) -> None:
     paths = icon_paths(manifest)
     recipe, accent, secondary, spark = fun_layer(manifest)
     src_dir = ICON_SETS / slug
+    if slug != "odd-default-icons":
+        default_manifest = load_manifest("odd-default-icons")
+        default_paths = icon_paths(default_manifest)
+        default_dir = ICON_SETS / "odd-default-icons"
+        for key, rel in paths.items():
+            src = default_dir / default_paths[key]
+            out = src_dir / rel
+            if not src.is_file():
+                raise SystemExit(f"default icon source missing for {key}: {src}")
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_bytes(src.read_bytes())
+        print(f"copied default rasters into {slug}", flush=True)
+        return
     base_material = material(recipe, accent, secondary, spark)
     source_map_path = src_dir / "source-glyph-map.json"
     source_map = json.loads(source_map_path.read_text()) if source_map_path.is_file() else {}
@@ -468,6 +482,8 @@ def main() -> None:
     if args.extract_base:
         extract_base(args.source_set)
     targets = all_sets() if args.all else args.sets
+    if args.all and "odd-default-icons" in targets:
+        targets = ["odd-default-icons"] + [slug for slug in targets if slug != "odd-default-icons"]
     for slug in targets:
         render_set(slug)
     if not args.extract_base and not targets:

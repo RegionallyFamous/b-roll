@@ -13,8 +13,8 @@
     "spark": "#ffe66b"
   },
   "preview": "dashboard.webp",
-  "description": "PCB-green raster glyphs with solder-bright accents and transparent edges.",
-  "version": "1.2.0",
+  "description": "Default Desktop Mode / WordPress raster glyphs with the Circuit Bend circuit-trace fun layer providing the set's motion, color, and Shop-card personality.",
+  "version": "1.3.0",
   "author": "Regionally Famous",
   "icons": {
     "dashboard": "dashboard.webp",

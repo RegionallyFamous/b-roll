@@ -136,13 +136,15 @@ describe( 'v1 source guardrails', () => {
 		}
 	} );
 
-	it( 'keeps first-party icon sets on the shared glyph-mask source pipeline', () => {
+	it( 'keeps first-party icon sets on the shared default raster pipeline', () => {
 		const glyphDir = resolve( ROOT, '_tools/icon-glyphs/base' );
 		const glyphManifest = JSON.parse( readRel( '_tools/icon-glyphs/manifest.json' ) );
 		const sourceMap = JSON.parse( readRel( '_tools/catalog-sources/icon-sets/odd-default-icons/source-glyph-map.json' ) );
 		const compose = readRel( '_tools/compose-icon-set.py' );
 		const catalog = readRel( '_tools/build-catalog.py' );
 		const iconDoc = readRel( 'docs/building-an-icon-set.md' );
+		const iconSetDir = resolve( ROOT, '_tools/catalog-sources/icon-sets' );
+		const defaultManifest = JSON.parse( readRel( '_tools/catalog-sources/icon-sets/odd-default-icons/manifest.json' ) );
 		const expectedKeys = [
 			'dashboard',
 			'posts',
@@ -163,7 +165,7 @@ describe( 'v1 source guardrails', () => {
 			'classic-admin',
 		];
 
-		expect( glyphManifest.contract ).toBe( 'shared-mask-plus-material-layer' );
+		expect( glyphManifest.contract ).toBe( 'default-dashicon-raster-source' );
 		expect( glyphManifest.requiredKeys ).toEqual( expectedKeys );
 		expect( Object.keys( glyphManifest.glyphs ) ).toEqual( expectedKeys );
 		expect( Object.keys( sourceMap.icons ) ).toEqual( expectedKeys );
@@ -177,11 +179,22 @@ describe( 'v1 source guardrails', () => {
 		expect( compose ).toContain( 'def render_dashicon_mask(' );
 		expect( compose ).toContain( 'def compose_default_icon(' );
 		expect( compose ).toContain( 'def render_set(' );
+		expect( compose ).toContain( 'copied default rasters into' );
 		expect( compose ).toContain( 'manifest.funLayer' );
 		expect( catalog ).toContain( 'def _validate_icon_asset_rel(' );
 		expect( catalog ).toContain( 'source-only icon asset path' );
 		expect( iconDoc ).toContain( '_tools/compose-icon-set.py --all' );
-		expect( iconDoc ).toContain( 'shared semantic glyph base plus a' );
+		expect( iconDoc ).toContain( 'copies those glyphs byte-for-byte' );
+
+		for ( const entry of readdirSync( iconSetDir, { withFileTypes: true } ) ) {
+			if ( ! entry.isDirectory() || entry.name === 'odd-default-icons' ) continue;
+			const manifest = JSON.parse( readFileSync( join( iconSetDir, entry.name, 'manifest.json' ), 'utf8' ) );
+			for ( const key of expectedKeys ) {
+				const expected = readFileSync( join( iconSetDir, 'odd-default-icons', defaultManifest.icons[ key ] ) );
+				const actual = readFileSync( join( iconSetDir, entry.name, manifest.icons[ key ] ) );
+				expect( Buffer.compare( actual, expected ), `${ entry.name }/${ key } must match default raster` ).toBe( 0 );
+			}
+		}
 	} );
 } );
 

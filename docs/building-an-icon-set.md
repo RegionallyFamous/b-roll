@@ -176,12 +176,16 @@ rewrite, or ODD-owned renderer in between.
 - Avoid baking in UI chrome from the host desktop. The icon file should be
   the icon, not a replacement dock/taskbar tile.
 
-First-party catalog sets are composed from a shared semantic glyph base plus a
-per-set material layer:
+First-party catalog sets use the same shipped raster glyph files as
+`odd-default-icons`. The set identity comes from `manifest.funLayer`, generated
+card art, catalog preview art, and runtime effects rather than from different
+icon silhouettes:
 
-- `_tools/icon-glyphs/base/*.png` stores the canonical 17 glyph masks.
-- `manifest.funLayer` stores the set's material recipe and color tokens.
-- `_tools/compose-icon-set.py --all` rebuilds the final PNG/WebP icons.
+- `odd-default-icons` stores the canonical 17 transparent WebP glyphs.
+- Every other first-party set copies those glyphs byte-for-byte.
+- `manifest.funLayer` stores the set's effect recipe and color tokens.
+- `_tools/compose-icon-set.py --all` refreshes the default set and then copies
+  those exact rasters into the other first-party sets.
 
 `odd-default-icons` is special: its masks are rendered from the Dashicons font
 and `source-glyph-map.json` before ODD glow/rim effects are applied. Do not
@@ -189,10 +193,11 @@ scale up an already rendered default WebP to fix size; if that WebP was cropped
 or padded incorrectly, scaling only makes the damage larger.
 
 This keeps Dashboard, Posts, Pages, Media, and every other semantic key in the
-same recognizable silhouette across sets. The weirdness belongs in the
-material layer, glow, texture, shadow, and Shop card presentation, not in a new
-glyph shape for each set. The public `.wp` bundle still contains plain static
-PNG/WebP files only; the glyph masks and compositor are source tooling.
+same recognizable raster art across sets. The weirdness belongs in the
+fun layer, glow, motion, hover/focus behavior, and Shop card presentation, not
+in a new glyph body for each set. The public `.wp` bundle still contains plain
+static PNG/WebP files only; the fun layer metadata tells ODD how to present
+that shared glyph base.
 
 Third-party sets do not have to use ODD's compositor, but they should follow
 the same principle: preserve clear Desktop Mode / WordPress metaphors and vary
@@ -206,7 +211,8 @@ so the card renderer and catalog card generator can add a unique surface
 effect without changing the actual glyph masks.
 
 - Keep `recipe` unique across first-party sets so the shelf does not become a
-  row of palette swaps.
+  row of palette swaps. Since the raster glyphs are intentionally identical,
+  the fun layer must do the expressive work.
 - Use `accent`, `secondary`, and `spark` to echo the set's material, not to
   repaint the icons.
 - Regenerate first-party source cards with:
