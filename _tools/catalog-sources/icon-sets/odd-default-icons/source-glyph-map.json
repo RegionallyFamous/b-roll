@@ -1,12 +1,12 @@
 {
   "contract": "desktop-default-raster-source",
-  "source": "_tools/compose-icon-set.py",
+  "source": "source-contact-sheet.png via _tools/compose-icon-set.py",
   "icons": {
-    "odd": "animated ODD eye launcher in the current logo style",
-    "my-wordpress": "animated ODD-logo dashboard gauge",
-    "content-graph": "animated ODD-logo content graph",
-    "recycle-bin": "animated ODD-logo recycle bin",
-    "fallback": "animated ODD-logo fallback portal"
+    "odd": "animated arcade-sticker ODD eye launcher",
+    "my-wordpress": "animated arcade-sticker WordPress dashboard gauge",
+    "content-graph": "animated arcade-sticker content graph nodes",
+    "recycle-bin": "animated arcade-sticker recycle bin",
+    "fallback": "animated arcade-sticker fallback portal"
   },
   "keys": [
     "odd",

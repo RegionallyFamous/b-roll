@@ -125,9 +125,9 @@ rewrite, or ODD-owned renderer in between.
 
 - Author source art at 512x512 or 1024x1024, then export the smallest
   PNG/WebP that still looks sharp at Desktop Mode sizes.
-- Preserve transparency around standalone glyphs unless the icon's tile
-  shape is part of the artwork. The current ODD default deliberately uses the
-  ODD logo's rounded gradient tile as the shared icon body.
+- Preserve transparency around standalone glyphs. The current ODD default uses
+  unboxed arcade-sticker objects with thick rims, strong silhouettes, and a
+  small baked animated WebP finish.
 - Keep silhouette weight, lighting, and perspective consistent across the
   set. Desktop Mode lays every icon into the same native surfaces, so
   mismatched density is easy to spot.
@@ -148,10 +148,11 @@ itself, not in an extra runtime effect layer:
 - `_tools/compose-icon-set.py --all` refreshes the default set and validates
   that non-default source rasters exist without overwriting them.
 
-`odd-default-icons` is special: its masks are generated from
-`_tools/compose-icon-set.py`, then ODD glow/rim effects are applied. Do not
-scale up an already rendered default WebP to fix size; if that WebP was cropped
-or padded incorrectly, scaling only makes the damage larger.
+`odd-default-icons` is special: its source is an approved Imagegen contact sheet
+stored as `source-contact-sheet.png`, and `_tools/compose-icon-set.py` slices,
+normalizes, and animates the final WebP exports. Do not scale up an already
+rendered default WebP to fix size; if that WebP was cropped or padded
+incorrectly, fix the source sheet or compositor and regenerate.
 
 This keeps ODD, My WordPress, Content Graph, Recycle Bin, and the fallback
 glyph recognizable while still letting each pack have its own material,
@@ -226,7 +227,8 @@ python3 _tools/compose-icon-set.py --set <slug>
 python3 _tools/gen-shop-card-art.py icon-sets
 ```
 
-If a default glyph itself needs to change, update `odd-default-icons`, refresh
+If a default glyph itself needs to change, update
+`odd-default-icons/source-contact-sheet.png`, refresh
 `_tools/icon-glyphs/manifest.json` with `--extract-base`, and rebuild the
 default set. Non-default packs should keep their own source contact sheets and
 final raster exports.

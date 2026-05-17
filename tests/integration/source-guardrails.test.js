@@ -184,9 +184,10 @@ describe( 'v1 source guardrails', () => {
 			expect( existsSync( resolve( glyphDir, `${ key }.png` ) ) ).toBe( true );
 			expect( compose ).toContain( `"${ key }"` );
 		}
-		expect( compose ).toContain( 'def draw_my_wordpress_mask(' );
-		expect( compose ).toContain( 'def draw_content_graph_mask(' );
-		expect( compose ).toContain( 'def compose_icon(' );
+		expect( existsSync( resolve( iconSetDir, 'odd-default-icons', 'source-contact-sheet.png' ) ) ).toBe( true );
+		expect( compose ).toContain( 'def normalize_icon(' );
+		expect( compose ).toContain( 'def animated_frames(' );
+		expect( compose ).toContain( 'source-contact-sheet.png' );
 		expect( compose ).toContain( 'def render_set(' );
 		expect( compose ).toContain( 'kept source rasters for' );
 		expect( compose ).not.toContain( 'copied default rasters into' );

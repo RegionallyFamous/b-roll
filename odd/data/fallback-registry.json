@@ -464,14 +464,14 @@
       "name": "ODD Default",
       "version": "1.0.0",
       "author": "Regionally Famous",
-      "description": "The default ODD raster icon set for Desktop Mode's visible desktop shortcuts: animated logo-style tiles with the current ODD eye palette, thick rims, and matching motion.",
+      "description": "The default ODD raster icon set for Desktop Mode's visible desktop shortcuts: animated arcade-sticker icons with thick rims, bold silhouettes, and small glow/spark motion.",
       "category": "ODD Defaults",
       "accent": "#38e8ff",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/iconset-odd-default-icons.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/iconset-odd-default-icons.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/iconset-odd-default-icons.wp",
-      "sha256": "b95fb6992f4b5ad0155cde589a2092f0c527287f66be27edb7b17d9f9ae2b32b",
-      "size": 739447
+      "sha256": "3da42ad8c149c9a2585c0c18d101c9cacfcff8aec913672b05b40fef7c437c3a",
+      "size": 990469
     },
     {
       "type": "cursor-set",

@@ -14,23 +14,23 @@
   "glyphs": {
     "odd": {
       "mask": "base/odd.png",
-      "description": "animated ODD eye launcher in the current logo style"
+      "description": "animated arcade-sticker ODD eye launcher"
     },
     "my-wordpress": {
       "mask": "base/my-wordpress.png",
-      "description": "animated ODD-logo dashboard gauge"
+      "description": "animated arcade-sticker WordPress dashboard gauge"
     },
     "content-graph": {
       "mask": "base/content-graph.png",
-      "description": "animated ODD-logo content graph"
+      "description": "animated arcade-sticker content graph nodes"
     },
     "recycle-bin": {
       "mask": "base/recycle-bin.png",
-      "description": "animated ODD-logo recycle bin"
+      "description": "animated arcade-sticker recycle bin"
     },
     "fallback": {
       "mask": "base/fallback.png",
-      "description": "animated ODD-logo fallback portal"
+      "description": "animated arcade-sticker fallback portal"
     }
   }
 }
