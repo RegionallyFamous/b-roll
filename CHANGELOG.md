@@ -13,6 +13,84 @@ notes to GitHub Releases.
 
 Nothing yet.
 
+<a id="v1.1.0"></a>
+## [1.1.0] — 2026-05-16
+
+### Added
+- **ODD feels much more like part of the desktop now.** Apps, widgets, taskbar
+  entries, desktop shortcuts, wallpaper controls, and decoration reset actions
+  are wired through Desktop Mode's native window, file, and surface APIs. The
+  practical win: installing or changing something in the Shop shows up where
+  people expect it, without a reload scavenger hunt.
+- **A real tiny game joins the catalog.** _Don't Read the Comments_ is a
+  Minesweeper-style desktop app with first-click-safe boards, flags, chording,
+  timers, local scores, responsive difficulties, and silly fictional
+  comment-bomb reveals. It is a proper puzzle game first and the joke rides on
+  top.
+- **Living cursor effect packs.** Cursor themes can now be lightweight effect
+  recipes instead of a pile of cursor image files, which makes pointer themes
+  smaller, safer, and livelier.
+- **A companion-plugin SDK facade.** `window.__odd.sdk` gives extension authors
+  a cleaner way to read storage, save preferences, inspect capabilities, show
+  toasts, collect diagnostics, and register teardown handlers. The lower-level
+  `window.__odd.api` remains available and now reports API version **2.4.0**.
+
+### Changed
+- **The Shop is easier to scan.** Catalog cards now share a consistent footprint
+  across departments, with cleaner install/open/apply states, tighter controls,
+  and new generated card art sized for the new grid.
+- **Default desktop icons got a glow-up.** ODD now ships a focused raster icon
+  set for desktop shortcuts, including the custom recycle-bin treatment, while
+  leaving Desktop Mode's native rails and taskbar behavior intact.
+- **App catalog presentation is sharper.** First-party apps have matching card
+  art, app icons, native-window metadata, and catalog bundles so they look and
+  open like real desktop software instead of loose web toys.
+- **The catalog health view is more useful.** The Shop now explains signed
+  catalog status, cached snapshots, fallback behavior, and recovery actions in
+  one place so site owners can see why the store is safe instead of guessing.
+
+### Fixed
+- **Desktop app shortcuts appear immediately after install.** ODD now refreshes
+  Desktop Mode's root file placements after app installs or surface changes, so
+  newly installed app icons can appear on the desktop right away.
+- **Taskbar and desktop placement settings are more reliable.** App surface
+  toggles, the ODD taskbar setting, and the wallpaper shortcut setting now save
+  through the native Desktop Mode contracts and refresh the visible desktop
+  state cleanly.
+- **The Shop opens in a saner place.** Saved native-window geometry is nudged
+  back near the top of the desktop when needed, avoiding the awkward "where did
+  the store go?" moment after resizing or moving windows.
+- **Playground and catalog installs are sturdier.** App loading, widget CSS
+  delivery, stale-catalog fallback, and catalog repair flows all got another
+  round of hardening for scoped Playground URLs and temporary catalog outages.
+- **Desktop Mode integration got quieter.** Several old hook aliases and noisy
+  shell issue toasts were removed or softened now that ODD relies on the current
+  Desktop Mode surface.
+
+### Security
+- **Signed catalog checks are now part of the product experience.** Catalog
+  rows are verified with trusted signing keys, SHA256 hashes, expected sizes,
+  version compatibility, and same-base HTTPS URL checks before install.
+- **Bundle validation is stricter.** ODD rejects path traversal, symlinks,
+  executable files, suspicious compression ratios, malformed manifests,
+  mismatched slugs/types/versions, and incompatible runtime requirements before
+  content reaches the uploads directory.
+- **Icon and cursor assets are safer.** Icon sets now use bounded raster assets,
+  cursor effect packs avoid raw cursor images, and SVG previews are scrubbed for
+  scripts, event handlers, external references, and control bytes.
+- **Diagnostics remain local-only.** The expanded health and diagnostics
+  surfaces still copy data only when the administrator asks; ODD does not add
+  telemetry, analytics, license checks, or remote error reporting.
+
+### Compatibility
+- Requires WordPress 6.8+, PHP 8.1+, and WP Desktop Mode 0.8.5+.
+- `window.__odd.api.version` is **2.4.0**. The 2.3 line added native helpers
+  for cursor sets, widgets, apps, shuffle/audio preferences, and decoration
+  reset; the 2.4 line adds the preferred `window.__odd.sdk` facade.
+- Public Playground installs continue to follow the approved WordPress.org ODD
+  release, while dev Playground links are isolated and cache-busted for testing
+  the current `main` branch.
+
 <a id="v1.0.0"></a>
 ## [1.0.0] — 2026-05-15
 

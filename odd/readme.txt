@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.1
 Requires Plugins: desktop-mode
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,11 +118,29 @@ Typical build commands:
 
 == Changelog ==
 
+= 1.1.0 =
+
+ODD 1.1.0 makes the desktop experience feel more native, more polished, and more fun.
+
+* Apps, widgets, taskbar entries, desktop shortcuts, wallpaper controls, and decoration reset actions now work more cleanly with WP Desktop Mode's native surfaces.
+* App icons can appear on the desktop immediately after install or placement changes.
+* The Shop has more consistent catalog cards, clearer install/open/apply states, refreshed card art, and better app presentation.
+* Added the Don't Read the Comments Minesweeper-style desktop app.
+* Refreshed the default desktop icon set, including the custom recycle-bin icon treatment.
+* Added living cursor effect packs and stricter icon/cursor validation.
+* Improved signed catalog checks, cached fallback behavior, repair flows, and catalog health details.
+* Added `window.__odd.sdk` for extension authors and updated `window.__odd.api.version` to 2.4.0.
+* Kept diagnostics local-only with no telemetry, analytics, license checks, or remote error reporting.
+
 = 1.0.0 =
 
 Welcome to ODD. The first public release brings living wallpapers, icon sets, cursor themes, desktop widgets, tiny apps, starter content, and the ODD Shop to WP Desktop Mode.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+
+Native Desktop Mode integration, desktop app shortcuts, catalog security checks, the Shop UI, default desktop icons, and cursor effects are improved. Requires WP Desktop Mode v0.8.5 or newer.
 
 = 1.0.0 =
 
