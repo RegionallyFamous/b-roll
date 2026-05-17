@@ -5934,6 +5934,25 @@
 		// or from a not-installed `bundleCatalog` entry into the
 		// common shape `renderShopCard` consumes. Keeps the card
 		// renderer free of per-type branching beyond the preview art.
+		function shopCardSubtitle( raw, type ) {
+			if ( type === 'scene' ) {
+				return ( categoryOf( raw, 'wallpaper' ) || raw.category || 'Scene' ) + ' · Scene';
+			}
+			if ( type === 'icon-set' ) {
+				return ( raw.category || 'Icon set' ) + ' · Icon set';
+			}
+			if ( type === 'cursor-set' ) {
+				return ( raw.category || 'Cursor set' ) + ' · Cursor set';
+			}
+			if ( type === 'widget' ) {
+				return ( raw.category || 'Widget' ) + ' · Widget';
+			}
+			if ( type === 'app' ) {
+				return ( raw.category || 'Little tools' ) + ' · App';
+			}
+			return '';
+		}
+
 		function normaliseShopRow( raw, type ) {
 			if ( ! raw ) return null;
 			var slug = raw.slug || ( raw.id ? String( raw.id ).replace( /^odd\//, '' ) : '' );
@@ -5941,6 +5960,9 @@
 				var cacheKey = [
 					type,
 					slug,
+					raw.label || raw.name || '',
+					raw.category || '',
+					raw.description || '',
 					raw.version || '',
 					raw.installed === undefined ? 'u' : ( raw.installed ? '1' : '0' ),
 					raw.enabled === false ? '0' : '1',
@@ -5964,19 +5986,7 @@
 				return Object.assign( {}, shopRowCache[ cacheKey ], { raw: raw } );
 			}
 			var name = raw.label || raw.name || slug;
-
-			var subtitle = '';
-			if ( type === 'scene' ) {
-				subtitle = ( categoryOf( raw, 'wallpaper' ) || raw.category || 'Scene' ) + ' · Scene';
-			} else if ( type === 'icon-set' ) {
-				subtitle = ( raw.category || 'Icon set' ) + ' · Icon set';
-			} else if ( type === 'cursor-set' ) {
-				subtitle = ( raw.category || 'Cursor set' ) + ' · Cursor set';
-			} else if ( type === 'widget' ) {
-				subtitle = ( raw.category || 'Widget' ) + ' · Widget';
-			} else if ( type === 'app' ) {
-				subtitle = ( raw.version ? 'v' + raw.version : 'App' ) + ( raw.description ? ' · ' + raw.description.slice( 0, 48 ) : '' );
-			}
+			var subtitle = shopCardSubtitle( raw, type );
 
 			var row = {
 				slug:          slug,
@@ -6105,18 +6115,8 @@
 			}
 			if ( cat.description && ! ins.description ) ins.description = cat.description;
 
-			// Refresh subline copy when category/version arrive from catalog.
-			if ( ins.type === 'widget' ) {
-				ins.subtitle = ( ins.category || 'Widget' ) + ' · Widget';
-			} else if ( ins.type === 'app' ) {
-				ins.subtitle = ( ins.version ? 'v' + ins.version : 'App' ) + ( ins.description ? ' · ' + ins.description.slice( 0, 48 ) : '' );
-			} else if ( ins.type === 'scene' ) {
-				ins.subtitle = ( categoryOf( ins.raw, 'wallpaper' ) || ins.category || 'Scene' ) + ' · Scene';
-			} else if ( ins.type === 'icon-set' ) {
-				ins.subtitle = ( ins.category || 'Icon set' ) + ' · Icon set';
-			} else if ( ins.type === 'cursor-set' ) {
-				ins.subtitle = ( ins.category || 'Cursor set' ) + ' · Cursor set';
-			}
+			// Refresh subline copy when category arrives from catalog.
+			ins.subtitle = shopCardSubtitle( ins, ins.type );
 		}
 
 		function shopRowsFor( type ) {

@@ -590,7 +590,9 @@ describe( 'ODD Shop · unified card state machine', () => {
 						slug:      'board',
 						label:     'Board',
 						type:      'app',
+						category:  'Little tools',
 						version:   '1.0.0',
+						description: 'A tiny planning board for desktop work.',
 						installed: false,
 						card_url:  'https://example.com/catalog/v1/cards/app-board.webp',
 						icon_url:  'https://example.com/catalog/v1/icons/board.svg',
@@ -610,6 +612,9 @@ describe( 'ODD Shop · unified card state machine', () => {
 		expect( img, 'catalog app cards should render generated card_url art' ).toBeTruthy();
 		expect( img.getAttribute( 'src' ) ).toBe( 'https://example.com/catalog/v1/cards/app-board.webp' );
 		expect( card.querySelector( 'img[src="https://example.com/catalog/v1/icons/board.svg"]' ) ).toBeNull();
+		expect( card.querySelector( '.odd-shop__card-sub' ).textContent.trim() ).toBe( 'Little tools · App' );
+		expect( card.querySelector( '.odd-shop__card-sub' ).textContent ).not.toContain( '1.0.0' );
+		expect( card.querySelector( '.odd-shop__card-sub' ).textContent ).not.toContain( 'planning board' );
 		expect( card.querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
 		expect( host.querySelector( '.odd-apps-empty' ) ).toBeNull();
 	} );
@@ -632,6 +637,7 @@ describe( 'ODD Shop · unified card state machine', () => {
 
 		const card = host.querySelector( '[data-odd-shop-card][data-slug="flow"]' );
 		expect( card, 'app row from bundles response must render' ).toBeTruthy();
+		expect( card.querySelector( '.odd-shop__card-sub' ).textContent.trim() ).toBe( 'Little tools · App' );
 		expect( card.querySelector( '.odd-shop__card-btn' ).textContent.trim() ).toBe( 'Install' );
 		expect( host.querySelector( '.odd-apps-empty' ) ).toBeNull();
 	} );
