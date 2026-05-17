@@ -107,6 +107,8 @@ describe( 'ODD Shop · App surfaces', () => {
 	let reloadSpy;
 	let refreshMenuSpy;
 	let updateOsSettingsSpy;
+	let listPlacementsSpy;
+	let setFolderPlacementsSpy;
 	let osSettings;
 
 	beforeEach( () => {
@@ -139,6 +141,29 @@ describe( 'ODD Shop · App surfaces', () => {
 		installHooks();
 		osSettings = { itemVisibility: {}, dockOrder: [] };
 		refreshMenuSpy = vi.fn( () => Promise.resolve() );
+		listPlacementsSpy = vi.fn( () => Promise.resolve( {
+			folderId: 0,
+			placements: [
+				{
+					id: 77,
+					parentId: 0,
+					x: 16,
+					y: 16,
+					sortOrder: 0,
+					updatedAtMs: 1,
+					meta: null,
+					file: {
+						type: 'shortcut',
+						ref: 'odd-app-demo-app',
+						title: 'Demo App',
+						icon: 'dashicons-admin-generic',
+						previewUrl: '',
+						exists: true,
+					},
+				},
+			],
+		} ) );
+		setFolderPlacementsSpy = vi.fn();
 		updateOsSettingsSpy = vi.fn( ( patch ) => {
 			if ( patch && patch.itemVisibility ) {
 				osSettings.itemVisibility = Object.assign( {}, patch.itemVisibility );
@@ -154,6 +179,14 @@ describe( 'ODD Shop · App surfaces', () => {
 				dockOrder: osSettings.dockOrder.slice(),
 			} ),
 			updateOsSettings: updateOsSettingsSpy,
+			files: {
+				rest: {
+					listPlacements: listPlacementsSpy,
+				},
+				store: {
+					setFolderPlacements: setFolderPlacementsSpy,
+				},
+			},
 		};
 
 		// fetchApps() hits GET /odd/v1/apps; toggle POST hits
@@ -269,6 +302,11 @@ describe( 'ODD Shop · App surfaces', () => {
 
 		await tick( 0 );
 		expect( refreshMenuSpy ).toHaveBeenCalledTimes( 1 );
+		expect( listPlacementsSpy ).toHaveBeenCalledTimes( 1 );
+		expect( listPlacementsSpy ).toHaveBeenCalledWith( 0 );
+		expect( setFolderPlacementsSpy ).toHaveBeenCalledTimes( 1 );
+		expect( setFolderPlacementsSpy.mock.calls[ 0 ][ 0 ] ).toBe( 0 );
+		expect( setFolderPlacementsSpy.mock.calls[ 0 ][ 1 ][ 0 ].file.ref ).toBe( 'odd-app-demo-app' );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();
@@ -296,6 +334,8 @@ describe( 'ODD Shop · App surfaces', () => {
 
 		await tick( 0 );
 		expect( refreshMenuSpy ).toHaveBeenCalledTimes( 1 );
+		expect( listPlacementsSpy ).toHaveBeenCalledTimes( 1 );
+		expect( setFolderPlacementsSpy ).toHaveBeenCalledTimes( 1 );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();
@@ -323,6 +363,7 @@ describe( 'ODD Shop · App surfaces', () => {
 		await tick( 450 );
 		expect( updateOsSettingsSpy ).not.toHaveBeenCalled();
 		expect( refreshMenuSpy ).not.toHaveBeenCalled();
+		expect( listPlacementsSpy ).not.toHaveBeenCalled();
 		expect( reloadSpy ).toHaveBeenCalledTimes( 1 );
 
 		if ( typeof cleanup === 'function' ) cleanup();
@@ -350,6 +391,28 @@ describe( 'ODD Shop · App surfaces', () => {
 
 	it( 'catalog app install opens immediately and refreshes Desktop Mode live', async () => {
 		seedConfig( [] );
+		listPlacementsSpy.mockResolvedValue( {
+			folderId: 0,
+			placements: [
+				{
+					id: 91,
+					parentId: 0,
+					x: 16,
+					y: 16,
+					sortOrder: 0,
+					updatedAtMs: 1,
+					meta: null,
+					file: {
+						type: 'shortcut',
+						ref: 'odd-app-board',
+						title: 'Board',
+						icon: 'dashicons-admin-generic',
+						previewUrl: '',
+						exists: true,
+					},
+				},
+			],
+		} );
 		fetchMock = vi.fn( ( url, opts ) => {
 			if ( opts && opts.method === 'POST' && /\/bundles\/install-from-catalog$/.test( url ) ) {
 				return Promise.resolve( {
@@ -400,6 +463,9 @@ describe( 'ODD Shop · App surfaces', () => {
 
 		await tick( 0 );
 		expect( refreshMenuSpy ).toHaveBeenCalledTimes( 1 );
+		expect( listPlacementsSpy ).toHaveBeenCalledTimes( 1 );
+		expect( setFolderPlacementsSpy ).toHaveBeenCalledTimes( 1 );
+		expect( setFolderPlacementsSpy.mock.calls[ 0 ][ 1 ][ 0 ].file.ref ).toBe( 'odd-app-board' );
 		expect( reloadSpy ).not.toHaveBeenCalled();
 
 		if ( typeof cleanup === 'function' ) cleanup();

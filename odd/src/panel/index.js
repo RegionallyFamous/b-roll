@@ -472,6 +472,58 @@
 			}
 		}
 
+		function refreshDesktopModeRootPlacements( source ) {
+			var desktop = window.wp && window.wp.desktop;
+			var files   = desktop && desktop.files;
+			var rest    = files && files.rest;
+			var store   = files && files.store;
+			source = source || 'desktop.files.rootPlacements';
+			if (
+				! rest ||
+				typeof rest.listPlacements !== 'function' ||
+				! store ||
+				typeof store.setFolderPlacements !== 'function'
+			) {
+				diagCount( 'desktop.files.rootPlacements.missing' );
+				return Promise.resolve( false );
+			}
+			try {
+				return Promise.resolve( rest.listPlacements( 0 ) ).then(
+					function ( res ) {
+						if ( ! res || ! Array.isArray( res.placements ) ) {
+							return false;
+						}
+						store.setFolderPlacements(
+							Number( res.folderId ) || 0,
+							res.placements
+						);
+						diagCount( 'desktop.files.rootPlacements.ok' );
+						return true;
+					},
+					function ( err ) {
+						reportError( source, err );
+						return false;
+					}
+				);
+			} catch ( errRoot ) {
+				reportError( source, errRoot );
+				return Promise.resolve( false );
+			}
+		}
+
+		function refreshDesktopModeAppSurfaces( source ) {
+			return refreshDesktopModeMenu( source ).then( function ( refreshed ) {
+				if ( ! refreshed ) {
+					return { refreshed: false, placements: false };
+				}
+				return refreshDesktopModeRootPlacements(
+					( source || 'app.surfaces' ) + '.placements'
+				).then( function ( placements ) {
+					return { refreshed: true, placements: !! placements };
+				} );
+			} );
+		}
+
 		function refreshAppsNativeSurfaces( wrap, source, okMessage, opts ) {
 			opts = opts || {};
 			if ( opts.scheduleReload ) {
@@ -486,11 +538,11 @@
 				return;
 			}
 			setAppsStatus( wrap, __( 'Updating Desktop Mode…' ), '' );
-			refreshDesktopModeMenu( source ).then( function ( refreshed ) {
+			refreshDesktopModeAppSurfaces( source ).then( function ( result ) {
 				setAppsStatus(
 					wrap,
-					refreshed ? okMessage : __( 'Saved. Desktop Mode will update shortly.' ),
-					refreshed ? 'ok' : ''
+					result.refreshed ? okMessage : __( 'Saved. Desktop Mode will update shortly.' ),
+					result.refreshed ? 'ok' : ''
 				);
 			} );
 		}
@@ -2274,7 +2326,7 @@
 				);
 				if ( 'app' === type ) {
 					Promise.resolve( appSurfaceWrite ).then( function () {
-						refreshDesktopModeMenu( 'app.install' );
+						refreshDesktopModeAppSurfaces( 'app.install' );
 					} );
 				}
 			}
@@ -3968,9 +4020,15 @@
 		function saveAppSurfaceState( slug, fullSurfaces, partialSurfaces ) {
 			return writeCoreAppSurfaceState( slug, fullSurfaces ).then( function ( coreSurfaces ) {
 				if ( coreSurfaces ) {
-					return refreshDesktopModeMenu( 'app.surfaces.native' ).then( function ( refreshed ) {
-						return { native: true, refreshed: refreshed, surfaces: coreSurfaces };
-					} );
+					return refreshDesktopModeAppSurfaces( 'app.surfaces.native' )
+						.then( function ( result ) {
+							return {
+								native: true,
+								refreshed: result.refreshed,
+								placements: result.placements,
+								surfaces: coreSurfaces,
+							};
+						} );
 				}
 				return setAppSurfaces( slug, partialSurfaces ).then( function ( res ) {
 					if ( res && res.surfaces ) {
