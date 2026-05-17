@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import zipfile
 from pathlib import Path
 
@@ -17,9 +18,24 @@ SOURCE_SHEET = APP_ROOT / "source-app-icons-contact-sheet.png"
 ICON_SIZE = 1024
 ICON_CANVAS = (ICON_SIZE, ICON_SIZE)
 CARD_SIZE = (1024, 576)
+FRAME_COUNT = 6
 FIXED_DATE = (2025, 1, 1, 0, 0, 0)
 
 APP_ORDER = (
+    "board",
+    "cache-invaders",
+    "dont-read-the-comments",
+    "flow",
+    "four-oh-four-runner",
+    "ledger",
+    "mosaic",
+    "plugin-panic",
+    "sine",
+    "swatch",
+    "tome",
+)
+
+CONTACT_SHEET_ORDER = (
     "board",
     "dont-read-the-comments",
     "flow",
@@ -32,13 +48,30 @@ APP_ORDER = (
 
 CARD_COLORS = {
     "board": ("#ffd45a", "#56e7f4", "#ff5aa8"),
+    "cache-invaders": ("#56e7f4", "#9068ff", "#77ef8b"),
     "dont-read-the-comments": ("#ff5aa8", "#ffd45a", "#56e7f4"),
     "flow": ("#ff5aa8", "#56e7f4", "#9068ff"),
+    "four-oh-four-runner": ("#ff9f55", "#56e7f4", "#ff5aa8"),
     "ledger": ("#56e7f4", "#ffd45a", "#77ef8b"),
     "mosaic": ("#ff5aa8", "#56e7f4", "#ffd45a"),
+    "plugin-panic": ("#9068ff", "#ff5aa8", "#ffd45a"),
     "sine": ("#9068ff", "#ff5aa8", "#56e7f4"),
     "swatch": ("#ff5aa8", "#ffd45a", "#56e7f4"),
     "tome": ("#9068ff", "#ff5aa8", "#f4efe4"),
+}
+
+SPARK_STARTS = {
+    "board": 0.02,
+    "cache-invaders": 0.14,
+    "dont-read-the-comments": 0.26,
+    "flow": 0.38,
+    "four-oh-four-runner": 0.50,
+    "ledger": 0.62,
+    "mosaic": 0.74,
+    "plugin-panic": 0.86,
+    "sine": 0.18,
+    "swatch": 0.43,
+    "tome": 0.68,
 }
 
 INK = "#080511"
@@ -204,12 +237,23 @@ def extract_icons() -> dict[str, Image.Image]:
     source = Image.open(SOURCE_SHEET)
     alpha_sheet, mask = make_alpha_sheet(source)
     boxes = component_boxes(mask)
-    if len(boxes) != len(APP_ORDER):
-        raise SystemExit(f"expected {len(APP_ORDER)} app icons in contact sheet, found {len(boxes)}")
+    if len(boxes) == len(APP_ORDER):
+        sheet_order = APP_ORDER
+    elif len(boxes) == len(CONTACT_SHEET_ORDER):
+        sheet_order = CONTACT_SHEET_ORDER
+    else:
+        raise SystemExit(
+            f"expected {len(APP_ORDER)} or {len(CONTACT_SHEET_ORDER)} app icons "
+            f"in contact sheet, found {len(boxes)}"
+        )
 
-    icons: dict[str, Image.Image] = {}
+    icons: dict[str, Image.Image] = {
+        slug: load_existing_icon(slug)
+        for slug in APP_ORDER
+        if (APP_ROOT / slug / "icon.webp").is_file()
+    }
     width, height = alpha_sheet.size
-    for slug, (x1, y1, x2, y2, _area) in zip(APP_ORDER, boxes):
+    for slug, (x1, y1, x2, y2, _area) in zip(sheet_order, boxes):
         pad = 36
         crop = alpha_sheet.crop((
             max(0, x1 - pad),
@@ -218,6 +262,9 @@ def extract_icons() -> dict[str, Image.Image]:
             min(height, y2 + pad),
         ))
         icons[slug] = normalize_icon(crop)
+    missing = [slug for slug in APP_ORDER if slug not in icons]
+    if missing:
+        raise SystemExit(f"missing app icons: {', '.join(missing)}")
     return icons
 
 
@@ -235,6 +282,164 @@ def sparkle(draw: ImageDraw.ImageDraw, x: int, y: int, r: int, fill: str = GOLD)
          (x, y + r2), (x - p2, y + p2), (x - r2, y), (x - p2, y - p2)],
         fill=rgba(fill, 255),
     )
+
+
+def draw_star(
+    draw: ImageDraw.ImageDraw,
+    cx: float,
+    cy: float,
+    radius: float,
+    fill: tuple[int, int, int, int],
+) -> None:
+    tight = radius * 0.34
+    draw.polygon(
+        [
+            (cx, cy - radius),
+            (cx + tight, cy - tight),
+            (cx + radius, cy),
+            (cx + tight, cy + tight),
+            (cx, cy + radius),
+            (cx - tight, cy + tight),
+            (cx - radius, cy),
+            (cx - tight, cy - tight),
+        ],
+        fill=fill,
+    )
+
+
+def draw_outlined_star(
+    draw: ImageDraw.ImageDraw,
+    cx: float,
+    cy: float,
+    radius: float,
+    fill: str,
+    alpha: int = 245,
+) -> None:
+    draw_star(draw, cx, cy, radius + 9, rgba("#07050f", 230))
+    draw_star(draw, cx, cy, radius, rgba(fill, alpha))
+
+
+def transparent_icon() -> Image.Image:
+    return Image.new("RGBA", ICON_CANVAS, (0, 0, 0, 0))
+
+
+def load_existing_icon(slug: str) -> Image.Image:
+    icon_path = APP_ROOT / slug / "source-icon.webp"
+    if not icon_path.is_file():
+        icon_path = APP_ROOT / slug / "icon.webp"
+    if not icon_path.is_file():
+        raise SystemExit(f"missing app icon source {icon_path}")
+    with Image.open(icon_path) as img:
+        img.seek(0)
+        return img.convert("RGBA")
+
+
+def color_alpha_layer(
+    alpha: Image.Image,
+    color: str,
+    *,
+    limit: int,
+    blur: float,
+    scale: float,
+) -> Image.Image:
+    glow_alpha = alpha.filter(ImageFilter.GaussianBlur(blur))
+    glow_alpha = glow_alpha.point(lambda value: min(limit, round(value * scale)))
+    layer = Image.new("RGBA", ICON_CANVAS, rgba(color, 255))
+    layer.putalpha(glow_alpha)
+    return layer
+
+
+def sheen_layer(alpha: Image.Image, phase: int) -> Image.Image:
+    sheen = transparent_icon()
+    draw = ImageDraw.Draw(sheen)
+    x = -360 + phase * (ICON_SIZE + 720) / FRAME_COUNT
+    draw.polygon(
+        [
+            (x, -120),
+            (x + 118, -120),
+            (x + 448, ICON_SIZE + 120),
+            (x + 330, ICON_SIZE + 120),
+        ],
+        fill=(255, 255, 255, 22),
+    )
+    alpha_mask = Image.new("L", ICON_CANVAS, 0)
+    alpha_mask.paste(alpha)
+    sheen.putalpha(Image.composite(sheen.getchannel("A"), Image.new("L", ICON_CANVAS, 0), alpha_mask))
+    return sheen
+
+
+def sparkle_layer(slug: str, base: Image.Image, phase: int, colors: tuple[str, str, str]) -> Image.Image:
+    left, top, right, bottom = alpha_bbox(base.convert("RGBA"), 28)
+    width = right - left
+    height = bottom - top
+    cx = (left + right) / 2
+    cy = (top + bottom) / 2
+    accent, secondary, warm = colors
+
+    layer = transparent_icon()
+    draw = ImageDraw.Draw(layer)
+    pulse = 0.78 + 0.22 * math.sin((phase / FRAME_COUNT) * math.tau)
+    fixed = (
+        (
+            min(ICON_SIZE - 54, max(54, right - width * 0.11)),
+            min(ICON_SIZE - 54, max(54, top + height * 0.09)),
+            28 + 5 * pulse,
+            warm,
+        ),
+        (
+            min(ICON_SIZE - 54, max(54, left + width * 0.10)),
+            min(ICON_SIZE - 54, max(54, bottom - height * 0.10)),
+            20 + 3 * (1 - pulse),
+            secondary,
+        ),
+    )
+    for x, y, radius, color in fixed:
+        draw_outlined_star(draw, x, y, radius, color, 230)
+
+    angle = (SPARK_STARTS.get(slug, 0.0) + phase / FRAME_COUNT * 0.42) * math.tau
+    rx = max(160, width * 0.58)
+    ry = max(150, height * 0.52)
+    x = min(ICON_SIZE - 62, max(62, cx + math.cos(angle) * rx))
+    y = min(ICON_SIZE - 62, max(62, cy + math.sin(angle) * ry))
+    draw_outlined_star(draw, x, y, 30 + (phase % 3 == 1) * 4, accent, 246)
+    return layer
+
+
+def compose_icon_frame(slug: str, base: Image.Image, phase: int) -> Image.Image:
+    colors = CARD_COLORS[slug]
+    accent, secondary, _warm = colors
+    base = base.convert("RGBA")
+    alpha = base.getchannel("A")
+    pulse = 0.82 + 0.18 * math.sin((phase / FRAME_COUNT) * math.tau)
+    frame = transparent_icon()
+    frame.alpha_composite(color_alpha_layer(alpha, accent, limit=76, blur=30, scale=0.30 + 0.08 * pulse), (4, 2))
+    frame.alpha_composite(color_alpha_layer(alpha, secondary, limit=62, blur=18, scale=0.24 + 0.07 * (1 - pulse)), (-4, 2))
+    frame.alpha_composite(base)
+    frame.alpha_composite(sheen_layer(alpha, phase))
+    frame.alpha_composite(sparkle_layer(slug, base, phase, colors))
+    return frame
+
+
+def animated_icon_frames(slug: str, base: Image.Image) -> list[Image.Image]:
+    return [compose_icon_frame(slug, base, phase) for phase in range(FRAME_COUNT)]
+
+
+def save_animated_icon(slug: str, icon: Image.Image, icon_path: Path) -> bytes:
+    frames = animated_icon_frames(slug, icon)
+    tmp = icon_path.with_suffix(icon_path.suffix + ".tmp")
+    frames[0].save(
+        tmp,
+        "WEBP",
+        save_all=True,
+        append_images=frames[1:],
+        duration=[140] * FRAME_COUNT,
+        loop=0,
+        quality=86,
+        method=4,
+        lossless=False,
+    )
+    tmp.replace(icon_path)
+    return icon_path.read_bytes()
 
 
 def card_plate(accent: str, secondary: str, warm: str) -> Image.Image:
@@ -337,9 +542,8 @@ def main() -> None:
         icon_path = src_dir / "icon.webp"
         card_path = src_dir / "card.webp"
         icon = icons[slug]
-        icon.save(icon_path, "WEBP", quality=92, method=6)
-        icon_bytes = icon_path.read_bytes()
-        render_card(icon, CARD_COLORS[slug]).save(card_path, "WEBP", quality=88, method=6)
+        icon_bytes = save_animated_icon(slug, icon, icon_path)
+        render_card(compose_icon_frame(slug, icon, 0), CARD_COLORS[slug]).save(card_path, "WEBP", quality=88, method=6)
         write_bundle_icon(src_dir, icon_bytes)
         sync_bundle_src(src_dir, icon_bytes)
         print(icon_path)

@@ -624,15 +624,15 @@
       "type": "widget",
       "slug": "plugin-panic-button",
       "name": "Plugin Panic Button",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Regionally Famous",
-      "description": "A dramatic panic button that settles into a calm WordPress troubleshooting checklist.",
+      "description": "A fake emergency button that turns plugin panic into an absurd calm-down ritual.",
       "category": "ODD Originals",
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/widget-plugin-panic-button.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/widget-plugin-panic-button.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/widget-plugin-panic-button.wp",
-      "sha256": "c1b5457aafb0d5730bab27c3ae238c9f32a4f968e71f5312c948a065792f3593",
-      "size": 4267
+      "sha256": "24c95ebdf0a30e01f2945c58e2d978c7365bf03c1667280e9275f2e13ae36229",
+      "size": 4287
     },
     {
       "type": "widget",
@@ -680,7 +680,7 @@
       "type": "app",
       "slug": "board",
       "name": "Board",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Regionally Famous",
       "description": "Cards. Columns. Drag. Drop. Done. A no-nonsense project board that shows you exactly what's happening, what's stuck, and what you can finally move to \"done.\"",
       "tags": [
@@ -692,14 +692,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/board.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-board.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/board.wp",
-      "sha256": "555c28852d304158b344e7b9db9bb16eca20ac1abeba289f3025bde8bda7022e",
-      "size": 163075
+      "sha256": "a982d7d7e2bfe9ae9348e06265473f89818185c55f72ada0c1bc79e0e3688fb9",
+      "size": 606400
     },
     {
       "type": "app",
       "slug": "cache-invaders",
       "name": "Cache Invaders",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": "Regionally Famous",
       "description": "A neon arcade shooter where a purge cannon clears stale cache ghosts, CDN shields, CSS blobs, and one very stubborn browser cache.",
       "tags": [
@@ -711,14 +711,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/cache-invaders.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-cache-invaders.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/cache-invaders.wp",
-      "sha256": "ad0b9eeacc9fa352fc49fef882e84e60b910dd8b047e5faf831852dcacb14f3d",
-      "size": 357332
+      "sha256": "f670ef43383c023ae01442fcea62b0770b11c62f8814cca342147172620bd01f",
+      "size": 863785
     },
     {
       "type": "app",
       "slug": "dont-read-the-comments",
       "name": "Don't Read the Comments",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Regionally Famous",
       "description": "A crisp little Minesweeper-style puzzle where the dangerous squares reveal playful fake comment cards instead of explosions.",
       "tags": [
@@ -730,14 +730,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/dont-read-the-comments.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-dont-read-the-comments.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/dont-read-the-comments.wp",
-      "sha256": "49e911d8151822217b58bb7e0af9867c2ac7d1d2643ec0b81eafd78580a71374",
-      "size": 211044
+      "sha256": "6601fb21491e6526a37abc5d9c8c076a30d328aa8773202d7f760b94ef3621ef",
+      "size": 532865
     },
     {
       "type": "app",
       "slug": "flow",
       "name": "Flow",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Regionally Famous",
       "description": "Stop doomscrolling, start doing. A Pomodoro timer with ambient soundscapes, per-session task lists, and a heatmap so you can see exactly which days you crushed it.",
       "tags": [
@@ -749,14 +749,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/flow.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-flow.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/flow.wp",
-      "sha256": "c5308ddba0b9321685e4027cf35112071d9e5dae155eec5db0b5d41d3b22758a",
-      "size": 179050
+      "sha256": "e28dcaea05e85206a21dc296c1f0f94ffefea1c59c67b9448d722bda28536ff9",
+      "size": 577736
     },
     {
       "type": "app",
       "slug": "four-oh-four-runner",
       "name": "404 Runner",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "author": "Regionally Famous",
       "description": "An endless runner where a missing page dashes through broken links, redirect rings, query rubble, and tiny uptime miracles.",
       "tags": [
@@ -768,14 +768,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/four-oh-four-runner.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-four-oh-four-runner.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/four-oh-four-runner.wp",
-      "sha256": "61dbcb88ce18830bb7d85c254b964ee0ba323de19548d5002910f6864e22144e",
-      "size": 401903
+      "sha256": "82cef5784026309371b8b78259d5f828296eebfa54681d77b172e3f777286ec1",
+      "size": 902778
     },
     {
       "type": "app",
       "slug": "ledger",
       "name": "Ledger",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Regionally Famous",
       "description": "Get paid. Track clients, generate polished invoices, and log payments without ever leaving WordPress.",
       "tags": [
@@ -787,14 +787,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/ledger.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-ledger.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/ledger.wp",
-      "sha256": "83bd87ca617d040d50229aba92e0fdd0fb7b3971674a28174bb04716d75dff89",
-      "size": 407475
+      "sha256": "adbbac84b169681ea7110694ef9bc3f25b76cf7b4c85862569d7b54e77b3f286",
+      "size": 768593
     },
     {
       "type": "app",
       "slug": "mosaic",
       "name": "Mosaic",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Regionally Famous",
       "description": "Tiny art, big feelings. A pixel editor with drawing tools, fills, undo/redo, and PNG export when you're ready to share your 32x32 masterpiece.",
       "tags": [
@@ -806,14 +806,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/mosaic.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-mosaic.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/mosaic.wp",
-      "sha256": "bec3cf11266e15319366561cd12213f9ac06b6daa79135854624f54d270d2feb",
-      "size": 173205
+      "sha256": "cdfe454e241aa6d252847c05573d3bac9af1d740e50a9ea34d0feef9c8b4584b",
+      "size": 580411
     },
     {
       "type": "app",
       "slug": "plugin-panic",
       "name": "Plugin Panic",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "Regionally Famous",
       "description": "A falling-block puzzle where plugin packages stack up, dependency conflicts loom, and every cleared line resolves one more update queue.",
       "tags": [
@@ -825,14 +825,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/plugin-panic.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-plugin-panic.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/plugin-panic.wp",
-      "sha256": "cc454928000fec16decc57b4a0f7d263db159f007de87ba6895e87093a6f0266",
-      "size": 213254
+      "sha256": "b799c6b0fe8ffc3baf06d694c51c44a86be20d408d2d082efa03dd34c5f322b9",
+      "size": 669472
     },
     {
       "type": "app",
       "slug": "sine",
       "name": "Sine",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "Regionally Famous",
       "description": "A full synthesizer living inside your WordPress admin. Four waveforms, ADSR envelope, a resonant filter, and a step sequencer \u2014 all on pure Web Audio.",
       "tags": [
@@ -844,14 +844,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/sine.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-sine.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/sine.wp",
-      "sha256": "11faf759a950a1b4cb176d5027592fec844a6c7373add242c7810f70c29f2ae9",
-      "size": 176622
+      "sha256": "bb1ad1e79f924228fa2a773a953c31417935cabe447084d29cca27232c810b78",
+      "size": 712930
     },
     {
       "type": "app",
       "slug": "swatch",
       "name": "Swatch",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Regionally Famous",
       "description": "Pick colors like you mean it. Full HSL editing, harmony rules, WCAG contrast checks, and one-click export to CSS, Tailwind, or SVG.",
       "tags": [
@@ -863,14 +863,14 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/swatch.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-swatch.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/swatch.wp",
-      "sha256": "c04fab71424dcac784f1f84ebe8eef5b0b3e51e6ac0e8fcb60c6df1f8e055196",
-      "size": 191761
+      "sha256": "a24f50a41a4876eb89612ea255fc5d23162fa58e7f3c7dbd7fb48734fd5ef931",
+      "size": 671817
     },
     {
       "type": "app",
       "slug": "tome",
       "name": "Tome",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Regionally Famous",
       "description": "A fast internal wiki for your team. Write in markdown, organise into pages, find anything instantly.",
       "tags": [
@@ -882,8 +882,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/tome.webp",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-tome.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/tome.wp",
-      "sha256": "b84af2665a1715ba20c11a8a3de1c117fd4392e1a24dafba68c18d797fe4b972",
-      "size": 181604
+      "sha256": "79f471a32002a8055ebe95fac04b66c3110a9a1827f50138edbad30eebf0a517",
+      "size": 527505
     }
   ]
 }

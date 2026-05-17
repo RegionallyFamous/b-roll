@@ -423,7 +423,7 @@ describe( 'new ODD Originals widgets', () => {
 		expect( container.classList.contains( 'is-running' ) ).toBe( true );
 		vi.advanceTimersByTime( 2000 );
 		expect( container.classList.contains( 'is-calm' ) ).toBe( true );
-		expect( container.querySelector( '.odd-panic__status' ).textContent ).toBe( 'Calm path found' );
+		expect( container.querySelector( '.odd-panic__status' ).textContent ).toBe( 'Vibes restored' );
 
 		const first = container.querySelector( '.odd-panic__item' );
 		first.dispatchEvent( new MouseEvent( 'click', { bubbles: true, cancelable: true } ) );

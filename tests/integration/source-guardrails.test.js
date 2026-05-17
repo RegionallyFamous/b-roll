@@ -231,6 +231,39 @@ describe( 'v1 source guardrails', () => {
 			}
 		}
 	} );
+
+	it( 'keeps first-party app icons animated like the default sticker icons', () => {
+		const appDir = resolve( ROOT, '_tools/catalog-sources/apps' );
+		const catalogIconDir = resolve( ROOT, 'site/catalog/v1/icons' );
+		const generator = readRel( '_tools/gen-app-sticker-art.py' );
+		const animatedWebpMarker = Buffer.from( 'ANMF' );
+		const stableFallbackSources = [
+			'cache-invaders',
+			'four-oh-four-runner',
+			'plugin-panic',
+		];
+		const appSlugs = readdirSync( appDir, { withFileTypes: true } )
+			.filter( ( entry ) => entry.isDirectory() && existsSync( join( appDir, entry.name, 'meta.json' ) ) )
+			.map( ( entry ) => entry.name )
+			.sort();
+
+		expect( appSlugs ).toHaveLength( 11 );
+		expect( generator ).toContain( 'FRAME_COUNT = 6' );
+		expect( generator ).toContain( 'source-icon.webp' );
+		expect( generator ).toContain( 'save_all=True' );
+
+		for ( const slug of appSlugs ) {
+			const sourceIcon = readFileSync( join( appDir, slug, 'icon.webp' ) );
+			const catalogIcon = readFileSync( join( catalogIconDir, `${ slug }.webp` ) );
+			expect( sourceIcon.includes( animatedWebpMarker ), `${ slug } source icon should sparkle` ).toBe( true );
+			expect( catalogIcon.includes( animatedWebpMarker ), `${ slug } catalog icon should sparkle` ).toBe( true );
+		}
+
+		for ( const slug of stableFallbackSources ) {
+			const source = readFileSync( join( appDir, slug, 'source-icon.webp' ) );
+			expect( source.includes( animatedWebpMarker ), `${ slug } source-icon.webp should stay clean` ).toBe( false );
+		}
+	} );
 } );
 
 describe( 'Desktop Mode integration source contracts', () => {

@@ -11,7 +11,8 @@
 			<header class="topbar">
 				<div class="brand">
 					<span class="brand-mark" aria-hidden="true"></span>
-					<div>
+					<div class="brand-copy">
+						<span class="deck-pill">Dependency stack</span>
 						<h1 id="app-title">Plugin Panic</h1>
 						<p id="status-line" class="status-line" aria-live="polite">Stack updates. Resolve dependencies. Do not panic.</p>
 					</div>
@@ -24,22 +25,42 @@
 			</header>
 			<section class="game-layout">
 				<div class="canvas-wrap">
-					<canvas id="game-canvas" width="360" height="720" aria-label="Plugin Panic falling-block board"></canvas>
+					<div class="stage-shell" aria-label="Plugin Panic falling-block board">
+						<div class="stage-glow" aria-hidden="true"></div>
+						<div class="stage-meter" aria-hidden="true"><span id="queue-meter"></span></div>
+						<canvas id="game-canvas" width="360" height="720"></canvas>
+					</div>
 				</div>
 				<aside class="side-panel">
-					<div class="sprite-card" aria-hidden="true"></div>
-					<div class="mini-card"><p class="panel-label">Next update</p><canvas id="next-canvas" width="96" height="96"></canvas></div>
-					<div class="mini-card"><p class="panel-label">Hold</p><canvas id="hold-canvas" width="96" height="96"></canvas></div>
-					<div class="button-grid">
-						<button type="button" data-action="left">Left</button>
-						<button type="button" data-action="rotate">Rotate</button>
-						<button type="button" data-action="right">Right</button>
-						<button type="button" data-action="drop">Drop</button>
-						<button type="button" data-action="hold">Hold</button>
-						<button type="button" data-action="pause">Pause</button>
+					<div class="console-cap" aria-hidden="true">
+						<span>Update Deck</span>
+						<i></i>
 					</div>
-					<button id="reset-button" class="primary-button" type="button">New Stack</button>
-					<p class="help-text">Keys: arrows move, Up rotates, Space drops, C holds, P pauses.</p>
+					<div class="plugin-card">
+						<div class="plugin-portrait" aria-hidden="true"></div>
+						<div class="plugin-card__body">
+							<p class="panel-label">Queue status</p>
+							<p id="queue-line" class="readout">Updates waiting.</p>
+							<div class="signal-bars" aria-hidden="true">
+								<span></span><span></span><span></span><span></span><span></span>
+							</div>
+						</div>
+					</div>
+					<div class="preview-grid">
+						<div class="mini-card"><p class="panel-label">Next</p><canvas id="next-canvas" width="96" height="96"></canvas></div>
+						<div class="mini-card"><p class="panel-label">Hold</p><canvas id="hold-canvas" width="96" height="96"></canvas></div>
+					</div>
+					<div class="control-deck">
+						<div class="button-grid">
+							<button type="button" data-action="left" aria-label="Move left">Left</button>
+							<button type="button" data-action="rotate" aria-label="Rotate">Rotate</button>
+							<button type="button" data-action="right" aria-label="Move right">Right</button>
+							<button type="button" data-action="drop" aria-label="Drop">Drop</button>
+							<button type="button" data-action="hold" aria-label="Hold">Hold</button>
+							<button type="button" data-action="pause" aria-label="Pause">Pause</button>
+						</div>
+						<button id="reset-button" class="primary-button" type="button">New Stack</button>
+					</div>
 				</aside>
 			</section>
 		</main>

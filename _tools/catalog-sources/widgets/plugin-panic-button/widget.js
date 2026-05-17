@@ -74,17 +74,17 @@
 	}
 
 	var CHECKLIST = [
-		'Clear cache',
-		'Check console',
-		'Disable last plugin',
-		'Inspect logs',
+		'Bribe cache',
+		'Ask console to whisper',
+		'Send plugin to timeout',
+		'Stare at logs wisely',
 	];
 
 	var STATES = [
-		'Scanning update queue',
-		'Checking cache sparks',
-		'Reading console noise',
-		'Calm path found',
+		'Fake emergency ritual',
+		'Counting spooky semicolons',
+		'Giving cache a juice box',
+		'Vibes restored',
 	];
 
 	function restoreChecked( ctx ) {
@@ -100,10 +100,10 @@
 		if ( reduced ) container.classList.add( 'is-reduced' );
 
 		var shell = el( 'div', { class: 'odd-panic', role: 'group', 'aria-label': __( 'Plugin Panic Button' ) } );
-		var status = el( 'div', { class: 'odd-panic__status', role: 'status', 'aria-live': 'polite' }, __( 'Stand by' ) );
+		var status = el( 'div', { class: 'odd-panic__status', role: 'status', 'aria-live': 'polite' }, __( 'Fake emergency ritual' ) );
 		var button = el( 'button', { type: 'button', class: 'odd-panic__button', 'aria-label': __( 'Start plugin panic checklist' ) }, [
 			el( 'span', { class: 'odd-panic__button-ring', 'aria-hidden': 'true' } ),
-			el( 'span', { class: 'odd-panic__button-label' }, __( 'PANIC' ) ),
+			el( 'span', { class: 'odd-panic__button-label' }, __( 'OH NO' ) ),
 		] );
 		var list = el( 'div', { class: 'odd-panic__checklist', role: 'list' } );
 		var reset = el( 'button', { type: 'button', class: 'odd-panic__reset' }, __( 'Reset' ) );
@@ -182,7 +182,7 @@
 			persist();
 			renderChecklist();
 			if ( checked.filter( Boolean ).length === CHECKLIST.length ) {
-				status.textContent = __( 'All calm. Save the tiny diff.' );
+				status.textContent = __( 'No fixes. Great courage.' );
 			}
 		}
 
@@ -191,7 +191,7 @@
 			checked = [];
 			persist();
 			renderChecklist();
-			status.textContent = __( 'Stand by' );
+			status.textContent = __( 'Fake emergency ritual' );
 			setPhase( 'ready' );
 		}
 

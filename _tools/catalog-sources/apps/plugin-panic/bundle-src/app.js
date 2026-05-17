@@ -12,18 +12,24 @@
 	var levelEl = document.getElementById( 'level' );
 	var bestEl = document.getElementById( 'best' );
 	var statusEl = document.getElementById( 'status-line' );
+	var queueEl = document.getElementById( 'queue-line' );
+	var queueMeter = document.getElementById( 'queue-meter' );
 	var overlay = document.getElementById( 'overlay' );
 	var overlayTitle = document.getElementById( 'overlay-title' );
 	var overlayLine = document.getElementById( 'overlay-line' );
 	var resetButton = document.getElementById( 'reset-button' );
 	var overlayReset = document.getElementById( 'overlay-reset' );
+	var backdrop = new Image();
 	var cols = 10;
 	var rows = 20;
-	var size = 32;
-	var ox = 20;
-	var oy = 58;
+	var size = 25;
+	var ox = 55;
+	var oy = 106;
 	var last = 0;
 	var acc = 0;
+
+	backdrop.src = './assets/plugin-update-bay.webp';
+	backdrop.addEventListener( 'load', draw );
 
 	var shapes = {
 		I: [ [ 0, 1 ], [ 1, 1 ], [ 2, 1 ], [ 3, 1 ] ],
@@ -227,6 +233,7 @@
 	function endGame() {
 		state.over = true;
 		saveBest();
+		setStatus( 'Dependency conflict reached the admin bar.' );
 		updateHud();
 		overlayTitle.textContent = 'Plugin stack crashed';
 		overlayLine.textContent = 'A dependency conflict reached the admin bar.';
@@ -237,59 +244,102 @@
 
 	function setStatus( text ) {
 		statusEl.textContent = text;
+		if ( queueEl ) {
+			queueEl.textContent = text;
+		}
 	}
 
 	function updateHud() {
 		scoreEl.textContent = String( state.score );
 		levelEl.textContent = String( state.level );
 		bestEl.textContent = String( Math.max( bestScore(), state.score ) );
+		if ( queueMeter ) {
+			queueMeter.style.width = String( Math.min( 100, ( state.lines % 6 ) / 6 * 100 ) ) + '%';
+		}
+	}
+
+	function roundedRect( context, x, y, width, height, radius ) {
+		context.beginPath();
+		context.moveTo( x + radius, y );
+		context.lineTo( x + width - radius, y );
+		context.quadraticCurveTo( x + width, y, x + width, y + radius );
+		context.lineTo( x + width, y + height - radius );
+		context.quadraticCurveTo( x + width, y + height, x + width - radius, y + height );
+		context.lineTo( x + radius, y + height );
+		context.quadraticCurveTo( x, y + height, x, y + height - radius );
+		context.lineTo( x, y + radius );
+		context.quadraticCurveTo( x, y, x + radius, y );
+		context.closePath();
 	}
 
 	function drawBlock( context, x, y, blockSize, type ) {
 		var color = colors[ type ] || '#fff4dc';
+		var inset = Math.max( 3, blockSize * 0.11 );
+		var body = blockSize - inset * 2;
 		context.save();
-		context.fillStyle = '#12051f';
 		context.shadowColor = color;
-		context.shadowBlur = 12;
-		context.fillRect( x + 2, y + 2, blockSize - 4, blockSize - 4 );
+		context.shadowBlur = blockSize * 0.42;
+		roundedRect( context, x + inset, y + inset, body, body, Math.max( 4, blockSize * 0.14 ) );
+		context.fillStyle = 'rgba(7, 2, 12, 0.82)';
+		context.fill();
 		context.shadowBlur = 0;
+		roundedRect( context, x + inset + 1, y + inset + 1, body - 2, body - 2, Math.max( 4, blockSize * 0.12 ) );
 		context.fillStyle = color;
-		context.fillRect( x + 4, y + 4, blockSize - 8, blockSize - 8 );
+		context.fill();
 		context.fillStyle = 'rgba(255,244,220,.34)';
-		context.fillRect( x + 7, y + 7, blockSize - 14, 5 );
+		roundedRect( context, x + inset + 4, y + inset + 4, body - 8, Math.max( 3, blockSize * 0.13 ), 2 );
+		context.fill();
+		context.fillStyle = 'rgba(7,2,12,.58)';
+		context.fillRect( x + blockSize * 0.38, y + blockSize * 0.42, blockSize * 0.08, blockSize * 0.17 );
+		context.fillRect( x + blockSize * 0.54, y + blockSize * 0.42, blockSize * 0.08, blockSize * 0.17 );
 		context.strokeStyle = 'rgba(255,244,220,.52)';
 		context.lineWidth = 2;
-		context.strokeRect( x + 4, y + 4, blockSize - 8, blockSize - 8 );
+		roundedRect( context, x + inset + 1, y + inset + 1, body - 2, body - 2, Math.max( 4, blockSize * 0.12 ) );
+		context.stroke();
 		context.restore();
 	}
 
 	function drawMini( context, type ) {
 		context.clearRect( 0, 0, 96, 96 );
+		context.save();
+		roundedRect( context, 4, 4, 88, 88, 10 );
 		context.fillStyle = 'rgba(9,3,15,.7)';
-		context.fillRect( 0, 0, 96, 96 );
+		context.fill();
+		context.restore();
 		if ( ! type ) {
 			return;
 		}
 		shapes[ type ].forEach( function ( point ) {
-			drawBlock( context, 14 + point[ 0 ] * 18, 20 + point[ 1 ] * 18, 18, type );
+			drawBlock( context, 13 + point[ 0 ] * 18, 21 + point[ 1 ] * 18, 18, type );
 		} );
 	}
 
 	function draw() {
+		if ( ! state.board ) {
+			return;
+		}
 		ctx.clearRect( 0, 0, canvas.width, canvas.height );
-		var grad = ctx.createLinearGradient( 0, 0, canvas.width, canvas.height );
-		grad.addColorStop( 0, '#12051f' );
-		grad.addColorStop( 1, '#05040a' );
-		ctx.fillStyle = grad;
-		ctx.fillRect( 0, 0, canvas.width, canvas.height );
-		ctx.fillStyle = '#fff4dc';
-		ctx.globalAlpha = 0.07;
+		if ( backdrop.complete && backdrop.naturalWidth ) {
+			ctx.drawImage( backdrop, 0, 0, canvas.width, canvas.height );
+		} else {
+			var grad = ctx.createLinearGradient( 0, 0, canvas.width, canvas.height );
+			grad.addColorStop( 0, '#211231' );
+			grad.addColorStop( 1, '#05040a' );
+			ctx.fillStyle = grad;
+			ctx.fillRect( 0, 0, canvas.width, canvas.height );
+		}
+		ctx.save();
+		ctx.fillStyle = 'rgba(7,2,12,.42)';
+		roundedRect( ctx, ox - 5, oy - 5, cols * size + 10, rows * size + 10, 10 );
+		ctx.fill();
+		ctx.strokeStyle = 'rgba(255,244,220,.16)';
+		ctx.lineWidth = 1;
 		for ( var gy = 0; gy < rows; gy++ ) {
 			for ( var gx = 0; gx < cols; gx++ ) {
-				ctx.fillRect( ox + gx * size + 1, oy + gy * size + 1, size - 2, size - 2 );
+				ctx.strokeRect( ox + gx * size + 0.5, oy + gy * size + 0.5, size - 1, size - 1 );
 			}
 		}
-		ctx.globalAlpha = 1;
+		ctx.restore();
 		for ( var y = 0; y < rows; y++ ) {
 			for ( var x = 0; x < cols; x++ ) {
 				if ( state.board[ y ][ x ] ) {
@@ -304,9 +354,19 @@
 				}
 			} );
 		}
-		ctx.fillStyle = '#d8c9e5';
-		ctx.font = '800 13px Inter, system-ui, sans-serif';
-		ctx.fillText( state.paused ? 'Paused' : 'Update queue', ox, 28 );
+		if ( state.paused ) {
+			ctx.save();
+			ctx.fillStyle = 'rgba(7,2,12,.68)';
+			roundedRect( ctx, ox + 24, oy + rows * size * 0.42, cols * size - 48, 54, 8 );
+			ctx.fill();
+			ctx.strokeStyle = 'rgba(255,244,220,.22)';
+			ctx.stroke();
+			ctx.fillStyle = '#fff4dc';
+			ctx.font = '900 20px Inter, system-ui, sans-serif';
+			ctx.textAlign = 'center';
+			ctx.fillText( 'Paused', ox + cols * size / 2, oy + rows * size * 0.42 + 34 );
+			ctx.restore();
+		}
 	}
 
 	function frame( time ) {
