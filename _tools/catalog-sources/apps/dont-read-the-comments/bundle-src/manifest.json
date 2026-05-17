@@ -7,7 +7,7 @@
 	"version": "1.0.0",
 	"author": "Regionally Famous",
 	"description": "A crisp little Minesweeper-style puzzle where the dangerous squares reveal playful fake comment cards instead of explosions.",
-	"icon": "icon.svg",
+	"icon": "icon.webp",
 	"entry": "index.html",
 	"capability": "manage_options",
 	"window": {

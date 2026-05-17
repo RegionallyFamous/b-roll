@@ -636,8 +636,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/board.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-board.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/board.wp",
-      "sha256": "58ba410646051463ee9a2608f0e4e9181181fb752f2216f88ac7116bfa48aa8b",
-      "size": 72407
+      "sha256": "3f7e4a465a04959415f2ba7c768148c7a523071d8011efb03a1cd6be4c56152c",
+      "size": 158063
     },
     {
       "type": "app",
@@ -655,8 +655,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/dont-read-the-comments.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-dont-read-the-comments.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/dont-read-the-comments.wp",
-      "sha256": "2754c1a706fb5fe5550b11dc648b2bfdfd9315c6bf1dcc898e0bff78e1517a3e",
-      "size": 133656
+      "sha256": "005e85961248219c8ace3fa1b94deac3a657e3a471608350861091abbb929666",
+      "size": 193354
     },
     {
       "type": "app",
@@ -674,8 +674,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/flow.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-flow.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/flow.wp",
-      "sha256": "3fec0277d9224d71c3b824263632d92f54decd8f36f963ef64d603f8d5ef2d8f",
-      "size": 76687
+      "sha256": "2a88fc916f3fc7c4b6ab9aecc2af3910d1046124d94b654341f857e2be3eeb09",
+      "size": 162986
     },
     {
       "type": "app",
@@ -693,8 +693,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/ledger.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-ledger.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/ledger.wp",
-      "sha256": "41d049a2d8366bf192407838f542c7586fe51823f47ae900da31f9d2166b3831",
-      "size": 313546
+      "sha256": "25d3969a767883370b4a67bd70c30a229d207af8c83ae783cb595f01360b04e3",
+      "size": 393290
     },
     {
       "type": "app",
@@ -712,8 +712,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/mosaic.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-mosaic.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/mosaic.wp",
-      "sha256": "97b2c208d7714d0cc0a3e85179a19dceac89e77981cfb9b36d3cd8c01284d8c1",
-      "size": 72441
+      "sha256": "40151e97697e72353d2641a89d35d821e24f5f9b7e4900f308d691b8109f6c06",
+      "size": 156109
     },
     {
       "type": "app",
@@ -731,8 +731,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/sine.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-sine.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/sine.wp",
-      "sha256": "dce2927a120c61d865f5e9dd7576ffe022876df09c21846009eea18247533fa3",
-      "size": 74491
+      "sha256": "82db6375450cd222c643319535644cea20016f540164a6e953ae390de20bdf3e",
+      "size": 197423
     },
     {
       "type": "app",
@@ -750,8 +750,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/swatch.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-swatch.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/swatch.wp",
-      "sha256": "7c94aeae1182d0a6d7c2d07d49a2df4ca7ae7525134bac4bc98f1370137d8846",
-      "size": 74575
+      "sha256": "e99d95fecd5b3f7e783d626de6493a81961722367cbb0a3d68073d61f53813e7",
+      "size": 173901
     },
     {
       "type": "app",
@@ -769,8 +769,8 @@
       "icon_url": "https://odd.regionallyfamous.com/catalog/v1/icons/tome.svg",
       "card_url": "https://odd.regionallyfamous.com/catalog/v1/cards/app-tome.webp",
       "download_url": "https://odd.regionallyfamous.com/catalog/v1/bundles/tome.wp",
-      "sha256": "26ee2a8bbe18339ca375cbde7f7404b3a5f68e990d95e80207a17a61ead798a2",
-      "size": 92954
+      "sha256": "62e3aa80ff1a71bfbaaa2789ad7b61959feaf73a936bd837b0e7b28fc1e03cd2",
+      "size": 168203
     }
   ]
 }
