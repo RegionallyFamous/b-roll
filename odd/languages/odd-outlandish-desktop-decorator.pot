@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: odd\n"
 "Report-Msgid-Bugs-To: https://github.com/RegionallyFamous/odd/issues\n"
-"POT-Creation-Date: 2026-05-17 16:40-0500\n"
+"POT-Creation-Date: 2026-05-18 13:00-0500\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -591,7 +591,7 @@ msgstr ""
 msgid "Full environment + log ring buffer is copied when diagnostics are available."
 msgstr ""
 
-#: odd/includes/native-window.php:199
+#: odd/includes/native-window.php:200
 msgid "Gather ODD widgets"
 msgstr ""
 
@@ -892,11 +892,11 @@ msgstr ""
 msgid "Only catalog-owned apps can be repaired automatically."
 msgstr ""
 
-#: odd/includes/native-window.php:205
+#: odd/includes/native-window.php:206
 msgid "Open ODD Shop"
 msgstr ""
 
-#: odd/includes/native-window.php:206
+#: odd/includes/native-window.php:207
 msgid "Open the ODD workspace."
 msgstr ""
 
@@ -916,7 +916,7 @@ msgstr ""
 msgid "Path to a static app asset relative to the app root."
 msgstr ""
 
-#: odd/includes/native-window.php:194
+#: odd/includes/native-window.php:195
 msgid "Pick another installed ODD scene."
 msgstr ""
 
@@ -978,7 +978,7 @@ msgstr ""
 msgid "Reading ODD catalog state…"
 msgstr ""
 
-#: odd/includes/native-window.php:200
+#: odd/includes/native-window.php:201
 msgid "Redock floating ODD widgets and add installed ODD widgets to the desktop."
 msgstr ""
 
@@ -1022,11 +1022,11 @@ msgstr ""
 msgid "Requires %1$s %2$s or newer; detected %3$s."
 msgstr ""
 
-#: odd/includes/native-window.php:211
+#: odd/includes/native-window.php:212
 msgid "Reset ODD decorations"
 msgstr ""
 
-#: odd/includes/native-window.php:212
+#: odd/includes/native-window.php:213
 msgid "Reset active ODD icon and cursor decorations."
 msgstr ""
 
@@ -1091,7 +1091,7 @@ msgstr ""
 msgid "Show this help"
 msgstr ""
 
-#: odd/includes/native-window.php:193
+#: odd/includes/native-window.php:194
 msgid "Shuffle ODD wallpaper"
 msgstr ""
 
