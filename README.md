@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dwporg-odd-1.1.3-dm-0.8.6"><strong>Launch the live demo</strong></a>
+  <a href="https://playground.wordpress.net/?mode=seamless&blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dwporg-odd-1.1.3-dm-0.8.6"><strong>Launch the live demo</strong></a>
   ·
   <a href="https://github.com/RegionallyFamous/odd/releases/latest"><strong>Download ODD</strong></a>
   ·
@@ -60,7 +60,7 @@ Wallpapers, icon sets, and cursor sets preview instantly. Try a scene, theme, or
 
 ### One-click demo
 
-[**Launch ODD in WordPress Playground ->**](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dwporg-odd-1.1.3-dm-0.8.6)
+[**Launch ODD in WordPress Playground ->**](https://playground.wordpress.net/?mode=seamless&blueprint-url=https%3A%2F%2Fodd.regionallyfamous.com%2Fplayground%2Fblueprint.json%3Foddbp%3Dwporg-odd-1.1.3-dm-0.8.6)
 
 First load takes ~20–30 seconds while Playground boots the site and installs the plugin. Throwaway — close the tab and it's gone.
 
