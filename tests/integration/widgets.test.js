@@ -215,9 +215,10 @@ describe( 'sticky widget', () => {
 		const manifest = JSON.parse( readFileSync( FIRST_PARTY_WIDGETS.find( ( widget ) => widget.slug === 'sticky' ).manifest, 'utf8' ) );
 		expect( manifest.resizable ).toBe( true );
 		expect( manifest.maxWidth ).toBeGreaterThanOrEqual( 720 );
-		expect( manifest.maxHeight ).toBeGreaterThanOrEqual( 640 );
+		expect( manifest.maxHeight ).toBeGreaterThanOrEqual( 720 );
 		expect( manifest.defaultWidth ).toBeGreaterThan( manifest.minWidth );
-		expect( manifest.defaultHeight ).toBeGreaterThan( manifest.minHeight );
+		expect( manifest.defaultHeight ).toBeGreaterThanOrEqual( 400 );
+		expect( manifest.defaultHeight / manifest.defaultWidth ).toBeGreaterThan( 1.2 );
 	} );
 
 	it( 'restores prior content from Desktop Mode ctx.storage on mount', () => {

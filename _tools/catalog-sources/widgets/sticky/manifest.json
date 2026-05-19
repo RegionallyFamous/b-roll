@@ -4,7 +4,7 @@
   "label": "Sticky Note",
   "description": "A tilted handwritten sticky note that can grow when your scribbles get ambitious.",
   "category": "ODD Originals",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Regionally Famous",
   "entry": "widget.js",
   "css": [
@@ -16,7 +16,7 @@
   "minWidth": 220,
   "minHeight": 160,
   "maxWidth": 760,
-  "maxHeight": 680,
-  "defaultWidth": 280,
-  "defaultHeight": 220
+  "maxHeight": 760,
+  "defaultWidth": 320,
+  "defaultHeight": 420
 }
