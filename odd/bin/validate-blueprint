@@ -17,7 +17,9 @@ This script parses the blueprint and fails on known-fragile patterns so
 regressions are caught before they reach `main`.
 
 The public blueprints intentionally install both WP Desktop Mode and ODD from
-exact versioned WordPress.org release zip URLs. That keeps the normal
+exact versioned WordPress.org release zip URLs. Desktop Mode uses
+`ODDOUT_DESKTOP_MODE_PLAYGROUND_VERSION` when defined, otherwise
+`ODDOUT_DESKTOP_MODE_MIN_VERSION`. That keeps the normal
 Playground link deterministic while still using the approved dotorg packages.
 During release prep, the public ODD zip may intentionally lag behind
 `ODDOUT_VERSION` until the matching WordPress.org SVN tag exists.
@@ -83,6 +85,8 @@ BLUEPRINT = REPO_ROOT / "blueprint.json"
 BLUEPRINT_DEV = REPO_ROOT / "blueprint-dev.json"
 SITE_BLUEPRINT = REPO_ROOT / "site" / "playground" / "blueprint.json"
 SITE_BLUEPRINT_DEV = REPO_ROOT / "site" / "playground" / "blueprint-dev.json"
+SITE_PLAYGROUND_LAUNCHER = REPO_ROOT / "site" / "playground" / "index.html"
+SITE_GO_LAUNCHER = REPO_ROOT / "site" / "go" / "index.html"
 SITE_PLAYGROUND_DEV_LAUNCHER = REPO_ROOT / "site" / "playground" / "dev" / "index.html"
 SITE_GO_DEV_LAUNCHER = REPO_ROOT / "site" / "go" / "dev" / "index.html"
 PLUGIN_MAIN = REPO_ROOT / "odd" / "odd.php"
@@ -177,7 +181,7 @@ def version_tuple(version: str) -> tuple[int, ...]:
     return tuple(int(part) for part in version.split("."))
 
 
-def validate_playground_launcher(path: Path) -> list[str]:
+def validate_playground_launcher(path: Path, expected_cache_key_part: str = "") -> list[str]:
     """Keep hosted Playground launcher URLs ephemeral and cache-busted."""
     rel = path.relative_to(REPO_ROOT)
     if not path.is_file():
@@ -193,6 +197,10 @@ def validate_playground_launcher(path: Path) -> list[str]:
         problems.append(f"{rel}: launcher must pass blueprint-url to Playground")
     if "oddbp=" not in text:
         problems.append(f"{rel}: launcher must cache-bust blueprint-url with oddbp")
+    if expected_cache_key_part and expected_cache_key_part not in text:
+        problems.append(
+            f"{rel}: launcher cache key must include {expected_cache_key_part!r}"
+        )
     return problems
 
 
@@ -229,7 +237,7 @@ def fail(problems: list[str]) -> None:
     sys.exit(1)
 
 
-def validate_file(path: Path, odd_version: str, dm_min: str, requires_php: str) -> tuple[list[str], int]:
+def validate_file(path: Path, odd_version: str, dm_pin: str, requires_php: str) -> tuple[list[str], int]:
     problems: list[str] = []
 
     if not path.exists():
@@ -247,7 +255,7 @@ def validate_file(path: Path, odd_version: str, dm_min: str, requires_php: str) 
 
     allowed_ref_types = {"tag", "branch", "commit", "refname"}
     expected_odd_ref = "v" + odd_version
-    dm_zip_expected = desktop_mode_zip_url(dm_min)
+    dm_zip_expected = desktop_mode_zip_url(dm_pin)
     odd_zip_expected = odd_zip_url(odd_version)
     desktop_mode_pin_ok = False
     odd_pin_ok = False
@@ -545,7 +553,7 @@ def main() -> int:
     problems: list[str] = []
     total_steps = 0
     for path in (BLUEPRINT, SITE_BLUEPRINT):
-        file_problems, step_count = validate_file(path, odd_version, dm_min, requires_php)
+        file_problems, step_count = validate_file(path, odd_version, dm_pin, requires_php)
         problems.extend(file_problems)
         total_steps += step_count
 
@@ -554,8 +562,13 @@ def main() -> int:
         problems.extend(file_problems)
         total_steps += step_count
 
+    stable_cache_key = f"wporg-odd-{odd_version}-dm-{dm_pin}"
+    for path in (SITE_PLAYGROUND_LAUNCHER, SITE_GO_LAUNCHER):
+        problems.extend(validate_playground_launcher(path, stable_cache_key))
+
+    dev_cache_key_part = f"dm-{dm_pin}"
     for path in (SITE_PLAYGROUND_DEV_LAUNCHER, SITE_GO_DEV_LAUNCHER):
-        problems.extend(validate_playground_launcher(path))
+        problems.extend(validate_playground_launcher(path, dev_cache_key_part))
 
     if problems:
         fail(problems)

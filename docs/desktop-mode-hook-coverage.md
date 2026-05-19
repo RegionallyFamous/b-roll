@@ -3,8 +3,8 @@
 For ODD's product boundary with the host, see [Desktop Mode Boundaries](desktop-mode-boundaries.md).
 
 ODD targets WP Desktop Mode v0.8.5+ for its minimum desktop integration.
-The stable hosted Playground installs the current WordPress.org Desktop Mode
-release, while the dev Playground pins the release zip declared by
+The stable hosted Playground and dev Playground pin the current WordPress.org
+Desktop Mode release zip declared by
 `ODDOUT_DESKTOP_MODE_PLAYGROUND_VERSION`. This matrix
 tracks every Desktop Mode hook/API family that matters to ODD and states
 whether ODD uses it for product behavior, diagnostics, or documented
@@ -31,12 +31,12 @@ fallbacks. Host-owned surfaces stay host-owned: ODD
 observes and annotates, but does not live-swap dock DOM, restyle the host rails,
 or move host window geometry.
 
-## 0.8.6 RC Surface Notes
+## 0.8.6 Surface Notes
 
-Desktop Mode `v0.8.6-rc1` adds two ODD-relevant polish groups from upstream
+Desktop Mode `v0.8.6` adds two ODD-relevant polish groups from upstream
 PRs #228 and #229, plus newer host surfaces around OS file drops, My WordPress
 media previews, web components, and PWA service-worker ownership. ODD treats
-0.8.5 as the stable floor and 0.8.6 RC as a feature-detected enhancement set:
+0.8.5 as the runtime floor and 0.8.6 as the Playground-pinned enhancement set:
 code branches on `wp.desktop` methods, `wp.desktop.HOOKS`, PHP helper
 functions, or fired hooks rather than on a version string.
 
