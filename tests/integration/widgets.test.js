@@ -215,10 +215,34 @@ describe( 'sticky widget', () => {
 		const manifest = JSON.parse( readFileSync( FIRST_PARTY_WIDGETS.find( ( widget ) => widget.slug === 'sticky' ).manifest, 'utf8' ) );
 		expect( manifest.resizable ).toBe( true );
 		expect( manifest.maxWidth ).toBeGreaterThanOrEqual( 720 );
-		expect( manifest.maxHeight ).toBeGreaterThanOrEqual( 720 );
+		expect( manifest.maxHeight ).toBeGreaterThanOrEqual( 800 );
+		expect( manifest.minHeight ).toBeGreaterThanOrEqual( 300 );
 		expect( manifest.defaultWidth ).toBeGreaterThan( manifest.minWidth );
-		expect( manifest.defaultHeight ).toBeGreaterThanOrEqual( 400 );
+		expect( manifest.defaultHeight ).toBeGreaterThanOrEqual( 440 );
 		expect( manifest.defaultHeight / manifest.defaultWidth ).toBeGreaterThan( 1.2 );
+	} );
+
+	it( 'integrates with the native Desktop Mode widget frame without custom chrome', () => {
+		const mount = widgetMount( 'odd/sticky' );
+		const card = document.createElement( 'div' );
+		card.dataset.widgetId = 'odd/sticky';
+		const body = document.createElement( 'div' );
+		body.className = 'desktop-mode-widgets__card-body';
+		card.appendChild( body );
+		const { storage } = createCtxStorage();
+
+		const cleanup = mount( body, { storage } );
+
+		expect( card.classList.contains( 'odd-widget-card--sticky' ) ).toBe( true );
+		expect( body.classList.contains( 'odd-widget-host--sticky' ) ).toBe( true );
+		expect( body.querySelector( '.desktop-mode-widgets__chrome' ) ).toBeNull();
+		expect( body.querySelector( '.odd-sticky__paper' ) ).toBeTruthy();
+
+		cleanup();
+
+		expect( card.classList.contains( 'odd-widget-card--sticky' ) ).toBe( false );
+		expect( body.classList.contains( 'odd-widget-host--sticky' ) ).toBe( false );
+		expect( body.querySelector( '.odd-sticky__paper' ) ).toBeNull();
 	} );
 
 	it( 'restores prior content from Desktop Mode ctx.storage on mount', () => {

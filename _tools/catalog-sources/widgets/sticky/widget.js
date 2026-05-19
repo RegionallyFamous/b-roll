@@ -27,12 +27,6 @@
 		return n;
 	}
 
-	function reducedMotion() {
-		try {
-			return window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
-		} catch ( e ) { return false; }
-	}
-
 	function safeMount( fn, source ) {
 		return function ( node, ctx ) {
 			try {
@@ -73,63 +67,58 @@
 		} catch ( e ) {}
 	}
 
-	var STICKY_MAX = 4000;
-
-	function readStickyTilt( ctx ) {
-		var raw = storageGet( ctx, 'tilt' );
-		if ( raw == null || raw === '' ) return null;
-		var n = parseFloat( raw );
-		if ( ! isFinite( n ) ) return null;
-		return Math.max( -3, Math.min( 3, n ) );
-	}
-	function writeStickyTilt( ctx, n ) {
-		storageSet( ctx, 'tilt', n );
-	}
+	var STICKY_MAX = 10000;
 
 	function mountSticky( container, ctx ) {
-		container.classList.add( 'odd-widget', 'odd-widget--sticky' );
-
-		var tilt = readStickyTilt( ctx );
-		if ( tilt == null ) {
-			tilt = ( Math.random() * 4 - 2 ); // -2..+2
-			writeStickyTilt( ctx, tilt );
+		var card = null;
+		if ( container && typeof container.closest === 'function' ) {
+			card = container.closest( '[data-widget-id="odd/sticky"]' );
 		}
-		if ( reducedMotion() ) tilt = 0;
+		if ( card ) {
+			card.classList.add( 'odd-widget-card--sticky' );
+		}
+		container.classList.add( 'odd-widget-host--sticky' );
 
-		var paper = el( 'div', { class: 'odd-sticky__paper', style: 'transform:rotate(' + tilt.toFixed( 2 ) + 'deg)' } );
+		var root  = el( 'div', { class: 'odd-widget odd-widget--sticky' } );
+		var paper = el( 'div', { class: 'odd-sticky__paper' } );
+		var tape  = el( 'div', { class: 'odd-sticky__tape', 'aria-hidden': 'true' } );
 		var peel  = el( 'div', { class: 'odd-sticky__peel', 'aria-hidden': 'true' } );
+		var body  = el( 'div', { class: 'odd-sticky__body' } );
 		var ta    = el( 'textarea', {
 			class:       'odd-sticky__text',
 			maxlength:   String( STICKY_MAX ),
-			placeholder: __( 'Scribble something…' ),
+			placeholder: __( 'Write it before it floats away...' ),
 			spellcheck:  'true',
 			'aria-label': __( 'Sticky note' ),
 		} );
-		var meta  = el( 'div', { class: 'odd-sticky__meta', 'aria-hidden': 'true' } );
+		var status  = el( 'p', { class: 'odd-sticky__status', 'aria-live': 'polite' }, __( 'Saved' ) );
 
-		paper.appendChild( ta );
+		body.appendChild( ta );
+		paper.appendChild( tape );
+		paper.appendChild( body );
 		paper.appendChild( peel );
-		paper.appendChild( meta );
-		container.appendChild( paper );
+		paper.appendChild( status );
+		root.appendChild( paper );
+		container.replaceChildren( root );
 
 		ta.value = storageGet( ctx, 'text' );
 
-		function renderMeta() {
-			meta.textContent = ta.value.length + ' / ' + STICKY_MAX;
+		function setStatus( text ) {
+			status.textContent = text;
 		}
-		renderMeta();
 
 		var saveTimer = 0;
 		function scheduleSave() {
 			if ( saveTimer ) window.clearTimeout( saveTimer );
+			setStatus( __( 'Saving...' ) );
 			saveTimer = window.setTimeout( function () {
 				saveTimer = 0;
 				storageSet( ctx, 'text', ta.value );
+				setStatus( __( 'Saved' ) );
 			}, 400 );
 		}
 
 		function onInput() {
-			renderMeta();
 			scheduleSave();
 		}
 		ta.addEventListener( 'input', onInput );
@@ -140,7 +129,13 @@
 				storageSet( ctx, 'text', ta.value );
 			}
 			ta.removeEventListener( 'input', onInput );
-			container.classList.remove( 'odd-widget', 'odd-widget--sticky' );
+			if ( card ) {
+				card.classList.remove( 'odd-widget-card--sticky' );
+			}
+			container.classList.remove( 'odd-widget-host--sticky' );
+			if ( root.parentNode === container ) {
+				root.remove();
+			}
 		};
 	}
 

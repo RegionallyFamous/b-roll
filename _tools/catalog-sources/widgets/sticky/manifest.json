@@ -2,9 +2,9 @@
   "slug": "sticky",
   "id": "odd/sticky",
   "label": "Sticky Note",
-  "description": "A tilted handwritten sticky note that can grow when your scribbles get ambitious.",
+  "description": "A roomy handwritten sticky note that uses Desktop Mode's native drag and resize controls.",
   "category": "ODD Originals",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Regionally Famous",
   "entry": "widget.js",
   "css": [
@@ -13,10 +13,10 @@
   "icon": "dashicons-welcome-write-blog",
   "movable": true,
   "resizable": true,
-  "minWidth": 220,
-  "minHeight": 160,
+  "minWidth": 240,
+  "minHeight": 300,
   "maxWidth": 760,
-  "maxHeight": 760,
+  "maxHeight": 820,
   "defaultWidth": 320,
-  "defaultHeight": 420
+  "defaultHeight": 440
 }
