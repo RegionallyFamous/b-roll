@@ -300,8 +300,9 @@ add_action(
 		// ---- Apps ---- //
 		//
 		// Single JS handle `odd-apps` hosts the sandboxed iframe for
-		// every installed app. Listens to odd.window-* and re-emits
-		// the canonical odd.app-* events. Feature-flagged server-side
+		// every installed app. Listens to Desktop Mode native window
+		// hooks and re-emits the canonical odd.app-* events.
+		// Feature-flagged server-side
 		// via ODDOUT_APPS_ENABLED; we still enqueue the listener so that
 		// manually-registered apps (via oddout_register_app from another
 		// plugin) work even when uploads are off.

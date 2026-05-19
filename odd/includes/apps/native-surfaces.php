@@ -115,9 +115,9 @@ function oddout_apps_register_surfaces( $row ) {
 /**
  * Template rendered inside the WP Desktop native window body.
  *
- * Contains a mount-point div; odd/src/apps/window-host.js sees the
- * `odd.window-opened` event with id `odd-app-{slug}` and installs a
- * sandboxed iframe into this div pointing at
+ * Contains a mount-point div. Desktop Mode clones the template, then
+ * invokes `window.desktopModeNativeWindows['odd-app-{slug}']`; ODD's
+ * app host installs a sandboxed iframe into this div pointing at
  * /wp-json/odd/v1/apps/serve/{slug}/.
  *
  * Data attributes here are the only client-server handoff — no

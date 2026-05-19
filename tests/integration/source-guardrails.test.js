@@ -405,6 +405,8 @@ describe( 'Desktop Mode integration source contracts', () => {
 		expect( sources ).not.toMatch( /desktop-mode\.shared-folder/ );
 		expect( sources ).not.toMatch( /desktop-mode\.window\.changed/ );
 		expect( sources ).not.toMatch( /desktop-mode\.arrange-menu\.opened/ );
+		expect( sources ).not.toMatch( /widgetLayer\.redock/ );
+		expect( readRel( 'odd/src/shared/api.js' ) ).not.toMatch( /desktop-mode-widgets__card-redock/ );
 		expect( sources ).not.toMatch( /addAction\(\s*['"]desktop-mode\.window\.attention/ );
 		expect( sources ).toContain( 'desktop_mode_shell_config' );
 		expect( sources ).toContain( 'desktop-mode.window.opened' );

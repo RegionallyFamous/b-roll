@@ -5887,11 +5887,10 @@
 		 *
 		 * Widgets are small, self-contained cards that live in the
 		 * right-side column (or anywhere the user drags them) on the
-		 * desktop itself — not inside the ODD window. WP Desktop
-		 * Mode persists enabled widget ids to localStorage and
+		 * desktop itself — not inside the ODD window. Desktop Mode
 		 * exposes `wp.desktop.widgetLayer.add(id)` / `.remove(id)` /
 		 * `.getEnabledIds()` for programmatic wiring. Everything in
-		 * this tab is a thin UI over those three calls plus the
+		 * this tab is a thin UI over those native calls plus the
 		 * `desktop-mode.widget.added` / `.removed` hooks for the case
 		 * where the user dismisses a widget from its own × button
 		 * while the Shop is open.
@@ -5906,16 +5905,7 @@
 					}
 				}
 			} catch ( e ) {}
-			// Fallback — read the same localStorage key the desktop
-			// layer writes to. Keeps the Shop functional even if the
-			// desktop layer object is temporarily unavailable (e.g.
-				// during boot races).
-			try {
-				var raw = window.localStorage.getItem( 'desktop-mode-widgets' );
-				if ( ! raw ) return [];
-				var parsed = JSON.parse( raw );
-				return Array.isArray( parsed ) ? parsed.filter( function ( x ) { return typeof x === 'string'; } ) : [];
-			} catch ( e2 ) { return []; }
+			return [];
 		}
 
 		function normalizeWidgetLayerId( id ) {

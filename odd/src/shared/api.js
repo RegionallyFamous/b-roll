@@ -571,12 +571,6 @@
 		if ( d.widgets && typeof d.widgets.redock === 'function' ) {
 			return { owner: d.widgets, fn: d.widgets.redock };
 		}
-		if ( d.widgetLayer && typeof d.widgetLayer.redock === 'function' ) {
-			return { owner: d.widgetLayer, fn: d.widgetLayer.redock };
-		}
-		if ( d.widgetLayer && typeof d.widgetLayer.redockWidget === 'function' ) {
-			return { owner: d.widgetLayer, fn: d.widgetLayer.redockWidget };
-		}
 		return null;
 	}
 
@@ -597,24 +591,10 @@
 		return count;
 	}
 
-	function redockOddWidgetsViaDom() {
-		var count = 0;
-		if ( document && document.querySelectorAll ) {
-			var redock = document.querySelectorAll( '.desktop-mode-widgets__card[data-widget-id^="odd/"].desktop-mode-widgets__card--floating .desktop-mode-widgets__card-redock' );
-			for ( var i = 0; i < redock.length; i++ ) {
-				try {
-					redock[ i ].click();
-					count++;
-				} catch ( e ) {}
-			}
-		}
-		return count;
-	}
-
 	function tidyWidgets( opts ) {
 		var count = 0;
 		var hostRedockCount = redockOddWidgetsViaHost();
-		count += hostRedockCount === null ? redockOddWidgetsViaDom() : hostRedockCount;
+		count += hostRedockCount || 0;
 		installedWidgets().forEach( function ( widget ) {
 			if ( widget && widget.id && mountWidget( widget.id, { quiet: true } ) ) count++;
 		} );

@@ -55,15 +55,36 @@
 		};
 	}
 
-	function subscribeOddEvent( name, fn ) {
-		var events = window.__odd && window.__odd.events;
-		if ( ! events || typeof events.on !== 'function' ) return function () {};
+	var subscriptionId = 0;
+
+	function desktopHookName( key, fallback ) {
+		var desktop = window.wp && window.wp.desktop;
+		var hooks = desktop && desktop.HOOKS;
+		return hooks && hooks[ key ] ? hooks[ key ] : fallback;
+	}
+
+	function subscribeDesktopAction( name, fn ) {
+		var hooks = window.wp && window.wp.hooks;
+		if ( ! hooks || typeof hooks.addAction !== 'function' || typeof hooks.removeAction !== 'function' ) {
+			return function () {};
+		}
+		var namespace = 'odd.widget.desk-pet-oddling.' + ( ++subscriptionId );
 		try {
-			var off = events.on( name, fn );
-			return typeof off === 'function' ? off : function () {};
+			hooks.addAction( name, namespace, fn );
+			return function () {
+				try { hooks.removeAction( name, namespace ); } catch ( e ) {}
+			};
 		} catch ( e ) {
 			return function () {};
 		}
+	}
+
+	function subscribeDesktopEvent( name, fn ) {
+		if ( typeof document === 'undefined' || typeof document.addEventListener !== 'function' ) return function () {};
+		document.addEventListener( name, fn );
+		return function () {
+			document.removeEventListener( name, fn );
+		};
 	}
 
 	var MOODS = {
@@ -199,9 +220,9 @@
 
 		window.addEventListener( 'pointermove', onPointerMove, { passive: true } );
 		cleanups.push( function () { window.removeEventListener( 'pointermove', onPointerMove ); } );
-		cleanups.push( subscribeOddEvent( 'odd.window-bounds-changed', reactToDesktop ) );
-		cleanups.push( subscribeOddEvent( 'odd.window-focused', wave ) );
-		cleanups.push( subscribeOddEvent( 'odd.desktop-layout-changed', reactToDesktop ) );
+		cleanups.push( subscribeDesktopAction( desktopHookName( 'WINDOW_BOUNDS_CHANGED', 'desktop-mode.window.bounds-changed' ), reactToDesktop ) );
+		cleanups.push( subscribeDesktopAction( desktopHookName( 'WINDOW_FOCUSED', 'desktop-mode.window.focused' ), wave ) );
+		cleanups.push( subscribeDesktopEvent( 'desktop-mode-layout-changed', reactToDesktop ) );
 
 		setMood( 'idle', __( 'Keeping watch' ) );
 		scheduleAmbient();

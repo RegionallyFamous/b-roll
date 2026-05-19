@@ -57,10 +57,28 @@ function installWpDesktop() {
 	const registerWidget = vi.fn( () => {
 		throw new Error( 'Widget bundles must expose window.desktopModeWidgets[id], not call wp.desktop.registerWidget().' );
 	} );
+	const hookActions = new Map();
 	window.wp = window.wp || {};
 	window.wp.desktop = {
+		HOOKS: {
+			WINDOW_BOUNDS_CHANGED: 'desktop-mode.window.bounds-changed',
+			WINDOW_FOCUSED:        'desktop-mode.window.focused',
+		},
 		registerWidget,
 		ready: ( cb ) => cb(),
+	};
+	window.wp.hooks = {
+		addAction: vi.fn( ( name, namespace, fn ) => {
+			hookActions.set( `${ name }::${ namespace }`, { name, namespace, fn } );
+		} ),
+		removeAction: vi.fn( ( name, namespace ) => {
+			hookActions.delete( `${ name }::${ namespace }` );
+		} ),
+		doAction: vi.fn( ( name, payload ) => {
+			for ( const action of hookActions.values() ) {
+				if ( action.name === name ) action.fn( payload );
+			}
+		} ),
 	};
 	return registerWidget;
 }
@@ -378,39 +396,44 @@ describe( 'new ODD Originals widgets', () => {
 	} );
 
 	it( 'desk pet watches the cursor, reacts to Desktop Mode events, and cleans up', () => {
-		const handlers = new Map();
-		window.__odd = {
-			events: {
-				on: vi.fn( ( name, fn ) => {
-					handlers.set( name, fn );
-					return () => handlers.delete( name );
-				} ),
-				emit: vi.fn(),
-			},
-		};
-
 		const mount = widgetMount( 'odd/desk-pet-oddling' );
 		const container = document.createElement( 'div' );
 		document.body.appendChild( container );
 
 		const cleanup = mount( container, {} );
 		expect( container.querySelector( '.odd-oddling__sprite' ) ).toBeTruthy();
-		expect( handlers.has( 'odd.window-bounds-changed' ) ).toBe( true );
-		expect( handlers.has( 'odd.window-focused' ) ).toBe( true );
-		expect( handlers.has( 'odd.desktop-layout-changed' ) ).toBe( true );
+		expect( window.wp.hooks.addAction ).toHaveBeenCalledWith(
+			'desktop-mode.window.bounds-changed',
+			expect.stringMatching( /^odd\.widget\.desk-pet-oddling\./ ),
+			expect.any( Function )
+		);
+		expect( window.wp.hooks.addAction ).toHaveBeenCalledWith(
+			'desktop-mode.window.focused',
+			expect.stringMatching( /^odd\.widget\.desk-pet-oddling\./ ),
+			expect.any( Function )
+		);
 
 		window.dispatchEvent( new MouseEvent( 'pointermove', { clientX: 24, clientY: 42 } ) );
 		expect( container.classList.contains( 'is-watching' ) ).toBe( true );
 		expect( container.style.getPropertyValue( '--oddling-look-x' ) ).not.toBe( '' );
 
-		handlers.get( 'odd.window-bounds-changed' )();
+		window.wp.hooks.doAction( 'desktop-mode.window.bounds-changed', { windowId: 'demo' } );
 		expect( container.getAttribute( 'data-mood' ) ).toBe( 'surprised' );
 		expect( container.classList.contains( 'is-surprised' ) ).toBe( true );
+
+		window.wp.hooks.doAction( 'desktop-mode.window.focused', { windowId: 'demo' } );
+		expect( container.getAttribute( 'data-mood' ) ).toBe( 'wave' );
+
+		document.dispatchEvent( new CustomEvent( 'desktop-mode-layout-changed', { detail: { layout: 'spatial' } } ) );
+		expect( container.getAttribute( 'data-mood' ) ).toBe( 'surprised' );
 
 		expect( typeof cleanup ).toBe( 'function' );
 		expect( () => cleanup() ).not.toThrow();
 		expect( () => cleanup() ).not.toThrow();
-		expect( handlers.size ).toBe( 0 );
+		expect( window.wp.hooks.removeAction ).toHaveBeenCalledTimes( 2 );
+		window.wp.hooks.doAction( 'desktop-mode.window.bounds-changed', { windowId: 'demo' } );
+		document.dispatchEvent( new CustomEvent( 'desktop-mode-layout-changed', { detail: { layout: 'classic' } } ) );
+		expect( container.getAttribute( 'data-mood' ) ).toBeNull();
 	} );
 
 	it( 'fortune terminal prints a new line and restores the last five lines', () => {

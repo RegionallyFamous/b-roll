@@ -118,13 +118,7 @@
 				return cleanSlugList( ( layer.getEnabledIds() || [] ).map( normalizeWidgetId ), 50 );
 			}
 		} catch ( e ) {}
-		try {
-			var raw = window.localStorage && window.localStorage.getItem( 'desktop-mode-widgets' );
-			if ( ! raw ) return [];
-			return cleanSlugList( JSON.parse( raw ).map( normalizeWidgetId ), 50 );
-		} catch ( e2 ) {
-			return [];
-		}
+		return [];
 	}
 
 	function cleanContentItem( value ) {

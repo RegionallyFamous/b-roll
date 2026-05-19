@@ -13,18 +13,19 @@
  *      insulates us from template-emission failure modes (closure
  *      serialization, admin_footer skipped, mid-session install).
  *
- *   2. Server template + event (FALLBACK) — the window body may
+ *   2. Server template + native render hook — the window body may
  *      already contain a `.odd-app-host` div from the server-side
- *      `template` closure. We listen to `odd.window-opened` + a
- *      MutationObserver to catch any host that appears, install the
- *      iframe, and emit APP_OPENED exactly once per open.
+ *      `template` closure. Desktop Mode clones that template before
+ *      invoking `window.desktopModeNativeWindows[id]`, and also emits
+ *      `desktop-mode.native-window.after-render`; both paths hydrate
+ *      the iframe without polling host DOM.
  *
  * Event re-emission:
  *
- *   Host → ODD             Translation
- *   odd.window-opened      odd.app-opened   (when id starts `odd-app-`)
- *   odd.window-closed      odd.app-closed
- *   odd.window-focused     odd.app-focused
+ *   Host → ODD                               Translation
+ *   desktop-mode.native-window.after-render  odd.app-opened   (when id starts `odd-app-`)
+ *   desktop-mode.window.closed               odd.app-closed
+ *   desktop-mode.window.focused              odd.app-focused
  *
  * This is the one place in ODD where we know an app has actually
  * opened. Muse voice lines (`appOpen.<slug>`), motion primitives
@@ -46,8 +47,8 @@
  *
  *   - If the JS hydration path runs, we build the mount ourselves
  *     and the iframe always appears.
- *   - If the server template already painted, the MutationObserver
- *     path finds and hydrates it without double-firing APP_OPENED.
+ *   - If the server template already painted, the native render
+ *     callback finds and hydrates it without double-firing APP_OPENED.
  *   - If `window.odd.appServeUrls` is missing for a slug, we render
  *     a visible error card inside the window body instead of leaving
  *     it blank — never pure white.
@@ -408,8 +409,8 @@
 	 *   - 'already'     : iframe was already present — no-op.
 	 *   - 'skipped'     : mount was missing or lacked a src attr.
 	 *
-	 * This matters because both the WINDOW_OPENED handler and the
-	 * defensive MutationObserver path call installFrame independently.
+	 * This matters because both the native render callback and the
+	 * Desktop Mode after-render hook can call installFrame.
 	 * Without the return code, the slower path re-emits APP_OPENED on
 	 * an already-mounted frame — double-firing downstream subscribers
 	 * (muse, motion, analytics).
@@ -731,121 +732,48 @@
 		} );
 	}
 
-	events.on( events.NAMES.WINDOW_OPENED, handleWindowShown );
-	events.on( events.NAMES.WINDOW_REOPENED, handleWindowShown );
-	events.on( events.NAMES.NATIVE_WINDOW_AFTER_RENDER || 'odd.native-window-after-render', handleWindowShown );
-	bindNativeWindowRenderHooks();
-
-	events.on( events.NAMES.WINDOW_CLOSED, function ( payload ) {
+	function onWindowClosed( payload ) {
 		if ( ! payload || typeof payload !== 'object' ) return;
-		var slug = slugFromWindowId( payload.id );
+		var id = windowIdFromPayload( payload );
+		var slug = slugFromWindowId( id );
 		if ( ! slug ) return;
 		removeFrame( slug );
-		events.emit( events.NAMES.APP_CLOSED, { slug: slug, windowId: payload.id } );
-	} );
+		events.emit( events.NAMES.APP_CLOSED, { slug: slug, windowId: id } );
+	}
 
-	events.on( events.NAMES.WINDOW_FOCUSED, function ( payload ) {
+	function onWindowFocused( payload ) {
 		if ( ! payload || typeof payload !== 'object' ) return;
-		var slug = slugFromWindowId( payload.id );
+		var id = windowIdFromPayload( payload );
+		var slug = slugFromWindowId( id );
 		if ( ! slug ) return;
-		events.emit( events.NAMES.APP_FOCUSED, { slug: slug, windowId: payload.id } );
-	} );
-
-	/**
-	 * Defensive fallback. Current Desktop Mode builds expose native-
-	 * window render hooks, and ODD binds those directly above. Older
-	 * or unusual host orderings can still restore server-templated
-	 * windows before hooks/scripts attach, so we also watch the DOM
-	 * for any `.odd-app-host[data-odd-app]` node that lacks an iframe
-	 * and install one as soon as it appears.
-	 *
-	 * This mirrors the event-driven path and dedupes on the
-	 * iframe-already-present check inside installFrame, so a window
-	 * that does fire the event won't end up with two frames.
-	 */
-	function scanAndMount( root ) {
-		var scope = root && root.querySelectorAll ? root : document;
-		var hosts = queryAllDeep( '.odd-app-host[data-odd-app]', scope );
-		for ( var i = 0; i < hosts.length; i++ ) {
-			var host = hosts[ i ];
-			if ( host.querySelector( 'iframe.odd-app-frame' ) ) continue;
-			var slug = host.getAttribute( 'data-odd-app-slug' );
-			if ( ! slug ) continue;
-			var result = installFrame( host, { id: APP_ID_PREFIX + slug } );
-			// Only emit APP_OPENED on an actual new mount. Without the
-			// guard, a stale host that already has an iframe would
-			// re-emit every time the observer picks it up.
-			if ( result !== 'mounted' ) continue;
-			events.emit( events.NAMES.APP_OPENED, { slug: slug, windowId: APP_ID_PREFIX + slug } );
-		}
+		events.emit( events.NAMES.APP_FOCUSED, { slug: slug, windowId: id } );
 	}
 
-	function startObserver() {
-		if ( ! window.MutationObserver || ! document.body ) return;
-		var observedScopes = [];
-		var mo = new MutationObserver( function ( mutations ) {
-			for ( var i = 0; i < mutations.length; i++ ) {
-				var m = mutations[ i ];
-				if ( ! m.addedNodes || ! m.addedNodes.length ) continue;
-				for ( var j = 0; j < m.addedNodes.length; j++ ) {
-					var n = m.addedNodes[ j ];
-					if ( n.nodeType !== 1 ) continue;
-					if ( n.shadowRoot ) observeScope( n.shadowRoot );
-					if ( n.querySelectorAll ) {
-						Array.prototype.forEach.call( n.querySelectorAll( '*' ), function ( child ) {
-							if ( child.shadowRoot ) observeScope( child.shadowRoot );
-						} );
-					}
-					if ( n.matches && n.matches( '.odd-app-host[data-odd-app]' ) ) {
-						scanAndMount( n.parentNode || document );
-					} else if ( n.querySelector && n.querySelector( '.odd-app-host[data-odd-app]' ) ) {
-						scanAndMount( n );
-					} else if ( n.shadowRoot ) {
-						scanAndMount( n.shadowRoot );
-					}
-				}
-			}
+	function bindWindowLifecycleHooks() {
+		if ( desktopAdapter && typeof desktopAdapter.addActionFor === 'function' ) {
+			desktopAdapter.addActionFor( 'WINDOW_CLOSED', 'desktop-mode.window.closed', onWindowClosed, 'odd.apps.window-closed' );
+			desktopAdapter.addActionFor( 'WINDOW_FOCUSED', 'desktop-mode.window.focused', onWindowFocused, 'odd.apps.window-focused' );
+			return;
+		}
+		var h = window.wp && window.wp.hooks;
+		if ( ! h || typeof h.addAction !== 'function' ) return;
+		hostHookNames( 'WINDOW_CLOSED', [ 'desktop-mode.window.closed' ] ).forEach( function ( name, index ) {
+			try { h.addAction( name, 'odd.apps.window-closed-' + index, onWindowClosed ); } catch ( _ ) {}
 		} );
-		function observeScope( scope ) {
-			if ( ! scope || ! scope.querySelectorAll || observedScopes.indexOf( scope ) !== -1 ) return;
-			observedScopes.push( scope );
-			scanAndMount( scope );
-			Array.prototype.forEach.call( scope.querySelectorAll( '*' ), function ( node ) {
-				if ( node.shadowRoot ) observeScope( node.shadowRoot );
-			} );
-			mo.observe( scope, { childList: true, subtree: true } );
-		}
-		function patchAttachShadow() {
-			var proto = window.Element && window.Element.prototype;
-			if ( ! proto || typeof proto.attachShadow !== 'function' ) return;
-			var original = proto.attachShadow.__oddAppsOriginal || proto.attachShadow;
-			var wrapped = function () {
-				var root = original.apply( this, arguments );
-				try { observeScope( root ); } catch ( _ ) {}
-				return root;
-			};
-			wrapped.__oddAppsPatched = true;
-			wrapped.__oddAppsOriginal = original;
-			proto.attachShadow = wrapped;
-		}
-		patchAttachShadow();
-		observeScope( document.body );
+		hostHookNames( 'WINDOW_FOCUSED', [ 'desktop-mode.window.focused' ] ).forEach( function ( name, index ) {
+			try { h.addAction( name, 'odd.apps.window-focused-' + index, onWindowFocused ); } catch ( _ ) {}
+		} );
 	}
 
-	if ( document.readyState === 'loading' ) {
-		document.addEventListener( 'DOMContentLoaded', startObserver, { once: true } );
-	} else {
-		startObserver();
-	}
+	bindNativeWindowRenderHooks();
+	bindWindowLifecycleHooks();
 
 	/**
 	 * Client-side hydration — register a native-window render callback
-	 * for every installed app. WPDM's window manager prefers these
-	 * callbacks over the server `<template>`
-	 * clone path, so even if the template emission failed for any
-	 * reason (closure serialization, admin_footer skipped, mid-
-	 * session install without a page reload), the window body is
-	 * still built correctly.
+	 * for every installed app. Desktop Mode clones any server
+	 * `<template>` first, then invokes this callback. If the template
+	 * is absent during a live install or session restore, the callback
+	 * still builds the host body correctly.
 	 *
 	 * The callback just delegates to buildAndMount(), which:
 	 *   - dedupes against any pre-existing server-rendered host,

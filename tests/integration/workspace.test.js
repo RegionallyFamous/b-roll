@@ -70,13 +70,13 @@ describe( 'ODD workspace files', () => {
 		expect( workspace.content ).not.toContainEqual( { type: 'scene', slug: 'bad slug' } );
 	} );
 
-	it( 'exports enabled widgets from Desktop Mode 0.8.5 localStorage when the layer is absent', () => {
+	it( 'does not read Desktop Mode private widget storage when the layer is absent', () => {
 		delete window.wp.desktop.widgetLayer;
 		window.localStorage.setItem( 'desktop-mode-widgets', JSON.stringify( [ 'odd/sticky', 'odd/eight-ball' ] ) );
 
 		const workspace = window.__odd.workspace.exportData( { name: 'Stored Widgets' } );
 
-		expect( workspace.desktop.widgets.enabled ).toEqual( [ 'odd/sticky', 'odd/eight-ball' ] );
+		expect( workspace.desktop.widgets.enabled ).toEqual( [] );
 	} );
 
 	it( 'parses only marked ODD workspace files and builds a prefs patch', () => {

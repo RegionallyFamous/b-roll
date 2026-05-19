@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadFoundation, sleep } from './harness.js';
+import { loadFoundation } from './harness.js';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const SRC = resolve( __dirname, '../../odd/src/apps/window-host.js' );
@@ -65,8 +65,8 @@ describe( 'ODD app window host', () => {
 		const body = document.createElement( 'div' );
 		document.body.appendChild( body );
 
-		window.__odd.events.emit( window.__odd.events.NAMES.WINDOW_OPENED, {
-			id: 'odd-app-demo',
+		window.wp.hooks.doAction( 'desktop-mode.native-window.after-render', {
+			windowId: 'odd-app-demo',
 			body,
 		} );
 
@@ -93,9 +93,8 @@ describe( 'ODD app window host', () => {
 		expect( window.__odd.diagnostics.metrics().counters[ 'app.iframe.skipped' ] ).toBe( 1 );
 	} );
 
-	it( 'hydrates server-rendered app hosts inside open shadow roots', () => {
-		const shell = document.createElement( 'div' );
-		const shadow = shell.attachShadow( { mode: 'open' } );
+	it( 'hydrates server-rendered app hosts from the native render callback', () => {
+		const body = document.createElement( 'div' );
 		const host = document.createElement( 'div' );
 		host.className = 'odd-app-host';
 		host.setAttribute( 'data-odd-app', '' );
@@ -104,25 +103,26 @@ describe( 'ODD app window host', () => {
 		const loading = document.createElement( 'div' );
 		loading.className = 'odd-app-host__loading';
 		host.appendChild( loading );
-		shadow.appendChild( host );
-		document.body.appendChild( shell );
+		body.appendChild( host );
+		document.body.appendChild( body );
 
 		loadWindowHost();
 
-		expect( shadow.querySelector( 'iframe.odd-app-frame' ) ).toBeTruthy();
-		expect( window.__odd.diagnostics.appIframes()[0].domRoot ).toBe( 'shadowRoot' );
+		window.desktopModeNativeWindows[ 'odd-app-demo' ]( body, {} );
+
+		expect( body.querySelector( 'iframe.odd-app-frame' ) ).toBeTruthy();
 		expect( window.__odd.diagnostics.metrics().counters[ 'app.iframe.loaded' ] ).toBeUndefined();
 	} );
 
-	it( 'mounts into the opened window body when no server host exists', () => {
+	it( 'mounts into the rendered native window body when no server host exists', () => {
 		loadWindowHost();
 		const body = document.createElement( 'div' );
 		document.body.appendChild( body );
 		const appOpened = [];
 		window.__odd.events.on( 'odd.app-opened', ( payload ) => appOpened.push( payload ) );
 
-		window.__odd.events.emit( window.__odd.events.NAMES.WINDOW_OPENED, {
-			id: 'odd-app-demo',
+		window.wp.hooks.doAction( 'desktop-mode.native-window.after-render', {
+			windowId: 'odd-app-demo',
 			body,
 		} );
 
@@ -160,36 +160,4 @@ describe( 'ODD app window host', () => {
 		expect( appOpened ).toEqual( [ { slug: 'demo', windowId: 'odd-app-demo' } ] );
 	} );
 
-	it( 'mounts from the normalized ODD native-window after-render event', () => {
-		loadWindowHost();
-		const body = document.createElement( 'div' );
-		document.body.appendChild( body );
-
-		window.__odd.events.emit( window.__odd.events.NAMES.NATIVE_WINDOW_AFTER_RENDER, {
-			id: 'odd-app-demo',
-			body,
-		} );
-
-		const frame = body.querySelector( 'iframe.odd-app-frame' );
-		expect( frame ).toBeTruthy();
-		expect( frame.getAttribute( 'src' ) ).toBe( '/odd-app/demo/' );
-	} );
-
-	it( 'hydrates app hosts added to shadow roots after boot', async () => {
-		loadWindowHost();
-		const shell = document.createElement( 'div' );
-		document.body.appendChild( shell );
-		const shadow = shell.attachShadow( { mode: 'open' } );
-		const host = document.createElement( 'div' );
-		host.className = 'odd-app-host';
-		host.setAttribute( 'data-odd-app', '' );
-		host.setAttribute( 'data-odd-app-slug', 'demo' );
-		host.setAttribute( 'data-odd-app-src', '/odd-app/demo/' );
-
-		shadow.appendChild( host );
-		await sleep( 0 );
-
-		expect( shadow.querySelector( 'iframe.odd-app-frame' ) ).toBeTruthy();
-		expect( window.__odd.diagnostics.appIframes()[0].domRoot ).toBe( 'shadowRoot' );
-	} );
 } );

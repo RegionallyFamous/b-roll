@@ -565,7 +565,11 @@
 	}
 
 	function findWindowElement( id ) {
-		if ( ! id || typeof document === 'undefined' || ! document.querySelector ) return null;
+		if ( ! id ) return null;
+		var instance = windowInstance( id );
+		var fromInstance = elementFromPayload( instance );
+		if ( fromInstance ) return fromInstance;
+		if ( typeof document === 'undefined' || ! document.querySelector ) return null;
 		var q = cssEscape( id );
 		var selectors = [
 			'[data-window-id="' + q + '"]',
@@ -586,7 +590,9 @@
 	}
 
 	function windowElementFromPayload( payload ) {
-		return elementFromPayload( payload ) || findWindowElement( windowIdFromPayload( payload ) );
+		var fromPayload = elementFromPayload( payload );
+		if ( fromPayload ) return fromPayload;
+		return findWindowElement( windowIdFromPayload( payload ) );
 	}
 
 	function windowInstance( id ) {
@@ -1437,6 +1443,21 @@
 			} );
 			return true;
 		}
+		function hostVisibleWindowElements() {
+			var d = desktop();
+			var manager = d && d.windowManager;
+			if ( ! manager || typeof manager.getVisibleRects !== 'function' ) return [];
+			try {
+				var rows = manager.getVisibleRects() || [];
+				return rows.map( function ( row ) {
+					return row && row.element;
+				} ).filter( function ( el ) {
+					return !! el;
+				} );
+			} catch ( _ ) {
+				return [];
+			}
+		}
 		[
 			[ 'WINDOW_OPENED', 'desktop-mode.window.opened' ],
 			[ 'WINDOW_REOPENED', 'desktop-mode.window.reopened' ],
@@ -1453,6 +1474,9 @@
 		addActionFor( 'DESKTOP_ICONS_RENDERED', 'desktop-mode.desktop-icons.rendered', mapDesktopIconSurfaces );
 		if ( typeof document !== 'undefined' ) {
 			ready( function () {
+				hostVisibleWindowElements().forEach( function ( el ) {
+					mapWindowSurface( { element: el } );
+				} );
 				var roots = document.querySelectorAll ? document.querySelectorAll( '#desktop-mode-shell, .desktop-mode, .desktop-mode-shell, #desktop-mode-icons, .desktop-mode-icons, #wp-desktop-shell, .wp-desktop-shell, .wp-desktop-shell__body, #wp-desktop-area, .wp-desktop-area, #wp-desktop-wallpaper, .wp-desktop-wallpaper, #wp-desktop-dock, .wp-desktop-dock, #wp-desktop-widgets, .wp-desktop-widgets, .wp-desktop-widgets__list, .wp-desktop-window, .wp-desktop-icons, [data-window-id], [data-windowid], [data-desktop-window-id], [data-native-window-id]' ) : [];
 				for ( var i = 0; i < roots.length; i++ ) {
 					markCursorRoot( roots[ i ] );

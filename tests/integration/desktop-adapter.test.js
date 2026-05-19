@@ -94,6 +94,25 @@ describe( 'ODD Desktop Mode adapter', () => {
 		expect( seen ).toEqual( [ 'fallback' ] );
 	} );
 
+	it( 'redocks widgets only through the public Desktop Mode widget API', () => {
+		const publicRedock = vi.fn( () => true );
+		const privateRedock = vi.fn( () => true );
+		window.wp.desktop = {
+			widgets: {
+				redock: publicRedock,
+			},
+			widgetLayer: {
+				redock: privateRedock,
+			},
+		};
+		const adapter = window.__odd.desktop;
+
+		expect( adapter.redockWidget( 'odd/weather' ) ).toBe( true );
+
+		expect( publicRedock ).toHaveBeenCalledWith( 'odd/weather' );
+		expect( privateRedock ).not.toHaveBeenCalled();
+	} );
+
 	it( 'registers sanitized Desktop Mode window notices and falls back to toasts', () => {
 		const unregister = vi.fn();
 		const registerWindowNotice = vi.fn( () => unregister );

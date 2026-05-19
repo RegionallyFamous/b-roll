@@ -40,8 +40,9 @@ const EXERCISES = {
 	'desk-pet-oddling': async ( page ) => {
 		await page.mouse.move( 40, 42 );
 		await page.evaluate( () => {
-			const handler = window.__oddHandlers && window.__oddHandlers[ 'odd.window-bounds-changed' ];
-			if ( handler ) handler();
+			if ( window.wp && window.wp.hooks ) {
+				window.wp.hooks.doAction( 'desktop-mode.window.bounds-changed', { windowId: 'visual' } );
+			}
 		} );
 	},
 	'fortune-terminal': async ( page ) => {
@@ -170,23 +171,37 @@ function pageMarkup( widget, size, port ) {
 <body>
 	<div id="host"></div>
 	<script>
+		const __desktopActions = {};
 		window.wp = {
 			i18n: { __: function ( s ) { return s; } },
 			desktop: {
+				HOOKS: {
+					WINDOW_BOUNDS_CHANGED: 'desktop-mode.window.bounds-changed',
+					WINDOW_FOCUSED: 'desktop-mode.window.focused'
+				},
 				registerWidget: function () {
 					throw new Error( 'Widget bundles must expose window.desktopModeWidgets[id], not call wp.desktop.registerWidget().' );
 				}
+			},
+			hooks: {
+				addAction: function ( name, namespace, fn ) {
+					__desktopActions[ name + '::' + namespace ] = { name: name, fn: fn };
+				},
+				removeAction: function ( name, namespace ) {
+					delete __desktopActions[ name + '::' + namespace ];
+				},
+				doAction: function ( name, payload ) {
+					Object.keys( __desktopActions ).forEach( function ( key ) {
+						var action = __desktopActions[ key ];
+						if ( action.name === name ) action.fn( payload );
+					} );
+				}
 			}
 		};
-		window.__oddHandlers = {};
 		window.__oddEmitted = [];
 		window.__oddStorage = {};
 		window.__odd = {
 			events: {
-				on: function ( name, fn ) {
-					window.__oddHandlers[ name ] = fn;
-					return function () { delete window.__oddHandlers[ name ]; };
-				},
 				emit: function ( name, payload ) {
 					window.__oddEmitted.push( { name: name, payload: payload } );
 				}

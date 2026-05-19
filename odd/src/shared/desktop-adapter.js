@@ -434,17 +434,9 @@
 	function redockWidget( id ) {
 		var d = host();
 		if ( ! d || ! id ) return null;
-		var api = null;
-		if ( d.widgets && typeof d.widgets.redock === 'function' ) {
-			api = { owner: d.widgets, fn: d.widgets.redock };
-		} else if ( d.widgetLayer && typeof d.widgetLayer.redock === 'function' ) {
-			api = { owner: d.widgetLayer, fn: d.widgetLayer.redock };
-		} else if ( d.widgetLayer && typeof d.widgetLayer.redockWidget === 'function' ) {
-			api = { owner: d.widgetLayer, fn: d.widgetLayer.redockWidget };
-		}
-		if ( ! api ) return null;
+		if ( ! d.widgets || typeof d.widgets.redock !== 'function' ) return null;
 		try {
-			return api.fn.call( api.owner, id );
+			return d.widgets.redock( id );
 		} catch ( err ) {
 			record( 'warn', 'wp.desktop.widget.redock.failed', { id: id, message: err && err.message || '' } );
 			return false;
@@ -507,7 +499,7 @@
 			windows: !! ( d && ( typeof d.registerWindow === 'function' || typeof d.openWindow === 'function' ) ),
 			windowManager: !! ( d && d.windowManager ),
 			widgets: !! ( d && d.widgetLayer ),
-			widgetRedock: !! ( d && ( d.widgets && typeof d.widgets.redock === 'function' || d.widgetLayer && ( typeof d.widgetLayer.redock === 'function' || typeof d.widgetLayer.redockWidget === 'function' ) ) ),
+			widgetRedock: !! ( d && d.widgets && typeof d.widgets.redock === 'function' ),
 			windowNotices: !! ( d && typeof d.registerWindowNotice === 'function' ),
 			windowNoticeDismissal: !! ( d && typeof d.dismissWindowNotice === 'function' && typeof d.undismissWindowNotice === 'function' ),
 			windowGeometry: !! ( d && d.HOOKS && d.HOOKS.WINDOW_GEOMETRY ),
