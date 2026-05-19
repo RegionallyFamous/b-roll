@@ -91,30 +91,22 @@
 			spellcheck:  'true',
 			'aria-label': __( 'Sticky note' ),
 		} );
-		var status  = el( 'p', { class: 'odd-sticky__status', 'aria-live': 'polite' }, __( 'Saved' ) );
 
 		body.appendChild( ta );
 		paper.appendChild( tape );
 		paper.appendChild( body );
 		paper.appendChild( peel );
-		paper.appendChild( status );
 		root.appendChild( paper );
 		container.replaceChildren( root );
 
 		ta.value = storageGet( ctx, 'text' );
 
-		function setStatus( text ) {
-			status.textContent = text;
-		}
-
 		var saveTimer = 0;
 		function scheduleSave() {
 			if ( saveTimer ) window.clearTimeout( saveTimer );
-			setStatus( __( 'Saving...' ) );
 			saveTimer = window.setTimeout( function () {
 				saveTimer = 0;
 				storageSet( ctx, 'text', ta.value );
-				setStatus( __( 'Saved' ) );
 			}, 400 );
 		}
 
