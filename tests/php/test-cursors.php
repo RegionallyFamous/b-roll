@@ -143,10 +143,11 @@ class Test_Cursors extends WP_UnitTestCase {
 		$this->add_fixture_cursor_set();
 		$css = oddout_cursors_build_css( oddout_cursors_get_set( 'test-cursors' ) );
 
-		$this->assertStringContainsString(
-			'[data-window-id], [data-windowid], [data-desktop-window-id], [data-native-window-id]',
-			$css
-		);
+		foreach ( array( 'body.desktop-mode-active', '[data-odd-cursor-root]' ) as $scope ) {
+			foreach ( array( '[data-window-id]', '[data-windowid]', '[data-desktop-window-id]', '[data-native-window-id]' ) as $selector ) {
+				$this->assertStringContainsString( $scope . ' ' . $selector, $css );
+			}
+		}
 		$this->assertStringContainsString( '.wp-desktop-window', $css );
 		$this->assertStringNotContainsString( '.native-window-titlebar { cursor: var(--odd-cursor-grab); }', $css );
 		$this->assertStringNotContainsString( '[aria-label="Close"]', $css );
