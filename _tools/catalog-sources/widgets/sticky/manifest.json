@@ -2,9 +2,9 @@
   "slug": "sticky",
   "id": "odd/sticky",
   "label": "Sticky Note",
-  "description": "A tilted handwritten sticky note that auto-saves as you type.",
+  "description": "A tilted handwritten sticky note that can grow when your scribbles get ambitious.",
   "category": "ODD Originals",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Regionally Famous",
   "entry": "widget.js",
   "css": [
@@ -15,8 +15,8 @@
   "resizable": true,
   "minWidth": 220,
   "minHeight": 160,
-  "maxWidth": 460,
-  "maxHeight": 420,
-  "defaultWidth": 260,
-  "defaultHeight": 200
+  "maxWidth": 760,
+  "maxHeight": 680,
+  "defaultWidth": 280,
+  "defaultHeight": 220
 }

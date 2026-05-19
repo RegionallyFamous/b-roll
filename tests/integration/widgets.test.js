@@ -211,6 +211,15 @@ describe( 'sticky widget', () => {
 		expect( () => cleanup() ).not.toThrow();
 	} );
 
+	it( 'advertises expanded dimensions for longer notes', () => {
+		const manifest = JSON.parse( readFileSync( FIRST_PARTY_WIDGETS.find( ( widget ) => widget.slug === 'sticky' ).manifest, 'utf8' ) );
+		expect( manifest.resizable ).toBe( true );
+		expect( manifest.maxWidth ).toBeGreaterThanOrEqual( 720 );
+		expect( manifest.maxHeight ).toBeGreaterThanOrEqual( 640 );
+		expect( manifest.defaultWidth ).toBeGreaterThan( manifest.minWidth );
+		expect( manifest.defaultHeight ).toBeGreaterThan( manifest.minHeight );
+	} );
+
 	it( 'restores prior content from Desktop Mode ctx.storage on mount', () => {
 		window.localStorage.setItem( 'odd:sticky', 'ignored value' );
 

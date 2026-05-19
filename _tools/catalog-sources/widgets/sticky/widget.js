@@ -73,7 +73,7 @@
 		} catch ( e ) {}
 	}
 
-	var STICKY_MAX = 2000;
+	var STICKY_MAX = 4000;
 
 	function readStickyTilt( ctx ) {
 		var raw = storageGet( ctx, 'tilt' );
